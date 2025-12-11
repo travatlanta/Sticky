@@ -101,6 +101,7 @@ export interface IStorage {
 
   // Message operations
   getMessagesByOrder(orderId: number): Promise<Message[]>;
+  getMessagesByUser(userId: string): Promise<Message[]>;
   getUnreadMessages(): Promise<Message[]>;
   createMessage(message: Partial<Message>): Promise<Message>;
   markMessageRead(id: number): Promise<void>;
@@ -318,6 +319,10 @@ export class DatabaseStorage implements IStorage {
   // Message operations
   async getMessagesByOrder(orderId: number): Promise<Message[]> {
     return db.select().from(messages).where(eq(messages.orderId, orderId)).orderBy(asc(messages.createdAt));
+  }
+
+  async getMessagesByUser(userId: string): Promise<Message[]> {
+    return db.select().from(messages).where(eq(messages.userId, userId)).orderBy(asc(messages.createdAt));
   }
 
   async getUnreadMessages(): Promise<Message[]> {

@@ -87,6 +87,28 @@ Key data entities:
 - `STRIPE_SECRET_KEY` - Stripe API key (optional)
 - `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key for frontend (optional)
 
+## Recent Features
+
+### Customer Artwork Upload
+- **API Endpoint**: `POST /api/upload/artwork` - uploads customer artwork files
+- **Storage**: Files saved to `/uploads/artwork/` directory
+- **Limits**: 50MB max file size, supports JPG, PNG, GIF, WebP, SVG, PDF
+- **Integration**: Editor page uploads artwork to server before adding to canvas
+
+### Live Chat Support
+- **Component**: `ChatWidget.tsx` - floating chat widget in bottom-right corner
+- **API Endpoints**:
+  - `GET /api/messages` - get user's messages
+  - `POST /api/messages` - send a new message
+  - `GET /api/admin/messages` - get all unread messages (admin)
+  - `POST /api/admin/messages/reply` - reply to user (admin)
+  - `PUT /api/messages/:id/read` - mark message as read
+- **Features**: Real-time polling (5s), message history, support/user distinction
+
+### Order Tracking
+- **Page**: `/orders/:id` - detailed order view with status tracking
+- **Features**: Order timeline, shipping info, order items summary, status badges
+
 ## Pending Configuration
 
 ### Stripe Payment Integration

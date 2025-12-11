@@ -12,6 +12,8 @@ import Cart from "@/pages/Cart";
 import Orders from "@/pages/Orders";
 import OrderDetail from "@/pages/OrderDetail";
 import Deals from "@/pages/Deals";
+import Account from "@/pages/Account";
+import Designs from "@/pages/Designs";
 import NotFound from "@/pages/NotFound";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminProducts from "@/pages/admin/Products";
@@ -104,6 +106,20 @@ function Router() {
         {() => (
           <Layout>
             <Deals />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/account">
+        {() => (
+          <Layout>
+            <Account />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/designs">
+        {() => (
+          <Layout>
+            <Designs />
           </Layout>
         )}
       </Route>

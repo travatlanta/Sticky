@@ -32,25 +32,28 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center space-x-4">
             <Link href="/cart">
-              <Button variant="ghost" size="icon" className="text-gray-600 hover:text-orange-500 hover:bg-orange-50">
+              <Button variant="ghost" size="icon" className="text-gray-600 hover:text-orange-500 hover:bg-orange-50" data-testid="button-cart">
                 <ShoppingCart className="h-5 w-5" />
               </Button>
             </Link>
             {isAuthenticated ? (
               <div className="flex items-center space-x-2">
-                {user?.profileImageUrl ? (
-                  <img
-                    src={user.profileImageUrl}
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full object-cover ring-2 ring-orange-200"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-full flex items-center justify-center ring-2 ring-orange-200">
-                    <User className="h-4 w-4 text-orange-600" />
-                  </div>
-                )}
+                <Link href="/account">
+                  {user?.profileImageUrl ? (
+                    <img
+                      src={user.profileImageUrl}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover ring-2 ring-orange-200 cursor-pointer hover:ring-orange-400 transition-all"
+                      data-testid="link-account-avatar"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-full flex items-center justify-center ring-2 ring-orange-200 cursor-pointer hover:ring-orange-400 transition-all" data-testid="link-account-avatar">
+                      <User className="h-4 w-4 text-orange-600" />
+                    </div>
+                  )}
+                </Link>
                 <a href="/api/logout">
-                  <Button variant="outline" size="sm" className="border-orange-200 hover:bg-orange-50 hover:border-orange-300">
+                  <Button variant="outline" size="sm" className="border-orange-200 hover:bg-orange-50 hover:border-orange-300" data-testid="button-sign-out">
                     Sign Out
                   </Button>
                 </a>
@@ -99,9 +102,19 @@ export default function Navbar() {
                 Cart
               </Link>
               {isAuthenticated ? (
-                <a href="/api/logout" className="text-gray-600 hover:text-orange-500 font-medium transition-colors">
-                  Sign Out
-                </a>
+                <>
+                  <Link
+                    href="/account"
+                    className="text-gray-600 hover:text-orange-500 font-medium transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-testid="link-mobile-account"
+                  >
+                    My Account
+                  </Link>
+                  <a href="/api/logout" className="text-gray-600 hover:text-orange-500 font-medium transition-colors">
+                    Sign Out
+                  </a>
+                </>
               ) : (
                 <a href="/api/login" className="text-orange-500 font-bold transition-colors">
                   Sign In

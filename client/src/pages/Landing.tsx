@@ -75,11 +75,11 @@ export default function Landing() {
                   </Button>
                 </Link>
               ) : (
-                <a href="/api/login">
+                <Link href="/login">
                   <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-orange-300 hover:bg-orange-50" data-testid="button-sign-in">
                     Sign In to Start
                   </Button>
-                </a>
+                </Link>
               )}
             </div>
           </div>

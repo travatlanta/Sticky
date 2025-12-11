@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User, Menu, X, Sparkles } from "lucide-react";
+import { ShoppingCart, User, Menu, X, Sparkles, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 
 export default function Navbar() {
@@ -26,6 +26,12 @@ export default function Navbar() {
             {isAuthenticated && (
               <Link href="/orders" className="text-gray-600 hover:text-orange-500 font-medium transition-colors">
                 My Orders
+              </Link>
+            )}
+            {user?.isAdmin && (
+              <Link href="/admin" className="text-orange-600 hover:text-orange-700 font-medium transition-colors flex items-center gap-1" data-testid="link-admin-dashboard">
+                <LayoutDashboard className="h-4 w-4" />
+                Admin
               </Link>
             )}
           </div>
@@ -92,6 +98,17 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   My Orders
+                </Link>
+              )}
+              {user?.isAdmin && (
+                <Link
+                  href="/admin"
+                  className="text-orange-600 hover:text-orange-700 font-medium transition-colors flex items-center gap-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                  data-testid="link-admin-dashboard-mobile"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Admin Dashboard
                 </Link>
               )}
               <Link

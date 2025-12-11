@@ -95,8 +95,18 @@ export default function Editor() {
   const initCanvas = useCallback(() => {
     if (!canvasRef.current || !window.fabric) return;
 
-    const templateWidth = (product as any)?.templateWidth || 400;
-    const templateHeight = (product as any)?.templateHeight || 400;
+    // Calculate canvas size from product dimensions (inches * DPI)
+    const widthInches = parseFloat((product as any)?.widthInches) || 3;
+    const heightInches = parseFloat((product as any)?.heightInches) || 3;
+    const dpi = parseInt((product as any)?.dpi) || 300;
+    
+    // Full canvas size in pixels (includes bleed area)
+    const canvasPixelWidth = widthInches * dpi;
+    const canvasPixelHeight = heightInches * dpi;
+    
+    // Fallback to templateWidth/Height if set (for backwards compatibility)
+    const templateWidth = (product as any)?.templateWidth || canvasPixelWidth;
+    const templateHeight = (product as any)?.templateHeight || canvasPixelHeight;
     
     const containerWidth = canvasContainerRef.current?.clientWidth || 350;
     const containerHeight = canvasContainerRef.current?.clientHeight || 350;
@@ -104,8 +114,8 @@ export default function Editor() {
     // Scale canvas to fit container with good visibility
     const scaleX = (containerWidth - 48) / templateWidth;
     const scaleY = (containerHeight - 80) / templateHeight;
-    // Allow larger scale for better visibility, cap at 2x
-    const initialScale = Math.min(scaleX, scaleY, 2);
+    // Scale down to fit, minimum 0.3 for visibility
+    const initialScale = Math.max(Math.min(scaleX, scaleY, 1), 0.15);
     
     const displayWidth = templateWidth * initialScale;
     const displayHeight = templateHeight * initialScale;
@@ -121,26 +131,24 @@ export default function Editor() {
     setZoom(initialScale);
     fabricCanvasRef.current = canvas;
 
-    // Bleed is typically 0.125" (1/8 inch) - at 300 DPI that's about 37.5 pixels
-    // Safe zone is typically 0.25" (1/4 inch) - at 300 DPI that's about 75 pixels
+    // Bleed and safe zone in inches
     const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
     const safeZoneInches = parseFloat((product as any)?.safeZoneSize) || 0.25;
-    const dpi = 300;
-    const bleedPixels = bleedInches * dpi;
-    const safeZonePixels = safeZoneInches * dpi;
-    const scaledBleed = (bleedPixels / templateWidth) * displayWidth;
-    const scaledSafeZone = (safeZonePixels / templateWidth) * displayWidth;
     
-    // Bleed line (red dashed) - shows where the cut will happen (inside from edge)
+    // Convert to pixels at the product's DPI, then scale for display
+    const bleedPixels = bleedInches * dpi * initialScale;
+    const safeZonePixels = safeZoneInches * dpi * initialScale;
+    
+    // Bleed line (red dashed) - shows where the cut will happen
     const bleedRect = new window.fabric.Rect({
-      left: scaledBleed,
-      top: scaledBleed,
-      width: displayWidth - scaledBleed * 2,
-      height: displayHeight - scaledBleed * 2,
+      left: bleedPixels,
+      top: bleedPixels,
+      width: displayWidth - bleedPixels * 2,
+      height: displayHeight - bleedPixels * 2,
       fill: "transparent",
       stroke: "#ef4444",
       strokeWidth: 2,
-      strokeDashArray: [6, 3],
+      strokeDashArray: [8, 4],
       selectable: false,
       evented: false,
       name: "bleedGuide",
@@ -149,14 +157,14 @@ export default function Editor() {
 
     // Safe zone (green dashed) - important content should stay inside this
     const safeRect = new window.fabric.Rect({
-      left: scaledSafeZone,
-      top: scaledSafeZone,
-      width: displayWidth - scaledSafeZone * 2,
-      height: displayHeight - scaledSafeZone * 2,
+      left: safeZonePixels,
+      top: safeZonePixels,
+      width: displayWidth - safeZonePixels * 2,
+      height: displayHeight - safeZonePixels * 2,
       fill: "transparent",
       stroke: "#22c55e",
       strokeWidth: 2,
-      strokeDashArray: [6, 3],
+      strokeDashArray: [8, 4],
       selectable: false,
       evented: false,
       name: "safeGuide",
@@ -471,12 +479,20 @@ export default function Editor() {
   };
 
   const handleZoom = (delta: number) => {
-    const newZoom = Math.max(0.5, Math.min(3, zoom + delta));
+    const newZoom = Math.max(0.1, Math.min(2, zoom + delta));
     setZoom(newZoom);
     if (fabricCanvasRef.current) {
       const canvas = fabricCanvasRef.current;
-      const templateWidth = (product as any)?.templateWidth || 400;
-      const templateHeight = (product as any)?.templateHeight || 400;
+      
+      // Calculate canvas size from product dimensions
+      const widthInches = parseFloat((product as any)?.widthInches) || 3;
+      const heightInches = parseFloat((product as any)?.heightInches) || 3;
+      const dpi = parseInt((product as any)?.dpi) || 300;
+      const canvasPixelWidth = widthInches * dpi;
+      const canvasPixelHeight = heightInches * dpi;
+      const templateWidth = (product as any)?.templateWidth || canvasPixelWidth;
+      const templateHeight = (product as any)?.templateHeight || canvasPixelHeight;
+      
       const newWidth = templateWidth * newZoom;
       const newHeight = templateHeight * newZoom;
       
@@ -487,11 +503,8 @@ export default function Editor() {
       // Update guide positions for new zoom level
       const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
       const safeZoneInches = parseFloat((product as any)?.safeZoneSize) || 0.25;
-      const dpi = 300;
-      const bleedPixels = bleedInches * dpi;
-      const safeZonePixels = safeZoneInches * dpi;
-      const scaledBleed = (bleedPixels / templateWidth) * newWidth;
-      const scaledSafeZone = (safeZonePixels / templateWidth) * newWidth;
+      const bleedPixels = bleedInches * dpi * newZoom;
+      const safeZonePixels = safeZoneInches * dpi * newZoom;
       
       const objects = canvas.getObjects();
       const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
@@ -499,20 +512,20 @@ export default function Editor() {
       
       if (bleedGuide) {
         bleedGuide.set({
-          left: scaledBleed,
-          top: scaledBleed,
-          width: newWidth - scaledBleed * 2,
-          height: newHeight - scaledBleed * 2,
+          left: bleedPixels,
+          top: bleedPixels,
+          width: newWidth - bleedPixels * 2,
+          height: newHeight - bleedPixels * 2,
         });
         canvas.bringToFront(bleedGuide);
       }
       
       if (safeGuide) {
         safeGuide.set({
-          left: scaledSafeZone,
-          top: scaledSafeZone,
-          width: newWidth - scaledSafeZone * 2,
-          height: newHeight - scaledSafeZone * 2,
+          left: safeZonePixels,
+          top: safeZonePixels,
+          width: newWidth - safeZonePixels * 2,
+          height: newHeight - safeZonePixels * 2,
         });
         canvas.bringToFront(safeGuide);
       }

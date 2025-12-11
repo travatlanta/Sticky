@@ -93,7 +93,7 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-24 right-6 z-40">
       {isOpen ? (
         <div className="w-80 sm:w-96 h-[28rem] flex flex-col bg-white rounded-2xl shadow-2xl border border-orange-200 overflow-hidden">
           {/* Header */}
@@ -199,14 +199,14 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
           </form>
         </div>
       ) : (
-        <Button
-          size="lg"
-          className="rounded-full w-14 h-14 shadow-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 border-2 border-white"
+        <button
+          className="group relative w-16 h-16 rounded-full shadow-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 border-2 border-white flex items-center justify-center transition-transform hover:scale-105"
           onClick={() => setIsOpen(true)}
           data-testid="button-open-chat"
         >
-          <MessageCircle className="w-6 h-6" />
-        </Button>
+          <Headphones className="w-7 h-7 text-white" />
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse" />
+        </button>
       )}
     </div>
   );

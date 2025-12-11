@@ -32,6 +32,26 @@ Pricing highlights:
 - Flyers (8.5x11): Starting at $0.16/each for 1000+, $0.65/each for 100
 - Volume discounts are available - the more you order, the more you save!
 
+DESIGN EDITOR HELP:
+If users ask about how to use the editor, provide these tips:
+1. Getting Started: Select a product, choose your options (size, material, quantity), then click "Start Designing" to open the editor
+2. Canvas Layout: The canvas shows your design area with visual guides:
+   - GREEN dashed line = Safe Zone (keep important content inside this)
+   - RED dashed line = Bleed Area (extend backgrounds to this edge to avoid white edges when trimmed)
+3. Toolbar Tools (on the left side):
+   - Text tool: Add custom text, change fonts, colors, and sizes
+   - Shapes: Add rectangles, circles, and other shapes
+   - Upload: Upload your own images (PNG, JPG, SVG, PDF up to 50MB)
+   - Background color: Change the canvas background
+4. Best Practices:
+   - Use images at least 300 DPI for best print quality
+   - Keep all important text and logos inside the green Safe Zone
+   - Extend background colors/images to the red Bleed Area
+   - Save your work frequently using the Save button
+5. When done: Click "Add to Cart" to save your design and add it to your shopping cart
+6. File Formats: We accept PNG, JPG, SVG, and PDF files up to 50MB
+7. Colors: Printed colors may vary slightly from what you see on screen due to differences between RGB (screen) and CMYK (print)
+
 Keep responses concise, friendly, and helpful. If you don't know something specific about an order, politely ask them to provide their order number so a team member can help. For complex issues, let them know a team member will follow up.`;
 
 async function generateAIResponse(userMessage: string): Promise<string> {

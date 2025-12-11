@@ -49,7 +49,7 @@ export default function AdminInbox() {
   });
 
   const { data: conversationDetail, isLoading: isLoadingDetail, error: detailError } = useQuery<ConversationDetail>({
-    queryKey: ["/api/admin/inbox", expandedUserId],
+    queryKey: ["/api/admin/inbox/" + expandedUserId],
     enabled: !!expandedUserId,
   });
 

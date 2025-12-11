@@ -1396,7 +1396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const messages = await storage.getMessagesByUser(req.params.userId);
       const user = await storage.getUser(req.params.userId);
-      res.json({ messages, user });
+      res.json({ messages: messages || [], user: user || null });
     } catch (error) {
       console.error("Error fetching conversation:", error);
       res.status(500).json({ message: "Failed to fetch conversation" });

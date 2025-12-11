@@ -59,11 +59,11 @@ export default function Navbar() {
                 </a>
               </div>
             ) : (
-              <a href="/api/login">
-                <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md shadow-orange-500/30">
+              <Link href="/login">
+                <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md shadow-orange-500/30" data-testid="button-sign-in">
                   Sign In
                 </Button>
-              </a>
+              </Link>
             )}
           </div>
 
@@ -116,9 +116,9 @@ export default function Navbar() {
                   </a>
                 </>
               ) : (
-                <a href="/api/login" className="text-orange-500 font-bold transition-colors">
+                <Link href="/login" className="text-orange-500 font-bold transition-colors" data-testid="link-mobile-sign-in">
                   Sign In
-                </a>
+                </Link>
               )}
             </div>
           </div>

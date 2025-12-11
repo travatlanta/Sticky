@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Save, Trash2, Settings as SettingsIcon } from "lucide-react";
+import { Plus, Save, Trash2, Settings as SettingsIcon, Shield, UserPlus, UserMinus, Mail, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface SiteSetting {
   id: number;
@@ -11,9 +12,17 @@ interface SiteSetting {
   value: any;
 }
 
+interface AdminUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}
+
 export default function AdminSettings() {
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
   const [editingSettings, setEditingSettings] = useState<Record<string, string>>({});
 
   const queryClient = useQueryClient();
@@ -21,6 +30,39 @@ export default function AdminSettings() {
 
   const { data: settings, isLoading } = useQuery<SiteSetting[]>({
     queryKey: ["/api/admin/settings"],
+  });
+
+  const { data: admins, isLoading: adminsLoading } = useQuery<AdminUser[]>({
+    queryKey: ["/api/admin/admins"],
+  });
+
+  const inviteAdminMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await apiRequest("POST", "/api/admin/admins/invite", { email });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/admins"] });
+      toast({ title: "Admin invited successfully" });
+      setInviteEmail("");
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message || "Failed to invite admin", variant: "destructive" });
+    },
+  });
+
+  const revokeAdminMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("POST", "/api/admin/admins/revoke", { userId });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/admins"] });
+      toast({ title: "Admin access revoked" });
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message || "Failed to revoke admin", variant: "destructive" });
+    },
   });
 
   const updateMutation = useMutation({
@@ -171,6 +213,111 @@ export default function AdminSettings() {
             <p><code className="bg-gray-200 px-1 rounded">tax_rate</code> - Tax rate percentage</p>
             <p><code className="bg-gray-200 px-1 rounded">maintenance_mode</code> - true/false for maintenance</p>
           </div>
+        </div>
+
+        <div className="mt-8 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Shield className="h-6 w-6 text-orange-500" />
+            Admin Management
+          </h2>
+          <p className="text-gray-600">Manage who has admin access to this site</p>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-green-500" />
+            Invite New Admin
+          </h3>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 border rounded-lg"
+                  placeholder="admin@example.com"
+                  data-testid="input-invite-email"
+                />
+              </div>
+            </div>
+            <div className="flex items-end">
+              <Button
+                onClick={() => inviteAdminMutation.mutate(inviteEmail)}
+                disabled={!inviteEmail.trim() || inviteAdminMutation.isPending}
+                className="bg-green-500 hover:bg-green-600"
+                data-testid="button-invite-admin"
+              >
+                {inviteAdminMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <UserPlus className="h-4 w-4 mr-2" />
+                )}
+                Invite Admin
+              </Button>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            The user must have an existing account or create one with this email to receive admin access.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b bg-gray-50">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Shield className="h-5 w-5 text-orange-500" />
+              Current Admins
+            </h3>
+          </div>
+          {adminsLoading ? (
+            <div className="p-4 animate-pulse">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex justify-between items-center py-3">
+                  <div className="h-5 bg-gray-200 rounded w-1/3" />
+                  <div className="h-8 bg-gray-200 rounded w-20" />
+                </div>
+              ))}
+            </div>
+          ) : admins && admins.length > 0 ? (
+            <div className="divide-y">
+              {admins.map((admin) => (
+                <div key={admin.id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900" data-testid={`text-admin-name-${admin.id}`}>
+                      {admin.firstName && admin.lastName
+                        ? `${admin.firstName} ${admin.lastName}`
+                        : admin.email}
+                    </p>
+                    <p className="text-sm text-gray-500" data-testid={`text-admin-email-${admin.id}`}>
+                      {admin.email}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => revokeAdminMutation.mutate(admin.id)}
+                    disabled={revokeAdminMutation.isPending}
+                    data-testid={`button-revoke-admin-${admin.id}`}
+                  >
+                    {revokeAdminMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <UserMinus className="h-4 w-4 mr-1" />
+                    )}
+                    Revoke
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center">
+              <Shield className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500">No admins found</p>
+            </div>
+          )}
         </div>
       </div>
     </AdminLayout>

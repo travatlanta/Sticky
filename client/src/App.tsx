@@ -15,6 +15,8 @@ import Deals from "@/pages/Deals";
 import Account from "@/pages/Account";
 import Designs from "@/pages/Designs";
 import NotFound from "@/pages/NotFound";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminProducts from "@/pages/admin/Products";
 import AdminOrders from "@/pages/admin/Orders";
@@ -129,6 +131,12 @@ function Router() {
             <OrderDetail />
           </Layout>
         )}
+      </Route>
+      <Route path="/login">
+        {() => <Login />}
+      </Route>
+      <Route path="/register">
+        {() => <Register />}
       </Route>
       <Route path="/admin">{() => <AdminRoute component={AdminDashboard} />}</Route>
       <Route path="/admin/products">{() => <AdminRoute component={AdminProducts} />}</Route>

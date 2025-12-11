@@ -125,7 +125,7 @@ export default function ProductDetail() {
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-16 md:pb-20">
         <div className="grid md:grid-cols-2 gap-12">
           <div>
             <div className="bg-white rounded-2xl aspect-square flex items-center justify-center shadow-sm">

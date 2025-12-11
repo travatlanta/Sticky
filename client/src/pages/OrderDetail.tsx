@@ -91,7 +91,7 @@ export default function OrderDetail() {
     <div className="min-h-screen bg-gray-50 dark:bg-background">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-16 md:pb-20">
         <Link href="/orders">
           <Button variant="ghost" className="mb-6" data-testid="button-back-orders">
             <ArrowLeft className="mr-2 h-4 w-4" />

@@ -32,7 +32,7 @@ export default function Home() {
   const posters = allProducts?.filter((p: any) => p.categoryId === 6)?.slice(0, 4) || [];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-16 md:pb-20">
       {/* Welcome Section */}
       <div className="bg-gradient-to-br from-orange-50 via-yellow-50 to-white py-8 px-4">
         <div className="container mx-auto">

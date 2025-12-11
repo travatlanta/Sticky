@@ -225,10 +225,12 @@ export default function ProductDetail() {
                 </div>
               </div>
 
-              <Button onClick={handleStartDesign} size="lg" className="w-full text-lg">
-                Start Designing
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+              <div className="pb-6">
+                <Button onClick={handleStartDesign} size="lg" className="w-full text-lg">
+                  Start Designing
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

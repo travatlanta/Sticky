@@ -35,6 +35,8 @@ export default function Editor() {
   const [showHelp, setShowHelp] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [activeObject, setActiveObject] = useState<any>(null);
+  const [showCustomShapeModal, setShowCustomShapeModal] = useState(false);
+  const [customShapeUploaded, setCustomShapeUploaded] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: design, isLoading } = useQuery({
@@ -246,6 +248,13 @@ export default function Editor() {
     };
   }, [design, product, loadFabric]);
 
+  // Show custom shape modal for die-cut products
+  useEffect(() => {
+    if (product && (product as any).supportsCustomShape && !(design as any)?.customShapeUrl && !customShapeUploaded) {
+      setShowCustomShapeModal(true);
+    }
+  }, [product, design, customShapeUploaded]);
+
   const handleUndo = () => {
     if (undoStack.length === 0 || !fabricCanvasRef.current) return;
     const currentState = JSON.stringify(fabricCanvasRef.current.toJSON());
@@ -379,6 +388,77 @@ export default function Editor() {
     input.click();
   };
 
+  const handleCustomShapeUpload = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".svg,.png,.jpg,.jpeg";
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const uploadRes = await fetch('/api/upload/artwork', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const uploadData = await uploadRes.json();
+
+        // Save the custom shape URL to the design
+        await fetch(`/api/designs/${designId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customShapeUrl: uploadData.url }),
+          credentials: 'include',
+        });
+
+        // Add the shape as a clipping outline on the canvas
+        if (fabricCanvasRef.current && window.fabric) {
+          window.fabric.Image.fromURL(uploadData.url, (img: any) => {
+            const canvas = fabricCanvasRef.current;
+            const maxSize = Math.min(canvas.width, canvas.height) * 0.8;
+            const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+            img.scale(scale);
+            img.set({
+              left: (canvas.width - img.width * scale) / 2,
+              top: (canvas.height - img.height * scale) / 2,
+              opacity: 0.3,
+              selectable: false,
+              evented: false,
+              name: "customShapeOutline",
+            });
+            canvas.add(img);
+            canvas.sendToBack(img);
+            canvas.renderAll();
+          }, { crossOrigin: 'anonymous' });
+        }
+
+        setCustomShapeUploaded(true);
+        setShowCustomShapeModal(false);
+        toast({
+          title: "Custom shape uploaded",
+          description: "Your custom die-cut shape has been set as the outline.",
+        });
+      } catch (error) {
+        console.error('Shape upload error:', error);
+        toast({
+          title: "Upload failed",
+          description: "Please try again with a valid image file.",
+          variant: "destructive",
+        });
+      }
+    };
+    input.click();
+  };
+
   const handleDelete = () => {
     if (!fabricCanvasRef.current) return;
     const activeObj = fabricCanvasRef.current.getActiveObject();
@@ -452,6 +532,64 @@ export default function Editor() {
     await handleSave();
     
     try {
+      // Generate high-res export for admin viewing
+      let highResExportUrl = null;
+      if (fabricCanvasRef.current) {
+        const canvas = fabricCanvasRef.current;
+        const templateWidth = (product as any)?.templateWidth || 400;
+        const templateHeight = (product as any)?.templateHeight || 400;
+        
+        // Temporarily remove guides for export
+        const objects = canvas.getObjects();
+        const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
+        const safeGuide = objects.find((o: any) => o.name === "safeGuide");
+        const customShape = objects.find((o: any) => o.name === "customShapeOutline");
+        
+        if (bleedGuide) canvas.remove(bleedGuide);
+        if (safeGuide) canvas.remove(safeGuide);
+        if (customShape) canvas.remove(customShape);
+        
+        // Export at high resolution (300 DPI)
+        const multiplier = 300 / 72; // Convert from screen to print resolution
+        const dataUrl = canvas.toDataURL({
+          format: 'png',
+          multiplier: multiplier,
+          quality: 1,
+        });
+        
+        // Restore guides
+        if (bleedGuide) canvas.add(bleedGuide);
+        if (safeGuide) canvas.add(safeGuide);
+        if (customShape) { canvas.add(customShape); canvas.sendToBack(customShape); }
+        if (bleedGuide) canvas.bringToFront(bleedGuide);
+        if (safeGuide) canvas.bringToFront(safeGuide);
+        canvas.renderAll();
+        
+        // Upload the high-res image
+        const blob = await (await fetch(dataUrl)).blob();
+        const formData = new FormData();
+        formData.append('file', blob, `design-${designId}-highres.png`);
+        
+        const uploadRes = await fetch('/api/upload/artwork', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          highResExportUrl = uploadData.url;
+          
+          // Save high-res URL to design
+          await fetch(`/api/designs/${designId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ highResExportUrl }),
+            credentials: 'include',
+          });
+        }
+      }
+      
       const res = await fetch("/api/cart/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -470,6 +608,7 @@ export default function Editor() {
       toast({ title: "Added to cart!" });
       navigate("/cart");
     } catch (error) {
+      console.error('Add to cart error:', error);
       toast({
         title: "Error",
         description: "Failed to add to cart.",
@@ -932,6 +1071,61 @@ export default function Editor() {
             >
               Got it!
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Shape Upload Modal */}
+      {showCustomShapeModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowCustomShapeModal(false)}>
+          <div 
+            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <FileImage className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="font-bold text-lg">Custom Die-Cut Shape</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowCustomShapeModal(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <p className="text-gray-600 mb-4">
+              This product supports custom die-cut shapes. Upload your shape file to define the cut outline for your stickers.
+            </p>
+
+            <div className="space-y-4">
+              <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500 mb-2">
+                  Supported formats: SVG, PNG, JPG
+                </p>
+                <p className="text-xs text-gray-400">
+                  For best results, use a simple outline shape
+                </p>
+              </div>
+              
+              <Button 
+                className="w-full bg-orange-500 hover:bg-orange-600" 
+                onClick={handleCustomShapeUpload}
+                data-testid="button-upload-custom-shape"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Shape File
+              </Button>
+
+              <Button 
+                variant="outline"
+                className="w-full" 
+                onClick={() => setShowCustomShapeModal(false)}
+              >
+                Skip for now
+              </Button>
+            </div>
           </div>
         </div>
       )}

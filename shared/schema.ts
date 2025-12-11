@@ -110,6 +110,7 @@ export const products = pgTable("products", {
   templateHeight: integer("template_height").default(300),
   bleedSize: decimal("bleed_size", { precision: 4, scale: 3 }).default("0.125"),
   safeZoneSize: decimal("safe_zone_size", { precision: 4, scale: 3 }).default("0.25"),
+  supportsCustomShape: boolean("supports_custom_shape").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -177,6 +178,8 @@ export const designs = pgTable("designs", {
   name: varchar("name", { length: 200 }),
   canvasJson: jsonb("canvas_json"),
   previewUrl: varchar("preview_url"),
+  customShapeUrl: varchar("custom_shape_url"),
+  highResExportUrl: varchar("high_res_export_url"),
   status: designStatusEnum("status").default("draft"),
   selectedOptions: jsonb("selected_options"),
   lastAutoSave: timestamp("last_auto_save"),

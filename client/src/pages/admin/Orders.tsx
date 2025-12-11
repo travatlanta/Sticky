@@ -253,12 +253,60 @@ export default function AdminOrders() {
                     <p className="text-sm text-gray-500 mb-2">Order Items</p>
                     <div className="bg-gray-50 rounded-lg divide-y">
                       {orderDetails.items.map((item: any) => (
-                        <div key={item.id} className="p-3 flex justify-between">
-                          <div>
-                            <p className="font-medium">Product #{item.productId}</p>
-                            <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                        <div key={item.id} className="p-3">
+                          <div className="flex justify-between mb-2">
+                            <div>
+                              <p className="font-medium">{item.product?.name || `Product #${item.productId}`}</p>
+                              <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                            </div>
+                            <p className="font-medium">{formatPrice(item.unitPrice)}</p>
                           </div>
-                          <p className="font-medium">{formatPrice(item.unitPrice)}</p>
+                          {item.design && (
+                            <div className="mt-2 bg-white rounded-lg border p-2">
+                              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                <Palette className="h-3 w-3" /> Customer Design
+                              </p>
+                              <div className="flex items-start gap-3">
+                                {(item.design.highResExportUrl || item.design.previewUrl) && (
+                                  <a 
+                                    href={item.design.highResExportUrl || item.design.previewUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="block"
+                                  >
+                                    <img 
+                                      src={item.design.highResExportUrl || item.design.previewUrl} 
+                                      alt="Design preview" 
+                                      className="w-20 h-20 object-contain bg-gray-100 rounded border"
+                                    />
+                                  </a>
+                                )}
+                                <div className="flex-1 text-xs">
+                                  <p className="text-gray-700 font-medium">{item.design.name || "Untitled Design"}</p>
+                                  {item.design.highResExportUrl && (
+                                    <a 
+                                      href={item.design.highResExportUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-orange-600 hover:underline inline-flex items-center gap-1 mt-1"
+                                    >
+                                      <Eye className="h-3 w-3" /> View High-Res
+                                    </a>
+                                  )}
+                                  {item.design.customShapeUrl && (
+                                    <a 
+                                      href={item.design.customShapeUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline inline-flex items-center gap-1 mt-1 ml-3"
+                                    >
+                                      <Eye className="h-3 w-3" /> Custom Shape
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

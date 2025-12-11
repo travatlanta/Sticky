@@ -1021,6 +1021,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public: Get active deals
+  app.get("/api/deals", async (req, res) => {
+    try {
+      const deals = await storage.getActiveDeals();
+      res.json(deals);
+    } catch (error) {
+      console.error("Error fetching deals:", error);
+      res.status(500).json({ message: "Failed to fetch deals" });
+    }
+  });
+
+  // Public: Get homepage deals
+  app.get("/api/deals/homepage", async (req, res) => {
+    try {
+      const deals = await storage.getHomepageDeals();
+      res.json(deals);
+    } catch (error) {
+      console.error("Error fetching homepage deals:", error);
+      res.status(500).json({ message: "Failed to fetch deals" });
+    }
+  });
+
+  // Admin: Get all deals
+  app.get("/api/admin/deals", isAdmin, async (req: any, res) => {
+    try {
+      const deals = await storage.getAllDeals();
+      res.json(deals);
+    } catch (error) {
+      console.error("Error fetching deals:", error);
+      res.status(500).json({ message: "Failed to fetch deals" });
+    }
+  });
+
+  // Admin: Create deal
+  app.post("/api/admin/deals", isAdmin, async (req: any, res) => {
+    try {
+      const deal = await storage.createDeal(req.body);
+      res.json(deal);
+    } catch (error) {
+      console.error("Error creating deal:", error);
+      res.status(500).json({ message: "Failed to create deal" });
+    }
+  });
+
+  // Admin: Update deal
+  app.put("/api/admin/deals/:id", isAdmin, async (req: any, res) => {
+    try {
+      const deal = await storage.updateDeal(parseInt(req.params.id), req.body);
+      res.json(deal);
+    } catch (error) {
+      console.error("Error updating deal:", error);
+      res.status(500).json({ message: "Failed to update deal" });
+    }
+  });
+
+  // Admin: Delete deal
+  app.delete("/api/admin/deals/:id", isAdmin, async (req: any, res) => {
+    try {
+      await storage.deleteDeal(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting deal:", error);
+      res.status(500).json({ message: "Failed to delete deal" });
+    }
+  });
+
   // Chat/Support messages
   app.get("/api/messages", isAuthenticated, async (req: any, res) => {
     try {

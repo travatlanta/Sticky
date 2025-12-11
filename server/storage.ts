@@ -13,6 +13,7 @@ import {
   promotions,
   messages,
   siteSettings,
+  deals,
   type User,
   type UpsertUser,
   type Category,
@@ -32,6 +33,8 @@ import {
   type Promotion,
   type Message,
   type SiteSetting,
+  type Deal,
+  type InsertDeal,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, gte, lte, or, sql } from "drizzle-orm";
@@ -109,6 +112,15 @@ export interface IStorage {
   // Settings operations
   getSetting(key: string): Promise<SiteSetting | undefined>;
   setSetting(key: string, value: any): Promise<SiteSetting>;
+
+  // Deal operations
+  getAllDeals(): Promise<Deal[]>;
+  getActiveDeals(): Promise<Deal[]>;
+  getHomepageDeals(): Promise<Deal[]>;
+  getDealById(id: number): Promise<Deal | undefined>;
+  createDeal(deal: InsertDeal): Promise<Deal>;
+  updateDeal(id: number, updates: Partial<InsertDeal>): Promise<Deal | undefined>;
+  deleteDeal(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -407,6 +419,73 @@ export class DatabaseStorage implements IStorage {
       productCount: productStats?.count || 0,
       userCount: userStats?.count || 0
     };
+  }
+
+  // Deal operations
+  async getAllDeals(): Promise<Deal[]> {
+    return db.select().from(deals).orderBy(asc(deals.displayOrder), desc(deals.createdAt));
+  }
+
+  async getActiveDeals(): Promise<Deal[]> {
+    const now = new Date();
+    return db.select().from(deals)
+      .where(
+        and(
+          eq(deals.isActive, true),
+          or(
+            sql`${deals.startsAt} IS NULL`,
+            lte(deals.startsAt, now)
+          ),
+          or(
+            sql`${deals.endsAt} IS NULL`,
+            gte(deals.endsAt, now)
+          )
+        )
+      )
+      .orderBy(asc(deals.displayOrder), desc(deals.createdAt));
+  }
+
+  async getHomepageDeals(): Promise<Deal[]> {
+    const now = new Date();
+    return db.select().from(deals)
+      .where(
+        and(
+          eq(deals.isActive, true),
+          eq(deals.showOnHomepage, true),
+          or(
+            sql`${deals.startsAt} IS NULL`,
+            lte(deals.startsAt, now)
+          ),
+          or(
+            sql`${deals.endsAt} IS NULL`,
+            gte(deals.endsAt, now)
+          )
+        )
+      )
+      .orderBy(asc(deals.displayOrder))
+      .limit(6);
+  }
+
+  async getDealById(id: number): Promise<Deal | undefined> {
+    const [deal] = await db.select().from(deals).where(eq(deals.id, id));
+    return deal;
+  }
+
+  async createDeal(deal: InsertDeal): Promise<Deal> {
+    const [created] = await db.insert(deals).values(deal).returning();
+    return created;
+  }
+
+  async updateDeal(id: number, updates: Partial<InsertDeal>): Promise<Deal | undefined> {
+    const [updated] = await db.update(deals)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(deals.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteDeal(id: number): Promise<void> {
+    await db.delete(deals).where(eq(deals.id, id));
   }
 }
 

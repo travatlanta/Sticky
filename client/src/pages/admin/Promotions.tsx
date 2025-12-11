@@ -116,15 +116,29 @@ export default function AdminPromotions() {
   return (
     <AdminLayout>
       <div className="p-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Promotions</h1>
-            <p className="text-gray-600">Manage discount codes</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Promotions</h1>
+            <p className="text-gray-600 text-sm md:text-base">Manage discount codes</p>
           </div>
-          <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+          <Button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Promotion
           </Button>
+        </div>
+
+        {/* Help Guide */}
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+            <Tag className="h-4 w-4 text-purple-600" />
+            Quick Guide
+          </h3>
+          <ul className="text-sm text-gray-600 space-y-1.5">
+            <li><span className="font-medium text-gray-700">Create Codes:</span> Click "Add Promotion" to create discount codes that customers can apply at checkout.</li>
+            <li><span className="font-medium text-gray-700">Discount Types:</span> Choose "percentage" (e.g., 20% off) or "fixed" (e.g., $10 off) for your discount.</li>
+            <li><span className="font-medium text-gray-700">Limits:</span> Set minimum order amounts and maximum uses to control how promotions are applied.</li>
+            <li><span className="font-medium text-gray-700">Expiration:</span> Set an expiration date to create time-limited promotions that drive urgency.</li>
+          </ul>
         </div>
 
         {showCreateForm && (

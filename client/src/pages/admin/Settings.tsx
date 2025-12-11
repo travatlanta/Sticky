@@ -120,9 +120,23 @@ export default function AdminSettings() {
   return (
     <AdminLayout>
       <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600">Manage site-wide configuration</p>
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-600 text-sm md:text-base">Manage site-wide configuration</p>
+        </div>
+
+        {/* Help Guide */}
+        <div className="bg-gradient-to-r from-gray-50 to-slate-100 border border-gray-200 rounded-xl p-4 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+            <SettingsIcon className="h-4 w-4 text-gray-600" />
+            Quick Guide
+          </h3>
+          <ul className="text-sm text-gray-600 space-y-1.5">
+            <li><span className="font-medium text-gray-700">Site Settings:</span> Add key-value pairs to store global configuration like shipping rates, tax rates, or business info.</li>
+            <li><span className="font-medium text-gray-700">Admin Management:</span> Invite new admins by email address - they'll get admin access when they sign up or log in.</li>
+            <li><span className="font-medium text-gray-700">Revoke Access:</span> Remove admin privileges from users who no longer need dashboard access.</li>
+            <li><span className="font-medium text-gray-700">JSON Values:</span> For complex settings, you can enter valid JSON as the value (e.g., arrays or objects).</li>
+          </ul>
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-sm mb-6">

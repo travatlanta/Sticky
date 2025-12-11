@@ -432,6 +432,110 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getUsersWithOrderStats(): Promise<Array<{
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    isAdmin: boolean;
+    createdAt: Date;
+    hasOrders: boolean;
+    orderCount: number;
+    totalSpent: number;
+  }>> {
+    const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
+    
+    const usersWithStats = await Promise.all(allUsers.map(async (user) => {
+      const [orderStats] = await db.select({
+        count: sql<number>`count(*)::int`,
+        total: sql<number>`COALESCE(sum(${orders.totalAmount}::numeric), 0)::float`
+      }).from(orders).where(eq(orders.userId, user.id));
+      
+      return {
+        id: user.id,
+        email: user.email || '',
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isAdmin: user.isAdmin || false,
+        createdAt: user.createdAt || new Date(),
+        hasOrders: (orderStats?.count || 0) > 0,
+        orderCount: orderStats?.count || 0,
+        totalSpent: orderStats?.total || 0
+      };
+    }));
+    
+    return usersWithStats;
+  }
+
+  async getFinanceOverview(): Promise<{
+    totalRevenue: number;
+    orderCount: number;
+    averageOrderValue: number;
+    recentOrders: Array<{
+      id: number;
+      total: number;
+      status: string;
+      createdAt: Date;
+      customerEmail: string;
+    }>;
+    revenueByStatus: {
+      paid: number;
+      pending: number;
+      delivered: number;
+      cancelled: number;
+    };
+  }> {
+    const [totals] = await db.select({
+      totalRevenue: sql<number>`COALESCE(sum(${orders.totalAmount}::numeric), 0)::float`,
+      orderCount: sql<number>`count(*)::int`
+    }).from(orders);
+
+    const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(10);
+    
+    const recentOrders = await Promise.all(allOrders.map(async (order) => {
+      const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, order.userId || '')).limit(1);
+      return {
+        id: order.id,
+        total: Number(order.totalAmount) || 0,
+        status: order.status || 'pending',
+        createdAt: order.createdAt || new Date(),
+        customerEmail: user?.email || 'Guest'
+      };
+    }));
+
+    const statusTotals = await db.select({
+      status: orders.status,
+      total: sql<number>`COALESCE(sum(${orders.totalAmount}::numeric), 0)::float`
+    }).from(orders).groupBy(orders.status);
+
+    const revenueByStatus = {
+      paid: 0,
+      pending: 0,
+      delivered: 0,
+      cancelled: 0
+    };
+
+    statusTotals.forEach(row => {
+      const status = row.status || 'pending';
+      if (status === 'paid') revenueByStatus.paid = row.total || 0;
+      else if (status === 'pending') revenueByStatus.pending = row.total || 0;
+      else if (status === 'delivered') revenueByStatus.delivered = row.total || 0;
+      else if (status === 'cancelled') revenueByStatus.cancelled = row.total || 0;
+    });
+
+    const avgOrderValue = (totals?.orderCount || 0) > 0 
+      ? (totals?.totalRevenue || 0) / (totals?.orderCount || 1)
+      : 0;
+
+    return {
+      totalRevenue: totals?.totalRevenue || 0,
+      orderCount: totals?.orderCount || 0,
+      averageOrderValue: avgOrderValue,
+      recentOrders,
+      revenueByStatus
+    };
+  }
+
   // Deal operations
   async getAllDeals(): Promise<Deal[]> {
     return db.select().from(deals).orderBy(asc(deals.displayOrder), desc(deals.createdAt));

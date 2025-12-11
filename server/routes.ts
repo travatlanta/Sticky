@@ -1022,6 +1022,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Users endpoint - returns all users with order statistics
+  app.get("/api/admin/users", isAdmin, async (req: any, res) => {
+    try {
+      const usersWithStats = await storage.getUsersWithOrderStats();
+      res.json(usersWithStats);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Admin Finances endpoint - returns financial overview
+  app.get("/api/admin/finances", isAdmin, async (req: any, res) => {
+    try {
+      const financeData = await storage.getFinanceOverview();
+      res.json(financeData);
+    } catch (error) {
+      console.error("Error fetching finance data:", error);
+      res.status(500).json({ message: "Failed to fetch finance data" });
+    }
+  });
+
   app.get("/api/admin/products", isAdmin, async (req: any, res) => {
     try {
       const products = await storage.getProducts();

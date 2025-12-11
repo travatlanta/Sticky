@@ -102,16 +102,12 @@ export default function Home() {
           <div className="absolute bottom-4 right-20 w-48 h-48 bg-white rounded-full blur-3xl" />
         </div>
         <div className="container mx-auto relative">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                <Flame className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="font-heading text-3xl text-white">Hot Deals</h2>
-                <p className="text-white/80 text-sm">Limited time offers - don't miss out!</p>
-              </div>
+          <div className="text-center mb-8">
+            <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center mx-auto mb-3">
+              <Flame className="h-7 w-7 text-white" />
             </div>
+            <h2 className="font-heading text-3xl md:text-4xl text-white mb-1">Hot Deals</h2>
+            <p className="text-white/80 text-sm md:text-base mb-4">Limited time offers - don't miss out!</p>
             <Link href="/deals">
               <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur" data-testid="button-shop-all-deals">
                 Shop All Deals <ArrowRight className="ml-2 h-4 w-4" />

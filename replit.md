@@ -30,13 +30,13 @@ The frontend follows a page-based architecture with shared components. Key pages
 - **Runtime**: Node.js with Express
 - **Language**: TypeScript with ES modules
 - **API Design**: RESTful JSON APIs under `/api` prefix
-- **Authentication**: Replit Auth via OpenID Connect with Passport.js
+- **Authentication**: Custom Passport.js with email/password and optional Google OAuth
 - **Session Storage**: PostgreSQL-backed sessions via connect-pg-simple
 
 The server uses a modular structure:
 - `routes.ts` - API endpoint definitions
 - `storage.ts` - Data access layer abstraction
-- `replitAuth.ts` - Authentication middleware and session handling
+- `auth.ts` - Authentication middleware, login/register endpoints, admin management
 - `vite.ts` - Development server integration
 
 ### Data Storage
@@ -54,10 +54,12 @@ Key data entities:
 - Promotions and site settings
 
 ### Authentication
-- Replit Auth (OpenID Connect) for user authentication
+- Custom email/password authentication with bcrypt password hashing
+- Optional Google OAuth login (requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 - Session-based auth with PostgreSQL session store
 - Admin role checking middleware for protected routes
 - 1-week session TTL with secure cookies
+- Admin management: invite admins via email, revoke admin access
 
 ### Build System
 - **Development**: Vite dev server with HMR proxying to Express
@@ -68,7 +70,7 @@ Key data entities:
 
 ### Third-Party Services
 - **Stripe**: Payment processing (initialized when `STRIPE_SECRET_KEY` is set)
-- **Replit Auth**: OpenID Connect authentication via `openid-client`
+- **Google OAuth**: Optional social login (requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`)
 
 ### Database
 - **PostgreSQL**: Primary database (requires `DATABASE_URL` environment variable)
@@ -83,7 +85,8 @@ Key data entities:
 ### Environment Variables Required
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Express session secret
-- `REPL_ID` - Replit environment identifier
+- `GOOGLE_CLIENT_ID` - Google OAuth client ID (optional, for Google login)
+- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret (optional, for Google login)
 - `STRIPE_SECRET_KEY` - Stripe API key (optional)
 - `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key for frontend (optional)
 

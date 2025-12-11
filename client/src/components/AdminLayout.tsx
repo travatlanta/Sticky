@@ -44,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex">
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -125,7 +125,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <div className="md:ml-64 min-h-screen flex flex-col">
+      <div className="flex-1 min-h-screen flex flex-col">
         <header className="bg-white border-b px-4 py-3 flex items-center gap-3 md:hidden sticky top-0 z-30">
           <Button
             size="icon"
@@ -143,7 +143,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

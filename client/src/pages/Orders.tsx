@@ -55,7 +55,7 @@ export default function Orders() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-16 md:pb-20">
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 bg-white border border-orange-200 rounded-full px-4 py-2 mb-4">
             <Package className="h-4 w-4 text-orange-500" />

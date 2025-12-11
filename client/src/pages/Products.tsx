@@ -54,7 +54,7 @@ export default function Products() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50">
-      <div className="container mx-auto px-3 py-4 md:px-4 md:py-8">
+      <div className="container mx-auto px-3 py-4 pb-16 md:px-4 md:py-8 md:pb-20">
         {/* Header - Compact on mobile */}
         <div className="mb-4 md:mb-8 text-center md:text-left">
           <div className="hidden md:inline-flex items-center gap-2 bg-white border border-orange-200 rounded-full px-4 py-2 mb-4">

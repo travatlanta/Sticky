@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Inbox, MessageCircle, Send, ChevronDown, ChevronUp, User, Clock, AlertCircle, Bot, Headphones, Loader2 } from "lucide-react";
+import { Inbox, MessageCircle, Send, ChevronDown, ChevronUp, User, Clock, AlertCircle, Bot, Headphones, Loader2, Mail, Phone, ExternalLink } from "lucide-react";
 
 interface EscalatedConversation {
   userId: string;
@@ -35,6 +35,7 @@ interface ConversationDetail {
     email: string;
     firstName?: string;
     lastName?: string;
+    phone?: string;
   } | null;
 }
 
@@ -217,6 +218,44 @@ export default function AdminInbox() {
                           </div>
                         ) : conversationDetail && conversationDetail.messages ? (
                           <>
+                            {/* Customer Contact Info Panel */}
+                            {conversationDetail.user && (
+                              <div className="p-4 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900/30 dark:to-orange-950/20 border-b border-orange-200 dark:border-orange-800">
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                    <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                                      {conversationDetail.user.firstName || conversationDetail.user.lastName 
+                                        ? `${conversationDetail.user.firstName || ''} ${conversationDetail.user.lastName || ''}`.trim()
+                                        : 'Customer'}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <a 
+                                      href={`mailto:${conversationDetail.user.email}`}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-300 border border-orange-200 dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors"
+                                      data-testid="link-email-customer"
+                                    >
+                                      <Mail className="h-3.5 w-3.5 text-orange-500" />
+                                      {conversationDetail.user.email}
+                                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                                    </a>
+                                    {conversationDetail.user.phone && (
+                                      <a 
+                                        href={`tel:${conversationDetail.user.phone}`}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-300 border border-orange-200 dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors"
+                                        data-testid="link-phone-customer"
+                                      >
+                                        <Phone className="h-3.5 w-3.5 text-emerald-500" />
+                                        {conversationDetail.user.phone}
+                                        <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            
                             {/* Messages */}
                             <div className="p-4 max-h-96 overflow-y-auto space-y-4 bg-gradient-to-b from-orange-50/50 via-white to-orange-50/30 dark:from-orange-950/20 dark:via-background dark:to-orange-950/10">
                               {conversationDetail.messages.map((msg) => (

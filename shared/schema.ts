@@ -62,6 +62,7 @@ export const users = pgTable("users", {
   passwordHash: varchar("password_hash"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
+  phone: varchar("phone"),
   profileImageUrl: varchar("profile_image_url"),
   googleId: varchar("google_id").unique(),
   isAdmin: boolean("is_admin").default(false),

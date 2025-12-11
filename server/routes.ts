@@ -4,8 +4,41 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import Stripe from "stripe";
 import PDFDocument from "pdfkit";
+import multer from "multer";
 import fs from "fs";
 import path from "path";
+
+// Configure multer for file uploads
+const uploadsDir = path.join(process.cwd(), 'uploads', 'artwork');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const artworkStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `artwork-${uniqueSuffix}${ext}`);
+  }
+});
+
+const artworkUpload = multer({
+  storage: artworkStorage,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Allowed: JPG, PNG, GIF, WebP, SVG, PDF'));
+    }
+  }
+});
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
@@ -516,6 +549,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fs.createReadStream(filepath).pipe(res);
     } else {
       res.status(404).json({ message: "PDF not found" });
+    }
+  });
+
+  // Artwork file uploads
+  app.post("/api/upload/artwork", isAuthenticated, artworkUpload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileUrl = `/uploads/artwork/${req.file.filename}`;
+      
+      res.json({
+        success: true,
+        url: fileUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+      });
+    } catch (error) {
+      console.error("Error uploading artwork:", error);
+      res.status(500).json({ message: "Failed to upload artwork" });
+    }
+  });
+
+  // Serve uploaded artwork files
+  app.get("/uploads/artwork/:filename", (req, res) => {
+    const filepath = path.join(process.cwd(), 'uploads', 'artwork', req.params.filename);
+    if (fs.existsSync(filepath)) {
+      res.sendFile(filepath);
+    } else {
+      res.status(404).json({ message: "File not found" });
     }
   });
 

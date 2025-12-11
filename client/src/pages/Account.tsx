@@ -12,7 +12,8 @@ import {
   Clock,
   ChevronRight,
   Mail,
-  LogOut
+  LogOut,
+  LayoutDashboard
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
@@ -154,6 +155,31 @@ export default function Account() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Admin Dashboard - Only visible to admins */}
+        {user?.isAdmin && (
+          <Card className="shadow-lg mb-6 border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg">
+                    <LayoutDashboard className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-heading text-lg text-gray-900">Admin Dashboard</h2>
+                    <p className="text-sm text-gray-600">Manage products, orders, and settings</p>
+                  </div>
+                </div>
+                <Link href="/admin">
+                  <Button className="bg-gradient-to-r from-orange-500 to-orange-600" data-testid="button-admin-dashboard">
+                    Open Dashboard
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Orders */}
         <Card className="shadow-lg mb-6">

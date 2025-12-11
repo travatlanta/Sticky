@@ -151,6 +151,26 @@ Key data entities:
 - **Data Provided**: totalRevenue, orderCount, averageOrderValue, revenueByStatus (paid/pending/delivered/cancelled), recentOrders list
 - **Features**: Revenue cards, status-based breakdown, recent transactions table
 
+### Admin Support Inbox with AI Escalation
+- **Page**: `/admin/inbox` - shared admin inbox for escalated customer conversations
+- **Database Fields**: `messages` table extended with:
+  - `needsHumanSupport` (boolean) - flags conversations needing human attention
+  - `escalatedAt` (timestamp) - when escalation occurred
+  - `isFromHuman` (boolean) - distinguishes AI bot vs human admin responses
+- **API Endpoints**:
+  - `GET /api/admin/inbox` - get all escalated conversations (admin)
+  - `GET /api/admin/inbox/:userId` - get conversation history for user (admin)
+  - `POST /api/admin/messages/reply` - human admin reply (auto-resolves escalation)
+- **AI Escalation Detection**: The AI chatbot automatically detects when customers request human support using phrases like:
+  - "speak to a person", "talk to human", "real person", "need help from a human"
+  - When detected, AI responds with escalation message and marks conversation
+- **ChatWidget Integration**: Displays different styling for AI bot responses (orange) vs human support team responses (green) with distinct icons and labels
+- **Features**: 
+  - Conversation list with "Needs Reply" badges
+  - Full message history view
+  - Reply functionality that auto-resolves escalation
+  - Real-time polling for new messages
+
 ## Pending Configuration
 
 ### Stripe Payment Integration

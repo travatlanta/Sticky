@@ -239,11 +239,29 @@ export default function AdminProducts() {
     onError: () => toast({ title: "Failed to delete template", variant: "destructive" }),
   });
 
+  const resetTemplateForm = () => {
+    setTemplateForm({ name: "", description: "", previewImageUrl: "", canvasJson: "", isActive: true });
+    setShowAddTemplate(false);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingProduct(null);
+    resetTemplateForm();
+  };
+
   const handleCreateTemplate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!templateForm.name) {
       toast({ title: "Template name is required", variant: "destructive" });
       return;
+    }
+    if (templateForm.canvasJson) {
+      try {
+        JSON.parse(templateForm.canvasJson);
+      } catch {
+        toast({ title: "Invalid canvas JSON format", variant: "destructive" });
+        return;
+      }
     }
     createTemplateMutation.mutate(templateForm);
   };
@@ -436,148 +454,324 @@ export default function AdminProducts() {
 
         {editingProduct && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h2 className="text-lg font-semibold mb-4">Edit Product</h2>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  updateMutation.mutate({
-                    id: editingProduct.id,
-                    data: editingProduct,
-                  });
-                }}
-                className="space-y-4"
-              >
-                {/* Product Image Section */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Product Image</label>
-                  <div className="flex items-start gap-4">
-                    <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
-                      {editingProduct.imageUrl ? (
-                        <img 
-                          src={editingProduct.imageUrl} 
-                          alt={editingProduct.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Image className="h-8 w-8 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif,image/webp"
-                        onChange={handleImageChange}
-                        className="hidden"
-                        data-testid="input-product-image"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
-                        className="w-full"
-                        data-testid="button-upload-image"
-                      >
-                        {isUploading ? (
-                          "Uploading..."
-                        ) : (
-                          <>
-                            <Upload className="h-4 w-4 mr-2" />
-                            {editingProduct.imageUrl ? "Change Image" : "Upload Image"}
-                          </>
-                        )}
-                      </Button>
-                      {editingProduct.imageUrl && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingProduct({ ...editingProduct, imageUrl: null })}
-                          className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                          data-testid="button-remove-image"
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Remove Image
-                        </Button>
-                      )}
-                      <p className="text-xs text-gray-500">JPG, PNG, GIF, or WebP. Max 10MB.</p>
-                    </div>
-                  </div>
-                </div>
+            <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Edit Product: {editingProduct.name}</h2>
+                <Button size="icon" variant="ghost" onClick={handleCloseEditModal}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <Tabs defaultValue="details" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="details" data-testid="tab-product-details">
+                    <FileImage className="h-4 w-4 mr-2" />
+                    Details
+                  </TabsTrigger>
+                  <TabsTrigger value="templates" data-testid="tab-product-templates">
+                    <Layout className="h-4 w-4 mr-2" />
+                    Templates ({templates?.length || 0})
+                  </TabsTrigger>
+                </TabsList>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Name</label>
-                  <input
-                    type="text"
-                    value={editingProduct.name}
-                    onChange={(e) =>
-                      setEditingProduct({ ...editingProduct, name: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    data-testid="input-edit-name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Base Price</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editingProduct.basePrice}
-                    onChange={(e) =>
-                      setEditingProduct({ ...editingProduct, basePrice: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    data-testid="input-edit-price"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Description</label>
-                  <textarea
-                    value={editingProduct.description || ""}
-                    onChange={(e) =>
-                      setEditingProduct({ ...editingProduct, description: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                    rows={3}
-                    data-testid="input-edit-description"
-                  />
-                </div>
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={editingProduct.isActive}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, isActive: e.target.checked })
-                      }
-                      data-testid="checkbox-edit-active"
-                    />
-                    <span>Active</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={editingProduct.isFeatured}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, isFeatured: e.target.checked })
-                      }
-                      data-testid="checkbox-edit-featured"
-                    />
-                    <span>Featured</span>
-                  </label>
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setEditingProduct(null)} data-testid="button-cancel-edit">
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={updateMutation.isPending || isUploading} data-testid="button-save-changes">
-                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
-                  </Button>
-                </div>
-              </form>
+                <TabsContent value="details">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      updateMutation.mutate({
+                        id: editingProduct.id,
+                        data: editingProduct,
+                      });
+                    }}
+                    className="space-y-4"
+                  >
+                    {/* Product Image Section */}
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Product Image</label>
+                      <div className="flex items-start gap-4">
+                        <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
+                          {editingProduct.imageUrl ? (
+                            <img 
+                              src={editingProduct.imageUrl} 
+                              alt={editingProduct.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Image className="h-8 w-8 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            onChange={handleImageChange}
+                            className="hidden"
+                            data-testid="input-product-image"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            className="w-full"
+                            data-testid="button-upload-image"
+                          >
+                            {isUploading ? (
+                              "Uploading..."
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                {editingProduct.imageUrl ? "Change Image" : "Upload Image"}
+                              </>
+                            )}
+                          </Button>
+                          {editingProduct.imageUrl && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingProduct({ ...editingProduct, imageUrl: null })}
+                              className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                              data-testid="button-remove-image"
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Remove Image
+                            </Button>
+                          )}
+                          <p className="text-xs text-gray-500">JPG, PNG, GIF, or WebP. Max 10MB.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={editingProduct.name}
+                        onChange={(e) =>
+                          setEditingProduct({ ...editingProduct, name: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border rounded-lg"
+                        data-testid="input-edit-name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Base Price</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editingProduct.basePrice}
+                        onChange={(e) =>
+                          setEditingProduct({ ...editingProduct, basePrice: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border rounded-lg"
+                        data-testid="input-edit-price"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description</label>
+                      <textarea
+                        value={editingProduct.description || ""}
+                        onChange={(e) =>
+                          setEditingProduct({ ...editingProduct, description: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border rounded-lg"
+                        rows={3}
+                        data-testid="input-edit-description"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={editingProduct.isActive}
+                          onChange={(e) =>
+                            setEditingProduct({ ...editingProduct, isActive: e.target.checked })
+                          }
+                          data-testid="checkbox-edit-active"
+                        />
+                        <span>Active</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={editingProduct.isFeatured}
+                          onChange={(e) =>
+                            setEditingProduct({ ...editingProduct, isFeatured: e.target.checked })
+                          }
+                          data-testid="checkbox-edit-featured"
+                        />
+                        <span>Featured</span>
+                      </label>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button type="button" variant="outline" onClick={handleCloseEditModal} data-testid="button-cancel-edit">
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={updateMutation.isPending || isUploading} data-testid="button-save-changes">
+                        {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="templates">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-gray-600">
+                        Pre-designed templates customers can use when designing this product.
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => setShowAddTemplate(!showAddTemplate)}
+                        data-testid="button-add-template"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Template
+                      </Button>
+                    </div>
+
+                    {showAddTemplate && (
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                        <h4 className="font-medium text-sm">New Template</h4>
+                        <form onSubmit={handleCreateTemplate} className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Name *</label>
+                            <input
+                              type="text"
+                              value={templateForm.name}
+                              onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                              className="w-full px-3 py-2 border rounded-lg text-sm"
+                              placeholder="e.g., Business Card Basic"
+                              data-testid="input-template-name"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Description</label>
+                            <input
+                              type="text"
+                              value={templateForm.description}
+                              onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                              className="w-full px-3 py-2 border rounded-lg text-sm"
+                              placeholder="Brief description of this template"
+                              data-testid="input-template-description"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Preview Image</label>
+                            <div className="flex items-center gap-3">
+                              {templateForm.previewImageUrl ? (
+                                <img src={templateForm.previewImageUrl} alt="Preview" className="w-16 h-16 object-cover rounded-lg border" />
+                              ) : (
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                  <Image className="h-6 w-6 text-gray-400" />
+                                </div>
+                              )}
+                              <input
+                                ref={templateFileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                onChange={handleTemplateImageChange}
+                                className="hidden"
+                                data-testid="input-template-image"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => templateFileInputRef.current?.click()}
+                                disabled={isUploadingTemplate}
+                              >
+                                {isUploadingTemplate ? "Uploading..." : "Upload Image"}
+                              </Button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Canvas JSON (optional)</label>
+                            <textarea
+                              value={templateForm.canvasJson}
+                              onChange={(e) => setTemplateForm({ ...templateForm, canvasJson: e.target.value })}
+                              className="w-full px-3 py-2 border rounded-lg text-sm font-mono"
+                              rows={3}
+                              placeholder='{"objects":[],"version":"5.3.0"}'
+                              data-testid="input-template-json"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Fabric.js canvas JSON export</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={templateForm.isActive}
+                              onChange={(e) => setTemplateForm({ ...templateForm, isActive: e.target.checked })}
+                              id="template-active"
+                            />
+                            <label htmlFor="template-active" className="text-sm">Active (visible to customers)</label>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button type="button" variant="outline" size="sm" onClick={resetTemplateForm}>
+                              Cancel
+                            </Button>
+                            <Button type="submit" size="sm" disabled={createTemplateMutation.isPending} data-testid="button-save-template">
+                              {createTemplateMutation.isPending ? "Creating..." : "Create Template"}
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+
+                    {templatesLoading ? (
+                      <div className="py-8 text-center text-gray-500">Loading templates...</div>
+                    ) : templates && templates.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {templates.map((template) => (
+                          <div
+                            key={template.id}
+                            className={`relative rounded-lg border p-3 ${template.isActive ? 'bg-white' : 'bg-gray-50 opacity-60'}`}
+                            data-testid={`template-card-${template.id}`}
+                          >
+                            <div className="aspect-square rounded-lg bg-gray-100 mb-2 flex items-center justify-center overflow-hidden">
+                              {template.previewImageUrl ? (
+                                <img src={template.previewImageUrl} alt={template.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <Layout className="h-8 w-8 text-gray-400" />
+                              )}
+                            </div>
+                            <p className="font-medium text-sm truncate">{template.name}</p>
+                            {template.description && (
+                              <p className="text-xs text-gray-500 truncate">{template.description}</p>
+                            )}
+                            <div className="flex items-center justify-between mt-2">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${template.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                                {template.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (confirm("Delete this template?")) {
+                                    deleteTemplateMutation.mutate(template.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-template-${template.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center text-gray-500 border-2 border-dashed rounded-lg">
+                        <Layout className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm">No templates yet</p>
+                        <p className="text-xs text-gray-400">Add templates for customers to use in the editor</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         )}

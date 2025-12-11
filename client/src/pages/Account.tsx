@@ -90,7 +90,7 @@ export default function Account() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white pb-20">
       {/* Profile Header */}
-      <div className="bg-gradient-to-r from-orange-500 via-orange-400 to-yellow-400 pt-8 pb-16 px-4">
+      <div className={`bg-gradient-to-r from-orange-500 via-orange-400 to-yellow-400 pt-8 ${user?.isAdmin ? 'pb-10' : 'pb-16'} px-4`}>
         <div className="container mx-auto max-w-2xl">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white text-xl md:text-2xl font-bold shadow-lg">
@@ -116,35 +116,32 @@ export default function Account() {
               )}
             </div>
           </div>
+          
+          {/* Admin Dashboard - Integrated in header for admins */}
+          {user?.isAdmin && (
+            <Link href="/admin">
+              <div className="mt-6 flex items-center justify-between p-4 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 cursor-pointer hover:bg-white/20 transition-colors" data-testid="button-admin-dashboard">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 flex items-center justify-center">
+                    <LayoutDashboard className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-heading text-base md:text-lg text-white">Admin Dashboard</h2>
+                    <p className="text-xs md:text-sm text-white/70">Manage products, orders, and settings</p>
+                  </div>
+                </div>
+                <Button variant="secondary" size="sm" className="bg-white text-orange-600 hover:bg-white/90">
+                  Open Dashboard
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </Link>
+          )}
         </div>
       </div>
 
       {/* Main Content - Overlaps header slightly */}
       <div className="container mx-auto max-w-2xl px-4 -mt-8">
-        {/* Admin Dashboard - Only visible to admins */}
-        {user?.isAdmin && (
-          <Card className="shadow-lg mb-6 border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg">
-                    <LayoutDashboard className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="font-heading text-lg text-gray-900">Admin Dashboard</h2>
-                    <p className="text-sm text-gray-600">Manage products, orders, and settings</p>
-                  </div>
-                </div>
-                <Link href="/admin">
-                  <Button className="bg-gradient-to-r from-orange-500 to-orange-600" data-testid="button-admin-dashboard">
-                    Open Dashboard
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Quick Actions */}
         <Card className="shadow-lg mb-6">

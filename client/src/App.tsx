@@ -11,10 +11,12 @@ import Editor from "@/pages/Editor";
 import Cart from "@/pages/Cart";
 import Orders from "@/pages/Orders";
 import OrderDetail from "@/pages/OrderDetail";
+import Deals from "@/pages/Deals";
 import NotFound from "@/pages/NotFound";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminProducts from "@/pages/admin/Products";
 import AdminOrders from "@/pages/admin/Orders";
+import AdminDeals from "@/pages/admin/Deals";
 import AdminPromotions from "@/pages/admin/Promotions";
 import AdminSettings from "@/pages/admin/Settings";
 
@@ -98,6 +100,13 @@ function Router() {
           </Layout>
         )}
       </Route>
+      <Route path="/deals">
+        {() => (
+          <Layout>
+            <Deals />
+          </Layout>
+        )}
+      </Route>
       <Route path="/orders/:id">
         {() => (
           <Layout>
@@ -108,6 +117,7 @@ function Router() {
       <Route path="/admin">{() => <AdminRoute component={AdminDashboard} />}</Route>
       <Route path="/admin/products">{() => <AdminRoute component={AdminProducts} />}</Route>
       <Route path="/admin/orders">{() => <AdminRoute component={AdminOrders} />}</Route>
+      <Route path="/admin/deals">{() => <AdminRoute component={AdminDeals} />}</Route>
       <Route path="/admin/promotions">{() => <AdminRoute component={AdminPromotions} />}</Route>
       <Route path="/admin/settings">{() => <AdminRoute component={AdminSettings} />}</Route>
       <Route>

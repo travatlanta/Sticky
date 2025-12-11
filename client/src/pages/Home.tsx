@@ -285,7 +285,7 @@ export default function Home() {
       <div className="py-16 px-4 bg-gradient-to-b from-orange-50 to-white">
         <div className="container mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
+            <div className="pl-4 md:pl-8 lg:pl-12">
               <Badge className="bg-orange-100 text-orange-700 mb-4">Premium Quality</Badge>
               <h2 className="font-heading text-4xl text-gray-900 mb-4">Stickers That Stick</h2>
               <p className="text-gray-600 text-lg mb-6">

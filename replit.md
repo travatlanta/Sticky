@@ -127,6 +127,18 @@ Key data entities:
   - `DELETE /api/admin/deals/:id` - delete deal (admin)
 - **Features**: Quantity/size badges, original vs deal pricing, percentage off calculation, expiration dates, CTA buttons with custom links
 
+### Product Template System
+- **Database**: `product_templates` table with name, description, preview image, Fabric.js canvas JSON
+- **Admin Panel**: Templates managed via tabs in product edit modal at `/admin/products`
+- **API Endpoints**:
+  - `GET /api/admin/products/:productId/templates` - get templates for a product (admin)
+  - `POST /api/admin/products/:productId/templates` - create template (admin)
+  - `PUT /api/admin/templates/:id` - update template (admin)
+  - `DELETE /api/admin/templates/:id` - delete template (admin)
+  - `GET /api/products/:productId/templates` - get active templates for customer view
+- **Features**: Preview images, Fabric.js canvas JSON storage, active/inactive toggle, per-product association
+- **File Storage**: Template preview images stored in `/uploads/templates/`
+
 ## Pending Configuration
 
 ### Stripe Payment Integration

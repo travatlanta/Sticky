@@ -223,7 +223,7 @@ export default function Home() {
                 return (
                   <Link key={sticker.id} href={`/products/${sticker.slug}`}>
                     <div
-                      className="absolute bg-white rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 cursor-pointer border-2 border-orange-100 hover:border-orange-300"
+                      className="absolute bg-white rounded-2xl p-3 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 cursor-pointer border-2 border-orange-100 hover:border-orange-300"
                       style={{
                         top: pos.top,
                         left: pos.left,
@@ -232,8 +232,12 @@ export default function Home() {
                       }}
                       data-testid={`sticker-card-${sticker.id}`}
                     >
-                      <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-orange-200 to-yellow-100 rounded-xl flex items-center justify-center mb-2">
-                        <Layers className="h-8 w-8 text-orange-500" />
+                      <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-orange-200 to-yellow-100 rounded-xl flex items-center justify-center mb-2 overflow-hidden">
+                        {sticker.thumbnailUrl ? (
+                          <img src={sticker.thumbnailUrl} alt={sticker.name} className="w-full h-full object-cover rounded-xl" />
+                        ) : (
+                          <Layers className="h-8 w-8 text-orange-500" />
+                        )}
                       </div>
                       <p className="text-xs md:text-sm font-medium text-gray-800 text-center max-w-20 md:max-w-24 truncate">{sticker.name.split(' ').slice(0, 2).join(' ')}</p>
                       <p className="text-xs text-orange-500 font-bold text-center">{formatPrice(sticker.basePrice)}</p>

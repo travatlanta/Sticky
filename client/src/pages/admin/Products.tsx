@@ -13,7 +13,7 @@ interface Product {
   slug: string;
   description: string;
   basePrice: string;
-  imageUrl: string | null;
+  thumbnailUrl: string | null;
   isActive: boolean;
   isFeatured: boolean;
   categoryId: number | null;
@@ -88,7 +88,7 @@ export default function AdminProducts() {
     
     const imageUrl = await uploadProductImage(file);
     if (imageUrl) {
-      setEditingProduct({ ...editingProduct, imageUrl });
+      setEditingProduct({ ...editingProduct, thumbnailUrl: imageUrl });
     }
   };
 
@@ -385,9 +385,9 @@ export default function AdminProducts() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   {/* Product Image Thumbnail */}
                   <div className="w-14 h-14 md:w-16 md:h-16 rounded-lg border border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
-                    {product.imageUrl ? (
+                    {product.thumbnailUrl ? (
                       <img 
-                        src={product.imageUrl} 
+                        src={product.thumbnailUrl} 
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />
@@ -502,9 +502,9 @@ export default function AdminProducts() {
                       <label className="block text-sm font-medium mb-2">Product Image</label>
                       <div className="flex items-start gap-4">
                         <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
-                          {editingProduct.imageUrl ? (
+                          {editingProduct.thumbnailUrl ? (
                             <img 
-                              src={editingProduct.imageUrl} 
+                              src={editingProduct.thumbnailUrl} 
                               alt={editingProduct.name}
                               className="w-full h-full object-cover"
                             />
@@ -535,16 +535,16 @@ export default function AdminProducts() {
                             ) : (
                               <>
                                 <Upload className="h-4 w-4 mr-2" />
-                                {editingProduct.imageUrl ? "Change Image" : "Upload Image"}
+                                {editingProduct.thumbnailUrl ? "Change Image" : "Upload Image"}
                               </>
                             )}
                           </Button>
-                          {editingProduct.imageUrl && (
+                          {editingProduct.thumbnailUrl && (
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => setEditingProduct({ ...editingProduct, imageUrl: null })}
+                              onClick={() => setEditingProduct({ ...editingProduct, thumbnailUrl: null })}
                               className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
                               data-testid="button-remove-image"
                             >

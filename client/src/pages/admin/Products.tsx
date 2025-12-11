@@ -383,6 +383,18 @@ export default function AdminProducts() {
             {products.map((product) => (
               <div key={product.id} className="bg-white rounded-xl p-4 shadow-sm" data-testid={`product-card-${product.id}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {/* Product Image Thumbnail */}
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-lg border border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
+                    {product.imageUrl ? (
+                      <img 
+                        src={product.imageUrl} 
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package className="h-6 w-6 text-gray-400" />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <p className="font-medium text-gray-900 text-sm md:text-base truncate">{product.name}</p>

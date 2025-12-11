@@ -146,7 +146,11 @@ export default function AdminInbox() {
               return (
                 <Card
                   key={conv.userId}
-                  className="overflow-visible"
+                  className={`overflow-visible transition-all duration-200 ${
+                    isExpanded 
+                      ? "ring-2 ring-orange-400/50 dark:ring-orange-500/30 border-orange-300 dark:border-orange-800" 
+                      : ""
+                  }`}
                   data-testid={`card-conversation-${conv.userId}`}
                 >
                   <CardContent className="p-0">
@@ -200,7 +204,7 @@ export default function AdminInbox() {
 
                     {/* Expanded Conversation Detail */}
                     {isExpanded && (
-                      <div className="border-t">
+                      <div className="border-t border-orange-200 dark:border-orange-900/50">
                         {isLoadingDetail ? (
                           <div className="p-8 flex items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -214,46 +218,46 @@ export default function AdminInbox() {
                         ) : conversationDetail && conversationDetail.messages ? (
                           <>
                             {/* Messages */}
-                            <div className="p-4 max-h-96 overflow-y-auto space-y-3 bg-muted/30">
+                            <div className="p-4 max-h-96 overflow-y-auto space-y-4 bg-gradient-to-b from-orange-50/50 via-white to-orange-50/30 dark:from-orange-950/20 dark:via-background dark:to-orange-950/10">
                               {conversationDetail.messages.map((msg) => (
                                 <div
                                   key={msg.id}
                                   className={`flex ${msg.senderType === "admin" ? "justify-end" : "justify-start"}`}
                                 >
                                   <div
-                                    className={`max-w-[80%] rounded-lg p-3 ${
+                                    className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${
                                       msg.senderType === "admin"
                                         ? msg.isFromHuman
-                                          ? "bg-green-500/20 dark:bg-green-900/40 border border-green-500/30"
-                                          : "bg-orange-500/20 dark:bg-orange-900/40 border border-orange-500/30"
-                                        : "bg-background border"
+                                          ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-t-2 border-emerald-400"
+                                          : "bg-gradient-to-br from-orange-400 to-orange-500 text-white border-t-2 border-orange-300"
+                                        : "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm"
                                     }`}
                                     data-testid={`message-${msg.id}`}
                                   >
                                     {msg.senderType === "admin" && (
-                                      <div className="flex items-center gap-1 mb-1">
+                                      <div className="flex items-center gap-1.5 mb-2">
                                         {msg.isFromHuman ? (
-                                          <Headphones className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                          <Headphones className="h-3.5 w-3.5 text-white/90" />
                                         ) : (
-                                          <Bot className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+                                          <Bot className="h-3.5 w-3.5 text-white/90" />
                                         )}
-                                        <span className={`text-xs font-medium ${
-                                          msg.isFromHuman 
-                                            ? "text-green-600 dark:text-green-400" 
-                                            : "text-orange-600 dark:text-orange-400"
-                                        }`}>
-                                          {msg.isFromHuman ? "Support Team" : "AI Bot"}
+                                        <span className="text-xs font-semibold uppercase tracking-wide text-white/90">
+                                          {msg.isFromHuman ? "Support Team" : "AI Assistant"}
                                         </span>
                                       </div>
                                     )}
                                     {msg.senderType === "user" && (
-                                      <div className="flex items-center gap-1 mb-1">
-                                        <User className="h-3 w-3 text-muted-foreground" />
-                                        <span className="text-xs font-medium text-muted-foreground">Customer</span>
+                                      <div className="flex items-center gap-1.5 mb-2">
+                                        <User className="h-3.5 w-3.5 text-orange-500" />
+                                        <span className="text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-400">Customer</span>
                                       </div>
                                     )}
-                                    <p className="text-sm whitespace-pre-wrap text-foreground">{msg.content}</p>
-                                    <p className="text-xs mt-1 text-muted-foreground">
+                                    <p className={`text-sm whitespace-pre-wrap ${
+                                      msg.senderType === "admin" ? "text-white" : "text-foreground"
+                                    }`}>{msg.content}</p>
+                                    <p className={`text-xs mt-2 ${
+                                      msg.senderType === "admin" ? "text-white/70" : "text-muted-foreground"
+                                    }`}>
                                       {formatFullTime(msg.createdAt)}
                                     </p>
                                   </div>
@@ -262,19 +266,20 @@ export default function AdminInbox() {
                             </div>
 
                             {/* Reply Box */}
-                            <div className="p-4 border-t bg-background">
-                              <div className="flex gap-2">
+                            <div className="p-4 border-t border-orange-100 dark:border-orange-900/30 bg-gradient-to-r from-orange-50/50 to-white dark:from-orange-950/20 dark:to-background">
+                              <div className="flex gap-3">
                                 <Textarea
                                   value={replyContent}
                                   onChange={(e) => setReplyContent(e.target.value)}
                                   placeholder="Type your reply to the customer..."
-                                  className="resize-none"
+                                  className="resize-none flex-1 border-orange-200 dark:border-orange-900/50 focus:border-orange-400 focus:ring-orange-400/20"
                                   rows={3}
                                   data-testid="input-reply-message"
                                 />
                                 <Button
                                   onClick={handleSendReply}
                                   disabled={!replyContent.trim() || replyMutation.isPending}
+                                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white self-end"
                                   data-testid="button-send-reply"
                                 >
                                   {replyMutation.isPending ? (
@@ -284,7 +289,8 @@ export default function AdminInbox() {
                                   )}
                                 </Button>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-2">
+                              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
                                 Sending a reply will mark this conversation as handled and remove it from the inbox.
                               </p>
                             </div>

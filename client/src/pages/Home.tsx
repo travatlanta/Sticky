@@ -244,9 +244,9 @@ export default function Home() {
             </div>
             {/* Center CTA */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center pointer-events-auto">
-                <h3 className="font-heading text-2xl md:text-4xl text-gray-900 mb-2">Die-Cut, Circles, Sheets & More</h3>
-                <p className="text-gray-600 mb-4">Starting at just $0.06/sticker</p>
+              <div className="text-center pointer-events-auto bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-5 md:px-8 md:py-6 shadow-xl mx-4">
+                <h3 className="font-heading text-xl md:text-3xl text-gray-900 mb-1">Die-Cut, Circles, Sheets & More</h3>
+                <p className="text-gray-600 text-sm md:text-base mb-4">Starting at just $0.06/sticker</p>
                 <Link href="/products?category=stickers">
                   <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg">
                     Design Your Stickers <ArrowRight className="ml-2 h-5 w-5" />

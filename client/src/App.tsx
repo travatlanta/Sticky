@@ -9,6 +9,7 @@ import ProductDetail from "@/pages/ProductDetail";
 import Editor from "@/pages/Editor";
 import Cart from "@/pages/Cart";
 import Orders from "@/pages/Orders";
+import OrderDetail from "@/pages/OrderDetail";
 import NotFound from "@/pages/NotFound";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminProducts from "@/pages/admin/Products";
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/editor/:designId?" component={Editor} />
       <Route path="/cart" component={Cart} />
       <Route path="/orders" component={Orders} />
+      <Route path="/orders/:id" component={OrderDetail} />
       <Route path="/admin">{() => <AdminRoute component={AdminDashboard} />}</Route>
       <Route path="/admin/products">{() => <AdminRoute component={AdminProducts} />}</Route>
       <Route path="/admin/orders">{() => <AdminRoute component={AdminOrders} />}</Route>

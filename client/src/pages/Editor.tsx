@@ -215,21 +215,67 @@ export default function Editor() {
   const handleUpload = () => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (e: any) => {
+    input.accept = "image/*,.pdf";
+    input.onchange = async (e: any) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        window.fabric.Image.fromURL(event.target?.result, (img: any) => {
+      // Check file size (50MB limit)
+      if (file.size > 50 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Maximum file size is 50MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        // Upload to server first
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const uploadRes = await fetch('/api/upload/artwork', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const uploadData = await uploadRes.json();
+
+        // If it's a PDF, show success message but don't add to canvas
+        if (file.type === 'application/pdf') {
+          toast({
+            title: "File uploaded",
+            description: "Your PDF has been uploaded successfully.",
+          });
+          return;
+        }
+
+        // For images, add to canvas using the server URL
+        window.fabric.Image.fromURL(uploadData.url, (img: any) => {
           img.scaleToWidth(200);
           fabricCanvasRef.current.add(img);
           fabricCanvasRef.current.setActiveObject(img);
           fabricCanvasRef.current.renderAll();
+        }, { crossOrigin: 'anonymous' });
+
+        toast({
+          title: "Image added",
+          description: "Your artwork has been uploaded and added to the design.",
         });
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload file. Please try again.",
+          variant: "destructive",
+        });
+      }
     };
     input.click();
   };

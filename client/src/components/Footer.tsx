@@ -145,7 +145,7 @@ export default function Footer() {
         </div>
 
         {/* Trust Badges */}
-        <div className="border-t border-gray-800 py-8">
+        <div className="border-t border-gray-800 pt-10 pb-8">
           <div className="flex flex-wrap justify-center gap-8 md:gap-16">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center">

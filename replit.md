@@ -171,6 +171,27 @@ Key data entities:
   - Reply functionality that auto-resolves escalation
   - Real-time polling for new messages
 
+### Enhanced Design Editor (Print-Ready)
+- **Canvas Sizing**: Dynamic canvas dimensions based on product specifications (width/height in inches, DPI)
+- **Database Fields**: Products table extended with:
+  - `widthInches`, `heightInches` (decimal) - physical print dimensions
+  - `dpi` (integer, default 300) - print resolution
+  - `bleedSize` (decimal, default 0.125") - bleed offset for printing
+  - `safeZoneSize` (decimal, default 0.25") - safe zone inside bleed
+  - `supportsCustomShape` (boolean) - enables die-cut sticker uploads
+- **Visual Guides**:
+  - Red dashed bleed line shows printer margin area
+  - Green dashed safe zone line shows content boundary
+  - Guides stay on top when adding objects (event listeners reorder z-index)
+  - Guides update position correctly during zoom operations
+- **Zoom Controls**: Zoom in/out buttons with percentage display, mobile-friendly
+- **Die-Cut Stickers**: Modal prompt for custom shape upload when product supports it
+- **High-Res Export**: 3x scale factor export when adding to cart, stored as `highResExportUrl` on designs
+- **Admin Order View**: Order details modal shows design previews with links to:
+  - High-resolution export file
+  - Custom shape file (for die-cut stickers)
+  - Design name and preview thumbnail
+
 ## Pending Configuration
 
 ### Stripe Payment Integration

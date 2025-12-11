@@ -179,7 +179,7 @@ export default function Products() {
               <SelectTrigger className="w-[140px] md:w-[180px] h-8 text-xs md:text-sm border-orange-200" data-testid="sort-select">
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-900 border border-orange-200">
                 <SelectItem value="default" data-testid="sort-default">Default</SelectItem>
                 <SelectItem value="price-low" data-testid="sort-price-low">Price: Low to High</SelectItem>
                 <SelectItem value="price-high" data-testid="sort-price-high">Price: High to Low</SelectItem>

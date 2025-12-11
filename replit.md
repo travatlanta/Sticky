@@ -109,6 +109,21 @@ Key data entities:
 - **Page**: `/orders/:id` - detailed order view with status tracking
 - **Features**: Order timeline, shipping info, order items summary, status badges
 
+### Deals Management System
+- **Database**: `deals` table with title, description, pricing, images, CTA links, badges, scheduling
+- **Admin Panel**: `/admin/deals` - full CRUD operations with live preview, publish controls, homepage visibility toggles
+- **Customer Pages**: 
+  - Homepage Hot Deals section with dynamic cards from `/api/deals/homepage`
+  - `/deals` page showing all active published deals
+- **API Endpoints**:
+  - `GET /api/deals` - get all published deals
+  - `GET /api/deals/homepage` - get deals marked for homepage display
+  - `GET /api/admin/deals` - get all deals (admin)
+  - `POST /api/admin/deals` - create deal (admin)
+  - `PUT /api/admin/deals/:id` - update deal (admin)
+  - `DELETE /api/admin/deals/:id` - delete deal (admin)
+- **Features**: Quantity/size badges, original vs deal pricing, percentage off calculation, expiration dates, CTA buttons with custom links
+
 ## Pending Configuration
 
 ### Stripe Payment Integration

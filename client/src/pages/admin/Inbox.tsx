@@ -230,7 +230,7 @@ export default function AdminInbox() {
                                         ? msg.isFromHuman
                                           ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-t-2 border-emerald-400"
                                           : "bg-gradient-to-br from-orange-400 to-orange-500 text-white border-t-2 border-orange-300"
-                                        : "bg-white dark:bg-zinc-900 border-2 border-orange-200 dark:border-orange-800"
+                                        : "bg-orange-50 dark:bg-orange-100 border-2 border-orange-300 dark:border-orange-400 text-zinc-900"
                                     }`}
                                     data-testid={`message-${msg.id}`}
                                   >
@@ -248,15 +248,15 @@ export default function AdminInbox() {
                                     )}
                                     {msg.senderType === "user" && (
                                       <div className="flex items-center gap-1.5 mb-2">
-                                        <User className="h-3.5 w-3.5 text-orange-500" />
-                                        <span className="text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-400">Customer</span>
+                                        <User className="h-3.5 w-3.5 text-orange-600" />
+                                        <span className="text-xs font-semibold uppercase tracking-wide text-orange-700">Customer</span>
                                       </div>
                                     )}
                                     <p className={`text-sm whitespace-pre-wrap ${
-                                      msg.senderType === "admin" ? "text-white" : "text-foreground"
+                                      msg.senderType === "admin" ? "text-white" : "text-zinc-800"
                                     }`}>{msg.content}</p>
                                     <p className={`text-xs mt-2 ${
-                                      msg.senderType === "admin" ? "text-white/70" : "text-muted-foreground"
+                                      msg.senderType === "admin" ? "text-white/70" : "text-zinc-500"
                                     }`}>
                                       {formatFullTime(msg.createdAt)}
                                     </p>

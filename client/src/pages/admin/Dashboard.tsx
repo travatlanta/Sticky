@@ -44,58 +44,58 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Welcome to the admin panel</p>
+      <div className="p-4 md:p-8">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 text-sm md:text-base">Welcome to the admin panel</p>
         </div>
 
         {isLoading ? (
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white rounded-xl p-6 shadow-sm animate-pulse">
-                <div className="h-12 w-12 bg-gray-200 rounded-lg mb-4" />
-                <div className="h-8 bg-gray-200 rounded w-1/2 mb-2" />
+              <div key={i} className="bg-white rounded-xl p-4 md:p-6 shadow-sm animate-pulse">
+                <div className="h-10 w-10 md:h-12 md:w-12 bg-gray-200 rounded-lg mb-3 md:mb-4" />
+                <div className="h-6 md:h-8 bg-gray-200 rounded w-1/2 mb-2" />
                 <div className="h-4 bg-gray-200 rounded w-3/4" />
               </div>
             ))}
           </div>
         ) : (
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {statCards.map((stat) => {
               const Icon = stat.icon;
               return (
-                <div key={stat.label} className="bg-white rounded-xl p-6 shadow-sm">
-                  <div className={`h-12 w-12 ${stat.color} rounded-lg flex items-center justify-center mb-4`}>
-                    <Icon className="h-6 w-6 text-white" />
+                <div key={stat.label} className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
+                  <div className={`h-10 w-10 md:h-12 md:w-12 ${stat.color} rounded-lg flex items-center justify-center mb-3 md:mb-4`}>
+                    <Icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                  <p className="text-gray-600">{stat.label}</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-gray-600 text-sm">{stat.label}</p>
                 </div>
               );
             })}
           </div>
         )}
 
-        <div className="mt-8 grid md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+        <div className="mt-6 md:mt-8 grid md:grid-cols-2 gap-4 md:gap-6">
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
+            <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Quick Actions</h2>
             <div className="space-y-2">
-              <a href="/admin/products" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <a href="/admin/products" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm md:text-base" data-testid="link-quick-products">
                 Add New Product
               </a>
-              <a href="/admin/promotions" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <a href="/admin/promotions" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm md:text-base" data-testid="link-quick-promotions">
                 Create Promotion Code
               </a>
-              <a href="/admin/orders" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <a href="/admin/orders" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm md:text-base" data-testid="link-quick-orders">
                 View Recent Orders
               </a>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Admin Guide</h2>
-            <div className="text-sm text-gray-600 space-y-2">
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
+            <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Admin Guide</h2>
+            <div className="text-xs md:text-sm text-gray-600 space-y-2">
               <p><strong>Products:</strong> Add, edit, and manage your product catalog</p>
               <p><strong>Orders:</strong> View and update order statuses</p>
               <p><strong>Promotions:</strong> Create and manage discount codes</p>

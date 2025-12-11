@@ -102,64 +102,70 @@ export default function AdminProducts() {
 
   return (
     <AdminLayout>
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-8">
+      <div className="p-4 md:p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-            <p className="text-gray-600">Manage your product catalog</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Products</h1>
+            <p className="text-gray-600 text-sm md:text-base">Manage your product catalog</p>
           </div>
-          <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+          <Button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full sm:w-auto" data-testid="button-add-product">
             <Plus className="h-4 w-4 mr-2" />
             Add Product
           </Button>
         </div>
 
         {showCreateForm && (
-          <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
-            <h2 className="text-lg font-semibold mb-4">Create New Product</h2>
-            <form onSubmit={handleCreate} className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                />
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm mb-6">
+            <h2 className="text-base md:text-lg font-semibold mb-4">Create New Product</h2>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    required
+                    data-testid="input-product-name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Slug</label>
+                  <input
+                    type="text"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    required
+                    data-testid="input-product-slug"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Base Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.basePrice}
+                    onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    required
+                    data-testid="input-product-price"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <input
+                    type="text"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    data-testid="input-product-description"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Slug</label>
-                <input
-                  type="text"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Base Price</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.basePrice}
-                  onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div className="flex items-center space-x-4 col-span-2">
-                <label className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
                     checked={formData.isActive}
@@ -167,7 +173,7 @@ export default function AdminProducts() {
                   />
                   <span>Active</span>
                 </label>
-                <label className="flex items-center space-x-2">
+                <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
                     checked={formData.isFeatured}
@@ -176,11 +182,11 @@ export default function AdminProducts() {
                   <span>Featured</span>
                 </label>
               </div>
-              <div className="col-span-2 flex justify-end space-x-2">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createMutation.isPending}>
+                <Button type="submit" disabled={createMutation.isPending} data-testid="button-create-product">
                   {createMutation.isPending ? "Creating..." : "Create Product"}
                 </Button>
               </div>
@@ -189,40 +195,24 @@ export default function AdminProducts() {
         )}
 
         {isLoading ? (
-          <div className="bg-white rounded-xl shadow-sm animate-pulse">
+          <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="p-4 border-b">
-                <div className="h-6 bg-gray-200 rounded w-1/4 mb-2" />
+              <div key={i} className="bg-white rounded-xl p-4 shadow-sm animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-1/3 mb-2" />
                 <div className="h-4 bg-gray-200 rounded w-1/2" />
               </div>
             ))}
           </div>
         ) : products && products.length > 0 ? (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Product</th>
-                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Price</th>
-                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Status</th>
-                  <th className="text-right px-6 py-3 text-sm font-medium text-gray-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-500">{product.slug}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-900">
-                      {formatPrice(product.basePrice)}
-                    </td>
-                    <td className="px-6 py-4">
+          <div className="space-y-3">
+            {products.map((product) => (
+              <div key={product.id} className="bg-white rounded-xl p-4 shadow-sm" data-testid={`product-card-${product.id}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <p className="font-medium text-gray-900 text-sm md:text-base truncate">{product.name}</p>
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           product.isActive
                             ? "bg-green-100 text-green-800"
                             : "bg-gray-100 text-gray-800"
@@ -231,42 +221,49 @@ export default function AdminProducts() {
                         {product.isActive ? "Active" : "Inactive"}
                       </span>
                       {product.isFeatured && (
-                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           Featured
                         </span>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => toggleActive(product)}
-                      >
-                        {product.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingProduct(product)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this product?")) {
-                            deleteMutation.mutate(product.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                      <span className="font-medium text-gray-900">{formatPrice(product.basePrice)}</span>
+                      <span className="truncate">{product.slug}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 self-end sm:self-center">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => toggleActive(product)}
+                      data-testid={`button-toggle-${product.id}`}
+                    >
+                      {product.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setEditingProduct(product)}
+                      data-testid={`button-edit-${product.id}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this product?")) {
+                          deleteMutation.mutate(product.id);
+                        }
+                      }}
+                      data-testid={`button-delete-${product.id}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="bg-white rounded-xl p-12 text-center shadow-sm">

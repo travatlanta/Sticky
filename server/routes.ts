@@ -1,7 +1,11 @@
 import type { Express, Request, Response, RequestHandler } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, isAdmin } from "./auth";
+import bcrypt from "bcryptjs";
+import { db } from "./db";
+import { users, adminInvitations } from "@shared/schema";
+import { eq, and, not, isNull } from "drizzle-orm";
 import Stripe from "stripe";
 import PDFDocument from "pdfkit";
 import multer from "multer";
@@ -139,59 +143,12 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
-const isAdmin: RequestHandler = async (req: any, res, next) => {
-  if (!req.isAuthenticated() || !req.user?.claims?.sub) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  try {
-    const userId = req.user.claims.sub;
-    const userEmail = req.user.claims.email;
-    const user = await storage.getUser(userId);
-    
-    // Check if user email matches admin email from env, or if user is marked as admin in DB
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const isAdminByEmail = adminEmail && userEmail && userEmail.toLowerCase() === adminEmail.toLowerCase();
-    
-    if (!user?.isAdmin && !isAdminByEmail) {
-      return res.status(403).json({ message: "Forbidden" });
-    }
-    
-    next();
-  } catch (error) {
-    console.error("Error checking admin status:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
   // Serve attached_assets statically for product images
   const attachedAssetsPath = path.join(process.cwd(), 'attached_assets');
   app.use('/attached_assets', express.static(attachedAssetsPath));
-
-  // Auth routes
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const userEmail = req.user.claims.email;
-      const user = await storage.getUser(userId);
-      
-      // Check if user is admin by email
-      const adminEmail = process.env.ADMIN_EMAIL;
-      const isAdminByEmail = adminEmail && userEmail && userEmail.toLowerCase() === adminEmail.toLowerCase();
-      
-      // Return user with admin status
-      res.json({
-        ...user,
-        isAdmin: user?.isAdmin || isAdminByEmail,
-      });
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
 
   // Categories
   app.get("/api/categories", async (req, res) => {
@@ -299,7 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Designs
   app.get("/api/designs", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const designs = await storage.getDesignsByUser(userId);
       res.json(designs);
     } catch (error) {
@@ -323,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/designs", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const design = await storage.createDesign({
         userId,
         ...req.body,
@@ -824,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Payment processing not configured" });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { shippingAddress, billingAddress, promoCode } = req.body;
 
       const cart = await storage.getCartByUserId(userId);
@@ -880,7 +837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Orders
   app.get("/api/orders", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const orders = await storage.getOrdersByUser(userId);
       res.json(orders);
     } catch (error) {
@@ -915,7 +872,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/orders/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const message = await storage.createMessage({
         orderId: parseInt(req.params.id),
         userId,
@@ -1154,7 +1111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat/Support messages
   app.get("/api/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const messages = await storage.getMessagesByUser(userId);
       res.json(messages);
     } catch (error) {
@@ -1165,24 +1122,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { content, orderId } = req.body;
 
       if (!content || content.trim() === '') {
         return res.status(400).json({ message: "Message content is required" });
       }
 
-      // Ensure user exists in database (upsert if needed)
-      let user = await storage.getUser(userId);
-      if (!user) {
-        user = await storage.upsertUser({
-          id: userId,
-          email: req.user.claims.email,
-          firstName: req.user.claims.first_name,
-          lastName: req.user.claims.last_name,
-          profileImageUrl: req.user.claims.profile_image_url,
-        });
-      }
+      // Ensure user exists in database (should already exist from login)
+      const user = await storage.getUser(userId);
 
       const userMessage = await storage.createMessage({
         userId,
@@ -1257,6 +1205,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error marking message as read:", error);
       res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  // ==================== ADMIN MANAGEMENT ROUTES ====================
+
+  // Get all admins
+  app.get("/api/admin/admins", isAdmin, async (req: any, res) => {
+    try {
+      const admins = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(eq(users.isAdmin, true));
+      res.json(admins);
+    } catch (error) {
+      console.error("Error fetching admins:", error);
+      res.status(500).json({ message: "Failed to fetch admins" });
+    }
+  });
+
+  // Get pending admin invitations
+  app.get("/api/admin/invitations", isAdmin, async (req: any, res) => {
+    try {
+      const invitations = await db
+        .select()
+        .from(adminInvitations)
+        .where(eq(adminInvitations.status, "pending"));
+      res.json(invitations);
+    } catch (error) {
+      console.error("Error fetching invitations:", error);
+      res.status(500).json({ message: "Failed to fetch invitations" });
+    }
+  });
+
+  // Invite new admin
+  app.post("/api/admin/admins/invite", isAdmin, async (req: any, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const normalizedEmail = email.toLowerCase();
+      const inviterId = req.user.id;
+
+      // Check if user already exists as admin
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.email, normalizedEmail), eq(users.isAdmin, true)))
+        .limit(1);
+
+      if (existingUser) {
+        return res.status(400).json({ message: "This user is already an admin" });
+      }
+
+      // Check if invitation already exists
+      const [existingInvite] = await db
+        .select()
+        .from(adminInvitations)
+        .where(eq(adminInvitations.email, normalizedEmail))
+        .limit(1);
+
+      if (existingInvite && existingInvite.status === "pending") {
+        return res.status(400).json({ message: "Invitation already sent to this email" });
+      }
+
+      // Generate invitation token
+      const invitationToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+      // Create or update invitation
+      if (existingInvite) {
+        await db
+          .update(adminInvitations)
+          .set({
+            status: "pending",
+            invitationToken,
+            invitedBy: inviterId,
+            createdAt: new Date(),
+            revokedAt: null,
+          })
+          .where(eq(adminInvitations.email, normalizedEmail));
+      } else {
+        await db.insert(adminInvitations).values({
+          email: normalizedEmail,
+          invitedBy: inviterId,
+          invitationToken,
+          status: "pending",
+        });
+      }
+
+      // If user already exists, make them admin immediately
+      const [existingNonAdmin] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, normalizedEmail))
+        .limit(1);
+
+      if (existingNonAdmin) {
+        await db
+          .update(users)
+          .set({ isAdmin: true })
+          .where(eq(users.id, existingNonAdmin.id));
+
+        await db
+          .update(adminInvitations)
+          .set({ status: "accepted", acceptedAt: new Date() })
+          .where(eq(adminInvitations.email, normalizedEmail));
+
+        return res.json({ message: "User has been promoted to admin", status: "accepted" });
+      }
+
+      res.json({ message: "Invitation sent successfully", status: "pending" });
+    } catch (error) {
+      console.error("Error inviting admin:", error);
+      res.status(500).json({ message: "Failed to invite admin" });
+    }
+  });
+
+  // Revoke admin access
+  app.delete("/api/admin/admins/:userId", isAdmin, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const currentUserId = req.user.id;
+
+      if (userId === currentUserId) {
+        return res.status(400).json({ message: "You cannot remove yourself as admin" });
+      }
+
+      // Remove admin status
+      await db
+        .update(users)
+        .set({ isAdmin: false })
+        .where(eq(users.id, userId));
+
+      // Update invitation status if exists
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (user?.email) {
+        await db
+          .update(adminInvitations)
+          .set({ status: "revoked", revokedAt: new Date() })
+          .where(eq(adminInvitations.email, user.email));
+      }
+
+      res.json({ message: "Admin access revoked successfully" });
+    } catch (error) {
+      console.error("Error revoking admin:", error);
+      res.status(500).json({ message: "Failed to revoke admin access" });
+    }
+  });
+
+  // Seed initial admin on first request (if no admins exist)
+  app.get("/api/admin/seed-check", async (req, res) => {
+    try {
+      const [existingAdmin] = await db
+        .select()
+        .from(users)
+        .where(eq(users.isAdmin, true))
+        .limit(1);
+      
+      res.json({ hasAdmin: !!existingAdmin });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check admin status" });
     }
   });
 

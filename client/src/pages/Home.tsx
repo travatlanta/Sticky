@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
-import { ArrowRight, Plus, Package, FileText, Sparkles, Zap, Percent, Clock, Star, Layers, Image, FileImage, Flame, Wine, Tag } from "lucide-react";
+import { ArrowRight, Plus, Sparkles, Zap, Percent, Clock, Star, Layers, Image, FileImage, Flame, Wine, Tag, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Home() {
@@ -18,14 +18,6 @@ export default function Home() {
     queryKey: ["/api/products"],
   });
 
-  const { data: designs } = useQuery({
-    queryKey: ["/api/designs"],
-  });
-
-  const { data: orders } = useQuery({
-    queryKey: ["/api/orders"],
-  });
-
   const { data: homepageDeals } = useQuery<any[]>({
     queryKey: ["/api/deals/homepage"],
   });
@@ -37,59 +29,34 @@ export default function Home() {
 
   return (
     <div className="min-h-screen pb-16 md:pb-20">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-orange-500 via-orange-400 to-yellow-400 py-6 px-4">
-        <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="font-heading text-2xl md:text-3xl text-white">
-                  Welcome back, {user?.firstName || "there"}!
-                </h1>
-                <p className="text-white/80 text-sm">Ready to create something awesome?</p>
-              </div>
-            </div>
-            <Link href="/account">
-              <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur" data-testid="button-view-account">
-                My Account <ArrowRight className="ml-2 h-4 w-4" />
+      {/* Hero Section */}
+      <div className="bg-gradient-to-br from-orange-600 via-orange-500 to-yellow-400 py-12 md:py-20 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-10 left-10 w-40 h-40 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-60 h-60 bg-yellow-300 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-orange-300 rounded-full blur-3xl" />
+        </div>
+        <div className="container mx-auto relative text-center">
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="h-8 w-8 md:h-10 md:w-10 text-white" />
+          </div>
+          <h1 className="font-heading text-4xl md:text-6xl text-white mb-3">
+            Welcome back, {user?.firstName || "there"}!
+          </h1>
+          <p className="text-white/90 text-lg md:text-xl mb-6 max-w-xl mx-auto">
+            Create stunning custom stickers, labels, and more for your brand
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/products">
+              <Button size="lg" className="bg-white text-orange-600 hover:bg-white/90 shadow-lg w-full sm:w-auto" data-testid="button-start-designing">
+                <Plus className="mr-2 h-5 w-5" />
+                Start Designing
               </Button>
             </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="py-8 px-4 bg-gradient-to-b from-orange-50 to-white">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 max-w-2xl mx-auto">
-            <Link href="/products">
-              <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-orange-300 text-center" data-testid="quick-action-new-order">
-                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-orange-500/30">
-                  <Plus className="h-6 w-6 md:h-7 md:w-7 text-white" />
-                </div>
-                <h3 className="font-heading text-sm md:text-lg text-gray-900">New Order</h3>
-              </div>
-            </Link>
-            <Link href="/orders">
-              <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-blue-300 text-center" data-testid="quick-action-orders">
-                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/30">
-                  <Package className="h-6 w-6 md:h-7 md:w-7 text-white" />
-                </div>
-                <h3 className="font-heading text-sm md:text-lg text-gray-900">My Orders</h3>
-                <p className="text-xs md:text-sm text-gray-500">{orders?.length || 0} order{orders?.length !== 1 ? 's' : ''}</p>
-              </div>
-            </Link>
-            <Link href="/designs">
-              <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-green-300 text-center" data-testid="quick-action-designs">
-                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-green-500/30">
-                  <FileText className="h-6 w-6 md:h-7 md:w-7 text-white" />
-                </div>
-                <h3 className="font-heading text-sm md:text-lg text-gray-900">Designs</h3>
-                <p className="text-xs md:text-sm text-gray-500">{designs?.length || 0} saved</p>
-              </div>
+            <Link href="/account">
+              <Button size="lg" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur w-full sm:w-auto" data-testid="button-view-account">
+                My Account <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
             </Link>
           </div>
         </div>

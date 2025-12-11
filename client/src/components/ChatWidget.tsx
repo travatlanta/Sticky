@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +11,7 @@ import {
   User,
   Headphones,
   Loader2,
+  Bot,
 } from "lucide-react";
 import type { Message } from "@shared/schema";
 
@@ -29,7 +29,7 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
     enabled: isOpen && isAuthenticated,
-    refetchInterval: isOpen ? 5000 : false,
+    refetchInterval: isOpen ? 3000 : false,
     retry: false,
     queryFn: async () => {
       const res = await fetch("/api/messages", { credentials: "include" });
@@ -60,6 +60,10 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
       setMessageText("");
+      // Refetch after a short delay to get the AI response
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      }, 2000);
     },
     onError: (error: Error) => {
       console.error("Failed to send message:", error);
@@ -89,18 +93,24 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-6 right-6 z-50">
       {isOpen ? (
-        <Card className="w-80 sm:w-96 h-96 flex flex-col shadow-lg">
-          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-primary text-primary-foreground rounded-t-md">
+        <div className="w-80 sm:w-96 h-[28rem] flex flex-col bg-white rounded-2xl shadow-2xl border border-orange-200 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
             <div className="flex items-center gap-2">
-              <Headphones className="w-5 h-5" />
-              <span className="font-heading font-bold">Support Chat</span>
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                <Headphones className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="font-heading font-bold block">Support Chat</span>
+                <span className="text-xs text-orange-100">AI-powered assistant</span>
+              </div>
             </div>
             <Button
               size="icon"
               variant="ghost"
-              className="text-primary-foreground hover:bg-primary/90"
+              className="text-white hover:bg-white/20 h-8 w-8"
               onClick={() => setIsOpen(false)}
               data-testid="button-close-chat"
             >
@@ -108,16 +118,21 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
             </Button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-muted/30">
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
               </div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-                <MessageCircle className="w-10 h-10 mb-2 opacity-50" />
-                <p className="text-sm">No messages yet.</p>
-                <p className="text-xs">Send us a message and we'll reply as soon as possible!</p>
+              <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                  <Bot className="w-8 h-8 text-orange-500" />
+                </div>
+                <p className="font-medium text-gray-700 mb-1">Hi there!</p>
+                <p className="text-sm text-gray-500">
+                  Ask me anything about our products, pricing, shipping, or your orders!
+                </p>
               </div>
             ) : (
               <>
@@ -127,25 +142,25 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
                     className={`flex ${msg.senderType === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
                         msg.senderType === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card border"
+                          ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-br-sm"
+                          : "bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm"
                       }`}
                     >
-                      <div className="flex items-center gap-1 mb-1">
+                      <div className="flex items-center gap-1.5 mb-1">
                         {msg.senderType === "admin" ? (
-                          <Headphones className="w-3 h-3" />
+                          <Bot className="w-3 h-3 text-orange-500" />
                         ) : (
                           <User className="w-3 h-3" />
                         )}
-                        <span className="text-xs font-medium">
-                          {msg.senderType === "admin" ? "Support" : "You"}
+                        <span className={`text-xs font-medium ${msg.senderType === "user" ? "text-orange-100" : "text-orange-500"}`}>
+                          {msg.senderType === "admin" ? "Support Bot" : "You"}
                         </span>
                       </div>
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : ""}
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      <p className={`text-xs mt-1.5 ${msg.senderType === "user" ? "text-orange-200" : "text-gray-400"}`}>
+                        {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
                       </p>
                     </div>
                   </div>
@@ -155,7 +170,8 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="p-3 border-t bg-background">
+          {/* Input Area */}
+          <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-gray-100">
             <div className="flex gap-2">
               <Input
                 ref={inputRef}
@@ -163,12 +179,14 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
                 onChange={(e) => setMessageText(e.target.value)}
                 placeholder="Type your message..."
                 disabled={sendMutation.isPending}
+                className="bg-gray-50 border-gray-200 focus:border-orange-300 focus:ring-orange-200"
                 data-testid="input-chat-message"
               />
               <Button
                 type="submit"
                 size="icon"
                 disabled={!messageText.trim() || sendMutation.isPending}
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md"
                 data-testid="button-send-message"
               >
                 {sendMutation.isPending ? (
@@ -179,11 +197,11 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
               </Button>
             </div>
           </form>
-        </Card>
+        </div>
       ) : (
         <Button
           size="lg"
-          className="rounded-full w-14 h-14 shadow-lg"
+          className="rounded-full w-14 h-14 shadow-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 border-2 border-white"
           onClick={() => setIsOpen(true)}
           data-testid="button-open-chat"
         >

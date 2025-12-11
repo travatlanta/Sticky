@@ -55,7 +55,8 @@ export default function ProductDetail() {
   }, [product]);
 
   useEffect(() => {
-    if (product?.id && Object.keys(selectedOptions).length > 0) {
+    if (product?.id) {
+      // Calculate price even if no options (uses basePrice)
       calculatePriceMutation.mutate();
     }
   }, [product?.id, quantity, selectedOptions]);

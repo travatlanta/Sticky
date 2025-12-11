@@ -136,35 +136,54 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
               </div>
             ) : (
               <>
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.senderType === "user" ? "justify-end" : "justify-start"}`}
-                  >
+                {messages.map((msg) => {
+                  const isHumanSupport = msg.senderType === "admin" && msg.isFromHuman;
+                  return (
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-                        msg.senderType === "user"
-                          ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-br-sm"
-                          : "bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm"
-                      }`}
+                      key={msg.id}
+                      className={`flex ${msg.senderType === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      <div className="flex items-center gap-1.5 mb-1">
-                        {msg.senderType === "admin" ? (
-                          <Bot className="w-3 h-3 text-orange-500" />
-                        ) : (
-                          <User className="w-3 h-3" />
-                        )}
-                        <span className={`text-xs font-medium ${msg.senderType === "user" ? "text-orange-100" : "text-orange-500"}`}>
-                          {msg.senderType === "admin" ? "Support Bot" : "You"}
-                        </span>
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
+                          msg.senderType === "user"
+                            ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-br-sm"
+                            : isHumanSupport
+                              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-gray-800 border border-green-200 rounded-bl-sm shadow-sm"
+                              : "bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 mb-1">
+                          {msg.senderType === "admin" ? (
+                            isHumanSupport ? (
+                              <Headphones className="w-3 h-3 text-green-600" />
+                            ) : (
+                              <Bot className="w-3 h-3 text-orange-500" />
+                            )
+                          ) : (
+                            <User className="w-3 h-3" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            msg.senderType === "user" 
+                              ? "text-orange-100" 
+                              : isHumanSupport 
+                                ? "text-green-600" 
+                                : "text-orange-500"
+                          }`}>
+                            {msg.senderType === "admin" 
+                              ? isHumanSupport 
+                                ? "Support Team" 
+                                : "Support Bot" 
+                              : "You"}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                        <p className={`text-xs mt-1.5 ${msg.senderType === "user" ? "text-orange-200" : "text-gray-400"}`}>
+                          {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                        </p>
                       </div>
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                      <p className={`text-xs mt-1.5 ${msg.senderType === "user" ? "text-orange-200" : "text-gray-400"}`}>
-                        {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
-                      </p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </>
             )}

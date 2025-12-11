@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Check, X, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Package, Upload, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Product {
@@ -12,6 +12,7 @@ interface Product {
   slug: string;
   description: string;
   basePrice: string;
+  imageUrl: string | null;
   isActive: boolean;
   isFeatured: boolean;
   categoryId: number | null;
@@ -28,9 +29,46 @@ export default function AdminProducts() {
     isActive: true,
     isFeatured: false,
   });
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const uploadProductImage = async (file: File): Promise<string | null> => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/admin/upload/product-image', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({ title: "Failed to upload image", variant: "destructive" });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingProduct) return;
+    
+    const imageUrl = await uploadProductImage(file);
+    if (imageUrl) {
+      setEditingProduct({ ...editingProduct, imageUrl });
+    }
+  };
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/admin/products"],
@@ -278,8 +316,8 @@ export default function AdminProducts() {
         )}
 
         {editingProduct && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
               <h2 className="text-lg font-semibold mb-4">Edit Product</h2>
               <form
                 onSubmit={(e) => {
@@ -291,6 +329,66 @@ export default function AdminProducts() {
                 }}
                 className="space-y-4"
               >
+                {/* Product Image Section */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Product Image</label>
+                  <div className="flex items-start gap-4">
+                    <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
+                      {editingProduct.imageUrl ? (
+                        <img 
+                          src={editingProduct.imageUrl} 
+                          alt={editingProduct.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Image className="h-8 w-8 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        data-testid="input-product-image"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="w-full"
+                        data-testid="button-upload-image"
+                      >
+                        {isUploading ? (
+                          "Uploading..."
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            {editingProduct.imageUrl ? "Change Image" : "Upload Image"}
+                          </>
+                        )}
+                      </Button>
+                      {editingProduct.imageUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingProduct({ ...editingProduct, imageUrl: null })}
+                          className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                          data-testid="button-remove-image"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Remove Image
+                        </Button>
+                      )}
+                      <p className="text-xs text-gray-500">JPG, PNG, GIF, or WebP. Max 10MB.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Name</label>
                   <input
@@ -300,6 +398,7 @@ export default function AdminProducts() {
                       setEditingProduct({ ...editingProduct, name: e.target.value })
                     }
                     className="w-full px-3 py-2 border rounded-lg"
+                    data-testid="input-edit-name"
                   />
                 </div>
                 <div>
@@ -312,6 +411,7 @@ export default function AdminProducts() {
                       setEditingProduct({ ...editingProduct, basePrice: e.target.value })
                     }
                     className="w-full px-3 py-2 border rounded-lg"
+                    data-testid="input-edit-price"
                   />
                 </div>
                 <div>
@@ -323,6 +423,7 @@ export default function AdminProducts() {
                     }
                     className="w-full px-3 py-2 border rounded-lg"
                     rows={3}
+                    data-testid="input-edit-description"
                   />
                 </div>
                 <div className="flex items-center space-x-4">
@@ -333,6 +434,7 @@ export default function AdminProducts() {
                       onChange={(e) =>
                         setEditingProduct({ ...editingProduct, isActive: e.target.checked })
                       }
+                      data-testid="checkbox-edit-active"
                     />
                     <span>Active</span>
                   </label>
@@ -343,15 +445,16 @@ export default function AdminProducts() {
                       onChange={(e) =>
                         setEditingProduct({ ...editingProduct, isFeatured: e.target.checked })
                       }
+                      data-testid="checkbox-edit-featured"
                     />
                     <span>Featured</span>
                   </label>
                 </div>
                 <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setEditingProduct(null)}>
+                  <Button type="button" variant="outline" onClick={() => setEditingProduct(null)} data-testid="button-cancel-edit">
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={updateMutation.isPending}>
+                  <Button type="submit" disabled={updateMutation.isPending || isUploading} data-testid="button-save-changes">
                     {updateMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>

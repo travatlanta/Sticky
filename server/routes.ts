@@ -78,6 +78,37 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+const productImagesDir = path.join(process.cwd(), 'uploads', 'products');
+if (!fs.existsSync(productImagesDir)) {
+  fs.mkdirSync(productImagesDir, { recursive: true });
+}
+
+const productImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, productImagesDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `product-${uniqueSuffix}${ext}`);
+  }
+});
+
+const productImageUpload = multer({
+  storage: productImageStorage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for product images
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Allowed: JPG, PNG, GIF, WebP'));
+    }
+  }
+});
+
 const artworkStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
@@ -661,6 +692,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded artwork files
   app.get("/uploads/artwork/:filename", (req, res) => {
     const filepath = path.join(process.cwd(), 'uploads', 'artwork', req.params.filename);
+    if (fs.existsSync(filepath)) {
+      res.sendFile(filepath);
+    } else {
+      res.status(404).json({ message: "File not found" });
+    }
+  });
+
+  // Product image uploads (admin only)
+  app.post("/api/admin/upload/product-image", isAdmin, productImageUpload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileUrl = `/uploads/products/${req.file.filename}`;
+      
+      res.json({
+        success: true,
+        url: fileUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+      });
+    } catch (error) {
+      console.error("Error uploading product image:", error);
+      res.status(500).json({ message: "Failed to upload product image" });
+    }
+  });
+
+  // Serve uploaded product images
+  app.get("/uploads/products/:filename", (req, res) => {
+    const filepath = path.join(process.cwd(), 'uploads', 'products', req.params.filename);
     if (fs.existsSync(filepath)) {
       res.sendFile(filepath);
     } else {

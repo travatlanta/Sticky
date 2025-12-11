@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Check, X, Package, Upload, Image } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Package, Upload, Image, Layout, FileImage } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Product {
   id: number;
@@ -16,6 +17,17 @@ interface Product {
   isActive: boolean;
   isFeatured: boolean;
   categoryId: number | null;
+}
+
+interface ProductTemplate {
+  id: number;
+  productId: number;
+  name: string;
+  description: string | null;
+  previewImageUrl: string | null;
+  canvasJson: any;
+  isActive: boolean;
+  displayOrder: number;
 }
 
 export default function AdminProducts() {
@@ -31,6 +43,16 @@ export default function AdminProducts() {
   });
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const templateFileInputRef = useRef<HTMLInputElement>(null);
+  const [showAddTemplate, setShowAddTemplate] = useState(false);
+  const [templateForm, setTemplateForm] = useState({
+    name: "",
+    description: "",
+    previewImageUrl: "",
+    canvasJson: "",
+    isActive: true,
+  });
+  const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -70,8 +92,56 @@ export default function AdminProducts() {
     }
   };
 
+  const uploadTemplateImage = async (file: File): Promise<string | null> => {
+    setIsUploadingTemplate(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/admin/upload/template-image', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      console.error('Error uploading template image:', error);
+      toast({ title: "Failed to upload template image", variant: "destructive" });
+      return null;
+    } finally {
+      setIsUploadingTemplate(false);
+    }
+  };
+
+  const handleTemplateImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const imageUrl = await uploadTemplateImage(file);
+    if (imageUrl) {
+      setTemplateForm({ ...templateForm, previewImageUrl: imageUrl });
+    }
+  };
+
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/admin/products"],
+  });
+
+  const { data: templates, isLoading: templatesLoading } = useQuery<ProductTemplate[]>({
+    queryKey: ["/api/admin/products", editingProduct?.id, "templates"],
+    enabled: !!editingProduct,
+    queryFn: async () => {
+      if (!editingProduct) return [];
+      const res = await fetch(`/api/admin/products/${editingProduct.id}/templates`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch templates");
+      return res.json();
+    },
   });
 
   const createMutation = useMutation({
@@ -128,6 +198,55 @@ export default function AdminProducts() {
     },
     onError: () => toast({ title: "Failed to delete product", variant: "destructive" }),
   });
+
+  const createTemplateMutation = useMutation({
+    mutationFn: async (data: typeof templateForm) => {
+      if (!editingProduct) throw new Error("No product selected");
+      const res = await fetch(`/api/admin/products/${editingProduct.id}/templates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          ...data,
+          canvasJson: data.canvasJson ? JSON.parse(data.canvasJson) : null,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create template");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products", editingProduct?.id, "templates"] });
+      setShowAddTemplate(false);
+      setTemplateForm({ name: "", description: "", previewImageUrl: "", canvasJson: "", isActive: true });
+      toast({ title: "Template created successfully" });
+    },
+    onError: () => toast({ title: "Failed to create template", variant: "destructive" }),
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/templates/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete template");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products", editingProduct?.id, "templates"] });
+      toast({ title: "Template deleted successfully" });
+    },
+    onError: () => toast({ title: "Failed to delete template", variant: "destructive" }),
+  });
+
+  const handleCreateTemplate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!templateForm.name) {
+      toast({ title: "Template name is required", variant: "destructive" });
+      return;
+    }
+    createTemplateMutation.mutate(templateForm);
+  };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();

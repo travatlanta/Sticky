@@ -87,6 +87,11 @@ if (!fs.existsSync(productImagesDir)) {
   fs.mkdirSync(productImagesDir, { recursive: true });
 }
 
+const templatesDir = path.join(process.cwd(), 'uploads', 'templates');
+if (!fs.existsSync(templatesDir)) {
+  fs.mkdirSync(templatesDir, { recursive: true });
+}
+
 const productImageStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, productImagesDir);
@@ -135,6 +140,32 @@ const artworkUpload = multer({
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Allowed: JPG, PNG, GIF, WebP, SVG, PDF'));
+    }
+  }
+});
+
+const templateImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, templatesDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `template-${uniqueSuffix}${ext}`);
+  }
+});
+
+const templateImageUpload = multer({
+  storage: templateImageStorage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for template preview images
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Allowed: JPG, PNG, GIF, WebP'));
     }
   }
 });
@@ -689,6 +720,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Template preview image uploads (admin only)
+  app.post("/api/admin/upload/template-image", isAdmin, templateImageUpload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileUrl = `/uploads/templates/${req.file.filename}`;
+      
+      res.json({
+        success: true,
+        url: fileUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+      });
+    } catch (error) {
+      console.error("Error uploading template image:", error);
+      res.status(500).json({ message: "Failed to upload template image" });
+    }
+  });
+
+  // Serve uploaded template images
+  app.get("/uploads/templates/:filename", (req, res) => {
+    const filepath = path.join(process.cwd(), 'uploads', 'templates', req.params.filename);
+    if (fs.existsSync(filepath)) {
+      res.sendFile(filepath);
+    } else {
+      res.status(404).json({ message: "File not found" });
+    }
+  });
+
   // Cart
   app.get("/api/cart", async (req: any, res) => {
     try {
@@ -985,6 +1049,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting product:", error);
       res.status(500).json({ message: "Failed to delete product" });
+    }
+  });
+
+  // Product Template Routes (Admin)
+  app.get("/api/admin/products/:productId/templates", isAdmin, async (req: any, res) => {
+    try {
+      const templates = await storage.getProductTemplates(parseInt(req.params.productId));
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      res.status(500).json({ message: "Failed to fetch templates" });
+    }
+  });
+
+  app.post("/api/admin/products/:productId/templates", isAdmin, async (req: any, res) => {
+    try {
+      const template = await storage.createProductTemplate({
+        ...req.body,
+        productId: parseInt(req.params.productId),
+      });
+      res.json(template);
+    } catch (error) {
+      console.error("Error creating template:", error);
+      res.status(500).json({ message: "Failed to create template" });
+    }
+  });
+
+  app.put("/api/admin/templates/:id", isAdmin, async (req: any, res) => {
+    try {
+      const template = await storage.updateProductTemplate(parseInt(req.params.id), req.body);
+      res.json(template);
+    } catch (error) {
+      console.error("Error updating template:", error);
+      res.status(500).json({ message: "Failed to update template" });
+    }
+  });
+
+  app.delete("/api/admin/templates/:id", isAdmin, async (req: any, res) => {
+    try {
+      await storage.deleteProductTemplate(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      res.status(500).json({ message: "Failed to delete template" });
+    }
+  });
+
+  // Public: Get active templates for a product (for customers in editor)
+  app.get("/api/products/:productId/templates", async (req, res) => {
+    try {
+      const templates = await storage.getActiveProductTemplates(parseInt(req.params.productId));
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      res.status(500).json({ message: "Failed to fetch templates" });
     }
   });
 

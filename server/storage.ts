@@ -5,6 +5,7 @@ import {
   productOptions,
   pricingTiers,
   productImages,
+  productTemplates,
   designs,
   carts,
   cartItems,
@@ -35,6 +36,8 @@ import {
   type SiteSetting,
   type Deal,
   type InsertDeal,
+  type ProductTemplate,
+  type InsertProductTemplate,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, gte, lte, or, sql } from "drizzle-orm";
@@ -121,6 +124,14 @@ export interface IStorage {
   createDeal(deal: InsertDeal): Promise<Deal>;
   updateDeal(id: number, updates: Partial<InsertDeal>): Promise<Deal | undefined>;
   deleteDeal(id: number): Promise<void>;
+
+  // Product template operations
+  getProductTemplates(productId: number): Promise<ProductTemplate[]>;
+  getActiveProductTemplates(productId: number): Promise<ProductTemplate[]>;
+  getProductTemplateById(id: number): Promise<ProductTemplate | undefined>;
+  createProductTemplate(template: InsertProductTemplate): Promise<ProductTemplate>;
+  updateProductTemplate(id: number, updates: Partial<InsertProductTemplate>): Promise<ProductTemplate | undefined>;
+  deleteProductTemplate(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -486,6 +497,44 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDeal(id: number): Promise<void> {
     await db.delete(deals).where(eq(deals.id, id));
+  }
+
+  // Product template operations
+  async getProductTemplates(productId: number): Promise<ProductTemplate[]> {
+    return db.select().from(productTemplates)
+      .where(eq(productTemplates.productId, productId))
+      .orderBy(asc(productTemplates.displayOrder));
+  }
+
+  async getActiveProductTemplates(productId: number): Promise<ProductTemplate[]> {
+    return db.select().from(productTemplates)
+      .where(and(
+        eq(productTemplates.productId, productId),
+        eq(productTemplates.isActive, true)
+      ))
+      .orderBy(asc(productTemplates.displayOrder));
+  }
+
+  async getProductTemplateById(id: number): Promise<ProductTemplate | undefined> {
+    const [template] = await db.select().from(productTemplates).where(eq(productTemplates.id, id));
+    return template;
+  }
+
+  async createProductTemplate(template: InsertProductTemplate): Promise<ProductTemplate> {
+    const [created] = await db.insert(productTemplates).values(template).returning();
+    return created;
+  }
+
+  async updateProductTemplate(id: number, updates: Partial<InsertProductTemplate>): Promise<ProductTemplate | undefined> {
+    const [updated] = await db.update(productTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(productTemplates.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteProductTemplate(id: number): Promise<void> {
+    await db.delete(productTemplates).where(eq(productTemplates.id, id));
   }
 }
 

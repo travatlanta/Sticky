@@ -753,6 +753,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serve uploaded deal images
+  app.get("/uploads/deals/:filename", (req, res) => {
+    const filepath = path.join(process.cwd(), 'uploads', 'deals', req.params.filename);
+    if (fs.existsSync(filepath)) {
+      res.sendFile(filepath);
+    } else {
+      res.status(404).json({ message: "File not found" });
+    }
+  });
+
   // Cart
   app.get("/api/cart", async (req: any, res) => {
     try {

@@ -114,9 +114,14 @@ const isAdmin: RequestHandler = async (req: any, res, next) => {
 
   try {
     const userId = req.user.claims.sub;
+    const userEmail = req.user.claims.email;
     const user = await storage.getUser(userId);
     
-    if (!user?.isAdmin) {
+    // Check if user email matches admin email from env, or if user is marked as admin in DB
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const isAdminByEmail = adminEmail && userEmail && userEmail.toLowerCase() === adminEmail.toLowerCase();
+    
+    if (!user?.isAdmin && !isAdminByEmail) {
       return res.status(403).json({ message: "Forbidden" });
     }
     
@@ -134,8 +139,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
       const user = await storage.getUser(userId);
-      res.json(user);
+      
+      // Check if user is admin by email
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const isAdminByEmail = adminEmail && userEmail && userEmail.toLowerCase() === adminEmail.toLowerCase();
+      
+      // Return user with admin status
+      res.json({
+        ...user,
+        isAdmin: user?.isAdmin || isAdminByEmail,
+      });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });

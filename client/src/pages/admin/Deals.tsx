@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Flame, Eye, EyeOff, Home, ArrowUp, ArrowDown, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Flame, Eye, EyeOff, Home, ArrowUp, ArrowDown, Upload, Star, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Deal {
@@ -262,16 +262,28 @@ export default function AdminDeals() {
 
         {/* Help Guide */}
         <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-4 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-            <Flame className="h-4 w-4 text-red-600" />
+          <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-base">
+            <Flame className="h-5 w-5 text-red-600" />
             Quick Guide
           </h3>
-          <ul className="text-sm text-gray-600 space-y-1.5">
-            <li><span className="font-medium text-gray-700">Create Deals:</span> Click "Add Deal" to create eye-catching promotional cards with pricing, images, and badges.</li>
-            <li><span className="font-medium text-gray-700">Homepage Display:</span> Toggle "Show on Homepage" to feature deals in the Hot Deals section on your store's front page.</li>
-            <li><span className="font-medium text-gray-700">Badges:</span> Add badge text like "Limited Time" or "Best Seller" to make deals stand out.</li>
-            <li><span className="font-medium text-gray-700">Scheduling:</span> Set start and end dates to automatically control when deals are active.</li>
-          </ul>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="flex items-start gap-2">
+              <Plus className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Create Deals</span><br /><span className="text-gray-600">Add promo cards with images & prices</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Home className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Homepage Display</span><br /><span className="text-gray-600">Toggle to show in Hot Deals section</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Star className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Badges</span><br /><span className="text-gray-600">Add "Limited Time" or "Best Seller"</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Calendar className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Scheduling</span><br /><span className="text-gray-600">Set start & end dates for deals</span></p>
+            </div>
+          </div>
         </div>
 
         {homepageDeals.length > 0 && (

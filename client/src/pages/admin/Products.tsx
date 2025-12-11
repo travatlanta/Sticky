@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Check, X, Package, Upload, Image, Layout, FileImage } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Package, Upload, Image, Layout, FileImage, Edit, CheckCircle, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -291,16 +291,28 @@ export default function AdminProducts() {
 
         {/* Help Guide */}
         <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-            <Package className="h-4 w-4 text-orange-600" />
+          <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-base">
+            <Package className="h-5 w-5 text-orange-600" />
             Quick Guide
           </h3>
-          <ul className="text-sm text-gray-600 space-y-1.5">
-            <li><span className="font-medium text-gray-700">Add Products:</span> Click "Add Product" to create new items with name, price, and description.</li>
-            <li><span className="font-medium text-gray-700">Edit Details:</span> Click the pencil icon to update product info, upload images, and manage templates.</li>
-            <li><span className="font-medium text-gray-700">Toggle Status:</span> Use the X/check icon to activate or deactivate products from the store.</li>
-            <li><span className="font-medium text-gray-700">Templates:</span> In the edit modal, switch to the "Templates" tab to add pre-designed templates for customers.</li>
-          </ul>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="flex items-start gap-2">
+              <Plus className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Add Products</span><br /><span className="text-gray-600">Click "Add Product" to create new items</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Edit className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Edit Details</span><br /><span className="text-gray-600">Pencil icon to update info & images</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Toggle Status</span><br /><span className="text-gray-600">Activate or deactivate from store</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Layers className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Templates</span><br /><span className="text-gray-600">Add pre-made designs for customers</span></p>
+            </div>
+          </div>
         </div>
 
         {showCreateForm && (

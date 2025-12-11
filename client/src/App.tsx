@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
-import { ChatWidget } from "@/components/ChatWidget";
+import Layout from "@/components/Layout";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
@@ -56,30 +56,75 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/" component={isAuthenticated ? Home : Landing} />
-      <Route path="/products" component={Products} />
-      <Route path="/products/:slug" component={ProductDetail} />
-      <Route path="/editor/:designId?" component={Editor} />
-      <Route path="/cart" component={Cart} />
-      <Route path="/orders" component={Orders} />
-      <Route path="/orders/:id" component={OrderDetail} />
+      <Route path="/">
+        {() => (
+          <Layout>
+            {isAuthenticated ? <Home /> : <Landing />}
+          </Layout>
+        )}
+      </Route>
+      <Route path="/products">
+        {() => (
+          <Layout>
+            <Products />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/products/:slug">
+        {() => (
+          <Layout>
+            <ProductDetail />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/editor/:designId?">
+        {() => (
+          <Layout showFooter={false}>
+            <Editor />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/cart">
+        {() => (
+          <Layout>
+            <Cart />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/orders">
+        {() => (
+          <Layout>
+            <Orders />
+          </Layout>
+        )}
+      </Route>
+      <Route path="/orders/:id">
+        {() => (
+          <Layout>
+            <OrderDetail />
+          </Layout>
+        )}
+      </Route>
       <Route path="/admin">{() => <AdminRoute component={AdminDashboard} />}</Route>
       <Route path="/admin/products">{() => <AdminRoute component={AdminProducts} />}</Route>
       <Route path="/admin/orders">{() => <AdminRoute component={AdminOrders} />}</Route>
       <Route path="/admin/promotions">{() => <AdminRoute component={AdminPromotions} />}</Route>
       <Route path="/admin/settings">{() => <AdminRoute component={AdminSettings} />}</Route>
-      <Route component={NotFound} />
+      <Route>
+        {() => (
+          <Layout>
+            <NotFound />
+          </Layout>
+        )}
+      </Route>
     </Switch>
   );
 }
 
 export default function App() {
-  const { isAuthenticated } = useAuth();
-  
   return (
     <>
       <Router />
-      <ChatWidget isAuthenticated={isAuthenticated} />
       <Toaster />
     </>
   );

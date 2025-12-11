@@ -7,14 +7,12 @@ export default function Footer() {
     <footer className="bg-gray-900">
       {/* CTA Banner */}
       <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500">
-        <div className="container mx-auto px-6 md:px-12 pt-8 pb-10 md:pt-10 md:pb-14">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="text-center md:text-left">
-              <h3 className="font-heading text-2xl md:text-3xl text-white mb-3">Ready to Print?</h3>
-              <p className="text-white/90 text-lg">Start your custom order today and get free shipping on orders over $75</p>
-            </div>
+        <div className="container mx-auto px-6 md:px-12 py-10 md:py-16">
+          <div className="text-center max-w-2xl mx-auto">
+            <h3 className="font-heading text-2xl md:text-4xl text-white mb-3 md:mb-4">Ready to Print?</h3>
+            <p className="text-white/90 text-base md:text-lg mb-6 md:mb-8">Start your custom order today and get free shipping on orders over $75</p>
             <Link href="/products">
-              <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 shadow-lg px-8 mb-6">
+              <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 shadow-lg px-8 md:px-12">
                 Browse Products <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
@@ -145,7 +143,7 @@ export default function Footer() {
         </div>
 
         {/* Trust Badges */}
-        <div className="border-t border-gray-800 pt-10 pb-8">
+        <div className="border-t border-gray-800 pt-8 pb-6 md:pt-10 md:pb-8">
           <div className="flex flex-wrap justify-center gap-8 md:gap-16">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center">
@@ -178,7 +176,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-800 pt-8 pb-6">
+        <div className="border-t border-gray-800 pt-6 pb-4 md:pt-8 md:pb-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
             <p className="text-gray-500 text-sm">
               &copy; {new Date().getFullYear()} Sticky Banditos Printing Company. All rights reserved.

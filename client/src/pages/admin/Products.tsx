@@ -278,7 +278,7 @@ export default function AdminProducts() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Products</h1>
             <p className="text-gray-600 text-sm md:text-base">Manage your product catalog</p>
@@ -287,6 +287,20 @@ export default function AdminProducts() {
             <Plus className="h-4 w-4 mr-2" />
             Add Product
           </Button>
+        </div>
+
+        {/* Help Guide */}
+        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+            <Package className="h-4 w-4 text-orange-600" />
+            Quick Guide
+          </h3>
+          <ul className="text-sm text-gray-600 space-y-1.5">
+            <li><span className="font-medium text-gray-700">Add Products:</span> Click "Add Product" to create new items with name, price, and description.</li>
+            <li><span className="font-medium text-gray-700">Edit Details:</span> Click the pencil icon to update product info, upload images, and manage templates.</li>
+            <li><span className="font-medium text-gray-700">Toggle Status:</span> Use the X/check icon to activate or deactivate products from the store.</li>
+            <li><span className="font-medium text-gray-700">Templates:</span> In the edit modal, switch to the "Templates" tab to add pre-designed templates for customers.</li>
+          </ul>
         </div>
 
         {showCreateForm && (

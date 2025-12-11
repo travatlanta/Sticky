@@ -249,7 +249,7 @@ export default function AdminDeals() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-8">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Hot Deals</h1>
             <p className="text-gray-600">Manage promotional deal cards</p>
@@ -258,6 +258,20 @@ export default function AdminDeals() {
             <Plus className="h-4 w-4 mr-2" />
             Add Deal
           </Button>
+        </div>
+
+        {/* Help Guide */}
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl p-4 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+            <Flame className="h-4 w-4 text-red-600" />
+            Quick Guide
+          </h3>
+          <ul className="text-sm text-gray-600 space-y-1.5">
+            <li><span className="font-medium text-gray-700">Create Deals:</span> Click "Add Deal" to create eye-catching promotional cards with pricing, images, and badges.</li>
+            <li><span className="font-medium text-gray-700">Homepage Display:</span> Toggle "Show on Homepage" to feature deals in the Hot Deals section on your store's front page.</li>
+            <li><span className="font-medium text-gray-700">Badges:</span> Add badge text like "Limited Time" or "Best Seller" to make deals stand out.</li>
+            <li><span className="font-medium text-gray-700">Scheduling:</span> Set start and end dates to automatically control when deals are active.</li>
+          </ul>
         </div>
 
         {homepageDeals.length > 0 && (

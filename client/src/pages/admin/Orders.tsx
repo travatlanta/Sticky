@@ -84,9 +84,23 @@ export default function AdminOrders() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-8">
-        <div className="mb-6 md:mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Orders</h1>
           <p className="text-gray-600 text-sm md:text-base">Manage customer orders</p>
+        </div>
+
+        {/* Help Guide */}
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4 text-blue-600" />
+            Quick Guide
+          </h3>
+          <ul className="text-sm text-gray-600 space-y-1.5">
+            <li><span className="font-medium text-gray-700">Update Status:</span> Use the dropdown menu on each order to change its status (pending, paid, in production, shipped, etc.).</li>
+            <li><span className="font-medium text-gray-700">View Details:</span> Click the eye icon to see full order information, including items and shipping address.</li>
+            <li><span className="font-medium text-gray-700">Add Tracking:</span> In the order details, enter a tracking number to keep customers informed about their shipment.</li>
+            <li><span className="font-medium text-gray-700">Status Colors:</span> Each status has a unique color - yellow (pending), blue (paid), purple (in production), green (delivered).</li>
+          </ul>
         </div>
 
         {isLoading ? (

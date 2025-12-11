@@ -25,6 +25,7 @@ import AdminPromotions from "@/pages/admin/Promotions";
 import AdminSettings from "@/pages/admin/Settings";
 import AdminUsers from "@/pages/admin/Users";
 import AdminFinances from "@/pages/admin/Finances";
+import AdminInbox from "@/pages/admin/Inbox";
 
 function AdminRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -141,6 +142,7 @@ function Router() {
         {() => <Register />}
       </Route>
       <Route path="/admin">{() => <AdminRoute component={AdminDashboard} />}</Route>
+      <Route path="/admin/inbox">{() => <AdminRoute component={AdminInbox} />}</Route>
       <Route path="/admin/products">{() => <AdminRoute component={AdminProducts} />}</Route>
       <Route path="/admin/orders">{() => <AdminRoute component={AdminOrders} />}</Route>
       <Route path="/admin/users">{() => <AdminRoute component={AdminUsers} />}</Route>

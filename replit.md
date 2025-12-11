@@ -139,6 +139,18 @@ Key data entities:
 - **Features**: Preview images, Fabric.js canvas JSON storage, active/inactive toggle, per-product association
 - **File Storage**: Template preview images stored in `/uploads/templates/`
 
+### Admin Users Management
+- **Page**: `/admin/users` - user management with tabbed interface
+- **Tabs**: All Users, Subscribers (no orders), Purchasers (has orders), Admins
+- **API Endpoint**: `GET /api/admin/users` - returns users with order stats (orderCount, totalSpent, hasOrders)
+- **Features**: User lists with order history, email display, admin badges
+
+### Admin Finances Dashboard
+- **Page**: `/admin/finances` - financial overview and reporting
+- **API Endpoint**: `GET /api/admin/finances` - returns financial overview
+- **Data Provided**: totalRevenue, orderCount, averageOrderValue, revenueByStatus (paid/pending/delivered/cancelled), recentOrders list
+- **Features**: Revenue cards, status-based breakdown, recent transactions table
+
 ## Pending Configuration
 
 ### Stripe Payment Integration

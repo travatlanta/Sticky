@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -93,18 +92,15 @@ export default function ProductDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-4" />
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="aspect-square bg-gray-200 rounded-xl" />
-              <div className="space-y-4">
-                <div className="h-6 bg-gray-200 rounded w-3/4" />
-                <div className="h-4 bg-gray-200 rounded w-full" />
-                <div className="h-4 bg-gray-200 rounded w-2/3" />
-              </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4" />
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="aspect-square bg-gray-200 rounded-xl" />
+            <div className="space-y-4">
+              <div className="h-6 bg-gray-200 rounded w-3/4" />
+              <div className="h-4 bg-gray-200 rounded w-full" />
+              <div className="h-4 bg-gray-200 rounded w-2/3" />
             </div>
           </div>
         </div>
@@ -114,11 +110,8 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Product not found</h1>
-        </div>
+      <div className="container mx-auto px-4 py-20 text-center">
+        <h1 className="text-2xl font-bold text-gray-900">Product not found</h1>
       </div>
     );
   }
@@ -132,10 +125,7 @@ export default function ProductDetail() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <div className="grid md:grid-cols-2 gap-12">
           <div>
             <div className="bg-white rounded-2xl aspect-square flex items-center justify-center shadow-sm">
@@ -243,6 +233,5 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

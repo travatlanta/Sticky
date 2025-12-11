@@ -7,6 +7,12 @@ import PDFDocument from "pdfkit";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+});
 
 // Configure multer for file uploads
 const uploadsDir = path.join(process.cwd(), 'uploads', 'artwork');
@@ -753,24 +759,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching order:", error);
       res.status(500).json({ message: "Failed to fetch order" });
-    }
-  });
-
-  // Messages
-  app.get("/api/messages", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-
-      if (user?.isAdmin) {
-        const messages = await storage.getUnreadMessages();
-        res.json(messages);
-      } else {
-        res.status(403).json({ message: "Unauthorized" });
-      }
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-      res.status(500).json({ message: "Failed to fetch messages" });
     }
   });
 

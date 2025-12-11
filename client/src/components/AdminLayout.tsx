@@ -12,6 +12,8 @@ import {
   Menu,
   X,
   Flame,
+  Users,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +21,8 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/finances", label: "Finances", icon: DollarSign },
   { href: "/admin/deals", label: "Deals", icon: Flame },
   { href: "/admin/promotions", label: "Promotions", icon: Tag },
   { href: "/admin/settings", label: "Settings", icon: Settings },

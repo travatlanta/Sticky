@@ -151,6 +151,22 @@ export const productImages = pgTable("product_images", {
   displayOrder: integer("display_order").default(0),
 });
 
+// Product Templates (pre-designed templates for products)
+export const productTemplates = pgTable("product_templates", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id")
+    .references(() => products.id)
+    .notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  previewImageUrl: varchar("preview_image_url"),
+  canvasJson: jsonb("canvas_json"),
+  isActive: boolean("is_active").default(true),
+  displayOrder: integer("display_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Designs
 export const designs = pgTable("designs", {
   id: serial("id").primaryKey(),
@@ -311,7 +327,15 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   options: many(productOptions),
   pricingTiers: many(pricingTiers),
   images: many(productImages),
+  templates: many(productTemplates),
   designs: many(designs),
+}));
+
+export const productTemplatesRelations = relations(productTemplates, ({ one }) => ({
+  product: one(products, {
+    fields: [productTemplates.productId],
+    references: [products.id],
+  }),
 }));
 
 export const productOptionsRelations = relations(productOptions, ({ one }) => ({
@@ -398,3 +422,5 @@ export type Deal = typeof deals.$inferSelect;
 export type InsertDeal = typeof deals.$inferInsert;
 export type AdminInvitation = typeof adminInvitations.$inferSelect;
 export type InsertAdminInvitation = typeof adminInvitations.$inferInsert;
+export type ProductTemplate = typeof productTemplates.$inferSelect;
+export type InsertProductTemplate = typeof productTemplates.$inferInsert;

@@ -6,7 +6,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900">
       {/* CTA Banner */}
-      <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 mt-8 md:mt-12">
+      <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500">
         <div className="container mx-auto px-6 md:px-12 py-10 md:py-14">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="text-center md:text-left">

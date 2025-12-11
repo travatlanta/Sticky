@@ -6,8 +6,8 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900">
       {/* CTA Banner */}
-      <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500">
-        <div className="container mx-auto px-6 md:px-12 py-14 md:py-16">
+      <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 py-14 md:py-16">
+        <div className="container mx-auto px-6 md:px-12">
           <div className="text-center max-w-2xl mx-auto">
             <h3 className="font-heading text-2xl md:text-4xl text-white mb-3 md:mb-4">Ready to Print?</h3>
             <p className="text-white/90 text-base md:text-lg mb-6 md:mb-8">Start your custom order today and get free shipping on orders over $75</p>

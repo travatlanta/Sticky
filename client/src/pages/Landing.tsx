@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Sparkles, Truck, Shield, Palette, Sticker, CreditCard, FileImage, Star, Flame } from "lucide-react";
+import { ArrowRight, Sparkles, Truck, Shield, Palette, Sticker, CreditCard, FileImage, Star, Flame, Layers, Tag, Wine, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { formatPrice } from "@/lib/utils";
 
@@ -13,6 +13,16 @@ export default function Landing() {
   const { data: homepageDeals } = useQuery<any[]>({
     queryKey: ["/api/deals/homepage"],
   });
+
+  const { data: allProducts } = useQuery<any[]>({
+    queryKey: ["/api/products"],
+  });
+
+  const { data: featuredProducts } = useQuery<any[]>({
+    queryKey: ["/api/products?featured=true"],
+  });
+
+  const stickers = allProducts?.filter((p: any) => p.categoryId === 1)?.slice(0, 6) || [];
 
   return (
     <>
@@ -195,6 +205,186 @@ export default function Landing() {
           </div>
         </section>
       )}
+
+      {/* Custom Stickers Section */}
+      <section className="py-16 px-4 bg-gradient-to-b from-white to-orange-50">
+        <div className="container mx-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2 className="font-heading text-3xl text-gray-900">Custom Stickers</h2>
+              <p className="text-gray-600 mt-1">Stick it anywhere. Make it yours.</p>
+            </div>
+            <Link href="/products?category=stickers">
+              <Button variant="ghost" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50">
+                View All <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="relative h-80 md:h-96 bg-gradient-to-br from-orange-100 via-yellow-50 to-red-50 rounded-3xl overflow-hidden mb-6">
+            <div className="absolute inset-0 flex items-center justify-center">
+              {stickers.slice(0, 6).map((sticker: any, i: number) => {
+                const positions = [
+                  { top: '10%', left: '5%', rotate: '-15deg', scale: '1' },
+                  { top: '60%', left: '8%', rotate: '10deg', scale: '0.9' },
+                  { top: '20%', left: '35%', rotate: '5deg', scale: '1.1' },
+                  { top: '55%', left: '40%', rotate: '-8deg', scale: '0.85' },
+                  { top: '15%', right: '10%', rotate: '12deg', scale: '1' },
+                  { top: '60%', right: '5%', rotate: '-5deg', scale: '0.95' },
+                ];
+                const pos = positions[i] || positions[0];
+                return (
+                  <Link key={sticker.id} href={`/products/${sticker.slug}`}>
+                    <div
+                      className="absolute bg-white rounded-2xl p-3 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 cursor-pointer border-2 border-orange-100 hover:border-orange-300"
+                      style={{
+                        top: pos.top,
+                        left: pos.left,
+                        right: pos.right,
+                        transform: `rotate(${pos.rotate}) scale(${pos.scale})`,
+                      }}
+                    >
+                      <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-orange-200 to-yellow-100 rounded-xl flex items-center justify-center mb-2 overflow-hidden">
+                        {sticker.thumbnailUrl ? (
+                          <img src={sticker.thumbnailUrl} alt={sticker.name} className="w-full h-full object-cover rounded-xl" />
+                        ) : (
+                          <Layers className="h-8 w-8 text-orange-500" />
+                        )}
+                      </div>
+                      <p className="text-xs md:text-sm font-medium text-gray-800 text-center max-w-20 md:max-w-24 truncate">{sticker.name?.split(' ').slice(0, 2).join(' ')}</p>
+                      <p className="text-xs text-orange-500 font-bold text-center">{formatPrice(sticker.basePrice)}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-center pointer-events-auto bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-5 md:px-8 md:py-6 shadow-xl mx-4">
+                <h3 className="font-heading text-xl md:text-3xl text-gray-900 mb-1">Die-Cut, Circles, Sheets & More</h3>
+                <p className="text-gray-600 text-sm md:text-base mb-4">Starting at just $0.06/sticker</p>
+                <Link href="/products?category=stickers">
+                  <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg">
+                    Design Your Stickers <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stickers Feature Section */}
+      <section className="py-16 px-4 bg-gradient-to-b from-orange-50 to-white">
+        <div className="container mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <Badge className="bg-orange-100 text-orange-700 mb-4">Premium Quality</Badge>
+              <h2 className="font-heading text-4xl text-gray-900 mb-4">Stickers That Stick</h2>
+              <p className="text-gray-600 text-lg mb-6">
+                From branding to personal expression, our vibrant custom stickers make your designs pop. 
+                Available in any shape or size with weatherproof options.
+              </p>
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-3 text-gray-700">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <Star className="h-3 w-3 text-green-600" />
+                  </div>
+                  Full-color, high-resolution printing
+                </li>
+                <li className="flex items-center gap-3 text-gray-700">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <Star className="h-3 w-3 text-green-600" />
+                  </div>
+                  Premium vinyl & matte finishes
+                </li>
+                <li className="flex items-center gap-3 text-gray-700">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <Star className="h-3 w-3 text-green-600" />
+                  </div>
+                  Waterproof & UV resistant
+                </li>
+              </ul>
+              <Link href="/products?category=stickers">
+                <Button size="lg" className="bg-gradient-to-r from-orange-500 to-orange-600">
+                  Browse Stickers <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="relative h-80 md:h-96">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute w-32 h-32 bg-gradient-to-br from-red-400 to-orange-400 rounded-full shadow-2xl transform rotate-12 translate-x-16 translate-y-8" />
+                <div className="absolute w-36 h-36 bg-gradient-to-br from-yellow-300 to-orange-300 rounded-2xl shadow-2xl transform -rotate-12 -translate-x-12 -translate-y-4" />
+                <div className="absolute w-56 h-56 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col items-center justify-center p-6 transform rotate-3 hover:rotate-0 hover:scale-105 transition-all duration-300">
+                  <div className="w-32 h-32 bg-gradient-to-br from-orange-100 to-yellow-50 rounded-xl flex items-center justify-center mb-4">
+                    <Layers className="h-16 w-16 text-orange-400" />
+                  </div>
+                  <div className="text-center">
+                    <span className="text-orange-500 font-bold text-lg">From $0.08/sticker</span>
+                  </div>
+                </div>
+                <div className="absolute w-20 h-20 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-xl shadow-xl transform rotate-45 translate-x-24 -translate-y-16" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Labels & Bottle Labels Section */}
+      <section className="py-16 px-4 bg-gradient-to-b from-gray-900 to-gray-950">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="bg-orange-500/20 text-orange-400 mb-4">For Your Business</Badge>
+            <h2 className="font-heading text-4xl text-white mb-4">Labels That Make An Impression</h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              Professional labels for products, packaging, and bottles. Perfect for small businesses, 
+              craft breweries, candle makers, and more.
+            </p>
+          </div>
+
+          <div className="relative h-80 md:h-96 mb-8">
+            <div className="absolute inset-0 flex items-center justify-center gap-4 md:gap-6">
+              <Link href="/products?category=labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
+                <div className="w-32 h-40 md:w-40 md:h-52 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 border-4 border-white/10">
+                  <Tag className="h-8 w-8 md:h-12 md:w-12 text-white/80 mb-2" />
+                  <span className="text-white font-bold text-sm">Product Labels</span>
+                  <span className="text-white/70 text-xs mt-1">Custom sizes</span>
+                </div>
+              </Link>
+              
+              <Link href="/products?category=bottle-labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
+                <div className="w-44 h-56 md:w-56 md:h-72 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-4 border-4 border-white/20 relative">
+                  <Badge className="absolute -top-3 bg-yellow-400 text-yellow-900">Popular</Badge>
+                  <Wine className="h-12 w-12 md:h-16 md:w-16 text-white/80 mb-3" />
+                  <span className="text-white font-bold text-lg">Bottle Labels</span>
+                  <span className="text-white/70 text-sm mt-1">Wine, Beer, Candles</span>
+                </div>
+              </Link>
+              
+              <Link href="/products?category=labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
+                <div className="w-32 h-40 md:w-40 md:h-52 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 border-4 border-white/10">
+                  <Package className="h-8 w-8 md:h-12 md:w-12 text-white/80 mb-2" />
+                  <span className="text-white font-bold text-sm">Packaging</span>
+                  <span className="text-white/70 text-xs mt-1">Roll & Sheet</span>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          <div className="text-center flex flex-wrap justify-center gap-4">
+            <Link href="/products?category=labels">
+              <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-500">
+                Shop Labels <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link href="/products?category=bottle-labels">
+              <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10">
+                Shop Bottle Labels <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section className="py-20 bg-gradient-to-br from-orange-50 via-yellow-50 to-white">
         <div className="container mx-auto px-4">

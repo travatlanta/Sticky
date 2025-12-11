@@ -55,16 +55,30 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)]
 );
 
-// User storage table (required for Replit Auth)
+// User storage table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
+  passwordHash: varchar("password_hash"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  googleId: varchar("google_id").unique(),
   isAdmin: boolean("is_admin").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Admin invitations for invite/revoke functionality
+export const adminInvitations = pgTable("admin_invitations", {
+  id: serial("id").primaryKey(),
+  email: varchar("email").notNull().unique(),
+  invitedBy: varchar("invited_by").references(() => users.id),
+  invitationToken: varchar("invitation_token"),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, accepted, revoked
+  createdAt: timestamp("created_at").defaultNow(),
+  acceptedAt: timestamp("accepted_at"),
+  revokedAt: timestamp("revoked_at"),
 });
 
 // Categories
@@ -382,3 +396,5 @@ export type Message = typeof messages.$inferSelect;
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type Deal = typeof deals.$inferSelect;
 export type InsertDeal = typeof deals.$inferInsert;
+export type AdminInvitation = typeof adminInvitations.$inferSelect;
+export type InsertAdminInvitation = typeof adminInvitations.$inferInsert;

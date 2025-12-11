@@ -26,6 +26,10 @@ export default function Home() {
     queryKey: ["/api/orders"],
   });
 
+  const { data: homepageDeals } = useQuery<any[]>({
+    queryKey: ["/api/deals/homepage"],
+  });
+
   // Get products by category for creative displays
   const stickers = allProducts?.filter((p: any) => p.categoryId === 1)?.slice(0, 6) || [];
   const flyers = allProducts?.filter((p: any) => p.categoryId === 2)?.slice(0, 3) || [];
@@ -88,56 +92,149 @@ export default function Home() {
           <div className="absolute bottom-4 right-20 w-48 h-48 bg-white rounded-full blur-3xl" />
         </div>
         <div className="container mx-auto relative">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-              <Flame className="h-6 w-6 text-white" />
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                <Flame className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="font-heading text-3xl text-white">Hot Deals</h2>
+                <p className="text-white/80 text-sm">Limited time offers - don't miss out!</p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-heading text-3xl text-white">Hot Deals</h2>
-              <p className="text-white/80 text-sm">Limited time offers - don't miss out!</p>
-            </div>
+            <Link href="/deals">
+              <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur" data-testid="button-shop-all-deals">
+                Shop All Deals <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            {/* Deal 1 - 100 3in Stickers $29 */}
-            <Link href="/products/die-cut-stickers-3x3" data-testid="deal-100-3in">
-              <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
-                <div className="aspect-square">
-                  <img 
-                    src="/attached_assets/100_3_inch_stickers_deal_1765477482637.png" 
-                    alt="100 3 inch stickers for $29" 
-                    className="w-full h-full object-cover"
-                  />
+          {homepageDeals && homepageDeals.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              {homepageDeals.map((deal: any) => {
+                const badgeColors: Record<string, string> = {
+                  yellow: "bg-yellow-500 text-black",
+                  red: "bg-red-500 text-white",
+                  green: "bg-green-500 text-white",
+                  purple: "bg-purple-500 text-white",
+                };
+                return (
+                  <Link key={deal.id} href={deal.linkUrl || "/products"} data-testid={`deal-card-${deal.id}`}>
+                    <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                      <div className="relative aspect-square">
+                        {deal.imageUrl ? (
+                          <img 
+                            src={deal.imageUrl} 
+                            alt={deal.title} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
+                            <Flame className="h-16 w-16 text-orange-400" />
+                          </div>
+                        )}
+                        {deal.badgeText && (
+                          <div className={`absolute top-3 left-3 px-2 py-1 rounded-md text-xs font-bold ${badgeColors[deal.badgeColor] || badgeColors.yellow}`}>
+                            {deal.badgeText}
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4 space-y-2">
+                        <h3 className="font-heading text-lg line-clamp-1 text-gray-900">{deal.title}</h3>
+                        {deal.description && (
+                          <p className="text-sm text-gray-500 line-clamp-1">{deal.description}</p>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {deal.quantity && (
+                            <Badge variant="secondary" className="text-xs">{deal.quantity} pcs</Badge>
+                          )}
+                          {deal.productSize && (
+                            <Badge variant="secondary" className="text-xs">{deal.productSize}</Badge>
+                          )}
+                          {deal.productType && (
+                            <Badge variant="outline" className="text-xs">{deal.productType}</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="flex items-center gap-2">
+                            {deal.originalPrice && parseFloat(deal.originalPrice) > parseFloat(deal.dealPrice) && (
+                              <span className="text-sm text-gray-400 line-through">
+                                {formatPrice(parseFloat(deal.originalPrice))}
+                              </span>
+                            )}
+                            <span className="text-xl font-bold text-orange-600">
+                              {formatPrice(parseFloat(deal.dealPrice))}
+                            </span>
+                          </div>
+                          <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
+                            {deal.ctaText || "Shop Now"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              {/* Fallback static deals if no dynamic deals */}
+              <Link href="/products/die-cut-stickers-3x3" data-testid="deal-100-3in">
+                <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                  <div className="aspect-square">
+                    <img 
+                      src="/attached_assets/100_3_inch_stickers_deal_1765477482637.png" 
+                      alt="100 3 inch stickers for $29" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-heading text-lg text-gray-900">100 3-inch Stickers</h3>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-xl font-bold text-orange-600">$29.00</span>
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600">Shop Now</Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Link>
-
-            {/* Deal 2 - 150 1in Stickers $40 */}
-            <Link href="/products/die-cut-stickers-1x1" data-testid="deal-150-1in">
-              <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
-                <div className="aspect-square">
-                  <img 
-                    src="/attached_assets/150_1_stickers_deal_1765477482637.png" 
-                    alt="150 1 inch stickers for $40" 
-                    className="w-full h-full object-cover"
-                  />
+              </Link>
+              <Link href="/products/die-cut-stickers-1x1" data-testid="deal-150-1in">
+                <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                  <div className="aspect-square">
+                    <img 
+                      src="/attached_assets/150_1_stickers_deal_1765477482637.png" 
+                      alt="150 1 inch stickers for $40" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-heading text-lg text-gray-900">150 1-inch Stickers</h3>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-xl font-bold text-orange-600">$40.00</span>
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600">Shop Now</Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Link>
-
-            {/* Deal 3 - 200 3in Die Cut $59 */}
-            <Link href="/products/die-cut-stickers-3x3" data-testid="deal-200-3in">
-              <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
-                <div className="aspect-square">
-                  <img 
-                    src="/attached_assets/300_Sticker_deal_1765477482637.png" 
-                    alt="200 stickers 3 inch die cut for $59" 
-                    className="w-full h-full object-cover"
-                  />
+              </Link>
+              <Link href="/products/die-cut-stickers-3x3" data-testid="deal-200-3in">
+                <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                  <div className="aspect-square">
+                    <img 
+                      src="/attached_assets/300_Sticker_deal_1765477482637.png" 
+                      alt="200 stickers 3 inch die cut for $59" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-heading text-lg text-gray-900">200 3-inch Die-Cut</h3>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-xl font-bold text-orange-600">$59.00</span>
+                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600">Shop Now</Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </div>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

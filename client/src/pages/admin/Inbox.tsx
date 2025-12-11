@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import AdminLayout from "@/components/AdminLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Inbox, MessageCircle, Send, ChevronLeft, User, Clock, AlertCircle } from "lucide-react";
+import { Inbox, MessageCircle, Send, ChevronDown, ChevronUp, User, Clock, AlertCircle, Bot, Headphones, Loader2 } from "lucide-react";
 
 interface EscalatedConversation {
   userId: string;
@@ -30,26 +30,27 @@ interface Message {
 
 interface ConversationDetail {
   messages: Message[];
-  user: {
+  user?: {
     id: string;
     email: string;
     firstName?: string;
     lastName?: string;
-  };
+  } | null;
 }
 
 export default function AdminInbox() {
   const { toast } = useToast();
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const { data: conversations, isLoading } = useQuery<EscalatedConversation[]>({
     queryKey: ["/api/admin/inbox"],
   });
 
-  const { data: conversationDetail, isLoading: isLoadingDetail } = useQuery<ConversationDetail>({
-    queryKey: ["/api/admin/inbox", selectedUserId],
-    enabled: !!selectedUserId,
+  const { data: conversationDetail, isLoading: isLoadingDetail, error: detailError } = useQuery<ConversationDetail>({
+    queryKey: ["/api/admin/inbox", expandedUserId],
+    enabled: !!expandedUserId,
   });
 
   const replyMutation = useMutation({
@@ -59,8 +60,8 @@ export default function AdminInbox() {
     onSuccess: () => {
       toast({ title: "Reply sent", description: "Your message has been sent to the customer." });
       setReplyContent("");
+      setExpandedUserId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/inbox"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/inbox", selectedUserId] });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to send reply", variant: "destructive" });
@@ -68,8 +69,18 @@ export default function AdminInbox() {
   });
 
   const handleSendReply = () => {
-    if (!selectedUserId || !replyContent.trim()) return;
-    replyMutation.mutate({ userId: selectedUserId, content: replyContent.trim() });
+    if (!expandedUserId || !replyContent.trim()) return;
+    replyMutation.mutate({ userId: expandedUserId, content: replyContent.trim() });
+  };
+
+  const toggleExpand = (userId: string) => {
+    if (expandedUserId === userId) {
+      setExpandedUserId(null);
+      setReplyContent("");
+    } else {
+      setExpandedUserId(userId);
+      setReplyContent("");
+    }
   };
 
   const formatTime = (dateString: string) => {
@@ -88,94 +99,6 @@ export default function AdminInbox() {
   const formatFullTime = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
-
-  if (selectedUserId && conversationDetail) {
-    return (
-      <AdminLayout>
-        <div className="p-4 md:p-8 h-full flex flex-col">
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSelectedUserId(null)}
-              data-testid="button-back-to-inbox"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-foreground">
-                {conversationDetail.user.firstName 
-                  ? `${conversationDetail.user.firstName} ${conversationDetail.user.lastName || ''}`
-                  : 'Customer'}
-              </h1>
-              <p className="text-muted-foreground text-sm">{conversationDetail.user.email}</p>
-            </div>
-          </div>
-
-          <Card className="flex-1 flex flex-col min-h-0">
-            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-              {conversationDetail.messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.senderType === "admin" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      msg.senderType === "admin"
-                        ? msg.isFromHuman
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-blue-100 dark:bg-blue-900 text-foreground"
-                        : "bg-muted text-foreground"
-                    }`}
-                    data-testid={`message-${msg.id}`}
-                  >
-                    {msg.senderType === "admin" && (
-                      <div className="flex items-center gap-1 mb-1">
-                        <Badge variant="outline" className="text-xs">
-                          {msg.isFromHuman ? "Human" : "AI Bot"}
-                        </Badge>
-                      </div>
-                    )}
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    <p className={`text-xs mt-1 ${
-                      msg.senderType === "admin" && msg.isFromHuman 
-                        ? "text-primary-foreground/70" 
-                        : "text-muted-foreground"
-                    }`}>
-                      {formatFullTime(msg.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Textarea
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Type your reply..."
-                  className="resize-none"
-                  rows={3}
-                  data-testid="input-reply-message"
-                />
-                <Button
-                  onClick={handleSendReply}
-                  disabled={!replyContent.trim() || replyMutation.isPending}
-                  data-testid="button-send-reply"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Sending a reply will mark this conversation as handled and remove it from the escalated list.
-              </p>
-            </div>
-          </Card>
-        </div>
-      </AdminLayout>
-    );
-  }
 
   return (
     <AdminLayout>
@@ -217,46 +140,166 @@ export default function AdminInbox() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {conversations.map((conv) => (
-              <Card
-                key={conv.userId}
-                className="cursor-pointer hover-elevate active-elevate-2 overflow-visible"
-                onClick={() => setSelectedUserId(conv.userId)}
-                data-testid={`card-conversation-${conv.userId}`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium text-foreground">
-                            {conv.userName !== 'Unknown' ? conv.userName : conv.userEmail}
-                          </p>
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Needs Reply
-                          </Badge>
+            {conversations.map((conv) => {
+              const isExpanded = expandedUserId === conv.userId;
+              
+              return (
+                <Card
+                  key={conv.userId}
+                  className="overflow-visible"
+                  data-testid={`card-conversation-${conv.userId}`}
+                >
+                  <CardContent className="p-0">
+                    {/* Conversation Header - Clickable */}
+                    <div
+                      className="p-4 cursor-pointer hover-elevate active-elevate-2 rounded-t-lg"
+                      onClick={() => toggleExpand(conv.userId)}
+                      data-testid={`button-toggle-${conv.userId}`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                            <User className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium text-foreground">
+                                {conv.userName !== 'Unknown' ? conv.userName : conv.userEmail}
+                              </p>
+                              <Badge variant="destructive" className="text-xs">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Needs Reply
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">{conv.userEmail}</p>
+                            {!isExpanded && (
+                              <p className="text-sm text-foreground mt-1 line-clamp-2">{conv.lastMessage}</p>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">{conv.userEmail}</p>
-                        <p className="text-sm text-foreground mt-1 line-clamp-2">{conv.lastMessage}</p>
+                        <div className="flex items-start gap-2 flex-shrink-0">
+                          <div className="text-right">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {formatTime(conv.escalatedAt)}
+                            </div>
+                            <Badge variant="secondary" className="mt-2">
+                              {conv.messageCount} messages
+                            </Badge>
+                          </div>
+                          <Button variant="ghost" size="icon" className="ml-2">
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {formatTime(conv.escalatedAt)}
+
+                    {/* Expanded Conversation Detail */}
+                    {isExpanded && (
+                      <div className="border-t">
+                        {isLoadingDetail ? (
+                          <div className="p-8 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            <span className="ml-2 text-muted-foreground">Loading conversation...</span>
+                          </div>
+                        ) : detailError ? (
+                          <div className="p-8 text-center text-destructive">
+                            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                            <p>Error loading conversation. Please try again.</p>
+                          </div>
+                        ) : conversationDetail && conversationDetail.messages ? (
+                          <>
+                            {/* Messages */}
+                            <div className="p-4 max-h-96 overflow-y-auto space-y-3 bg-muted/30">
+                              {conversationDetail.messages.map((msg) => (
+                                <div
+                                  key={msg.id}
+                                  className={`flex ${msg.senderType === "admin" ? "justify-end" : "justify-start"}`}
+                                >
+                                  <div
+                                    className={`max-w-[80%] rounded-lg p-3 ${
+                                      msg.senderType === "admin"
+                                        ? msg.isFromHuman
+                                          ? "bg-green-500/20 dark:bg-green-900/40 border border-green-500/30"
+                                          : "bg-orange-500/20 dark:bg-orange-900/40 border border-orange-500/30"
+                                        : "bg-background border"
+                                    }`}
+                                    data-testid={`message-${msg.id}`}
+                                  >
+                                    {msg.senderType === "admin" && (
+                                      <div className="flex items-center gap-1 mb-1">
+                                        {msg.isFromHuman ? (
+                                          <Headphones className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                        ) : (
+                                          <Bot className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+                                        )}
+                                        <span className={`text-xs font-medium ${
+                                          msg.isFromHuman 
+                                            ? "text-green-600 dark:text-green-400" 
+                                            : "text-orange-600 dark:text-orange-400"
+                                        }`}>
+                                          {msg.isFromHuman ? "Support Team" : "AI Bot"}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {msg.senderType === "user" && (
+                                      <div className="flex items-center gap-1 mb-1">
+                                        <User className="h-3 w-3 text-muted-foreground" />
+                                        <span className="text-xs font-medium text-muted-foreground">Customer</span>
+                                      </div>
+                                    )}
+                                    <p className="text-sm whitespace-pre-wrap text-foreground">{msg.content}</p>
+                                    <p className="text-xs mt-1 text-muted-foreground">
+                                      {formatFullTime(msg.createdAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Reply Box */}
+                            <div className="p-4 border-t bg-background">
+                              <div className="flex gap-2">
+                                <Textarea
+                                  value={replyContent}
+                                  onChange={(e) => setReplyContent(e.target.value)}
+                                  placeholder="Type your reply to the customer..."
+                                  className="resize-none"
+                                  rows={3}
+                                  data-testid="input-reply-message"
+                                />
+                                <Button
+                                  onClick={handleSendReply}
+                                  disabled={!replyContent.trim() || replyMutation.isPending}
+                                  data-testid="button-send-reply"
+                                >
+                                  {replyMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Send className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Sending a reply will mark this conversation as handled and remove it from the inbox.
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="p-8 text-center text-muted-foreground">
+                            Failed to load conversation
+                          </div>
+                        )}
                       </div>
-                      <Badge variant="secondary" className="mt-2">
-                        {conv.messageCount} messages
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

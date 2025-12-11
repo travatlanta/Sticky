@@ -98,96 +98,45 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Deal 1 - Stickers */}
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all group">
-              <div className="flex items-start justify-between mb-4">
-                <Badge className="bg-yellow-400 text-yellow-900 font-bold">20% OFF</Badge>
-                <div className="flex items-center gap-1 text-white/70 text-sm">
-                  <Clock className="h-4 w-4" />
-                  <span>3 days left</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            {/* Deal 1 - 100 3in Stickers $29 */}
+            <Link href="/products/die-cut-stickers-3x3" data-testid="deal-100-3in">
+              <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                <div className="aspect-square">
+                  <img 
+                    src="/attached_assets/100_3_inch_stickers_deal_1765477482637.png" 
+                    alt="100 3 inch stickers for $29" 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
-              <div className="h-32 flex items-center justify-center mb-4">
-                <div className="relative">
-                  <div className="w-20 h-20 bg-gradient-to-br from-orange-300 to-yellow-300 rounded-xl rotate-12 absolute -left-4 -top-2 shadow-lg" />
-                  <div className="w-20 h-20 bg-gradient-to-br from-red-300 to-orange-300 rounded-xl -rotate-6 absolute left-4 top-2 shadow-lg" />
-                  <div className="w-20 h-20 bg-gradient-to-br from-yellow-300 to-amber-300 rounded-full relative shadow-lg flex items-center justify-center">
-                    <Layers className="h-8 w-8 text-amber-700" />
-                  </div>
-                </div>
-              </div>
-              <h3 className="font-heading text-xl text-white mb-2">Sticker Bundle</h3>
-              <p className="text-white/70 text-sm mb-4">Order 500+ stickers and save big!</p>
-              <div className="flex items-center gap-2">
-                <span className="text-white/50 line-through text-lg">$125</span>
-                <span className="text-white font-bold text-2xl">$99</span>
-              </div>
-              <Link href="/products">
-                <Button className="w-full mt-4 bg-white text-orange-600 hover:bg-white/90">
-                  Shop Now <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
+            </Link>
 
-            {/* Deal 2 - Business Cards */}
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all group">
-              <div className="flex items-start justify-between mb-4">
-                <Badge className="bg-green-400 text-green-900 font-bold">FREE SHIPPING</Badge>
-                <div className="flex items-center gap-1 text-white/70 text-sm">
-                  <Zap className="h-4 w-4" />
-                  <span>Popular</span>
+            {/* Deal 2 - 150 1in Stickers $40 */}
+            <Link href="/products/die-cut-stickers-1x1" data-testid="deal-150-1in">
+              <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                <div className="aspect-square">
+                  <img 
+                    src="/attached_assets/150_1_stickers_deal_1765477482637.png" 
+                    alt="150 1 inch stickers for $40" 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
-              <div className="h-32 flex items-center justify-center mb-4">
-                <div className="relative">
-                  <div className="w-28 h-16 bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg rotate-6 absolute -top-2 shadow-xl border border-white/10" />
-                  <div className="w-28 h-16 bg-gradient-to-r from-white to-gray-100 rounded-lg -rotate-3 relative shadow-xl flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-4 h-4 bg-orange-500 rounded-full mx-auto mb-1" />
-                      <div className="w-12 h-1 bg-gray-300 rounded mx-auto" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <h3 className="font-heading text-xl text-white mb-2">Business Cards</h3>
-              <p className="text-white/70 text-sm mb-4">500 premium cards + free shipping</p>
-              <div className="flex items-center gap-2">
-                <span className="text-white font-bold text-2xl">From $49</span>
-              </div>
-              <Link href="/products">
-                <Button className="w-full mt-4 bg-white text-orange-600 hover:bg-white/90">
-                  Shop Now <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
+            </Link>
 
-            {/* Deal 3 - First Order */}
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/20 transition-all group">
-              <div className="flex items-start justify-between mb-4">
-                <Badge className="bg-purple-400 text-purple-900 font-bold">NEW CUSTOMER</Badge>
-                <div className="flex items-center gap-1 text-white/70 text-sm">
-                  <Star className="h-4 w-4" />
-                  <span>Exclusive</span>
+            {/* Deal 3 - 200 3in Die Cut $59 */}
+            <Link href="/products/die-cut-stickers-3x3" data-testid="deal-200-3in">
+              <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
+                <div className="aspect-square">
+                  <img 
+                    src="/attached_assets/300_Sticker_deal_1765477482637.png" 
+                    alt="200 stickers 3 inch die cut for $59" 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
-              <div className="h-32 flex items-center justify-center mb-4">
-                <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-pink-400 rounded-2xl flex items-center justify-center shadow-xl">
-                  <Percent className="h-12 w-12 text-white" />
-                </div>
-              </div>
-              <h3 className="font-heading text-xl text-white mb-2">First Order Deal</h3>
-              <p className="text-white/70 text-sm mb-4">15% off your entire first order!</p>
-              <div className="flex items-center gap-2">
-                <span className="text-white/80 text-sm">Use code:</span>
-                <span className="text-white font-bold text-lg bg-white/20 px-3 py-1 rounded">WELCOME15</span>
-              </div>
-              <Link href="/products">
-                <Button className="w-full mt-4 bg-white text-orange-600 hover:bg-white/90">
-                  Start Shopping <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
+            </Link>
           </div>
         </div>
       </div>

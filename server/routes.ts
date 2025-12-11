@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import Stripe from "stripe";
 import PDFDocument from "pdfkit";
 import multer from "multer";
+import express from "express";
 import fs from "fs";
 import path from "path";
 import OpenAI from "openai";
@@ -134,6 +135,10 @@ const isAdmin: RequestHandler = async (req: any, res, next) => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
+
+  // Serve attached_assets statically for product images
+  const attachedAssetsPath = path.join(process.cwd(), 'attached_assets');
+  app.use('/attached_assets', express.static(attachedAssetsPath));
 
   // Auth routes
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {

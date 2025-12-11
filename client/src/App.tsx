@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
+import { ScrollRestoration } from "@/components/ScrollRestoration";
 import Layout from "@/components/Layout";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
@@ -150,6 +151,7 @@ function Router() {
 export default function App() {
   return (
     <>
+      <ScrollRestoration />
       <Router />
       <Toaster />
     </>

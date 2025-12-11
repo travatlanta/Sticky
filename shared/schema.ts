@@ -246,6 +246,30 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Deals (promotional cards for hot deals section)
+export const deals = pgTable("deals", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  imageUrl: varchar("image_url"),
+  originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
+  dealPrice: decimal("deal_price", { precision: 10, scale: 2 }).notNull(),
+  quantity: integer("quantity"), // e.g., "100" stickers
+  productSize: varchar("product_size", { length: 50 }), // e.g., "3 inch"
+  productType: varchar("product_type", { length: 100 }), // e.g., "Die-Cut Stickers"
+  linkUrl: varchar("link_url", { length: 500 }), // Link when clicked
+  badgeText: varchar("badge_text", { length: 50 }), // e.g., "HOT", "BEST VALUE"
+  badgeColor: varchar("badge_color", { length: 50 }).default("yellow"), // yellow, green, red, purple
+  ctaText: varchar("cta_text", { length: 50 }).default("Shop Now"), // Call to action button text
+  displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true),
+  showOnHomepage: boolean("show_on_homepage").default(false), // Featured on home page
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Site Settings
 export const siteSettings = pgTable("site_settings", {
   id: serial("id").primaryKey(),
@@ -356,3 +380,5 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type Promotion = typeof promotions.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type SiteSetting = typeof siteSettings.$inferSelect;
+export type Deal = typeof deals.$inferSelect;
+export type InsertDeal = typeof deals.$inferInsert;

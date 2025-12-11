@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Save, ShoppingCart, Upload, Type, 
   Undo, Redo, ZoomIn, ZoomOut, Trash2, Square,
-  Circle, Info, X, MoreVertical, Layers
+  Circle, Info, X, MoreVertical, Layers, FileImage
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +33,7 @@ export default function Editor() {
   const [redoStack, setRedoStack] = useState<string[]>([]);
   const [zoom, setZoom] = useState(1);
   const [showHelp, setShowHelp] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [activeObject, setActiveObject] = useState<any>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -43,6 +44,24 @@ export default function Editor() {
 
   const { data: product } = useQuery({
     queryKey: ["/api/products", (design as any)?.productId],
+    enabled: !!(design as any)?.productId,
+  });
+
+  const { data: templates, isLoading: templatesLoading } = useQuery<Array<{
+    id: number;
+    name: string;
+    description: string | null;
+    previewImage: string | null;
+    canvasJson: any;
+  }>>({
+    queryKey: ["/api/products", (design as any)?.productId, "templates"],
+    queryFn: async () => {
+      const res = await fetch(`/api/products/${(design as any)?.productId}/templates`, {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
     enabled: !!(design as any)?.productId,
   });
 
@@ -390,6 +409,86 @@ export default function Editor() {
     }
   };
 
+  const handleApplyTemplate = (template: { id: number; name: string; canvasJson: any }) => {
+    if (!fabricCanvasRef.current || !window.fabric) return;
+
+    const canvas = fabricCanvasRef.current;
+    
+    try {
+      // Parse the template canvas JSON
+      const templateData = typeof template.canvasJson === 'string' 
+        ? JSON.parse(template.canvasJson) 
+        : template.canvasJson;
+
+      // Store current canvas state for undo
+      const json = JSON.stringify(canvas.toJSON());
+      setUndoStack((prev) => [...prev.slice(-49), json]);
+      setRedoStack([]);
+
+      // Save guide properties before clearing (guides will be destroyed on clear)
+      const guides: Array<{name: string, props: any}> = [];
+      canvas.getObjects().forEach((obj: any) => {
+        if (obj.name === 'bleedGuide' || obj.name === 'safeGuide') {
+          guides.push({
+            name: obj.name,
+            props: {
+              left: obj.left,
+              top: obj.top,
+              width: obj.width,
+              height: obj.height,
+              fill: obj.fill,
+              stroke: obj.stroke,
+              strokeWidth: obj.strokeWidth,
+              strokeDashArray: obj.strokeDashArray,
+              selectable: obj.selectable,
+              evented: obj.evented,
+            }
+          });
+        }
+      });
+
+      // Clear the entire canvas
+      canvas.clear();
+      canvas.backgroundColor = "#ffffff";
+      
+      // Recreate guide elements from saved properties
+      guides.forEach((guide) => {
+        const rect = new window.fabric.Rect({
+          ...guide.props,
+          name: guide.name,
+        });
+        canvas.add(rect);
+      });
+
+      // Load the template objects
+      if (templateData.objects && Array.isArray(templateData.objects)) {
+        const objectsToLoad = templateData.objects.filter((objData: any) => 
+          objData.name !== 'bleedGuide' && objData.name !== 'safeGuide'
+        );
+
+        if (objectsToLoad.length > 0) {
+          window.fabric.util.enlivenObjects(objectsToLoad, (enlivenedObjects: any[]) => {
+            enlivenedObjects.forEach((obj: any) => {
+              canvas.add(obj);
+            });
+            canvas.renderAll();
+          });
+        }
+      }
+
+      canvas.renderAll();
+      setShowTemplates(false);
+      toast({ title: `Template "${template.name}" applied!` });
+    } catch (error) {
+      console.error("Error applying template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to apply template.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
@@ -512,6 +611,19 @@ export default function Editor() {
               <span className="text-[10px]">Upload</span>
             </Button>
 
+            {templates && templates.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTemplates(true)}
+                className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
+                data-testid="button-templates"
+              >
+                <FileImage className="h-5 w-5" />
+                <span className="text-[10px]">Templates</span>
+              </Button>
+            )}
+
             <Button
               variant="ghost"
               size="sm"
@@ -577,6 +689,11 @@ export default function Editor() {
         <Button variant="ghost" size="icon" onClick={handleUpload} title="Upload" data-testid="button-upload-desktop">
           <Upload className="h-5 w-5" />
         </Button>
+        {templates && templates.length > 0 && (
+          <Button variant="ghost" size="icon" onClick={() => setShowTemplates(true)} title="Templates" data-testid="button-templates-desktop">
+            <FileImage className="h-5 w-5" />
+          </Button>
+        )}
         <Button variant="ghost" size="icon" onClick={handleAddText} title="Add Text" data-testid="button-text-desktop">
           <Type className="h-5 w-5" />
         </Button>
@@ -611,6 +728,67 @@ export default function Editor() {
           Add to Cart
         </Button>
       </div>
+
+      {/* Templates Modal */}
+      {showTemplates && templates && templates.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowTemplates(false)}>
+          <div 
+            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <FileImage className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="font-heading font-bold text-lg">Choose a Template</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowTemplates(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Start with a pre-designed template. You can customize it after applying.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {templates.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => handleApplyTemplate(template)}
+                  className="group relative bg-gray-50 rounded-lg p-3 text-left hover:bg-orange-50 transition-colors border-2 border-transparent hover:border-orange-300"
+                  data-testid={`button-template-${template.id}`}
+                >
+                  {template.previewImage ? (
+                    <img 
+                      src={template.previewImage} 
+                      alt={template.name}
+                      className="w-full aspect-square object-cover rounded-md mb-2 bg-white"
+                    />
+                  ) : (
+                    <div className="w-full aspect-square bg-gray-200 rounded-md mb-2 flex items-center justify-center">
+                      <FileImage className="h-8 w-8 text-gray-400" />
+                    </div>
+                  )}
+                  <p className="font-medium text-sm text-gray-900 truncate">{template.name}</p>
+                  {template.description && (
+                    <p className="text-xs text-gray-500 truncate">{template.description}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <Button 
+              variant="outline"
+              className="w-full mt-4" 
+              onClick={() => setShowTemplates(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Help Modal */}
       {showHelp && (

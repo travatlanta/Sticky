@@ -14,7 +14,7 @@ export default function Footer() {
               <p className="text-white/90 text-lg">Start your custom order today and get free shipping on orders over $75</p>
             </div>
             <Link href="/products">
-              <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 shadow-lg px-8">
+              <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 shadow-lg px-8 mb-6">
                 Browse Products <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>

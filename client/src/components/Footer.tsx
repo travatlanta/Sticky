@@ -7,14 +7,14 @@ export default function Footer() {
     <footer className="bg-gray-900">
       {/* CTA Banner */}
       <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500">
-        <div className="container mx-auto px-6 md:px-12 py-8 md:py-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="container mx-auto px-6 md:px-12 py-12 md:py-16">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="text-center md:text-left">
-              <h3 className="font-heading text-2xl md:text-3xl text-white mb-2">Ready to Print?</h3>
-              <p className="text-white/80">Start your custom order today and get free shipping on orders over $75</p>
+              <h3 className="font-heading text-2xl md:text-3xl text-white mb-3">Ready to Print?</h3>
+              <p className="text-white/90 text-lg">Start your custom order today and get free shipping on orders over $75</p>
             </div>
             <Link href="/products">
-              <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 shadow-lg">
+              <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 shadow-lg px-8">
                 Browse Products <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>

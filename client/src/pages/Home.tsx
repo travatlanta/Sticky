@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
-import { ArrowRight, Plus, Package, FileText, Sparkles, Zap, Percent, Clock, Star, Layers, Image, FileImage, Flame } from "lucide-react";
+import { ArrowRight, Plus, Package, FileText, Sparkles, Zap, Percent, Clock, Star, Layers, Image, FileImage, Flame, Wine, Tag } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Home() {
@@ -267,115 +267,117 @@ export default function Home() {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <Badge className="bg-orange-100 text-orange-700 mb-4">Professional Print</Badge>
-              <h2 className="font-heading text-4xl text-gray-900 mb-4">Flyers That Get Noticed</h2>
+              <Badge className="bg-orange-100 text-orange-700 mb-4">Premium Quality</Badge>
+              <h2 className="font-heading text-4xl text-gray-900 mb-4">Stickers That Stick</h2>
               <p className="text-gray-600 text-lg mb-6">
-                From events to promotions, our vibrant full-color flyers make your message pop. 
-                Available in multiple sizes with premium paper options.
+                From branding to personal expression, our vibrant custom stickers make your designs pop. 
+                Available in any shape or size with weatherproof options.
               </p>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-3 text-gray-700">
                   <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
                     <Star className="h-3 w-3 text-green-600" />
                   </div>
-                  Full-color, double-sided printing
+                  Full-color, high-resolution printing
                 </li>
                 <li className="flex items-center gap-3 text-gray-700">
                   <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
                     <Star className="h-3 w-3 text-green-600" />
                   </div>
-                  Premium 80lb and 100lb paper
+                  Premium vinyl & matte finishes
                 </li>
                 <li className="flex items-center gap-3 text-gray-700">
                   <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
                     <Star className="h-3 w-3 text-green-600" />
                   </div>
-                  UV coating available
+                  Waterproof & UV resistant
                 </li>
               </ul>
-              <Link href="/products?category=flyers">
+              <Link href="/products?category=stickers">
                 <Button size="lg" className="bg-gradient-to-r from-orange-500 to-orange-600">
-                  Browse Flyers <ArrowRight className="ml-2 h-5 w-5" />
+                  Browse Stickers <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             </div>
             
-            {/* Stacked Flyers Visual */}
+            {/* Stacked Stickers Visual */}
             <div className="relative h-80 md:h-96">
               <div className="absolute inset-0 flex items-center justify-center">
-                {/* Background flyer */}
-                <div className="absolute w-56 h-72 bg-gradient-to-br from-red-400 to-orange-400 rounded-xl shadow-2xl transform rotate-12 translate-x-8" />
-                {/* Middle flyer */}
-                <div className="absolute w-56 h-72 bg-gradient-to-br from-yellow-300 to-orange-300 rounded-xl shadow-2xl transform -rotate-6 -translate-x-4" />
-                {/* Front flyer */}
-                <div className="absolute w-56 h-72 bg-white rounded-xl shadow-2xl border border-gray-100 flex flex-col items-center justify-center p-6 transform rotate-3 hover:rotate-0 hover:scale-105 transition-all duration-300">
-                  <FileImage className="h-16 w-16 text-orange-400 mb-4" />
-                  <div className="w-32 h-3 bg-gray-200 rounded mb-2" />
-                  <div className="w-24 h-3 bg-gray-200 rounded mb-4" />
-                  <div className="w-full space-y-2">
-                    <div className="w-full h-2 bg-gray-100 rounded" />
-                    <div className="w-3/4 h-2 bg-gray-100 rounded" />
-                    <div className="w-5/6 h-2 bg-gray-100 rounded" />
+                {/* Background sticker - circle */}
+                <div className="absolute w-32 h-32 bg-gradient-to-br from-red-400 to-orange-400 rounded-full shadow-2xl transform rotate-12 translate-x-16 translate-y-8" />
+                {/* Middle sticker - square */}
+                <div className="absolute w-36 h-36 bg-gradient-to-br from-yellow-300 to-orange-300 rounded-2xl shadow-2xl transform -rotate-12 -translate-x-12 -translate-y-4" />
+                {/* Front sticker - main display */}
+                <div className="absolute w-56 h-56 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col items-center justify-center p-6 transform rotate-3 hover:rotate-0 hover:scale-105 transition-all duration-300">
+                  <div className="w-32 h-32 bg-gradient-to-br from-orange-100 to-yellow-50 rounded-xl flex items-center justify-center mb-4">
+                    <Layers className="h-16 w-16 text-orange-400" />
                   </div>
-                  <div className="mt-auto pt-4">
-                    <span className="text-orange-500 font-bold text-lg">From $0.12/flyer</span>
+                  <div className="text-center">
+                    <span className="text-orange-500 font-bold text-lg">From $0.08/sticker</span>
                   </div>
                 </div>
+                {/* Small accent sticker */}
+                <div className="absolute w-20 h-20 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-xl shadow-xl transform rotate-45 translate-x-24 -translate-y-16" />
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Posters Section - Gallery Wall */}
+      {/* Labels & Bottle Labels Section */}
       <div className="py-16 px-4 bg-gradient-to-b from-gray-900 to-gray-950">
         <div className="container mx-auto">
           <div className="text-center mb-12">
-            <Badge className="bg-orange-500/20 text-orange-400 mb-4">Large Format</Badge>
-            <h2 className="font-heading text-4xl text-white mb-4">Posters That Command Attention</h2>
+            <Badge className="bg-orange-500/20 text-orange-400 mb-4">For Your Business</Badge>
+            <h2 className="font-heading text-4xl text-white mb-4">Labels That Make An Impression</h2>
             <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              From movie posters to event signage, our large format prints deliver stunning quality 
-              that grabs attention from across the room.
+              Professional labels for products, packaging, and bottles. Perfect for small businesses, 
+              craft breweries, candle makers, and more.
             </p>
           </div>
 
-          {/* Gallery Wall Display */}
-          <div className="relative h-96 md:h-[500px] mb-8">
+          {/* Labels Display */}
+          <div className="relative h-80 md:h-96 mb-8">
             <div className="absolute inset-0 flex items-center justify-center gap-4 md:gap-6">
-              {/* Small poster left */}
-              <Link href="/products?category=posters" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
-                <div className="w-32 h-44 md:w-40 md:h-56 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 border-4 border-white/10">
-                  <Image className="h-8 w-8 md:h-12 md:w-12 text-white/70 mb-2" />
-                  <span className="text-white/80 text-xs font-medium">11x17</span>
-                  <span className="text-white font-bold text-sm mt-1">$1.20</span>
+              {/* Product Labels */}
+              <Link href="/products?category=labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
+                <div className="w-32 h-40 md:w-40 md:h-52 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 border-4 border-white/10">
+                  <Tag className="h-8 w-8 md:h-12 md:w-12 text-white/80 mb-2" />
+                  <span className="text-white font-bold text-sm">Product Labels</span>
+                  <span className="text-white/70 text-xs mt-1">Custom sizes</span>
                 </div>
               </Link>
               
-              {/* Large poster center */}
-              <Link href="/products?category=posters" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
-                <div className="w-48 h-64 md:w-64 md:h-96 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-4 border-4 border-white/20 relative">
-                  <Badge className="absolute -top-3 bg-yellow-400 text-yellow-900">Best Seller</Badge>
-                  <Image className="h-12 w-12 md:h-20 md:w-20 text-white/70 mb-4" />
-                  <span className="text-white/80 text-sm font-medium">24x36</span>
-                  <span className="text-white font-bold text-xl mt-2">$4.00</span>
+              {/* Bottle Labels - Center */}
+              <Link href="/products?category=bottle-labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
+                <div className="w-44 h-56 md:w-56 md:h-72 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-4 border-4 border-white/20 relative">
+                  <Badge className="absolute -top-3 bg-yellow-400 text-yellow-900">Popular</Badge>
+                  <Wine className="h-12 w-12 md:h-16 md:w-16 text-white/80 mb-3" />
+                  <span className="text-white font-bold text-lg">Bottle Labels</span>
+                  <span className="text-white/70 text-sm mt-1">Wine, Beer, Candles</span>
                 </div>
               </Link>
               
-              {/* Medium poster right */}
-              <Link href="/products?category=posters" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
-                <div className="w-36 h-52 md:w-48 md:h-72 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 border-4 border-white/10">
-                  <Image className="h-10 w-10 md:h-14 md:w-14 text-white/70 mb-2" />
-                  <span className="text-white/80 text-xs font-medium">18x24</span>
-                  <span className="text-white font-bold text-sm mt-1">$2.50</span>
+              {/* Packaging Labels */}
+              <Link href="/products?category=labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
+                <div className="w-32 h-40 md:w-40 md:h-52 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 border-4 border-white/10">
+                  <Package className="h-8 w-8 md:h-12 md:w-12 text-white/80 mb-2" />
+                  <span className="text-white font-bold text-sm">Packaging</span>
+                  <span className="text-white/70 text-xs mt-1">Roll & Sheet</span>
                 </div>
               </Link>
             </div>
           </div>
 
-          <div className="text-center">
-            <Link href="/products?category=posters">
-              <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600">
-                Shop All Posters <ArrowRight className="ml-2 h-5 w-5" />
+          <div className="text-center flex flex-wrap justify-center gap-4">
+            <Link href="/products?category=labels">
+              <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-500">
+                Shop Labels <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link href="/products?category=bottle-labels">
+              <Button size="lg" variant="outline" className="border-white/30 text-white">
+                Shop Bottle Labels <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
           </div>

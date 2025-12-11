@@ -85,3 +85,12 @@ Key data entities:
 - `SESSION_SECRET` - Express session secret
 - `REPL_ID` - Replit environment identifier
 - `STRIPE_SECRET_KEY` - Stripe API key (optional)
+- `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key for frontend (optional)
+
+## Pending Configuration
+
+### Stripe Payment Integration
+- **Status**: Not configured - user wants to set this up later
+- **Required secrets**: `STRIPE_SECRET_KEY` and `VITE_STRIPE_PUBLISHABLE_KEY`
+- **Backend ready**: Payment intent creation endpoint exists at `/api/checkout/create-payment-intent`
+- **Frontend needed**: Checkout page with Stripe Elements when keys are provided

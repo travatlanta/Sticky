@@ -57,9 +57,20 @@ If users ask about how to use the editor, provide these tips:
 6. File Formats: We accept PNG, JPG, SVG, and PDF files up to 50MB
 7. Colors: Printed colors may vary slightly from what you see on screen due to differences between RGB (screen) and CMYK (print)
 
-Keep responses concise, friendly, and helpful. If you don't know something specific about an order, politely ask them to provide their order number so a team member can help. For complex issues, let them know a team member will follow up.`;
+Keep responses concise, friendly, and helpful. If you don't know something specific about an order, politely ask them to provide their order number so a team member can help. For complex issues, let them know a team member will follow up.
 
-async function generateAIResponse(userMessage: string): Promise<string> {
+ESCALATION RULES:
+If a customer explicitly asks to speak with a real person, human, manager, or expresses frustration that they need human help, respond with EXACTLY this format:
+"[ESCALATE] I understand you'd like to speak with a team member directly. I'm connecting you to our support team now. A real person will respond to you shortly - typically within a few hours during business hours. Is there anything specific you'd like me to note for them?"
+
+Only use [ESCALATE] when the customer clearly asks for a human. Do not escalate for normal questions you can answer.`;
+
+interface AIResponseResult {
+  response: string;
+  shouldEscalate: boolean;
+}
+
+async function generateAIResponse(userMessage: string): Promise<AIResponseResult> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -69,7 +80,12 @@ async function generateAIResponse(userMessage: string): Promise<string> {
       ],
       max_completion_tokens: 500,
     });
-    return response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response. Please try again or wait for a team member to assist you.";
+    const content = response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response. Please try again or wait for a team member to assist you.";
+    
+    const shouldEscalate = content.includes("[ESCALATE]");
+    const cleanResponse = content.replace("[ESCALATE]", "").trim();
+    
+    return { response: cleanResponse, shouldEscalate };
   } catch (error) {
     console.error("OpenAI API error:", error);
     throw error;
@@ -1289,18 +1305,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         senderType: "user",
         content: content.trim(),
         isRead: false,
+        isFromHuman: true,
+        needsHumanSupport: false,
       });
 
       // Generate AI response
       try {
-        const aiResponse = await generateAIResponse(content.trim());
+        const { response: aiResponse, shouldEscalate } = await generateAIResponse(content.trim());
+        
         await storage.createMessage({
           userId,
           orderId: orderId || null,
           senderType: "admin",
           content: aiResponse,
           isRead: false,
+          isFromHuman: false,
+          needsHumanSupport: shouldEscalate,
+          escalatedAt: shouldEscalate ? new Date() : null,
         });
+
+        // If escalated, mark all user messages for this user as needing human support
+        if (shouldEscalate) {
+          await storage.escalateConversation(userId);
+        }
       } catch (aiError) {
         console.error("AI response error:", aiError);
         // Don't fail the request if AI fails - user message was still saved
@@ -1324,7 +1351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: Reply to a message
+  // Admin: Reply to a message (human admin responding)
   app.post("/api/admin/messages/reply", isAdmin, async (req: any, res) => {
     try {
       const { userId, content, orderId } = req.body;
@@ -1339,12 +1366,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         senderType: "admin",
         content: content.trim(),
         isRead: false,
+        isFromHuman: true,
+        needsHumanSupport: false,
       });
+
+      // Mark conversation as handled (no longer needs human support)
+      await storage.resolveConversation(userId);
 
       res.json(message);
     } catch (error) {
       console.error("Error creating message:", error);
       res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Admin Inbox: Get all escalated conversations needing human support
+  app.get("/api/admin/inbox", isAdmin, async (req: any, res) => {
+    try {
+      const conversations = await storage.getEscalatedConversations();
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching inbox:", error);
+      res.status(500).json({ message: "Failed to fetch inbox" });
+    }
+  });
+
+  // Admin Inbox: Get conversation history for a specific user
+  app.get("/api/admin/inbox/:userId", isAdmin, async (req: any, res) => {
+    try {
+      const messages = await storage.getMessagesByUser(req.params.userId);
+      const user = await storage.getUser(req.params.userId);
+      res.json({ messages, user });
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+      res.status(500).json({ message: "Failed to fetch conversation" });
     }
   });
 

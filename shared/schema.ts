@@ -273,6 +273,9 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   attachments: jsonb("attachments"),
   isRead: boolean("is_read").default(false),
+  isFromHuman: boolean("is_from_human").default(false),
+  needsHumanSupport: boolean("needs_human_support").default(false),
+  escalatedAt: timestamp("escalated_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

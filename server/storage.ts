@@ -361,6 +361,70 @@ export class DatabaseStorage implements IStorage {
     await db.update(messages).set({ isRead: true }).where(eq(messages.id, id));
   }
 
+  async escalateConversation(userId: string): Promise<void> {
+    await db.update(messages)
+      .set({ needsHumanSupport: true, escalatedAt: new Date() })
+      .where(eq(messages.userId, userId));
+  }
+
+  async resolveConversation(userId: string): Promise<void> {
+    await db.update(messages)
+      .set({ needsHumanSupport: false })
+      .where(eq(messages.userId, userId));
+  }
+
+  async getEscalatedConversations(): Promise<Array<{
+    userId: string;
+    userEmail: string;
+    userName: string;
+    lastMessage: string;
+    lastMessageAt: Date;
+    escalatedAt: Date;
+    messageCount: number;
+  }>> {
+    const escalatedUserIds = await db.selectDistinct({ userId: messages.userId })
+      .from(messages)
+      .where(eq(messages.needsHumanSupport, true));
+
+    const conversations = await Promise.all(
+      escalatedUserIds
+        .filter(row => row.userId !== null)
+        .map(async (row) => {
+          const userId = row.userId as string;
+          const userMessages = await db.select()
+            .from(messages)
+            .where(eq(messages.userId, userId))
+            .orderBy(desc(messages.createdAt))
+            .limit(1);
+          
+          const [user] = await db.select()
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+          const [msgCount] = await db.select({
+            count: sql<number>`count(*)::int`
+          }).from(messages).where(eq(messages.userId, userId));
+
+          const lastMsg = userMessages[0];
+          
+          return {
+            userId,
+            userEmail: user?.email || 'Unknown',
+            userName: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Unknown',
+            lastMessage: lastMsg?.content || '',
+            lastMessageAt: lastMsg?.createdAt || new Date(),
+            escalatedAt: lastMsg?.escalatedAt || new Date(),
+            messageCount: msgCount?.count || 0
+          };
+        })
+    );
+
+    return conversations.sort((a, b) => 
+      new Date(b.escalatedAt).getTime() - new Date(a.escalatedAt).getTime()
+    );
+  }
+
   // Settings operations
   async getSetting(key: string): Promise<SiteSetting | undefined> {
     const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import AdminLayout from "@/components/AdminLayout";
 import { formatPrice } from "@/lib/utils";
 import { Package, ShoppingCart, DollarSign, Users } from "lucide-react";
@@ -21,24 +22,28 @@ export default function AdminDashboard() {
       value: stats?.orderCount || 0,
       icon: ShoppingCart,
       color: "bg-blue-500",
+      href: "/admin/orders",
     },
     {
       label: "Revenue",
       value: formatPrice(stats?.revenue || 0),
       icon: DollarSign,
       color: "bg-green-500",
+      href: "/admin/finances",
     },
     {
       label: "Products",
       value: stats?.productCount || 0,
       icon: Package,
       color: "bg-purple-500",
+      href: "/admin/products",
     },
     {
       label: "Users",
       value: stats?.userCount || 0,
       icon: Users,
       color: "bg-orange-500",
+      href: "/admin/users",
     },
   ];
 
@@ -65,13 +70,15 @@ export default function AdminDashboard() {
             {statCards.map((stat) => {
               const Icon = stat.icon;
               return (
-                <div key={stat.label} className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
-                  <div className={`h-10 w-10 md:h-12 md:w-12 ${stat.color} rounded-lg flex items-center justify-center mb-3 md:mb-4`}>
-                    <Icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                <Link key={stat.label} href={stat.href}>
+                  <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow" data-testid={`link-stat-${stat.label.toLowerCase().replace(' ', '-')}`}>
+                    <div className={`h-10 w-10 md:h-12 md:w-12 ${stat.color} rounded-lg flex items-center justify-center mb-3 md:mb-4`}>
+                      <Icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                    </div>
+                    <p className="text-xl md:text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-gray-600 text-sm">{stat.label}</p>
                   </div>
-                  <p className="text-xl md:text-2xl font-bold text-gray-900">{stat.value}</p>
-                  <p className="text-gray-600 text-sm">{stat.label}</p>
-                </div>
+                </Link>
               );
             })}
           </div>

@@ -290,8 +290,7 @@ export default function AdminInbox() {
                                 </Button>
                               </div>
                               <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                                <AlertCircle className="h-3 w-3" />
-                                Sending a reply will mark this conversation as handled and remove it from the inbox.
+                                Sending a reply will mark this conversation as handled. The conversation history is preserved.
                               </p>
                             </div>
                           </>

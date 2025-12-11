@@ -109,6 +109,7 @@ export const products = pgTable("products", {
   templateWidth: integer("template_width").default(300),
   templateHeight: integer("template_height").default(300),
   bleedSize: decimal("bleed_size", { precision: 4, scale: 3 }).default("0.125"),
+  safeZoneSize: decimal("safe_zone_size", { precision: 4, scale: 3 }).default("0.25"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -6,6 +6,17 @@ import { formatPrice } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Minus, Plus, ArrowRight, Sticker, CreditCard, FileImage, Image, Package } from "lucide-react";
+import type { Product } from "@shared/schema";
+
+type ProductWithOptions = Product & {
+  options?: Array<{
+    id: number;
+    optionType: string;
+    name: string;
+    isDefault?: boolean;
+  }>;
+  minQuantity?: number;
+};
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -17,7 +28,7 @@ export default function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
   const [calculatedPrice, setCalculatedPrice] = useState<any>(null);
 
-  const { data: product, isLoading } = useQuery({
+  const { data: product, isLoading } = useQuery<ProductWithOptions>({
     queryKey: [`/api/products/${slug}`],
     enabled: !!slug,
   });
@@ -43,8 +54,8 @@ export default function ProductDetail() {
       const defaults: Record<string, number> = {};
       const optionTypes = ["size", "material", "coating"];
       optionTypes.forEach((type) => {
-        const defaultOption = product.options.find(
-          (o: any) => o.optionType === type && o.isDefault
+        const defaultOption = product.options?.find(
+          (o) => o.optionType === type && o.isDefault
         );
         if (defaultOption) {
           defaults[type] = defaultOption.id;
@@ -66,6 +77,8 @@ export default function ProductDetail() {
       window.location.href = "/api/login";
       return;
     }
+
+    if (!product) return;
 
     try {
       const res = await fetch("/api/designs", {

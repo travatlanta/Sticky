@@ -99,10 +99,11 @@ export default function Editor() {
     const containerWidth = canvasContainerRef.current?.clientWidth || 350;
     const containerHeight = canvasContainerRef.current?.clientHeight || 350;
     
-    // More aggressive scaling for mobile
-    const scaleX = (containerWidth - 32) / templateWidth;
-    const scaleY = (containerHeight - 32) / templateHeight;
-    const initialScale = Math.min(scaleX, scaleY, 1.5);
+    // Scale canvas to fit container with good visibility
+    const scaleX = (containerWidth - 48) / templateWidth;
+    const scaleY = (containerHeight - 80) / templateHeight;
+    // Allow larger scale for better visibility, cap at 2x
+    const initialScale = Math.min(scaleX, scaleY, 2);
     
     const displayWidth = templateWidth * initialScale;
     const displayHeight = templateHeight * initialScale;
@@ -118,43 +119,65 @@ export default function Editor() {
     setZoom(initialScale);
     fabricCanvasRef.current = canvas;
 
-    const bleedSize = 15 * initialScale;
+    // Bleed is typically 0.125" (1/8 inch) - at 300 DPI that's about 37.5 pixels
+    // Safe zone is typically 0.25" (1/4 inch) - at 300 DPI that's about 75 pixels
+    const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
+    const safeZoneInches = parseFloat((product as any)?.safeZoneSize) || 0.25;
+    const dpi = 300;
+    const bleedPixels = bleedInches * dpi;
+    const safeZonePixels = safeZoneInches * dpi;
+    const scaledBleed = (bleedPixels / templateWidth) * displayWidth;
+    const scaledSafeZone = (safeZonePixels / templateWidth) * displayWidth;
+    
+    // Bleed line (red dashed) - shows where the cut will happen (inside from edge)
     const bleedRect = new window.fabric.Rect({
-      left: 0,
-      top: 0,
-      width: displayWidth,
-      height: displayHeight,
+      left: scaledBleed,
+      top: scaledBleed,
+      width: displayWidth - scaledBleed * 2,
+      height: displayHeight - scaledBleed * 2,
       fill: "transparent",
       stroke: "#ef4444",
       strokeWidth: 2,
-      strokeDashArray: [8, 4],
+      strokeDashArray: [6, 3],
       selectable: false,
       evented: false,
       name: "bleedGuide",
+      excludeFromExport: true,
     });
 
+    // Safe zone (green dashed) - important content should stay inside this
     const safeRect = new window.fabric.Rect({
-      left: bleedSize,
-      top: bleedSize,
-      width: displayWidth - bleedSize * 2,
-      height: displayHeight - bleedSize * 2,
+      left: scaledSafeZone,
+      top: scaledSafeZone,
+      width: displayWidth - scaledSafeZone * 2,
+      height: displayHeight - scaledSafeZone * 2,
       fill: "transparent",
       stroke: "#22c55e",
-      strokeWidth: 1,
-      strokeDashArray: [8, 4],
+      strokeWidth: 2,
+      strokeDashArray: [6, 3],
       selectable: false,
       evented: false,
       name: "safeGuide",
+      excludeFromExport: true,
     });
 
+    // Add guides on top (they'll be brought to front after content loads)
     canvas.add(bleedRect, safeRect);
-    bleedRect.sendToBack();
-    safeRect.sendToBack();
 
     if ((design as any)?.canvasJson) {
       canvas.loadFromJSON((design as any).canvasJson, () => {
+        // Bring guides back to front after loading content
+        const objects = canvas.getObjects();
+        const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
+        const safeGuide = objects.find((o: any) => o.name === "safeGuide");
+        if (bleedGuide) canvas.bringToFront(bleedGuide);
+        if (safeGuide) canvas.bringToFront(safeGuide);
         canvas.renderAll();
       });
+    } else {
+      // For new designs, ensure guides are on top
+      canvas.bringToFront(bleedRect);
+      canvas.bringToFront(safeRect);
     }
 
     canvas.on("object:modified", () => {
@@ -162,7 +185,15 @@ export default function Editor() {
       scheduleAutoSave();
     });
 
-    canvas.on("object:added", () => {
+    canvas.on("object:added", (e: any) => {
+      // Keep guides on top when new objects are added
+      if (e.target?.name !== "bleedGuide" && e.target?.name !== "safeGuide") {
+        const objects = canvas.getObjects();
+        const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
+        const safeGuide = objects.find((o: any) => o.name === "safeGuide");
+        if (bleedGuide) canvas.bringToFront(bleedGuide);
+        if (safeGuide) canvas.bringToFront(safeGuide);
+      }
       saveState();
       scheduleAutoSave();
     });
@@ -363,12 +394,50 @@ export default function Editor() {
     const newZoom = Math.max(0.5, Math.min(3, zoom + delta));
     setZoom(newZoom);
     if (fabricCanvasRef.current) {
-      fabricCanvasRef.current.setZoom(newZoom);
+      const canvas = fabricCanvasRef.current;
       const templateWidth = (product as any)?.templateWidth || 400;
       const templateHeight = (product as any)?.templateHeight || 400;
-      fabricCanvasRef.current.setWidth(templateWidth * newZoom);
-      fabricCanvasRef.current.setHeight(templateHeight * newZoom);
-      fabricCanvasRef.current.renderAll();
+      const newWidth = templateWidth * newZoom;
+      const newHeight = templateHeight * newZoom;
+      
+      canvas.setZoom(newZoom);
+      canvas.setWidth(newWidth);
+      canvas.setHeight(newHeight);
+      
+      // Update guide positions for new zoom level
+      const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
+      const safeZoneInches = parseFloat((product as any)?.safeZoneSize) || 0.25;
+      const dpi = 300;
+      const bleedPixels = bleedInches * dpi;
+      const safeZonePixels = safeZoneInches * dpi;
+      const scaledBleed = (bleedPixels / templateWidth) * newWidth;
+      const scaledSafeZone = (safeZonePixels / templateWidth) * newWidth;
+      
+      const objects = canvas.getObjects();
+      const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
+      const safeGuide = objects.find((o: any) => o.name === "safeGuide");
+      
+      if (bleedGuide) {
+        bleedGuide.set({
+          left: scaledBleed,
+          top: scaledBleed,
+          width: newWidth - scaledBleed * 2,
+          height: newHeight - scaledBleed * 2,
+        });
+        canvas.bringToFront(bleedGuide);
+      }
+      
+      if (safeGuide) {
+        safeGuide.set({
+          left: scaledSafeZone,
+          top: scaledSafeZone,
+          width: newWidth - scaledSafeZone * 2,
+          height: newHeight - scaledSafeZone * 2,
+        });
+        canvas.bringToFront(safeGuide);
+      }
+      
+      canvas.renderAll();
     }
   };
 
@@ -531,8 +600,8 @@ export default function Editor() {
             <Redo className="h-4 w-4" />
           </Button>
 
-          {/* Zoom controls - hidden on mobile */}
-          <div className="hidden md:flex items-center gap-1 border-l pl-2 ml-1">
+          {/* Zoom controls - visible on all screens */}
+          <div className="flex items-center gap-1 border-l pl-2 ml-1">
             <Button variant="ghost" size="icon" onClick={() => handleZoom(-0.25)} data-testid="button-zoom-out">
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -581,15 +650,15 @@ export default function Editor() {
             <canvas ref={canvasRef} className="block touch-none" data-testid="design-canvas" />
           </div>
           
-          {/* Guide legend - hidden on mobile, shown on hover area */}
-          <div className="hidden md:flex absolute -bottom-8 left-0 right-0 items-center justify-center gap-6 text-xs">
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-0.5 bg-red-500" />
-              <span className="text-gray-500">Bleed (trim area)</span>
+          {/* Guide legend - visible on all screens */}
+          <div className="flex absolute -bottom-7 left-0 right-0 items-center justify-center gap-4 md:gap-6 text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-0.5 bg-red-500 rounded" style={{ borderStyle: 'dashed' }} />
+              <span className="text-gray-600 font-medium">Trim Line</span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-0.5 bg-green-500" />
-              <span className="text-gray-500">Safe Zone</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-0.5 bg-green-500 rounded" style={{ borderStyle: 'dashed' }} />
+              <span className="text-gray-600 font-medium">Safe Zone</span>
             </div>
           </div>
         </div>

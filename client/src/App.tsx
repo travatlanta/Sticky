@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
+import { ChatWidget } from "@/components/ChatWidget";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
@@ -73,9 +74,12 @@ function Router() {
 }
 
 export default function App() {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <>
       <Router />
+      <ChatWidget isAuthenticated={isAuthenticated} />
       <Toaster />
     </>
   );

@@ -956,6 +956,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chat/Support messages
+  app.get("/api/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const messages = await storage.getMessagesByUser(userId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post("/api/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { content, orderId } = req.body;
+
+      if (!content || content.trim() === '') {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      // Ensure user exists in database (upsert if needed)
+      let user = await storage.getUser(userId);
+      if (!user) {
+        user = await storage.upsertUser({
+          id: userId,
+          email: req.user.claims.email,
+          firstName: req.user.claims.first_name,
+          lastName: req.user.claims.last_name,
+          profileImageUrl: req.user.claims.profile_image_url,
+        });
+      }
+
+      const message = await storage.createMessage({
+        userId,
+        orderId: orderId || null,
+        senderType: "user",
+        content: content.trim(),
+        isRead: false,
+      });
+
+      res.json(message);
+    } catch (error) {
+      console.error("Error creating message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Admin: Get all unread messages
+  app.get("/api/admin/messages", isAdmin, async (req: any, res) => {
+    try {
+      const messages = await storage.getUnreadMessages();
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Admin: Reply to a message
+  app.post("/api/admin/messages/reply", isAdmin, async (req: any, res) => {
+    try {
+      const { userId, content, orderId } = req.body;
+
+      if (!content || content.trim() === '') {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      const message = await storage.createMessage({
+        userId,
+        orderId: orderId || null,
+        senderType: "admin",
+        content: content.trim(),
+        isRead: false,
+      });
+
+      res.json(message);
+    } catch (error) {
+      console.error("Error creating message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Mark message as read
+  app.put("/api/messages/:id/read", isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.markMessageRead(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

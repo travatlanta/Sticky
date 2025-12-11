@@ -111,6 +111,17 @@ export interface IStorage {
   getUnreadMessages(): Promise<Message[]>;
   createMessage(message: Partial<Message>): Promise<Message>;
   markMessageRead(id: number): Promise<void>;
+  escalateConversation(userId: string): Promise<void>;
+  resolveConversation(userId: string): Promise<void>;
+  getEscalatedConversations(): Promise<Array<{
+    userId: string;
+    userEmail: string;
+    userName: string;
+    lastMessage: string;
+    lastMessageAt: Date;
+    escalatedAt: Date;
+    messageCount: number;
+  }>>;
 
   // Settings operations
   getSetting(key: string): Promise<SiteSetting | undefined>;

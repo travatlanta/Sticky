@@ -14,11 +14,13 @@ import {
   Flame,
   Users,
   DollarSign,
+  Inbox,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/inbox", label: "Inbox", icon: Inbox },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/users", label: "Users", icon: Users },

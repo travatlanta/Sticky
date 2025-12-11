@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { ScrollRestoration } from "@/components/ScrollRestoration";
 import Layout from "@/components/Layout";
 import Landing from "@/pages/Landing";
-import Home from "@/pages/Home";
 import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import Editor from "@/pages/Editor";
@@ -64,7 +63,7 @@ function Router() {
       <Route path="/">
         {() => (
           <Layout>
-            {isAuthenticated ? <Home /> : <Landing />}
+            <Landing />
           </Layout>
         )}
       </Route>

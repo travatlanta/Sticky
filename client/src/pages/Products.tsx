@@ -2,8 +2,15 @@ import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/utils";
-import { Package, Layers, CreditCard, FileImage, Image, Sparkles, Mail, FileText, BookOpen } from "lucide-react";
+import { Package, Layers, CreditCard, FileImage, Image, Sparkles, Mail, FileText, BookOpen, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const getCategoryIcon = (name: string) => {
   if (name.toLowerCase().includes("sticker")) return Layers;
@@ -35,8 +42,41 @@ const getProductColor = (name: string) => {
   return "text-orange-400";
 };
 
+type SortOption = "default" | "price-low" | "price-high" | "size-small" | "size-large" | "name";
+
+// Helper to extract size from product name (e.g., "2" x 2"" -> 4 sq inches)
+const extractSize = (name: string): number => {
+  // Match patterns like 1", 2x2, 3" x 3", etc.
+  const sizeMatch = name.match(/(\d+(?:\.\d+)?)\s*["″x×]\s*(\d+(?:\.\d+)?)?/i);
+  if (sizeMatch) {
+    const dim1 = parseFloat(sizeMatch[1]);
+    const dim2 = sizeMatch[2] ? parseFloat(sizeMatch[2]) : dim1;
+    return dim1 * dim2;
+  }
+  // Check for single dimension like "1"" or "2""
+  const singleMatch = name.match(/(\d+(?:\.\d+)?)\s*["″]/);
+  if (singleMatch) {
+    const dim = parseFloat(singleMatch[1]);
+    return dim * dim; // Assume square
+  }
+  return 999; // Custom/unknown sizes at end
+};
+
+// Helper to get style type from product name
+const getStyleType = (name: string): string => {
+  if (name.includes("Circle")) return "circle";
+  if (name.includes("Oval")) return "oval";
+  if (name.includes("Rectangle")) return "rectangle";
+  if (name.includes("Square")) return "square";
+  if (name.includes("Die-Cut")) return "die-cut";
+  if (name.includes("Kiss-Cut")) return "kiss-cut";
+  if (name.includes("Sheet")) return "sheet";
+  return "other";
+};
+
 export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("default");
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["/api/products"],
@@ -48,9 +88,33 @@ export default function Products() {
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
-    if (selectedCategory === null) return products;
-    return products.filter((product: any) => product.categoryId === selectedCategory);
-  }, [products, selectedCategory]);
+    let filtered = selectedCategory === null 
+      ? [...products] 
+      : products.filter((product: any) => product.categoryId === selectedCategory);
+    
+    // Apply sorting
+    switch (sortBy) {
+      case "price-low":
+        filtered.sort((a: any, b: any) => parseFloat(a.basePrice) - parseFloat(b.basePrice));
+        break;
+      case "price-high":
+        filtered.sort((a: any, b: any) => parseFloat(b.basePrice) - parseFloat(a.basePrice));
+        break;
+      case "size-small":
+        filtered.sort((a: any, b: any) => extractSize(a.name) - extractSize(b.name));
+        break;
+      case "size-large":
+        filtered.sort((a: any, b: any) => extractSize(b.name) - extractSize(a.name));
+        break;
+      case "name":
+        filtered.sort((a: any, b: any) => a.name.localeCompare(b.name));
+        break;
+      default:
+        // Default order from database
+        break;
+    }
+    return filtered;
+  }, [products, selectedCategory, sortBy]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50">
@@ -104,10 +168,28 @@ export default function Products() {
           </div>
         )}
 
-        {/* Product count */}
-        <p className="text-xs text-gray-500 mb-3 md:mb-6">
-          {filteredProducts.length} products
-        </p>
+        {/* Product count and sort */}
+        <div className="flex items-center justify-between mb-3 md:mb-6 gap-2">
+          <p className="text-xs text-gray-500">
+            {filteredProducts.length} products
+          </p>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-3 w-3 text-gray-400 hidden md:block" />
+            <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+              <SelectTrigger className="w-[140px] md:w-[180px] h-8 text-xs md:text-sm border-orange-200" data-testid="sort-select">
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default" data-testid="sort-default">Default</SelectItem>
+                <SelectItem value="price-low" data-testid="sort-price-low">Price: Low to High</SelectItem>
+                <SelectItem value="price-high" data-testid="sort-price-high">Price: High to Low</SelectItem>
+                <SelectItem value="size-small" data-testid="sort-size-small">Size: Small to Large</SelectItem>
+                <SelectItem value="size-large" data-testid="sort-size-large">Size: Large to Small</SelectItem>
+                <SelectItem value="name" data-testid="sort-name">Name: A to Z</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         {/* Products Grid - 2 columns mobile, 3 tablet, 4 desktop */}
         {isLoading ? (

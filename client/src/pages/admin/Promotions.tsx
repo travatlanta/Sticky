@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Percent, Hash, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Promotion {
@@ -129,16 +129,28 @@ export default function AdminPromotions() {
 
         {/* Help Guide */}
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-            <Tag className="h-4 w-4 text-purple-600" />
+          <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-base">
+            <Tag className="h-5 w-5 text-purple-600" />
             Quick Guide
           </h3>
-          <ul className="text-sm text-gray-600 space-y-1.5">
-            <li><span className="font-medium text-gray-700">Create Codes:</span> Click "Add Promotion" to create discount codes that customers can apply at checkout.</li>
-            <li><span className="font-medium text-gray-700">Discount Types:</span> Choose "percentage" (e.g., 20% off) or "fixed" (e.g., $10 off) for your discount.</li>
-            <li><span className="font-medium text-gray-700">Limits:</span> Set minimum order amounts and maximum uses to control how promotions are applied.</li>
-            <li><span className="font-medium text-gray-700">Expiration:</span> Set an expiration date to create time-limited promotions that drive urgency.</li>
-          </ul>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="flex items-start gap-2">
+              <Plus className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Create Codes</span><br /><span className="text-gray-600">Add discount codes for checkout</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Percent className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Discount Types</span><br /><span className="text-gray-600">Percentage (20% off) or fixed ($10)</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Hash className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Limits</span><br /><span className="text-gray-600">Min order & max uses per code</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Clock className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Expiration</span><br /><span className="text-gray-600">Set end date for urgency</span></p>
+            </div>
+          </div>
         </div>
 
         {showCreateForm && (

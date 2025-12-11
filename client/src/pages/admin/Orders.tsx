@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Eye, X } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Order {
@@ -91,16 +91,28 @@ export default function AdminOrders() {
 
         {/* Help Guide */}
         <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4 text-blue-600" />
+          <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-base">
+            <ShoppingCart className="h-5 w-5 text-blue-600" />
             Quick Guide
           </h3>
-          <ul className="text-sm text-gray-600 space-y-1.5">
-            <li><span className="font-medium text-gray-700">Update Status:</span> Use the dropdown menu on each order to change its status (pending, paid, in production, shipped, etc.).</li>
-            <li><span className="font-medium text-gray-700">View Details:</span> Click the eye icon to see full order information, including items and shipping address.</li>
-            <li><span className="font-medium text-gray-700">Add Tracking:</span> In the order details, enter a tracking number to keep customers informed about their shipment.</li>
-            <li><span className="font-medium text-gray-700">Status Colors:</span> Each status has a unique color - yellow (pending), blue (paid), purple (in production), green (delivered).</li>
-          </ul>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="flex items-start gap-2">
+              <RefreshCw className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Update Status</span><br /><span className="text-gray-600">Use dropdown to change order status</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Eye className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">View Details</span><br /><span className="text-gray-600">Eye icon shows full order info</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Truck className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Add Tracking</span><br /><span className="text-gray-600">Enter tracking # for shipments</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Palette className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Status Colors</span><br /><span className="text-gray-600">Yellow/Blue/Purple/Green by stage</span></p>
+            </div>
+          </div>
         </div>
 
         {isLoading ? (

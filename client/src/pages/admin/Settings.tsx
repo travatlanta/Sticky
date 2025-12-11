@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Save, Trash2, Settings as SettingsIcon, Shield, UserPlus, UserMinus, Mail, Loader2 } from "lucide-react";
+import { Plus, Save, Trash2, Settings as SettingsIcon, Shield, UserPlus, UserMinus, Mail, Loader2, Database, Code } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -127,16 +127,28 @@ export default function AdminSettings() {
 
         {/* Help Guide */}
         <div className="bg-gradient-to-r from-gray-50 to-slate-100 border border-gray-200 rounded-xl p-4 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-            <SettingsIcon className="h-4 w-4 text-gray-600" />
+          <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-base">
+            <SettingsIcon className="h-5 w-5 text-gray-600" />
             Quick Guide
           </h3>
-          <ul className="text-sm text-gray-600 space-y-1.5">
-            <li><span className="font-medium text-gray-700">Site Settings:</span> Add key-value pairs to store global configuration like shipping rates, tax rates, or business info.</li>
-            <li><span className="font-medium text-gray-700">Admin Management:</span> Invite new admins by email address - they'll get admin access when they sign up or log in.</li>
-            <li><span className="font-medium text-gray-700">Revoke Access:</span> Remove admin privileges from users who no longer need dashboard access.</li>
-            <li><span className="font-medium text-gray-700">JSON Values:</span> For complex settings, you can enter valid JSON as the value (e.g., arrays or objects).</li>
-          </ul>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="flex items-start gap-2">
+              <Database className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Site Settings</span><br /><span className="text-gray-600">Store shipping rates, tax info, etc.</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <UserPlus className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Invite Admins</span><br /><span className="text-gray-600">Add new admins by email address</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <UserMinus className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">Revoke Access</span><br /><span className="text-gray-600">Remove admin privileges anytime</span></p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Code className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm"><span className="font-semibold text-gray-800">JSON Values</span><br /><span className="text-gray-600">Use arrays or objects for complex data</span></p>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-sm mb-6">

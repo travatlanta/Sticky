@@ -230,7 +230,7 @@ export default function AdminInbox() {
                                         ? msg.isFromHuman
                                           ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-t-2 border-emerald-400"
                                           : "bg-gradient-to-br from-orange-400 to-orange-500 text-white border-t-2 border-orange-300"
-                                        : "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm"
+                                        : "bg-white dark:bg-zinc-900 border-2 border-orange-200 dark:border-orange-800"
                                     }`}
                                     data-testid={`message-${msg.id}`}
                                   >

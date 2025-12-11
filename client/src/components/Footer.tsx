@@ -178,7 +178,7 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-800 py-6">
+        <div className="border-t border-gray-800 pt-8 pb-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
             <p className="text-gray-500 text-sm">
               &copy; {new Date().getFullYear()} Sticky Banditos Printing Company. All rights reserved.

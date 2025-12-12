@@ -95,18 +95,10 @@ export default function Editor() {
   const initCanvas = useCallback(() => {
     if (!canvasRef.current || !window.fabric) return;
 
-    // Calculate canvas size from product dimensions (inches * DPI)
-    const widthInches = parseFloat((product as any)?.widthInches) || 3;
-    const heightInches = parseFloat((product as any)?.heightInches) || 3;
-    const dpi = parseInt((product as any)?.dpi) || 300;
-    
-    // Full canvas size in pixels (includes bleed area)
-    const canvasPixelWidth = widthInches * dpi;
-    const canvasPixelHeight = heightInches * dpi;
-    
-    // Fallback to templateWidth/Height if set (for backwards compatibility)
-    const templateWidth = (product as any)?.templateWidth || canvasPixelWidth;
-    const templateHeight = (product as any)?.templateHeight || canvasPixelHeight;
+    // Use templateWidth/Height directly (these are already in pixels at 300 DPI)
+    const templateWidth = (product as any)?.templateWidth || 300;
+    const templateHeight = (product as any)?.templateHeight || 300;
+    const dpi = 300; // Fixed DPI for all print products
     
     const containerWidth = canvasContainerRef.current?.clientWidth || 350;
     const containerHeight = canvasContainerRef.current?.clientHeight || 350;
@@ -114,7 +106,7 @@ export default function Editor() {
     // Scale canvas to fit container with good visibility
     const scaleX = (containerWidth - 48) / templateWidth;
     const scaleY = (containerHeight - 80) / templateHeight;
-    // Scale down to fit, minimum 0.3 for visibility
+    // Scale down to fit, minimum 0.15 for visibility
     const initialScale = Math.max(Math.min(scaleX, scaleY, 1), 0.15);
     
     const displayWidth = templateWidth * initialScale;
@@ -484,14 +476,10 @@ export default function Editor() {
     if (fabricCanvasRef.current) {
       const canvas = fabricCanvasRef.current;
       
-      // Calculate canvas size from product dimensions
-      const widthInches = parseFloat((product as any)?.widthInches) || 3;
-      const heightInches = parseFloat((product as any)?.heightInches) || 3;
-      const dpi = parseInt((product as any)?.dpi) || 300;
-      const canvasPixelWidth = widthInches * dpi;
-      const canvasPixelHeight = heightInches * dpi;
-      const templateWidth = (product as any)?.templateWidth || canvasPixelWidth;
-      const templateHeight = (product as any)?.templateHeight || canvasPixelHeight;
+      // Use templateWidth/Height directly (already in pixels at 300 DPI)
+      const templateWidth = (product as any)?.templateWidth || 300;
+      const templateHeight = (product as any)?.templateHeight || 300;
+      const dpi = 300; // Fixed DPI for all print products
       
       const newWidth = templateWidth * newZoom;
       const newHeight = templateHeight * newZoom;

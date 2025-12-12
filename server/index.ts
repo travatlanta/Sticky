@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
+import { autoSeedIfNeeded } from "./auto-seed";
 
 const app = express();
 
@@ -10,6 +11,13 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 async function main() {
+  // Auto-seed production database if it has stale data
+  try {
+    await autoSeedIfNeeded();
+  } catch (err) {
+    console.error("Auto-seed failed:", err);
+  }
+  
   const server = await registerRoutes(app);
 
   if (process.env.NODE_ENV === "production") {

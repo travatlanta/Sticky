@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { categories, products, productOptions, pricingTiers } from "@shared/schema";
+import { categories, products, productOptions, pricingTiers, deals } from "@shared/schema";
 
 async function seed() {
   console.log("Seeding database...");
@@ -161,6 +161,81 @@ async function seed() {
   }
 
   console.log("Product options and pricing created");
+
+  // Create Hot Deals for homepage
+  console.log("Creating deals...");
+  await db.insert(deals).values([
+    {
+      title: "500 1x1 Custom Labels",
+      description: "Get 500 premium quality 1x1 inch custom labels at an unbeatable price! Perfect for product branding, packaging, or personal projects.",
+      imageUrl: "/uploads/deals/500_1x1_custom_labels.png",
+      originalPrice: "65.00",
+      dealPrice: "42.00",
+      quantity: 500,
+      productSize: "1x1",
+      productType: "Labels",
+      linkUrl: "/products/die-cut-stickers-1x1",
+      badgeText: "HOT DEAL",
+      badgeColor: "green",
+      ctaText: "Shop Now",
+      displayOrder: 1,
+      isActive: true,
+      showOnHomepage: true,
+    },
+    {
+      title: '100 3" Stickers',
+      description: "Get 100 premium quality 3 inch die-cut stickers. Perfect for branding, packaging, or giveaways!",
+      imageUrl: "/uploads/deals/100_3inch_stickers.png",
+      originalPrice: "55.00",
+      dealPrice: "35.00",
+      quantity: 100,
+      productSize: "3 inch",
+      productType: "Stickers",
+      linkUrl: "/products/die-cut-stickers-3x3",
+      badgeText: "BEST SELLER",
+      badgeColor: "yellow",
+      ctaText: "Shop Now",
+      displayOrder: 2,
+      isActive: true,
+      showOnHomepage: true,
+    },
+    {
+      title: '150 1" Stickers',
+      description: "Pack of 150 high-quality 1 inch mini stickers. Great for seals, labels, and decorations!",
+      imageUrl: "/uploads/deals/150_1inch_stickers.png",
+      originalPrice: "40.00",
+      dealPrice: "25.00",
+      quantity: 150,
+      productSize: "1 inch",
+      productType: "Stickers",
+      linkUrl: "/products/circle-stickers-1",
+      badgeText: "POPULAR",
+      badgeColor: "purple",
+      ctaText: "Shop Now",
+      displayOrder: 3,
+      isActive: true,
+      showOnHomepage: true,
+    },
+    {
+      title: "300 Custom Stickers",
+      description: "Bulk pack of 300 custom stickers at an amazing price. Mix and match sizes!",
+      imageUrl: "/uploads/deals/300_stickers.png",
+      originalPrice: "95.00",
+      dealPrice: "59.00",
+      quantity: 300,
+      productSize: "Mixed",
+      productType: "Stickers",
+      linkUrl: "/products/custom-die-cut-stickers",
+      badgeText: "MEGA DEAL",
+      badgeColor: "red",
+      ctaText: "Shop Now",
+      displayOrder: 4,
+      isActive: true,
+      showOnHomepage: true,
+    },
+  ]).onConflictDoNothing();
+  console.log("Deals created");
+
   console.log("Seed complete!");
   process.exit(0);
 }

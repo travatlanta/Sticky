@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Providers from './providers';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: 'Sticky Banditos - Custom Sticker Printing',
@@ -15,9 +17,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="min-h-screen flex flex-col bg-gradient-to-br from-orange-50/50 via-white to-yellow-50/50">
         <Providers>
-          {children}
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
         </Providers>
       </body>
     </html>

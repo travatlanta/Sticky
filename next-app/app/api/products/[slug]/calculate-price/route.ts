@@ -12,11 +12,14 @@ export async function POST(
     const body = await request.json();
     const { quantity, selectedOptions } = body;
 
-    // Find product by slug
+    // Check if slug is numeric (productId) or string (actual slug)
+    const isNumeric = /^\d+$/.test(slug);
+
+    // Find product by slug or id
     const [product] = await db
       .select()
       .from(products)
-      .where(eq(products.slug, slug));
+      .where(isNumeric ? eq(products.id, parseInt(slug)) : eq(products.slug, slug));
 
     if (!product) {
       return NextResponse.json({ message: 'Product not found' }, { status: 404 });

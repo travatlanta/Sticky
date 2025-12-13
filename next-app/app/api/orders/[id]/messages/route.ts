@@ -22,7 +22,7 @@ export async function GET(
       .select()
       .from(messages)
       .where(and(
-        eq(messages.userId, session.user.id),
+        eq(messages.userId, String(session.user.id)),
         eq(messages.orderId, orderId)
       ))
       .orderBy(asc(messages.createdAt));
@@ -55,7 +55,7 @@ export async function POST(
     const [message] = await db
       .insert(messages)
       .values({
-        userId: session.user.id,
+        userId: String(session.user.id),
         orderId,
         senderType: 'user',
         content: body.content.trim(),

@@ -13,7 +13,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
     }
     
-    const userId = session.user.id;
+    const userId = String(session.user.id);
 
     const userOrders = await db
       .select()

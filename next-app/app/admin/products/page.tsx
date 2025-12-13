@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Check, X, Package, Upload, Image, Layout, FileImage, SquarePen, CheckCircle, Layers } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Package, Upload, Image, Layout, FileImage, Edit2, CheckCircle, Layers } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -303,7 +303,7 @@ export default function AdminProducts() {
               <p className="text-sm"><span className="font-semibold text-gray-800">Add Products</span><br /><span className="text-gray-600">Click "Add Product" to create new items</span></p>
             </div>
             <div className="flex items-start gap-2">
-              <SquarePen className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+              <Edit2 className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
               <p className="text-sm"><span className="font-semibold text-gray-800">Edit Details</span><br /><span className="text-gray-600">Pencil icon to update info & images</span></p>
             </div>
             <div className="flex items-start gap-2">

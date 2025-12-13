@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSession, signOut } from "next-auth/react";

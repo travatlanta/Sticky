@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useQuery } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Card } from "@/components/ui/card";

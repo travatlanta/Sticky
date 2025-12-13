@@ -1,0 +1,21 @@
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+./app/api/cart/route.ts:26:14
+Type error: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "session_id"; tableName: "carts"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: false; hasDefault: false; enumValues: [string, ...string[]]; baseColumn: never; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | SQLWrapper'.
+      Type 'undefined' is not assignable to type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string | undefined>, right: string | SQLWrapper | undefined): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "session_id"; tableName: "carts"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: false; hasDefault: false; enumValues: [string, ...string[]]; baseColumn: never; }, {}, {}>' is not assignable to parameter of type 'Aliased<string | undefined>'.
+      Type 'PgColumn<{ name: "session_id"; tableName: "carts"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: false; hasDefault: false; enumValues: [string, ...string[]]; baseColumn: never; }, {}, {}>' is missing the following properties from type 'Aliased<string | undefined>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "session_id"; tableName: "carts"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: false; hasDefault: false; enumValues: [string, ...string[]]; baseColumn: never; }, {}, {}>' is not assignable to parameter of type 'never'.
+  24 |       .select()
+  25 |       .from(carts)
+> 26 |       .where(eq(carts.sessionId, sessionId));
+     |              ^
+  27 |
+  28 |     // Create cart if it doesn't exist
+  29 |     if (!cart) {
+Error: Command "npm run build" exited with 1

@@ -81,10 +81,10 @@ export default function Cart() {
           <h1 className="font-heading text-4xl md:text-5xl text-gray-900">Shopping Cart</h1>
         </div>
 
-        {cart?.items?.length > 0 ? (
+        {(cart?.items?.length ?? 0) > 0 ? (
           <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-2 space-y-4">
-              {cart.items.map((item: any) => (
+              {cart?.items?.map((item: any) => (
                 <div key={item.id} className="bg-white rounded-2xl p-6 shadow-md border border-orange-100 flex gap-6">
                   <div className="w-24 h-24 bg-gradient-to-br from-orange-100 via-yellow-50 to-orange-50 rounded-xl flex items-center justify-center flex-shrink-0">
                     {item.design?.previewUrl ? (

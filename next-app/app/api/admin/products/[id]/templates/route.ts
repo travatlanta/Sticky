@@ -48,7 +48,7 @@ export async function POST(
         productId: parseInt(id),
         name: body.name,
         description: body.description,
-        previewUrl: body.previewUrl,
+        previewImageUrl: body.previewImageUrl || body.previewUrl,
         canvasJson: body.canvasJson,
         isActive: body.isActive ?? true,
       })

@@ -40,7 +40,7 @@ export default function Orders() {
     }
   }, [isAuthenticated, authLoading, toast, router]);
 
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders, isLoading } = useQuery<any[]>({
     queryKey: ["/api/orders"],
     enabled: isAuthenticated,
   });

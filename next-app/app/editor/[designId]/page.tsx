@@ -42,14 +42,14 @@ export default function Editor() {
   const [customShapeUploaded, setCustomShapeUploaded] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { data: design, isLoading } = useQuery({
+  const { data: design, isLoading } = useQuery<any>({
     queryKey: ["/api/designs", designId],
     enabled: !!designId,
   });
 
-  const { data: product } = useQuery({
-    queryKey: ["/api/products", (design as any)?.productId],
-    enabled: !!(design as any)?.productId,
+  const { data: product } = useQuery<any>({
+    queryKey: ["/api/products", design?.productId],
+    enabled: !!design?.productId,
   });
 
   const { data: templates, isLoading: templatesLoading } = useQuery<Array<{
@@ -59,15 +59,15 @@ export default function Editor() {
     previewImage: string | null;
     canvasJson: any;
   }>>({
-    queryKey: ["/api/products", (design as any)?.productId, "templates"],
+    queryKey: ["/api/products", design?.productId, "templates"],
     queryFn: async () => {
-      const res = await fetch(`/api/products/${(design as any)?.productId}/templates`, {
+      const res = await fetch(`/api/products/${design?.productId}/templates`, {
         credentials: "include",
       });
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!(design as any)?.productId,
+    enabled: !!design?.productId,
   });
 
   const saveMutation = useMutation({

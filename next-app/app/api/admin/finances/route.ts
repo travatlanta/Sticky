@@ -1,0 +1,52 @@
+import { NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { orders } from '../../../../../shared/schema';
+import { desc } from 'drizzle-orm';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
+    }
+
+    const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
+
+    const totalRevenue = allOrders.reduce((sum, order) => {
+      return sum + parseFloat(order.totalAmount || '0');
+    }, 0);
+
+    const orderCount = allOrders.length;
+    const averageOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
+
+    const revenueByStatus = {
+      paid: 0,
+      pending: 0,
+      delivered: 0,
+      cancelled: 0,
+    };
+
+    allOrders.forEach((order) => {
+      const amount = parseFloat(order.totalAmount || '0');
+      const status = order.status as keyof typeof revenueByStatus;
+      if (status in revenueByStatus) {
+        revenueByStatus[status] += amount;
+      }
+    });
+
+    const recentOrders = allOrders.slice(0, 10);
+
+    return NextResponse.json({
+      totalRevenue,
+      orderCount,
+      averageOrderValue,
+      revenueByStatus,
+      recentOrders,
+    });
+  } catch (error) {
+    console.error('Error fetching finance data:', error);
+    return NextResponse.json({ message: 'Failed to fetch finance data' }, { status: 500 });
+  }
+}

@@ -19,6 +19,11 @@ export async function GET(request: Request) {
       sessionId = randomUUID();
     }
     
+    // Ensure sessionId is defined
+    if (!sessionId) {
+      sessionId = randomUUID();
+    }
+    
     // Try to find cart by session ID
     let [cart] = await db
       .select()

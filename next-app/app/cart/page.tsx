@@ -16,7 +16,7 @@ export default function Cart() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: cart, isLoading } = useQuery({
+  const { data: cart, isLoading } = useQuery<{ items?: any[] } | null>({
     queryKey: ["/api/cart"],
   });
 

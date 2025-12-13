@@ -15,29 +15,44 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            console.log('Auth: Missing credentials');
+            return null;
+          }
+
+          console.log('Auth: Looking up user:', credentials.email);
+          const user = await db.query.users.findFirst({
+            where: eq(users.email, credentials.email),
+          });
+
+          if (!user) {
+            console.log('Auth: User not found');
+            return null;
+          }
+
+          if (!user.passwordHash) {
+            console.log('Auth: No password hash for user');
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+          if (!isValid) {
+            console.log('Auth: Invalid password');
+            return null;
+          }
+
+          console.log('Auth: Success for user:', user.email);
+          return {
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+            isAdmin: user.isAdmin || false,
+          };
+        } catch (error) {
+          console.error('Auth error:', error);
           return null;
         }
-
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, credentials.email),
-        });
-
-        if (!user || !user.passwordHash) {
-          return null;
-        }
-
-        const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
-          isAdmin: user.isAdmin || false,
-        };
       },
     }),
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -89,4 +104,5 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };

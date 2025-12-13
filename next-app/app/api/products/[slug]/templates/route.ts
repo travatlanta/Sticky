@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products, productTemplates } from '../../../../../shared/schema';
+import { products, productTemplates } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 
 export async function GET(

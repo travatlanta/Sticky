@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { carts, cartItems } from '../../../../../shared/schema';
+import { carts, cartItems } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 

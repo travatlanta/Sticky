@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products } from '../../../../../shared/schema';
+import { products } from '@shared/schema';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 

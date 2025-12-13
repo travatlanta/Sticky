@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { categories } from '../../../shared/schema';
+import { categories } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET() {

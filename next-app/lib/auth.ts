@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import { db } from './db';
-import { users } from '../../shared/schema';
+import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 export const authOptions: NextAuthOptions = {

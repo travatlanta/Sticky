@@ -5,22 +5,24 @@ import { eq, asc } from 'drizzle-orm';
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { id } = await params;
-    const productId = parseInt(id);
+    const { slug } = await params;
     const body = await request.json();
     const { quantity, selectedOptions } = body;
 
+    // Find product by slug
     const [product] = await db
       .select()
       .from(products)
-      .where(eq(products.id, productId));
+      .where(eq(products.slug, slug));
 
     if (!product) {
       return NextResponse.json({ message: 'Product not found' }, { status: 404 });
     }
+
+    const productId = product.id;
 
     // Get pricing tiers
     const tiers = await db

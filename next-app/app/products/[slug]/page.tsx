@@ -51,7 +51,7 @@ export default function ProductDetail() {
 
   const calculatePriceMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/products/${product?.id}/calculate-price`, {
+      const res = await fetch(`/api/products/${slug}/calculate-price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quantity, selectedOptions }),

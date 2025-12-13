@@ -10,10 +10,13 @@ export async function GET(
   try {
     const { slug } = await params;
     
+    // Check if slug is numeric (productId) or string (actual slug)
+    const isNumeric = /^\d+$/.test(slug);
+    
     const [product] = await db
       .select()
       .from(products)
-      .where(eq(products.slug, slug));
+      .where(isNumeric ? eq(products.id, parseInt(slug)) : eq(products.slug, slug));
 
     if (!product) {
       return NextResponse.json({ message: 'Product not found' }, { status: 404 });

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { productTemplates } from '../../../../../../../shared/schema';
+import { productTemplates } from '../../../../../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ productId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,12 +15,12 @@ export async function GET(
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
-    const { productId } = await params;
+    const { id } = await params;
 
     const templates = await db
       .select()
       .from(productTemplates)
-      .where(eq(productTemplates.productId, parseInt(productId)));
+      .where(eq(productTemplates.productId, parseInt(id)));
 
     return NextResponse.json(templates);
   } catch (error) {
@@ -31,7 +31,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ productId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -39,13 +39,13 @@ export async function POST(
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
-    const { productId } = await params;
+    const { id } = await params;
     const body = await request.json();
 
     const [template] = await db
       .insert(productTemplates)
       .values({
-        productId: parseInt(productId),
+        productId: parseInt(id),
         name: body.name,
         description: body.description,
         previewUrl: body.previewUrl,

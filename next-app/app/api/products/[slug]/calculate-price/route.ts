@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products, productOptions, pricingTiers } from '../../../../../shared/schema';
+import { products, productOptions, pricingTiers } from '@shared/schema';
 import { eq, asc } from 'drizzle-orm';
 
 export async function POST(

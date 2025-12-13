@@ -1,13 +1,13 @@
 'use client';
 
-
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ArrowRight, Sparkles, Truck, Shield, Palette, Sticker, CreditCard, FileImage, Star, Flame, Layers, Tag, Wine, Package } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { ArrowRight, Plus, Sparkles, Star, Layers, Flame, Wine, Tag, Package } from 'lucide-react';
 
 interface Product {
   id: number;
@@ -35,206 +35,214 @@ interface Deal {
   productType?: string;
 }
 
-export default function HomePage() {
+export default function HomeClient() {
   const { data: session } = useSession();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [homepageDeals, setHomepageDeals] = useState<Deal[]>([]);
+  const isAuthenticated = !!session?.user;
+  const user = session?.user;
+  
+  const { data: homepageDeals } = useQuery<Deal[]>({
+    queryKey: ['/api/deals/homepage'],
+  });
 
-  useEffect(() => {
-    fetch('/api/products?featured=true')
-      .then(res => res.json())
-      .then(data => setProducts(data))
-      .catch(console.error);
+  const { data: allProducts } = useQuery<Product[]>({
+    queryKey: ['/api/products'],
+  });
 
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => setAllProducts(data))
-      .catch(console.error);
+  const { data: featuredProducts } = useQuery<Product[]>({
+    queryKey: ['/api/products', { featured: true }],
+  });
 
-    fetch('/api/deals/homepage')
-      .then(res => res.json())
-      .then(data => setHomepageDeals(Array.isArray(data) ? data : []))
-      .catch(console.error);
-  }, []);
-
-  const stickers = allProducts.filter((p) => p.categoryId === 1).slice(0, 6);
-  const userName = session?.user?.name?.split(' ')[0] || 'there';
+  const stickers = allProducts?.filter((p) => p.categoryId === 1)?.slice(0, 6) || [];
 
   const badgeColors: Record<string, string> = {
     yellow: "bg-yellow-500 text-black",
     red: "bg-red-500 text-white",
     green: "bg-green-500 text-white",
     purple: "bg-purple-500 text-white",
+    blue: "bg-blue-500 text-white",
+    orange: "bg-orange-500 text-white",
   };
 
   return (
-    <div className="min-h-screen pb-16 md:pb-20">
+    <>
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-orange-600 via-orange-500 to-yellow-400 py-12 md:py-20 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-10 left-10 w-40 h-40 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-60 h-60 bg-yellow-300 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-orange-300 rounded-full blur-3xl" />
-        </div>
-        <div className="container mx-auto relative text-center">
-          <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="h-8 w-8 md:h-10 md:w-10 text-white" />
+      <section className="relative py-20 md:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-100 via-yellow-50 to-orange-50 -z-10" />
+        <div className="absolute top-20 right-10 w-72 h-72 bg-yellow-300/30 rounded-full blur-3xl -z-10" />
+        <div className="absolute bottom-10 left-10 w-96 h-96 bg-orange-300/20 rounded-full blur-3xl -z-10" />
+        
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-orange-200 rounded-full px-4 py-2 mb-6">
+              <Sparkles className="h-4 w-4 text-yellow-500" />
+              <span className="text-sm font-medium text-gray-700">Premium Quality Printing</span>
+            </div>
+            
+            <h1 className="font-bold text-5xl md:text-7xl lg:text-8xl text-gray-900 mb-6 leading-tight">
+              {isAuthenticated ? (
+                <>
+                  Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-orange-600 to-red-500">
+                    Let&apos;s Create
+                  </span>
+                </>
+              ) : (
+                <>
+                  Custom Printing
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-orange-600 to-red-500">
+                    Made Easy
+                  </span>
+                </>
+              )}
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-2xl mx-auto">
+              From stickers to business cards, create stunning custom prints with our
+              easy-to-use design editor. Premium quality, fast delivery.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/products">
+                <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/30" data-testid="button-browse-products">
+                  Browse Products
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              {isAuthenticated ? (
+                <Link href="/account">
+                  <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-orange-300 hover:bg-orange-50" data-testid="button-my-account">
+                    My Account
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/login">
+                  <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-orange-300 hover:bg-orange-50" data-testid="button-sign-in">
+                    Sign In to Start
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
-          <h1 className="font-bold text-4xl md:text-6xl text-white mb-3">
-            Welcome back, {userName}!
-          </h1>
-          <p className="text-white/90 text-lg md:text-xl mb-6 max-w-xl mx-auto">
-            Create stunning custom stickers, labels, and more for your brand
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/products">
-              <Button size="lg" className="bg-white text-orange-600 hover:bg-white/90 shadow-lg w-full sm:w-auto" data-testid="button-start-designing">
-                <Plus className="mr-2 h-5 w-5" />
-                Start Designing
-              </Button>
-            </Link>
-            <Link href="/account">
-              <Button size="lg" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur w-full sm:w-auto" data-testid="button-view-account">
-                My Account <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-100">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl mx-auto mb-4 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                <Palette className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-xl mb-2 text-gray-900">Easy Design Editor</h3>
+              <p className="text-gray-600">Create custom designs with our intuitive online editor</p>
+            </div>
+            <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100">
+              <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl mx-auto mb-4 flex items-center justify-center shadow-lg shadow-green-500/30">
+                <Sparkles className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-xl mb-2 text-gray-900">Premium Quality</h3>
+              <p className="text-gray-600">High-quality materials and vibrant, long-lasting prints</p>
+            </div>
+            <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl mx-auto mb-4 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <Truck className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-xl mb-2 text-gray-900">Fast Shipping</h3>
+              <p className="text-gray-600">Quick turnaround and reliable delivery to your door</p>
+            </div>
+            <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-violet-500 rounded-xl mx-auto mb-4 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                <Shield className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="font-bold text-xl mb-2 text-gray-900">Satisfaction Guarantee</h3>
+              <p className="text-gray-600">100% satisfaction or your money back</p>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* HOT DEALS Section */}
-      <div className="bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 py-12 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-4 left-10 w-32 h-32 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-4 right-20 w-48 h-48 bg-white rounded-full blur-3xl" />
-        </div>
-        <div className="container mx-auto relative">
-          <div className="text-center mb-8">
-            <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Flame className="h-7 w-7 text-white" />
-            </div>
-            <h2 className="font-bold text-3xl md:text-4xl text-white mb-1">Hot Deals</h2>
-            <p className="text-white/80 text-sm md:text-base mb-4">Limited time offers - don&apos;t miss out!</p>
-            <Link href="/deals">
-              <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur" data-testid="button-shop-all-deals">
-                Shop All Deals <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+      {homepageDeals && homepageDeals.length > 0 && (
+        <section className="bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 py-12 px-4 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-4 left-10 w-32 h-32 bg-white rounded-full blur-3xl" />
+            <div className="absolute bottom-4 right-20 w-48 h-48 bg-white rounded-full blur-3xl" />
           </div>
+          <div className="container mx-auto relative">
+            <div className="text-center mb-8">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Flame className="h-7 w-7 text-white" />
+              </div>
+              <h2 className="font-bold text-3xl md:text-4xl text-white mb-1">Hot Deals</h2>
+              <p className="text-white/80 text-sm md:text-base mb-4">Limited time offers - don&apos;t miss out!</p>
+              <Link href="/deals">
+                <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur" data-testid="button-shop-all-deals">
+                  Shop All Deals <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
 
-          {homepageDeals.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              {homepageDeals.map((deal) => (
-                <Link key={deal.id} href={deal.linkUrl || "/products"} data-testid={`deal-card-${deal.id}`}>
-                  <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
-                    <div className="relative aspect-square">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              {homepageDeals.map((deal) => {
+                const percentOff = deal.originalPrice 
+                  ? Math.round((1 - parseFloat(deal.dealPrice) / parseFloat(deal.originalPrice)) * 100)
+                  : 0;
+                
+                return (
+                  <Card key={deal.id} className="overflow-hidden shadow-xl hover:shadow-2xl transition-shadow" data-testid={`deal-card-${deal.id}`}>
+                    <div className="relative">
                       {deal.imageUrl ? (
                         <img 
                           src={deal.imageUrl} 
-                          alt={deal.title} 
-                          className="w-full h-full object-cover"
+                          alt={deal.title}
+                          className="w-full aspect-square object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
-                          <Flame className="h-16 w-16 text-orange-400" />
+                        <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
+                          <Flame className="h-16 w-16 text-orange-300" />
                         </div>
                       )}
                       {deal.badgeText && (
-                        <div className={`absolute top-3 left-3 px-2 py-1 rounded-md text-xs font-bold ${badgeColors[deal.badgeColor || 'yellow']}`}>
+                        <Badge className={`absolute top-2 left-2 ${badgeColors[deal.badgeColor || 'orange']}`}>
                           {deal.badgeText}
-                        </div>
+                        </Badge>
+                      )}
+                      {percentOff > 0 && (
+                        <Badge className="absolute top-2 right-2 bg-red-600 text-white">
+                          {percentOff}% OFF
+                        </Badge>
                       )}
                     </div>
-                    <div className="p-4 space-y-2">
-                      <h3 className="font-bold text-lg line-clamp-1 text-gray-900">{deal.title}</h3>
-                      {deal.description && (
-                        <p className="text-sm text-gray-500 line-clamp-1">{deal.description}</p>
-                      )}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {deal.quantity && (
-                          <Badge variant="secondary" className="text-xs">{deal.quantity} pcs</Badge>
-                        )}
-                        {deal.productSize && (
-                          <Badge variant="secondary" className="text-xs">{deal.productSize}</Badge>
-                        )}
-                        {deal.productType && (
-                          <Badge variant="outline" className="text-xs">{deal.productType}</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between pt-2 gap-2">
-                        <div className="flex items-center gap-2">
-                          {deal.originalPrice && parseFloat(deal.originalPrice) > parseFloat(deal.dealPrice) && (
-                            <span className="text-sm text-gray-400 line-through">
-                              {formatPrice(parseFloat(deal.originalPrice))}
-                            </span>
+                    <div className="p-4 bg-white">
+                      <h3 className="font-bold text-lg text-gray-900 mb-1">{deal.title}</h3>
+                      <p className="text-gray-500 text-sm mb-3 line-clamp-2">{deal.description}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-bold text-xl text-orange-600">{formatPrice(deal.dealPrice)}</span>
+                          {deal.originalPrice && (
+                            <span className="text-sm text-gray-400 line-through">{formatPrice(deal.originalPrice)}</span>
                           )}
-                          <span className="text-xl font-bold text-orange-600">
-                            {formatPrice(parseFloat(deal.dealPrice))}
-                          </span>
                         </div>
-                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-                          {deal.ctaText || "Shop Now"}
-                        </Button>
+                        <Link href={deal.linkUrl || "/products"}>
+                          <Button size="sm" data-testid={`deal-shop-${deal.id}`}>
+                            {deal.ctaText || "Shop"}
+                          </Button>
+                        </Link>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              <Link href="/products" data-testid="deal-100-3in">
-                <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
-                  <div className="aspect-square bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
-                    <Flame className="h-20 w-20 text-orange-400" />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg text-gray-900">100 3-inch Stickers</h3>
-                    <div className="flex items-center justify-between pt-2 gap-2">
-                      <span className="text-xl font-bold text-orange-600">$29.00</span>
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600">Shop Now</Button>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-              <Link href="/products" data-testid="deal-150-1in">
-                <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
-                  <div className="aspect-square bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
-                    <Flame className="h-20 w-20 text-orange-400" />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg text-gray-900">150 1-inch Stickers</h3>
-                    <div className="flex items-center justify-between pt-2 gap-2">
-                      <span className="text-xl font-bold text-orange-600">$40.00</span>
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600">Shop Now</Button>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-              <Link href="/products" data-testid="deal-200-3in">
-                <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
-                  <div className="aspect-square bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
-                    <Flame className="h-20 w-20 text-orange-400" />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg text-gray-900">200 3-inch Die-Cut</h3>
-                    <div className="flex items-center justify-between pt-2 gap-2">
-                      <span className="text-xl font-bold text-orange-600">$59.00</span>
-                      <Button size="sm" className="bg-orange-500 hover:bg-orange-600">Shop Now</Button>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </section>
+      )}
 
-      {/* Creative Stickers Section */}
-      <div className="py-16 px-4 bg-gradient-to-b from-white to-orange-50">
+      {/* Custom Stickers Section */}
+      <section className="py-16 px-4 bg-gradient-to-b from-white to-orange-50">
         <div className="container mx-auto">
-          <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div>
               <h2 className="font-bold text-3xl text-gray-900">Custom Stickers</h2>
               <p className="text-gray-600 mt-1">Stick it anywhere. Make it yours.</p>
@@ -246,10 +254,9 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Scattered Sticker Display */}
           <div className="relative h-80 md:h-96 bg-gradient-to-br from-orange-100 via-yellow-50 to-red-50 rounded-3xl overflow-hidden mb-6">
             <div className="absolute inset-0 flex items-center justify-center">
-              {stickers.map((sticker, i) => {
+              {stickers.slice(0, 6).map((sticker, i) => {
                 const positions = [
                   { top: '10%', left: '5%', rotate: '-15deg', scale: '1' },
                   { top: '60%', left: '8%', rotate: '10deg', scale: '0.9' },
@@ -266,10 +273,9 @@ export default function HomePage() {
                       style={{
                         top: pos.top,
                         left: pos.left,
-                        right: pos.right,
+                        right: (pos as any).right,
                         transform: `rotate(${pos.rotate}) scale(${pos.scale})`,
                       }}
-                      data-testid={`sticker-card-${sticker.id}`}
                     >
                       <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-orange-200 to-yellow-100 rounded-xl flex items-center justify-center mb-2 overflow-hidden">
                         {sticker.thumbnailUrl ? (
@@ -278,17 +284,16 @@ export default function HomePage() {
                           <Layers className="h-8 w-8 text-orange-500" />
                         )}
                       </div>
-                      <p className="text-xs md:text-sm font-medium text-gray-800 text-center max-w-20 md:max-w-24 truncate">{sticker.name.split(' ').slice(0, 2).join(' ')}</p>
+                      <p className="text-xs md:text-sm font-medium text-gray-800 text-center max-w-20 md:max-w-24 truncate">{sticker.name?.split(' ').slice(0, 2).join(' ')}</p>
                       <p className="text-xs text-orange-500 font-bold text-center">{formatPrice(sticker.basePrice)}</p>
                     </div>
                   </Link>
                 );
               })}
             </div>
-            {/* Center CTA */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center pointer-events-auto bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-5 md:px-8 md:py-6 shadow-xl mx-4">
-                <h3 className="font-bold text-xl md:text-3xl text-gray-900 mb-1">Die-Cut, Circles, Sheets & More</h3>
+                <h3 className="font-bold text-xl md:text-3xl text-gray-900 mb-1">Die-Cut, Circles, Sheets &amp; More</h3>
                 <p className="text-gray-600 text-sm md:text-base mb-4">Starting at just $0.06/sticker</p>
                 <Link href="/products?category=stickers">
                   <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg">
@@ -299,10 +304,10 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Stickers Quality Section */}
-      <div className="py-16 px-4 bg-gradient-to-b from-orange-50 to-white">
+      {/* Stickers Feature Section */}
+      <section className="py-16 px-4 bg-gradient-to-b from-orange-50 to-white">
         <div className="container mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="pl-4 md:pl-8 lg:pl-12">
@@ -323,13 +328,13 @@ export default function HomePage() {
                   <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
                     <Star className="h-3 w-3 text-green-600" />
                   </div>
-                  Premium vinyl & matte finishes
+                  Premium vinyl &amp; matte finishes
                 </li>
                 <li className="flex items-center gap-3 text-gray-700">
                   <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
                     <Star className="h-3 w-3 text-green-600" />
                   </div>
-                  Waterproof & UV resistant
+                  Waterproof &amp; UV resistant
                 </li>
               </ul>
               <Link href="/products?category=stickers">
@@ -339,7 +344,6 @@ export default function HomePage() {
               </Link>
             </div>
             
-            {/* Stacked Stickers Visual */}
             <div className="relative h-80 md:h-96">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="absolute w-32 h-32 bg-gradient-to-br from-red-400 to-orange-400 rounded-full shadow-2xl transform rotate-12 translate-x-16 translate-y-8" />
@@ -357,10 +361,10 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Labels & Bottle Labels Section */}
-      <div className="py-16 px-4 bg-gradient-to-b from-gray-900 to-gray-950">
+      {/* Labels Section */}
+      <section className="py-16 px-4 bg-gradient-to-b from-gray-900 to-gray-950">
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <Badge className="bg-orange-500/20 text-orange-400 mb-4">For Your Business</Badge>
@@ -371,7 +375,6 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Labels Display */}
           <div className="relative h-80 md:h-96 mb-8">
             <div className="absolute inset-0 flex items-center justify-center gap-4 md:gap-6">
               <Link href="/products?category=labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
@@ -395,7 +398,7 @@ export default function HomePage() {
                 <div className="w-32 h-40 md:w-40 md:h-52 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 border-4 border-white/10">
                   <Package className="h-8 w-8 md:h-12 md:w-12 text-white/80 mb-2" />
                   <span className="text-white font-bold text-sm">Packaging</span>
-                  <span className="text-white/70 text-xs mt-1">Roll & Sheet</span>
+                  <span className="text-white/70 text-xs mt-1">Roll &amp; Sheet</span>
                 </div>
               </Link>
             </div>
@@ -414,98 +417,70 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Featured Products Section */}
-      <div className="py-16 px-4 bg-gradient-to-b from-white to-orange-50">
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
-            <h2 className="font-bold text-3xl text-gray-900">Featured Products</h2>
-            <Link href="/products">
-              <Button variant="ghost" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50">
-                View All <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+      {/* Popular Products Section */}
+      <section className="py-20 bg-gradient-to-br from-orange-50 via-yellow-50 to-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="font-bold text-4xl md:text-5xl text-gray-900 mb-4">Popular Products</h2>
+            <p className="text-lg text-gray-600">Start creating with our most loved print products</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <Link href="/products" className="group">
+              <div className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 text-center border border-orange-100 group-hover:-translate-y-2">
+                <div className="w-32 h-32 bg-gradient-to-br from-pink-300 via-orange-300 to-yellow-300 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
+                  <Sticker className="h-16 w-16 text-white drop-shadow-md" />
+                </div>
+                <h3 className="font-bold text-2xl mb-2 text-gray-900">Custom Stickers</h3>
+                <p className="text-gray-500 mb-4">Die-cut, kiss-cut, and sheet stickers</p>
+                <p className="text-orange-500 font-bold text-lg">Starting at $4.99</p>
+              </div>
+            </Link>
+            <Link href="/products" className="group">
+              <div className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 text-center border border-blue-100 group-hover:-translate-y-2">
+                <div className="w-32 h-32 bg-gradient-to-br from-blue-300 via-indigo-300 to-purple-300 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
+                  <CreditCard className="h-16 w-16 text-white drop-shadow-md" />
+                </div>
+                <h3 className="font-bold text-2xl mb-2 text-gray-900">Business Cards</h3>
+                <p className="text-gray-500 mb-4">Premium cardstock with custom finishes</p>
+                <p className="text-orange-500 font-bold text-lg">Starting at $19.99</p>
+              </div>
+            </Link>
+            <Link href="/products" className="group">
+              <div className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 text-center border border-green-100 group-hover:-translate-y-2">
+                <div className="w-32 h-32 bg-gradient-to-br from-green-300 via-teal-300 to-cyan-300 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">
+                  <FileImage className="h-16 w-16 text-white drop-shadow-md" />
+                </div>
+                <h3 className="font-bold text-2xl mb-2 text-gray-900">Flyers &amp; Posters</h3>
+                <p className="text-gray-500 mb-4">Eye-catching prints for any occasion</p>
+                <p className="text-orange-500 font-bold text-lg">Starting at $9.99</p>
+              </div>
             </Link>
           </div>
-
-          {products.length > 0 ? (
-            <div className="grid md:grid-cols-4 gap-6">
-              {products.slice(0, 8).map((product) => (
-                <Link key={product.id} href={`/products/${product.slug}`}>
-                  <div 
-                    className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-orange-100"
-                    data-testid={`product-card-${product.id}`}
-                  >
-                    <div className="aspect-square bg-gradient-to-br from-orange-100 via-yellow-50 to-orange-50 flex items-center justify-center">
-                      {product.thumbnailUrl ? (
-                        <img
-                          src={product.thumbnailUrl}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Layers className="h-12 w-12 text-orange-300" />
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 line-clamp-1">{product.name}</h3>
-                      <p className="text-orange-600 font-bold mt-1">From {formatPrice(product.basePrice)}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-md border border-orange-100 animate-pulse">
-                  <div className="aspect-square bg-gradient-to-br from-orange-100 to-yellow-50" />
-                  <div className="p-4 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-4 bg-gray-200 rounded w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-      </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="font-bold text-2xl mb-4">STICKY BANDITOS</h3>
-              <p className="text-gray-400">Premium custom stickers for everyone.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Shop</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/products" className="hover:text-white transition-colors">All Products</Link></li>
-                <li><Link href="/deals" className="hover:text-white transition-colors">Deals</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Account</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/login" className="hover:text-white transition-colors">Login</Link></li>
-                <li><Link href="/register" className="hover:text-white transition-colors">Register</Link></li>
-                <li><Link href="/orders" className="hover:text-white transition-colors">My Orders</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/cart" className="hover:text-white transition-colors">Cart</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} Sticky Banditos. All rights reserved.</p>
-          </div>
+      {/* CTA Section */}
+      <section className="py-20 px-4 bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-yellow-300 rounded-full blur-3xl" />
         </div>
-      </footer>
-    </div>
+        <div className="container mx-auto text-center relative">
+          <h2 className="font-bold text-4xl md:text-5xl text-white mb-6">Ready to Create?</h2>
+          <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">
+            Join thousands of satisfied customers who trust Sticky Banditos for their custom printing needs.
+          </p>
+          <Link href="/products">
+            <Button size="lg" className="text-lg px-10 py-6 bg-white text-orange-600 hover:bg-white/90 shadow-xl" data-testid="button-start-creating">
+              Start Creating Now
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+    </>
   );
 }

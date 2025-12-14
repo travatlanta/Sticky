@@ -60,8 +60,11 @@ export default function Editor() {
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialScaleRef = useRef<number>(1);
+  const lastTouchDistanceRef = useRef<number | null>(null);
+  const lastTouchCenterRef = useRef<{ x: number; y: number } | null>(null);
 
   const { data: design, isLoading } = useQuery<any>({
     queryKey: ["/api/designs", designId],
@@ -299,6 +302,58 @@ export default function Editor() {
       setShowCustomShapeModal(true);
     }
   }, [product, design, customShapeUploaded]);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Pinch-to-zoom gesture handling
+  // Note: Using touch-action: none CSS on container instead of preventDefault() 
+  // since React touch handlers are passive by default
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+      lastTouchDistanceRef.current = distance;
+      lastTouchCenterRef.current = {
+        x: (touch1.clientX + touch2.clientX) / 2,
+        y: (touch1.clientY + touch2.clientY) / 2,
+      };
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouchDistanceRef.current !== null) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+      const scale = distance / lastTouchDistanceRef.current;
+      
+      if (Math.abs(scale - 1) > 0.01) {
+        // Calculate clamped delta to stay within zoom bounds [0.2, 3]
+        const rawDelta = (scale - 1) * 0.5;
+        const clampedNewZoom = Math.max(0.2, Math.min(3, zoom + rawDelta));
+        const clampedDelta = clampedNewZoom - zoom;
+        
+        if (Math.abs(clampedDelta) > 0.001) {
+          handleZoom(clampedDelta);
+        }
+        lastTouchDistanceRef.current = distance;
+      }
+    }
+  }, [zoom]);
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchDistanceRef.current = null;
+    lastTouchCenterRef.current = null;
+  }, []);
 
   const handleUndo = () => {
     if (undoStack.length === 0 || !fabricCanvasRef.current) return;
@@ -1119,7 +1174,10 @@ export default function Editor() {
 
       <main 
         ref={canvasContainerRef}
-        className="flex-1 flex items-center justify-center p-3 md:p-6 overflow-auto"
+        className="flex-1 flex items-center justify-center p-3 md:p-6 overflow-auto touch-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div className="relative">
           <div className="bg-white rounded-lg shadow-lg p-2 md:p-6">
@@ -1139,120 +1197,113 @@ export default function Editor() {
         </div>
       </main>
 
-      <div className="bg-white border-t px-2 py-2 md:hidden">
-        <div className="flex items-center justify-between gap-1">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowUploadMenu(true)}
-              className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
-              data-testid="button-upload"
-            >
-              <Upload className="h-5 w-5" />
-              <span className="text-[10px]">Upload</span>
-            </Button>
-
-            {templates && templates.length > 0 && (
+      <div className="bg-white border-t px-2 py-2 md:hidden safe-area-bottom">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-1 min-w-max pb-1">
               <Button
                 variant="ghost"
-                size="sm"
-                onClick={() => setShowTemplates(true)}
-                className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
-                data-testid="button-templates"
+                onClick={() => setShowUploadMenu(true)}
+                className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
+                data-testid="button-upload"
               >
-                <FileImage className="h-5 w-5" />
-                <span className="text-[10px]">Templates</span>
+                <Upload className="h-6 w-6" />
+                <span className="text-[10px]">Upload</span>
               </Button>
-            )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { handleAddText(); setShowTextMenu(true); }}
-              className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
-              data-testid="button-add-text"
-            >
-              <Type className="h-5 w-5" />
-              <span className="text-[10px]">Text</span>
-            </Button>
+              {templates && templates.length > 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowTemplates(true)}
+                  className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
+                  data-testid="button-templates"
+                >
+                  <FileImage className="h-6 w-6" />
+                  <span className="text-[10px]">Templates</span>
+                </Button>
+              )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleAddRect}
-              className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
-              data-testid="button-add-rect"
-            >
-              <Square className="h-5 w-5" />
-              <span className="text-[10px]">Shape</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleAddCircle}
-              className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
-              data-testid="button-add-circle"
-            >
-              <Circle className="h-5 w-5" />
-              <span className="text-[10px]">Circle</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAssets(true)}
-              className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
-              data-testid="button-assets"
-            >
-              <Sparkles className="h-5 w-5" />
-              <span className="text-[10px]">Assets</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDrawing(true)}
-              className={`flex flex-col items-center gap-0.5 h-auto py-2 px-3 ${isDrawingMode ? 'text-orange-500 bg-orange-50' : ''}`}
-              data-testid="button-draw"
-            >
-              <Paintbrush className="h-5 w-5" />
-              <span className="text-[10px]">Draw</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowEffects(true)}
-              className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
-              data-testid="button-effects"
-            >
-              <Wand2 className="h-5 w-5" />
-              <span className="text-[10px]">Effects</span>
-            </Button>
-
-            {activeObject && (
               <Button
                 variant="ghost"
-                size="sm"
-                onClick={handleDelete}
-                className="flex flex-col items-center gap-0.5 h-auto py-2 px-3 text-red-500"
-                data-testid="button-delete"
+                onClick={() => { handleAddText(); setShowTextMenu(true); }}
+                className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
+                data-testid="button-add-text"
               >
-                <Trash2 className="h-5 w-5" />
-                <span className="text-[10px]">Delete</span>
+                <Type className="h-6 w-6" />
+                <span className="text-[10px]">Text</span>
               </Button>
-            )}
+
+              <Button
+                variant="ghost"
+                onClick={handleAddRect}
+                className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
+                data-testid="button-add-rect"
+              >
+                <Square className="h-6 w-6" />
+                <span className="text-[10px]">Shape</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={handleAddCircle}
+                className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
+                data-testid="button-add-circle"
+              >
+                <Circle className="h-6 w-6" />
+                <span className="text-[10px]">Circle</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={() => setShowAssets(true)}
+                className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
+                data-testid="button-assets"
+              >
+                <Sparkles className="h-6 w-6" />
+                <span className="text-[10px]">Assets</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={() => setShowDrawing(true)}
+                className={`flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation ${isDrawingMode ? 'text-orange-500 bg-orange-50' : ''}`}
+                data-testid="button-draw"
+              >
+                <Paintbrush className="h-6 w-6" />
+                <span className="text-[10px]">Draw</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={() => setShowEffects(true)}
+                className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
+                data-testid="button-effects"
+              >
+                <Wand2 className="h-6 w-6" />
+                <span className="text-[10px]">Effects</span>
+              </Button>
+
+              {activeObject && (
+                <Button
+                  variant="ghost"
+                  onClick={handleDelete}
+                  className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation text-red-500"
+                  data-testid="button-delete"
+                >
+                  <Trash2 className="h-6 w-6" />
+                  <span className="text-[10px]">Delete</span>
+                </Button>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleSave} data-testid="button-save">
-              <Save className="h-4 w-4" />
+          <div className="flex items-center gap-2 flex-shrink-0 pl-2 border-l">
+            <Button variant="outline" size="icon" onClick={handleSave} className="min-h-[44px] min-w-[44px] touch-manipulation" data-testid="button-save">
+              <Save className="h-5 w-5" />
             </Button>
-            <Button size="sm" onClick={handleAddToCart} className="bg-orange-500 hover:bg-orange-600" data-testid="button-add-to-cart">
-              <ShoppingCart className="h-4 w-4 mr-1" />
-              <span className="text-xs">Cart</span>
+            <Button onClick={handleAddToCart} className="bg-orange-500 hover:bg-orange-600 min-h-[44px] px-4 touch-manipulation" data-testid="button-add-to-cart">
+              <ShoppingCart className="h-5 w-5 mr-1" />
+              <span className="text-sm font-medium">Cart</span>
             </Button>
           </div>
         </div>

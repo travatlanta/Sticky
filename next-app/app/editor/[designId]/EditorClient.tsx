@@ -1408,8 +1408,8 @@ export default function Editor() {
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-gray-100">
-      <div className="bg-white border-b px-3 py-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="bg-white border-b px-3 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1 mb-2 md:mb-0">
           <h1 className="font-heading font-bold text-sm md:text-lg text-gray-900 truncate">
             {(design as any)?.name || "Untitled"}
           </h1>
@@ -1432,7 +1432,7 @@ export default function Editor() {
           )}
         </div>
         
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 mt-2 md:mt-0">
           <Button
             variant="ghost"
             size="icon"
@@ -1600,25 +1600,6 @@ export default function Editor() {
                 <span className="text-[10px]">Text</span>
               </Button>
 
-              <Button
-                variant="ghost"
-                onClick={handleAddRect}
-                className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
-                data-testid="button-add-rect"
-              >
-                <Square className="h-6 w-6" />
-                <span className="text-[10px]">Shape</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                onClick={handleAddCircle}
-                className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
-                data-testid="button-add-circle"
-              >
-                <Circle className="h-6 w-6" />
-                <span className="text-[10px]">Circle</span>
-              </Button>
 
               <Button
                 variant="ghost"
@@ -1665,52 +1646,7 @@ export default function Editor() {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 pl-2 border-l">
-            {/* Undo/Redo actions */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleUndo}
-              disabled={undoStack.length === 0}
-              className="min-h-[44px] min-w-[44px] touch-manipulation"
-              data-testid="button-undo-mobile"
-            >
-              <Undo className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleRedo}
-              disabled={redoStack.length === 0}
-              className="min-h-[44px] min-w-[44px] touch-manipulation"
-              data-testid="button-redo-mobile"
-            >
-              <Redo className="h-5 w-5" />
-            </Button>
-
-            {/* Zoom controls */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleZoom(-0.25)}
-                className="min-h-[44px] min-w-[44px] touch-manipulation"
-                data-testid="button-zoom-out-mobile"
-              >
-                <ZoomOut className="h-5 w-5" />
-              </Button>
-              <span className="text-xs font-medium min-w-[40px] text-center">{Math.round(zoom * 100)}%</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleZoom(0.25)}
-                className="min-h-[44px] min-w-[44px] touch-manipulation"
-                data-testid="button-zoom-in-mobile"
-              >
-                <ZoomIn className="h-5 w-5" />
-              </Button>
-            </div>
-
-            {/* Save and Cart actions */}
+            {/* Save and Cart actions (only) */}
             <Button
               variant="outline"
               size="icon"
@@ -1743,12 +1679,6 @@ export default function Editor() {
         )}
         <Button variant="ghost" size="icon" onClick={() => { handleAddText(); setShowTextMenu(true); }} title="Add Text" data-testid="button-text-desktop">
           <Type className="h-5 w-5" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={handleAddRect} title="Rectangle" data-testid="button-rect-desktop">
-          <Square className="h-5 w-5" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={handleAddCircle} title="Circle" data-testid="button-circle-desktop">
-          <Circle className="h-5 w-5" />
         </Button>
         <Button variant="ghost" size="icon" onClick={() => setShowAssets(true)} title="Assets" data-testid="button-assets-desktop">
           <Sparkles className="h-5 w-5" />
@@ -2374,7 +2304,11 @@ export default function Editor() {
       )}
 
       {showTextMenu && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowTextMenu(false)} data-testid="overlay-text-menu">
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-start justify-center md:justify-end"
+          onClick={() => setShowTextMenu(false)}
+          data-testid="overlay-text-menu"
+        >
           <div 
             className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}

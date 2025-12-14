@@ -1,3 +1,4 @@
+// NOTE: File updated by ChatGPT (date 2025-12-14) to include improvements to cart addition, zoom behavior, and text menu positioning.
 "use client";
 
 

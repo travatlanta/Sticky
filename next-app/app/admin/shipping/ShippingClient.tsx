@@ -121,9 +121,9 @@ export default function ShippingClient() {
           <button
             type="submit"
             className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-4 py-2 rounded shadow disabled:opacity-50"
-            disabled={mutation.isLoading}
+            disabled={mutation.isPending}
           >
-            {mutation.isLoading ? 'Saving…' : 'Save Settings'}
+            {mutation.isPending ? 'Saving…' : 'Save Settings'}
           </button>
         </form>
       )}

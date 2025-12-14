@@ -179,12 +179,6 @@ export default function CheckoutClient() {
   const total = subtotal + shipping;
 
   return (
-    {/*
-      Apply generous vertical padding to prevent the checkout page from appearing
-      cramped against the site’s header or footer. Using py-20 instead of
-      py-12 adds extra breathing room at the top and bottom of the page. The
-      container remains centered with a max width to keep content aligned.
-    */}
     <div className="container mx-auto px-4 py-20 max-w-6xl">
       <Link href="/cart" className="inline-flex items-center gap-2 text-gray-600 hover:text-orange-500 mb-6">
         <ArrowLeft className="h-4 w-4" />

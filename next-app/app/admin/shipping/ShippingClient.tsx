@@ -53,6 +53,14 @@ export default function ShippingClient() {
     },
   });
 
+  // Determine if the mutation is currently pending. In recent versions of
+  // TanStack Query the mutation object exposes a `status` string instead
+  // of boolean flags such as `isLoading` or `isPending`. When the mutation
+  // status is `"pending"` it indicates the request is in flight. We derive
+  // a boolean flag here so it can be used to disable the form submit button
+  // and update its label accordingly.
+  const isMutating = (mutation as any).status === 'pending';
+
   // Simple styled components using Tailwind classes. Tailwind is available in
   // this project for consistent styling across the admin interface.
   return (
@@ -121,9 +129,10 @@ export default function ShippingClient() {
           <button
             type="submit"
             className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-4 py-2 rounded shadow disabled:opacity-50"
-            disabled={mutation.isPending}
+            // Disable the button while the mutation is pending to prevent duplicate submissions
+            disabled={isMutating}
           >
-            {mutation.isPending ? 'Saving…' : 'Save Settings'}
+            {isMutating ? 'Saving…' : 'Save Settings'}
           </button>
         </form>
       )}

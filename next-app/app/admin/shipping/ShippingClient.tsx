@@ -59,7 +59,12 @@ export default function ShippingClient() {
   // status is `"pending"` it indicates the request is in flight. We derive
   // a boolean flag here so it can be used to disable the form submit button
   // and update its label accordingly.
-  const isMutating = (mutation as any).status === 'pending';
+  // TanStack Query v5 no longer exposes an `isLoading` property on
+  // mutation results.  Instead, the `status` field will be either
+  // 'idle', 'loading', 'pending', 'success' or 'error'.  We consider
+  // both 'loading' and 'pending' as indicators that the mutation is
+  // currently running so that the submit button can be disabled.
+  const isMutating = (mutation as any).status === 'loading' || (mutation as any).status === 'pending';
 
   // Simple styled components using Tailwind classes. Tailwind is available in
   // this project for consistent styling across the admin interface.

@@ -175,7 +175,29 @@ export default function CheckoutClient() {
 
   // Calculate subtotal and totals on the client. The server already returns these, but fallback if missing.
   const subtotal = cart.subtotal || cart.items.reduce((sum, item) => sum + parseFloat(item.unitPrice) * item.quantity, 0);
-  const shipping = 15.0;
+  // Fetch shipping configuration from the server. This query loads
+  // `{ shippingCost, freeShipping }` from the settings API. If fetching
+  // fails, a fallback of 15 is used. When freeShipping is true, the
+  // computed shipping cost will be zero.
+  const { data: shippingData } = useQuery({
+    queryKey: ["shipping"],
+    queryFn: async () => {
+      const res = await fetch("/api/settings/shipping");
+      if (!res.ok) throw new Error("Failed to load shipping settings");
+      return res.json() as Promise<{ shippingCost: number; freeShipping: boolean }>;
+    },
+  });
+  // Compute shipping based on settings and the number of items in the cart.
+  const itemCount = cart.items.length;
+  let shipping: number;
+  if (shippingData?.freeShipping) {
+    shipping = 0;
+  } else if (shippingData?.automaticShipping) {
+    const base = shippingData?.shippingCost ?? 15;
+    shipping = base * itemCount;
+  } else {
+    shipping = shippingData?.shippingCost ?? 15;
+  }
   const total = subtotal + shipping;
 
   return (

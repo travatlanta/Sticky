@@ -115,18 +115,27 @@ export default function Editor() {
    * measurementObjectsRef so they can be removed before re‑rendering.
    */
   const addMeasurements = useCallback((canvas: any, prod: any, scale: number) => {
-    const dpi = 300;
+    // Determine the pixel‑per‑inch ratio.  Sticker template dimensions are
+    // stored in pixel units where 100 px corresponds to one inch (see
+    // seed data: templateWidth 100 => 1" product).  Using a hard coded
+    // DPI of 300 caused the guides to drift away from the canvas edges when
+    // zooming.  Instead compute pxPerInch from the product dimensions or
+    // fall back to 100 if undefined.
+    const pxPerInch = prod?.templateWidth && prod?.templateHeight
+      ? (prod.templateWidth / (prod.templateWidth / 100))
+      : 100;
     // Remove any existing measurement objects from the canvas
     if (measurementObjectsRef.current && measurementObjectsRef.current.length > 0) {
       measurementObjectsRef.current.forEach((obj) => canvas.remove(obj));
       measurementObjectsRef.current = [];
     }
     if (!prod) return;
-    const widthInches = prod?.templateWidth || 0;
-    const heightInches = prod?.templateHeight || 0;
-    // Draw vertical tick marks (top edge)
-    for (let i = 0; i <= widthInches; i++) {
-      const x = i * dpi * scale;
+    const widthInches = prod?.templateWidth ? prod.templateWidth / pxPerInch : 0;
+    const heightInches = prod?.templateHeight ? prod.templateHeight / pxPerInch : 0;
+    // Draw vertical tick marks (top edge).  Use Math.floor to avoid drawing
+    // extra ticks for fractional inches.  Each tick position is at i * pxPerInch * scale.
+    for (let i = 0; i <= Math.floor(widthInches); i++) {
+      const x = i * pxPerInch * scale;
       // small vertical tick line
       const tick = new window.fabric.Line([x, 0, x, 10], {
         stroke: '#6b7280',
@@ -153,8 +162,8 @@ export default function Editor() {
       }
     }
     // Draw horizontal tick marks (left edge)
-    for (let j = 0; j <= heightInches; j++) {
-      const y = j * dpi * scale;
+    for (let j = 0; j <= Math.floor(heightInches); j++) {
+      const y = j * pxPerInch * scale;
       const tick = new window.fabric.Line([0, y, 10, y], {
         stroke: '#6b7280',
         strokeWidth: 1,
@@ -286,7 +295,14 @@ export default function Editor() {
 
     const templateWidth = (product as any)?.templateWidth || 300;
     const templateHeight = (product as any)?.templateHeight || 300;
-    const dpi = 300;
+    // Derive the pixel‑per‑inch ratio from the template dimensions.  In our
+    // product data 100 px corresponds to one inch (e.g. templateWidth 100 => 1"
+    // product).  Using a hardcoded DPI of 300 caused bleed/safe lines to be
+    // misaligned when zooming.  Compute pxPerInch dynamically from the
+    // template width; if undefined fallback to 100.
+    const pxPerInch = templateWidth && templateHeight
+      ? (templateWidth / (templateWidth / 100))
+      : 100;
     
     const containerWidth = canvasContainerRef.current?.clientWidth || 500;
     const containerHeight = canvasContainerRef.current?.clientHeight || 500;
@@ -324,9 +340,9 @@ export default function Editor() {
     const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125; // margin inside trim line
     
     // Trim line position: at bleed boundary (where paper will be cut)
-    const trimLinePixels = bleedInches * dpi * initialScale;
+    const trimLinePixels = bleedInches * pxPerInch * initialScale;
     // Safe zone position: inside trim line by safe margin amount
-    const safeZonePixels = (bleedInches + safeMarginInches) * dpi * initialScale;
+    const safeZonePixels = (bleedInches + safeMarginInches) * pxPerInch * initialScale;
     
     // Outer BLEED LINE (dashed gray) - indicates the boundary where artwork should extend to avoid blank edges
     const bleedLineRect = new window.fabric.Rect({
@@ -1117,7 +1133,10 @@ export default function Editor() {
       // undefined (see errors like `Cannot set properties of undefined (setting 'width')`).
       const templateWidth = (product as any)?.templateWidth || 300;
       const templateHeight = (product as any)?.templateHeight || 300;
-      const dpi = 300;
+      // Derive pxPerInch similar to initCanvas: 100 px corresponds to 1 inch.
+      const pxPerInch = templateWidth && templateHeight
+        ? (templateWidth / (templateWidth / 100))
+        : 100;
       const newWidth = templateWidth * newZoom;
       const newHeight = templateHeight * newZoom;
 
@@ -1127,11 +1146,13 @@ export default function Editor() {
       // prevents errors when the underlying contexts are undefined.
       canvas.setDimensions({ width: newWidth, height: newHeight }, { cssOnly: true });
 
-      // Print industry standard: trim line at bleed boundary, safe zone inside trim
+      // Recalculate guide positions based on pxPerInch instead of DPI.  The
+      // product bleed and safe margins are specified in inches, so convert
+      // them using pxPerInch and the current zoom level.
       const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
       const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125;
-      const trimLinePixels = bleedInches * dpi * newZoom;
-      const safeZonePixels = (bleedInches + safeMarginInches) * dpi * newZoom;
+      const trimLinePixels = bleedInches * pxPerInch * newZoom;
+      const safeZonePixels = (bleedInches + safeMarginInches) * pxPerInch * newZoom;
 
       const objects = canvas.getObjects();
       const trimGuide = objects.find((o: any) => o.name === "bleedGuide");

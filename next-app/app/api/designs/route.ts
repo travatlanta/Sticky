@@ -31,18 +31,19 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-
-    // TODO: Get userId from NextAuth session when fully integrated
-    // For now, userId should be provided in body
-    if (!body.userId) {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
       return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
     }
+    
+    const userId = String(session.user.id);
+    const body = await request.json();
 
     const [design] = await db
       .insert(designs)
       .values({
-        userId: body.userId,
+        userId: userId,
         productId: body.productId || null,
         name: body.name || null,
         canvasJson: body.canvasJson || null,

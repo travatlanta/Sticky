@@ -92,3 +92,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: 'Failed to fetch cart' }, { status: 500 });
   }
 }
+
+// OPTIONS handler to support CORS preflight requests.  This ensures that
+// requests using non-simple headers (e.g. application/json) do not
+// trigger a 405 response.  The response is intentionally empty.
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200 });
+}

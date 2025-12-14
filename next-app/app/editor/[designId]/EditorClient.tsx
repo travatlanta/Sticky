@@ -11,7 +11,9 @@ import {
   Undo, Redo, ZoomIn, ZoomOut, Trash2, Square,
   Circle, Info, X, MoreVertical, Layers, FileImage, Sparkles,
   Paintbrush, Palette, PenTool, Eraser, Wand2, Sun,
-  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight
+  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
+  HelpCircle, CheckCircle, Image, FileType, Droplets, MousePointer,
+  Move, RotateCcw, ChevronLeft, ChevronRight
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -55,6 +57,9 @@ export default function Editor() {
   const [selectedFont, setSelectedFont] = useState("Arial");
   const [textColor, setTextColor] = useState("#000000");
   const [fontSize, setFontSize] = useState(24);
+  const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialScaleRef = useRef<number>(1);
 
@@ -1140,7 +1145,7 @@ export default function Editor() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleUpload}
+              onClick={() => setShowUploadMenu(true)}
               className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
               data-testid="button-upload"
             >
@@ -1254,7 +1259,7 @@ export default function Editor() {
       </div>
 
       <aside className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 bg-white border rounded-r-xl shadow-lg flex-col items-center py-3 px-2 gap-1 z-10">
-        <Button variant="ghost" size="icon" onClick={handleUpload} title="Upload" data-testid="button-upload-desktop">
+        <Button variant="ghost" size="icon" onClick={() => setShowUploadMenu(true)} title="Upload" data-testid="button-upload-desktop">
           <Upload className="h-5 w-5" />
         </Button>
         {templates && templates.length > 0 && (
@@ -2000,6 +2005,241 @@ export default function Editor() {
             >
               Done
             </Button>
+          </div>
+        </div>
+      )}
+
+      {showUploadMenu && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowUploadMenu(false)} data-testid="overlay-upload-menu">
+          <div 
+            className="bg-white w-full md:max-w-2xl md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="modal-upload-menu"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Upload className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="font-heading font-bold text-lg">Upload Your Artwork</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowUploadMenu(false)} data-testid="button-close-upload-menu">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div 
+              className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-6 hover:border-orange-400 transition-colors cursor-pointer"
+              onClick={handleUpload}
+              data-testid="dropzone-upload"
+            >
+              <Upload className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+              <p className="font-medium text-gray-900 mb-1">Click to upload your file</p>
+              <p className="text-sm text-gray-500">Supports JPG, PNG, GIF, WebP, SVG, and PDF up to 50MB</p>
+            </div>
+
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  Design Tips for Best Print Quality
+                </h4>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => { setShowUploadMenu(false); setShowTutorial(true); setTutorialStep(0); }}
+                  className="text-orange-600"
+                  data-testid="button-start-tutorial"
+                >
+                  <HelpCircle className="h-4 w-4 mr-1" />
+                  Editor Tutorial
+                </Button>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-3">
+                <div className="bg-blue-50 rounded-lg p-3 flex gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Image className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-blue-900 text-sm">Use High Resolution</p>
+                    <p className="text-xs text-blue-700">300 DPI recommended for best print quality. Low-res images may appear blurry.</p>
+                  </div>
+                </div>
+                
+                <div className="bg-green-50 rounded-lg p-3 flex gap-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileType className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-green-900 text-sm">Best File Formats</p>
+                    <p className="text-xs text-green-700">PNG for transparency, PDF for vectors. Avoid heavily compressed JPGs.</p>
+                  </div>
+                </div>
+                
+                <div className="bg-purple-50 rounded-lg p-3 flex gap-3">
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Droplets className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-purple-900 text-sm">Use CMYK Colors</p>
+                    <p className="text-xs text-purple-700">RGB colors may shift when printed. Some bright colors print darker.</p>
+                  </div>
+                </div>
+                
+                <div className="bg-orange-50 rounded-lg p-3 flex gap-3">
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Square className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-orange-900 text-sm">Mind the Safe Zone</p>
+                    <p className="text-xs text-orange-700">Keep important content inside the green line. Content near edges may be cut.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 mb-2">Quick Tips</h4>
+              <ul className="space-y-1.5 text-sm text-gray-600">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  Extend backgrounds to the red trim line for edge-to-edge printing
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  Use solid colors for text - avoid thin strokes or small text under 8pt
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  Save your design often - auto-save runs every 15 seconds
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTutorial && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowTutorial(false)} data-testid="overlay-tutorial">
+          <div 
+            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="modal-tutorial"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <HelpCircle className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="font-heading font-bold text-lg">Editor Tutorial</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowTutorial(false)} data-testid="button-close-tutorial">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {[
+              {
+                icon: <Upload className="h-6 w-6" />,
+                title: "Upload Your Artwork",
+                description: "Click the Upload button to add your images, logos, or artwork. We support JPG, PNG, GIF, WebP, SVG, and PDF files up to 50MB.",
+                tip: "For best results, use high-resolution images (300 DPI or higher)."
+              },
+              {
+                icon: <Type className="h-6 w-6" />,
+                title: "Add & Edit Text",
+                description: "Click the Text button to add text to your design. Double-tap any text to edit it. Use the text menu to change fonts, colors, size, and styling.",
+                tip: "We offer 15 different fonts to choose from!"
+              },
+              {
+                icon: <Sparkles className="h-6 w-6" />,
+                title: "Design Assets Library",
+                description: "Access our library of shapes, badges, icons, and decorative elements. Click Assets to browse categories and add elements to your canvas.",
+                tip: "All assets are vector graphics that print crisp at any size."
+              },
+              {
+                icon: <MousePointer className="h-6 w-6" />,
+                title: "Select & Transform",
+                description: "Click any object to select it. Drag to move, use corner handles to resize, and rotate using the top handle. Selected objects show a blue border.",
+                tip: "Hold Shift while resizing to maintain proportions."
+              },
+              {
+                icon: <Move className="h-6 w-6" />,
+                title: "Zoom & Navigate",
+                description: "Use the zoom controls in the header to zoom in/out. This helps you work on details and see the full design.",
+                tip: "The percentage shows your current zoom level."
+              },
+              {
+                icon: <RotateCcw className="h-6 w-6" />,
+                title: "Undo & Redo",
+                description: "Made a mistake? Use Undo to go back. Changed your mind? Use Redo to restore. These buttons are in the header.",
+                tip: "Your design is auto-saved every 15 seconds."
+              },
+              {
+                icon: <ShoppingCart className="h-6 w-6" />,
+                title: "Save & Add to Cart",
+                description: "When you're happy with your design, click Save to save your progress, then Add to Cart to proceed to checkout.",
+                tip: "We'll generate a high-resolution version for printing."
+              }
+            ].map((step, index) => (
+              <div key={index} className={`${tutorialStep === index ? 'block' : 'hidden'}`}>
+                <div className="bg-orange-50 rounded-xl p-6 mb-4">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-600">
+                    {step.icon}
+                  </div>
+                  <h4 className="font-bold text-lg text-center mb-2">{step.title}</h4>
+                  <p className="text-gray-600 text-center mb-3">{step.description}</p>
+                  <div className="bg-white rounded-lg p-3 text-sm text-orange-700 flex items-start gap-2">
+                    <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>{step.tip}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-center gap-1.5 mb-4">
+                  {[0, 1, 2, 3, 4, 5, 6].map((dot) => (
+                    <button
+                      key={dot}
+                      onClick={() => setTutorialStep(dot)}
+                      className={`w-2 h-2 rounded-full transition-colors ${tutorialStep === dot ? 'bg-orange-500' : 'bg-gray-300'}`}
+                      data-testid={`button-tutorial-dot-${dot}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setTutorialStep(Math.max(0, tutorialStep - 1))}
+                disabled={tutorialStep === 0}
+                data-testid="button-tutorial-prev"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              {tutorialStep < 6 ? (
+                <Button
+                  className="flex-1 bg-orange-500 hover:bg-orange-600"
+                  onClick={() => setTutorialStep(tutorialStep + 1)}
+                  data-testid="button-tutorial-next"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              ) : (
+                <Button
+                  className="flex-1 bg-orange-500 hover:bg-orange-600"
+                  onClick={() => setShowTutorial(false)}
+                  data-testid="button-tutorial-finish"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Got It!
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -8,7 +7,20 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Minus, Plus, ArrowRight, Sticker, CreditCard, FileImage, Image, Package, Upload, ShoppingCart, Paintbrush, Loader2 } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  ArrowRight,
+  Sticker,
+  CreditCard,
+  FileImage,
+  Image,
+  Package,
+  Upload,
+  ShoppingCart,
+  Paintbrush,
+  Loader2,
+} from "lucide-react";
 
 interface ProductOption {
   id: number;
@@ -94,7 +106,8 @@ export default function ProductDetail() {
 
   const handleStartDesign = async () => {
     if (!isAuthenticated) {
-      window.location.href = "/api/login";
+      // Redirect unauthenticated users to the login page rather than a non-existent API route
+      router.push("/login");
       return;
     }
 
@@ -152,7 +165,8 @@ export default function ProductDetail() {
 
   const handleQuickOrder = async () => {
     if (!isAuthenticated) {
-      window.location.href = "/api/login";
+      // Redirect unauthenticated users to the login page
+      router.push("/login");
       return;
     }
 
@@ -277,198 +291,204 @@ export default function ProductDetail() {
 
   return (
     <div className="container mx-auto px-4 py-8 pb-16 md:pb-20">
-        <div className="grid md:grid-cols-2 gap-12">
-          <div>
-            <div className="bg-white rounded-2xl aspect-square flex items-center justify-center shadow-sm">
-              {product.thumbnailUrl ? (
-                <img
-                  src={product.thumbnailUrl}
-                  alt={product.name}
-                  className="w-full h-full object-cover rounded-2xl"
-                />
-              ) : (
-                product.name.includes("Sticker") ? <Sticker className="h-32 w-32 text-orange-500" /> : 
-                product.name.includes("Card") ? <CreditCard className="h-32 w-32 text-blue-500" /> :
-                product.name.includes("Flyer") ? <FileImage className="h-32 w-32 text-green-500" /> :
-                product.name.includes("Poster") ? <Image className="h-32 w-32 text-purple-500" /> : 
-                <Package className="h-32 w-32 text-gray-400" />
-              )}
-            </div>
+      <div className="grid md:grid-cols-2 gap-12">
+        <div>
+          <div className="bg-white rounded-2xl aspect-square flex items-center justify-center shadow-sm">
+            {product.thumbnailUrl ? (
+              <img
+                src={product.thumbnailUrl}
+                alt={product.name}
+                className="w-full h-full object-cover rounded-2xl"
+              />
+            ) : product.name.includes("Sticker") ? (
+              <Sticker className="h-32 w-32 text-orange-500" />
+            ) : product.name.includes("Card") ? (
+              <CreditCard className="h-32 w-32 text-blue-500" />
+            ) : product.name.includes("Flyer") ? (
+              <FileImage className="h-32 w-32 text-green-500" />
+            ) : product.name.includes("Poster") ? (
+              <Image className="h-32 w-32 text-purple-500" />
+            ) : (
+              <Package className="h-32 w-32 text-gray-400" />
+            )}
           </div>
+        </div>
 
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
-            <p className="text-gray-600 mb-6">{product.description}</p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+          <p className="text-gray-600 mb-6">{product.description}</p>
 
-            <div className="space-y-6">
-              {Object.entries(groupedOptions).map(([type, options]) => (
-                <div key={type}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                    {type}
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {options.map((option) => (
-                      <button
-                        key={option.id}
-                        onClick={() =>
-                          setSelectedOptions({ ...selectedOptions, [type]: option.id })
-                        }
-                        className={`p-3 rounded-lg border-2 text-left transition-colors ${
-                          selectedOptions[type] === option.id
-                            ? "border-primary-500 bg-primary-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <span className="font-medium">{option.name}</span>
-                        {option.priceModifier && parseFloat(option.priceModifier) > 0 && (
-                          <span className="text-gray-500 text-sm ml-1">
-                            (+{formatPrice(option.priceModifier)})
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Quantity
+          <div className="space-y-6">
+            {Object.entries(groupedOptions).map(([type, options]) => (
+              <div key={type}>
+                <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
+                  {type}
                 </label>
-                <div className="flex items-center space-x-4">
-                  <button
-                    onClick={() => setQuantity(Math.max(product.minQuantity || 1, quantity - 50))}
-                    className="w-10 h-10 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:border-gray-300"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(product.minQuantity || 1, parseInt(e.target.value) || 0))}
-                    className="w-24 text-center text-lg font-medium border-2 border-gray-200 rounded-lg py-2"
-                  />
-                  <button
-                    onClick={() => setQuantity(quantity + 50)}
-                    className="w-10 h-10 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:border-gray-300"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
+                <div className="grid grid-cols-2 gap-2">
+                  {options.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() =>
+                        setSelectedOptions({ ...selectedOptions, [type]: option.id })
+                      }
+                      className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                        selectedOptions[type] === option.id
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="font-medium">{option.name}</span>
+                      {option.priceModifier && parseFloat(option.priceModifier) > 0 && (
+                        <span className="text-gray-500 text-sm ml-1">
+                          (+{formatPrice(option.priceModifier)})
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Quantity
+              </label>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setQuantity(Math.max(product.minQuantity || 1, quantity - 50))}
+                  className="w-10 h-10 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:border-gray-300"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) =>
+                    setQuantity(Math.max(product.minQuantity || 1, parseInt(e.target.value) || 0))
+                  }
+                  className="w-24 text-center text-lg font-medium border-2 border-gray-200 rounded-lg py-2"
+                />
+                <button
+                  onClick={() => setQuantity(quantity + 50)}
+                  className="w-10 h-10 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:border-gray-300"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-gray-100 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">Price per unit</span>
+                <span className="font-medium">
+                  {calculatedPrice ? formatPrice(calculatedPrice.pricePerUnit) : "..."}
+                </span>
+              </div>
+              <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                <span className="text-gray-600">Quantity</span>
+                <span className="font-medium">{quantity}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xl font-bold">Total</span>
+                <span className="text-2xl font-bold text-primary-500">
+                  {calculatedPrice ? formatPrice(calculatedPrice.subtotal) : "..."}
+                </span>
+              </div>
+            </div>
+
+            <div className="pb-6 space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button onClick={handleStartDesign} size="lg" className="flex-1 text-lg" data-testid="button-start-design">
+                  <Paintbrush className="mr-2 h-5 w-5" />
+                  Design Online
+                </Button>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-4 text-gray-500">or upload your design</span>
                 </div>
               </div>
 
-              <div className="bg-gray-100 rounded-xl p-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Price per unit</span>
-                  <span className="font-medium">
-                    {calculatedPrice ? formatPrice(calculatedPrice.pricePerUnit) : "..."}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-                  <span className="text-gray-600">Quantity</span>
-                  <span className="font-medium">{quantity}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold">Total</span>
-                  <span className="text-2xl font-bold text-primary-500">
-                    {calculatedPrice ? formatPrice(calculatedPrice.subtotal) : "..."}
-                  </span>
-                </div>
-              </div>
+              <div className="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.svg,.ai,.psd,.eps"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="quick-order-upload"
+                  data-testid="input-quick-order-file"
+                />
 
-              <div className="pb-6 space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button onClick={handleStartDesign} size="lg" className="flex-1 text-lg" data-testid="button-start-design">
-                    <Paintbrush className="mr-2 h-5 w-5" />
-                    Design Online
-                  </Button>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-gray-300" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="bg-white px-4 text-gray-500">or upload your design</span>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,.pdf,.svg,.ai,.psd,.eps"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="quick-order-upload"
-                    data-testid="input-quick-order-file"
-                  />
-                  
-                  {uploadedFile ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        {uploadedPreview ? (
-                          <img
-                            src={uploadedPreview}
-                            alt="Preview"
-                            className="w-16 h-16 object-cover rounded-lg"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                            <FileImage className="h-8 w-8 text-gray-400" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{uploadedFile.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
+                {uploadedFile ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      {uploadedPreview ? (
+                        <img
+                          src={uploadedPreview}
+                          alt="Preview"
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <FileImage className="h-8 w-8 text-gray-400" />
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={clearUploadedFile}
-                          data-testid="button-clear-upload"
-                        >
-                          Change
-                        </Button>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{uploadedFile.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
                       </div>
                       <Button
-                        onClick={handleQuickOrder}
-                        size="lg"
-                        className="w-full"
-                        disabled={isQuickOrderLoading || !calculatedPrice?.pricePerUnit}
-                        data-testid="button-quick-order"
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearUploadedFile}
+                        data-testid="button-clear-upload"
                       >
-                        {isQuickOrderLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart className="mr-2 h-5 w-5" />
-                            Add to Cart
-                          </>
-                        )}
+                        Change
                       </Button>
                     </div>
-                  ) : (
-                    <label
-                      htmlFor="quick-order-upload"
-                      className="flex flex-col items-center justify-center py-6 cursor-pointer"
+                    <Button
+                      onClick={handleQuickOrder}
+                      size="lg"
+                      className="w-full"
+                      disabled={isQuickOrderLoading || !calculatedPrice?.pricePerUnit}
+                      data-testid="button-quick-order"
                     >
-                      <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                      <span className="font-medium text-gray-700">Upload Print-Ready File</span>
-                      <span className="text-sm text-gray-500 mt-1">PNG, JPG, PDF, SVG, AI, PSD, EPS</span>
-                      <span className="text-xs text-gray-400 mt-1">Max 50MB</span>
-                    </label>
-                  )}
-                </div>
+                      {isQuickOrderLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="mr-2 h-5 w-5" />
+                          Add to Cart
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="quick-order-upload"
+                    className="flex flex-col items-center justify-center py-6 cursor-pointer"
+                  >
+                    <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                    <span className="font-medium text-gray-700">Upload Print-Ready File</span>
+                    <span className="text-sm text-gray-500 mt-1">PNG, JPG, PDF, SVG, AI, PSD, EPS</span>
+                    <span className="text-xs text-gray-400 mt-1">Max 50MB</span>
+                  </label>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
   );
 }

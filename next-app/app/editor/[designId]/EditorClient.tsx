@@ -61,10 +61,93 @@ export default function Editor() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Cart preview state: holds the current cart data and whether the preview
+  // overlay is visible.  When an item is added to the cart, the preview
+  // becomes visible and displays cart items along with a checkout button.
+  const [cartPreview, setCartPreview] = useState<any | null>(null);
+  const [showCartPreview, setShowCartPreview] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialScaleRef = useRef<number>(1);
   const lastTouchDistanceRef = useRef<number | null>(null);
   const lastTouchCenterRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Keep track of measurement ruler objects so they can be removed and re-added on zoom
+  const measurementObjectsRef = useRef<any[]>([]);
+
+  /**
+   * Draw ruler tick marks and labels along the top and left edges of the canvas.
+   * The measurements are based on the product's template width and height (in inches)
+   * and scale according to the current zoom level.  Each inch is marked with a
+   * small line and label (e.g. 1", 2").  All measurement objects are stored in
+   * measurementObjectsRef so they can be removed before re‑rendering.
+   */
+  const addMeasurements = useCallback((canvas: any, prod: any, scale: number) => {
+    const dpi = 300;
+    // Remove any existing measurement objects from the canvas
+    if (measurementObjectsRef.current && measurementObjectsRef.current.length > 0) {
+      measurementObjectsRef.current.forEach((obj) => canvas.remove(obj));
+      measurementObjectsRef.current = [];
+    }
+    if (!prod) return;
+    const widthInches = prod?.templateWidth || 0;
+    const heightInches = prod?.templateHeight || 0;
+    // Draw vertical tick marks (top edge)
+    for (let i = 0; i <= widthInches; i++) {
+      const x = i * dpi * scale;
+      // small vertical tick line
+      const tick = new window.fabric.Line([x, 0, x, 10], {
+        stroke: '#6b7280',
+        strokeWidth: 1,
+        selectable: false,
+        evented: false,
+        excludeFromExport: true,
+      });
+      measurementObjectsRef.current.push(tick);
+      canvas.add(tick);
+      // label for each inch except 0
+      if (i > 0) {
+        const label = new window.fabric.Text(`${i}\"`, {
+          left: x - 10,
+          top: 12,
+          fontSize: 10,
+          fill: '#6b7280',
+          selectable: false,
+          evented: false,
+          excludeFromExport: true,
+        });
+        measurementObjectsRef.current.push(label);
+        canvas.add(label);
+      }
+    }
+    // Draw horizontal tick marks (left edge)
+    for (let j = 0; j <= heightInches; j++) {
+      const y = j * dpi * scale;
+      const tick = new window.fabric.Line([0, y, 10, y], {
+        stroke: '#6b7280',
+        strokeWidth: 1,
+        selectable: false,
+        evented: false,
+        excludeFromExport: true,
+      });
+      measurementObjectsRef.current.push(tick);
+      canvas.add(tick);
+      if (j > 0) {
+        const label = new window.fabric.Text(`${j}\"`, {
+          left: 12,
+          top: y - 6,
+          fontSize: 10,
+          fill: '#6b7280',
+          selectable: false,
+          evented: false,
+          excludeFromExport: true,
+        });
+        measurementObjectsRef.current.push(label);
+        canvas.add(label);
+      }
+    }
+    canvas.renderAll();
+  }, []);
 
   const { data: design, isLoading } = useQuery<any>({
     queryKey: ["/api/designs", designId],
@@ -107,6 +190,39 @@ export default function Editor() {
     },
     enabled: !!design?.productId,
   });
+
+  // Fetch all designs for the current user to allow switching between designs.  This
+  // query calls the /api/designs endpoint, which returns all designs for the
+  // authenticated user.  The list is used to populate a dropdown menu so
+  // users can switch to a different design without navigating back to the
+  // dashboard.  If the endpoint is protected by authentication, ensure the
+  // user is logged in to retrieve the list.
+  const { data: designList } = useQuery<any[]>({
+    queryKey: ["/api/designs"],
+    queryFn: async () => {
+      const res = await fetch(`/api/designs`, {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    // Always enabled; if not authenticated the endpoint may return an error
+  });
+
+  // Handle switching to a new design.  When a user selects a design from
+  // the dropdown, prompt them to save their current work.  If they confirm,
+  // call handleSave(); otherwise, discard changes.  Then navigate to the new
+  // design by pushing a new route.  This relies on Next.js router to
+  // re-render the editor with the new designId.
+  const handleSelectDesign = useCallback(async (newId: number) => {
+    const confirmSave = window.confirm(
+      'You are switching designs. Would you like to save your current design first? Click OK to save, Cancel to discard.'
+    );
+    if (confirmSave) {
+      await handleSave();
+    }
+    router.push(`/editor/${newId}`);
+  }, [router, handleSave]);
 
   const saveMutation = useMutation({
     mutationFn: async (canvasJson: any) => {
@@ -260,6 +376,9 @@ export default function Editor() {
     canvas.on("selection:cleared", () => {
       setActiveObject(null);
     });
+
+    // Add measurement rulers based on product dimensions
+    addMeasurements(canvas, (product as any), initialScale);
 
     setIsCanvasReady(true);
   }, [design, product]);
@@ -968,6 +1087,9 @@ export default function Editor() {
       }
 
       canvas.renderAll();
+
+      // Redraw measurement rulers for the new zoom level
+      addMeasurements(canvas, product, newZoom);
     }
   };
 
@@ -978,57 +1100,66 @@ export default function Editor() {
     toast({ title: "Saved!" });
   };
 
+  /**
+   * Add the current design to the cart without leaving the editor.  This
+   * function performs the following steps:
+   *  1. Saves the current canvas state (autosave is triggered via handleSave).
+   *  2. Exports a high‑resolution PNG of the canvas at 300 DPI and uploads
+   *     it to the server so the printed artwork is crisp.  Guides (trim/safe
+   *     lines and custom shape outlines) are temporarily removed during the
+   *     export to avoid including them in the final artwork.  After export
+   *     the guides are re‑added to the canvas and re‑rendered.
+   *  3. Sends a POST request to `/api/cart/add` to add the design to the
+   *     shopping cart.  The quantity, selected options and unit price are
+   *     passed through from the current design and product.
+   *  4. Fetches the updated cart via `/api/cart` and displays a cart preview
+   *     overlay with the cart items and a checkout button.  The user
+   *     remains on the editor page to continue designing other products.
+   */
   const handleAddToCart = async () => {
     await handleSave();
-    
     try {
-      let highResExportUrl = null;
-      if (fabricCanvasRef.current) {
+      let highResExportUrl: string | null = null;
+      // Step 1 & 2: export high‑resolution image and upload
+      if (fabricCanvasRef.current && window.fabric) {
         const canvas = fabricCanvasRef.current;
-        const templateWidth = (product as any)?.templateWidth || 400;
-        const templateHeight = (product as any)?.templateHeight || 400;
-        
+        // Temporarily remove guides and custom shape
         const objects = canvas.getObjects();
         const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
         const safeGuide = objects.find((o: any) => o.name === "safeGuide");
         const customShape = objects.find((o: any) => o.name === "customShapeOutline");
-        
         if (bleedGuide) canvas.remove(bleedGuide);
         if (safeGuide) canvas.remove(safeGuide);
         if (customShape) canvas.remove(customShape);
-        
-        // Calculate multiplier to achieve 300 DPI at the template's original dimensions
-        // The canvas is scaled by initialScale, so we divide by it to get consistent output
-        // regardless of current zoom level during editing
-        const baseDpiMultiplier = 300 / 72; // ~4.17x for 300 DPI from 72 DPI base
-        const multiplier = baseDpiMultiplier / initialScaleRef.current;
-        const dataUrl = canvas.toDataURL({
-          format: 'png',
-          multiplier: multiplier,
-          quality: 1,
-        });
-        
+        // Export at 300 DPI (Fabric default is 72 DPI).  Adjust multiplier
+        // relative to the initial scale used to display the canvas.  This
+        // ensures consistent output regardless of zoom level during editing.
+        const baseDpiMultiplier = 300 / 72;
+        const multiplier = baseDpiMultiplier / (initialScaleRef.current || 1);
+        const dataUrl = canvas.toDataURL({ format: 'png', multiplier, quality: 1 });
+        // Restore guides and custom shape for editing
         if (bleedGuide) canvas.add(bleedGuide);
         if (safeGuide) canvas.add(safeGuide);
-        if (customShape) { canvas.add(customShape); canvas.sendToBack(customShape); }
+        if (customShape) {
+          canvas.add(customShape);
+          canvas.sendToBack(customShape);
+        }
         if (bleedGuide) canvas.bringToFront(bleedGuide);
         if (safeGuide) canvas.bringToFront(safeGuide);
         canvas.renderAll();
-        
+        // Upload the PNG as artwork
         const blob = await (await fetch(dataUrl)).blob();
         const formData = new FormData();
         formData.append('file', blob, `design-${designId}-highres.png`);
-        
         const uploadRes = await fetch('/api/upload/artwork', {
           method: 'POST',
           body: formData,
           credentials: 'include',
         });
-        
         if (uploadRes.ok) {
           const uploadData = await uploadRes.json();
           highResExportUrl = uploadData.url;
-          
+          // Persist high‑res url on design record
           await fetch(`/api/designs/${designId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -1037,10 +1168,10 @@ export default function Editor() {
           });
         }
       }
-      
-      const res = await fetch("/api/cart/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      // Step 3: Add item to cart
+      const addRes = await fetch('/api/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: (design as any)?.productId,
           designId: parseInt(designId!),
@@ -1048,19 +1179,25 @@ export default function Editor() {
           selectedOptions: (design as any)?.selectedOptions,
           unitPrice: (product as any)?.basePrice,
         }),
-        credentials: "include",
+        credentials: 'include',
       });
-
-      if (!res.ok) throw new Error("Failed to add to cart");
-
-      toast({ title: "Added to cart!" });
-      router.push("/cart");
+      if (!addRes.ok) throw new Error('Failed to add to cart');
+      // Step 4: fetch updated cart and show preview
+      const cartRes = await fetch('/api/cart', {
+        credentials: 'include',
+      });
+      if (cartRes.ok) {
+        const cartData = await cartRes.json();
+        setCartPreview(cartData);
+        setShowCartPreview(true);
+      }
+      toast({ title: 'Added to cart!', description: 'Item added. Continue designing or proceed to checkout.' });
     } catch (error) {
       console.error('Add to cart error:', error);
       toast({
-        title: "Error",
-        description: "Failed to add to cart.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to add to cart.',
+        variant: 'destructive',
       });
     }
   };
@@ -1157,6 +1294,23 @@ export default function Editor() {
           <h1 className="font-heading font-bold text-sm md:text-lg text-gray-900 truncate">
             {(design as any)?.name || "Untitled"}
           </h1>
+          {/* Design selection dropdown */}
+          {designList && designList.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="text-xs md:text-sm" data-testid="button-design-switch">
+                  Change
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {designList.map((d: any) => (
+                  <DropdownMenuItem key={d.id} onClick={() => handleSelectDesign(d.id)} className="text-sm" data-testid={`design-item-${d.id}`}>
+                    {d.name || `Design ${d.id}`}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         
         <div className="flex items-center gap-1">
@@ -1600,6 +1754,94 @@ export default function Editor() {
             >
               Got it!
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Cart preview overlay: shown after successfully adding an item to the cart.  */}
+      {showCartPreview && cartPreview && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowCartPreview(false)}>
+          <div
+            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <ShoppingCart className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="font-heading font-bold text-lg text-gray-900">Cart Preview</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowCartPreview(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {cartPreview?.items?.length ? (
+              <>
+                <div className="space-y-3 mb-4 max-h-[40vh] overflow-y-auto pr-2">
+                  {cartPreview.items.map((item: any) => (
+                    <div key={item.id} className="flex items-center gap-3 p-2 border rounded-lg shadow-sm bg-gray-50">
+                      <div className="w-12 h-12 bg-gradient-to-br from-orange-100 via-yellow-50 to-orange-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                        {item.design?.previewUrl ? (
+                          <img src={item.design.previewUrl} alt="Design preview" className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <ShoppingCart className="h-6 w-6 text-orange-500" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-gray-900 truncate">
+                          {item.product?.name || 'Product'}
+                        </p>
+                        <p className="text-gray-500 text-xs">
+                          Qty: {item.quantity}
+                        </p>
+                      </div>
+                      <div className="text-sm font-semibold text-orange-600">
+                        {item.unitPrice
+                          ? `$${(parseFloat(item.unitPrice) * item.quantity).toFixed(2)}`
+                          : item.product?.basePrice
+                          ? `$${(parseFloat(item.product.basePrice) * item.quantity).toFixed(2)}`
+                          : '$0.00'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-gray-200 pt-3 flex items-center justify-between mb-4">
+                  <span className="text-gray-600 text-sm">Subtotal</span>
+                  <span className="font-semibold text-gray-900">
+                    {cartPreview.items.reduce(
+                      (sum: number, item: any) =>
+                        sum + parseFloat(item.unitPrice || item.product?.basePrice || 0) * item.quantity,
+                      0
+                    ).toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowCartPreview(false)}
+                  >
+                    Continue Designing
+                  </Button>
+                  <Button
+                    className="flex-1 bg-orange-500 hover:bg-orange-600"
+                    onClick={() => {
+                      setShowCartPreview(false);
+                      router.push('/cart');
+                    }}
+                  >
+                    Checkout
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-600 text-sm mb-4">Your cart is empty.</p>
+                <Button onClick={() => setShowCartPreview(false)}>Continue Designing</Button>
+              </div>
+            )}
           </div>
         </div>
       )}

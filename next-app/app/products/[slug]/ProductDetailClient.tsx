@@ -1,14 +1,14 @@
 "use client";
 
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Minus, Plus, ArrowRight, Sticker, CreditCard, FileImage, Image, Package } from "lucide-react";
+import { Minus, Plus, ArrowRight, Sticker, CreditCard, FileImage, Image, Package, Upload, ShoppingCart, Paintbrush, Loader2 } from "lucide-react";
 
 interface ProductOption {
   id: number;
@@ -39,6 +39,10 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(100);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
   const [calculatedPrice, setCalculatedPrice] = useState<any>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
+  const [isQuickOrderLoading, setIsQuickOrderLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: [`/api/products/${slug}`],
@@ -117,6 +121,123 @@ export default function ProductDetail() {
         description: "Failed to start design. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 50MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadedFile(file);
+
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setUploadedPreview(null);
+    }
+  };
+
+  const handleQuickOrder = async () => {
+    if (!isAuthenticated) {
+      window.location.href = "/api/login";
+      return;
+    }
+
+    if (!product || !uploadedFile) {
+      toast({
+        title: "Please upload a file",
+        description: "Select your design file to continue with quick order.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!calculatedPrice?.pricePerUnit) {
+      toast({
+        title: "Calculating price...",
+        description: "Please wait a moment for price calculation to complete.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsQuickOrderLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadedFile);
+
+      const uploadRes = await fetch("/api/upload/artwork", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const uploadData = await uploadRes.json();
+
+      const designRes = await fetch("/api/designs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          name: `${product.name} - Quick Order`,
+          selectedOptions,
+          highResExportUrl: uploadData.url,
+        }),
+        credentials: "include",
+      });
+
+      if (!designRes.ok) throw new Error("Failed to create design");
+      const design = await designRes.json();
+
+      const cartRes = await fetch("/api/cart/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          designId: design.id,
+          quantity,
+          selectedOptions,
+          unitPrice: parseFloat(calculatedPrice.pricePerUnit),
+        }),
+        credentials: "include",
+      });
+
+      if (!cartRes.ok) throw new Error("Failed to add to cart");
+
+      toast({ title: "Added to cart!" });
+      router.push("/cart");
+    } catch (error) {
+      console.error("Quick order error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process order. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsQuickOrderLoading(false);
+    }
+  };
+
+  const clearUploadedFile = () => {
+    setUploadedFile(null);
+    setUploadedPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -255,11 +376,95 @@ export default function ProductDetail() {
                 </div>
               </div>
 
-              <div className="pb-6">
-                <Button onClick={handleStartDesign} size="lg" className="w-full text-lg">
-                  Start Designing
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
+              <div className="pb-6 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button onClick={handleStartDesign} size="lg" className="flex-1 text-lg" data-testid="button-start-design">
+                    <Paintbrush className="mr-2 h-5 w-5" />
+                    Design Online
+                  </Button>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="bg-white px-4 text-gray-500">or upload your design</span>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf,.svg,.ai,.psd,.eps"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="quick-order-upload"
+                    data-testid="input-quick-order-file"
+                  />
+                  
+                  {uploadedFile ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        {uploadedPreview ? (
+                          <img
+                            src={uploadedPreview}
+                            alt="Preview"
+                            className="w-16 h-16 object-cover rounded-lg"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <FileImage className="h-8 w-8 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{uploadedFile.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearUploadedFile}
+                          data-testid="button-clear-upload"
+                        >
+                          Change
+                        </Button>
+                      </div>
+                      <Button
+                        onClick={handleQuickOrder}
+                        size="lg"
+                        className="w-full"
+                        disabled={isQuickOrderLoading || !calculatedPrice?.pricePerUnit}
+                        data-testid="button-quick-order"
+                      >
+                        {isQuickOrderLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="mr-2 h-5 w-5" />
+                            Add to Cart
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="quick-order-upload"
+                      className="flex flex-col items-center justify-center py-6 cursor-pointer"
+                    >
+                      <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                      <span className="font-medium text-gray-700">Upload Print-Ready File</span>
+                      <span className="text-sm text-gray-500 mt-1">PNG, JPG, PDF, SVG, AI, PSD, EPS</span>
+                      <span className="text-xs text-gray-400 mt-1">Max 50MB</span>
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -43,7 +43,10 @@ export default function AdminProducts() {
     basePrice: "",
     isActive: true,
     isFeatured: false,
+    thumbnailUrl: "",
   });
+  const createFileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingCreate, setIsUploadingCreate] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const templateFileInputRef = useRef<HTMLInputElement>(null);
@@ -92,6 +95,34 @@ export default function AdminProducts() {
     const imageUrl = await uploadProductImage(file);
     if (imageUrl) {
       setEditingProduct({ ...editingProduct, thumbnailUrl: imageUrl });
+    }
+  };
+
+  const handleCreateImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploadingCreate(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      
+      const response = await fetch('/api/admin/upload/product-image', {
+        method: 'POST',
+        credentials: 'include',
+        body: uploadFormData,
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      setFormData({ ...formData, thumbnailUrl: data.url });
+      toast({ title: "Image uploaded successfully" });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({ title: "Failed to upload image", variant: "destructive" });
+    } finally {
+      setIsUploadingCreate(false);
     }
   };
 
@@ -161,7 +192,7 @@ export default function AdminProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       setShowCreateForm(false);
-      setFormData({ name: "", slug: "", description: "", basePrice: "", isActive: true, isFeatured: false });
+      setFormData({ name: "", slug: "", description: "", basePrice: "", isActive: true, isFeatured: false, thumbnailUrl: "" });
       toast({ title: "Product created successfully" });
     },
     onError: () => toast({ title: "Failed to create product", variant: "destructive" }),
@@ -322,6 +353,52 @@ export default function AdminProducts() {
           <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm mb-6">
             <h2 className="text-base md:text-lg font-semibold mb-4">Create New Product</h2>
             <form onSubmit={handleCreate} className="space-y-4">
+              {/* Product Image Upload */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Product Image</label>
+                <div className="flex items-start gap-4">
+                  <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
+                    {formData.thumbnailUrl ? (
+                      <img 
+                        src={formData.thumbnailUrl} 
+                        alt="Product preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Image className="h-8 w-8 text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <input
+                      ref={createFileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handleCreateImageChange}
+                      className="hidden"
+                      data-testid="input-create-product-image"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => createFileInputRef.current?.click()}
+                      disabled={isUploadingCreate}
+                      className="w-full"
+                      data-testid="button-upload-create-image"
+                    >
+                      {isUploadingCreate ? (
+                        "Uploading..."
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          {formData.thumbnailUrl ? "Change Image" : "Upload Image"}
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-gray-500">JPG, PNG, GIF, or WebP. Max 10MB.</p>
+                  </div>
+                </div>
+              </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Name</label>

@@ -245,7 +245,15 @@ export default function Editor() {
         credentials: "include",
       });
       if (!res.ok) return [];
-      return res.json();
+      const raw = await res.json();
+      // Deduplicate designs by ID to avoid showing duplicate entries in the
+      // dropdown.  Use a Set to track IDs and filter out any repeats.
+      const seen = new Set();
+      return raw.filter((item: any) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
     },
     // Always enabled; if not authenticated the endpoint may return an error
   });
@@ -1257,12 +1265,16 @@ export default function Editor() {
       const addRes = await fetch('/api/cart/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // Send a single quantity by default; large quantities can be selected in
+        // the cart page.  Passing 100 here previously caused the cart to
+        // reject the request on some environments.  Include selectedOptions
+        // and basePrice when available.  Use the numeric designId and productId.
         body: JSON.stringify({
-          productId: (design as any)?.productId,
-          designId: parseInt(designId!),
-          quantity: 100,
-          selectedOptions: (design as any)?.selectedOptions,
-          unitPrice: (product as any)?.basePrice,
+          productId: Number((design as any)?.productId),
+          designId: Number(designId!),
+          quantity: 1,
+          selectedOptions: (design as any)?.selectedOptions || null,
+          unitPrice: (product as any)?.basePrice || null,
         }),
         credentials: 'include',
       });
@@ -1375,7 +1387,7 @@ export default function Editor() {
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-gray-100">
       <div className="bg-white border-b px-3 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2 sticky top-0 z-20">
-        <div className="flex items-center gap-2 min-w-0 flex-1 mb-2 md:mb-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1 mb-2 md:mb-0 order-2 md:order-1">
           <h1 className="font-heading font-bold text-sm md:text-lg text-gray-900 truncate">
             {(design as any)?.name || "Untitled"}
           </h1>
@@ -1398,7 +1410,7 @@ export default function Editor() {
           )}
         </div>
         
-        <div className="flex items-center gap-1 mt-2 md:mt-0">
+        <div className="flex items-center gap-1 mt-2 md:mt-0 order-1 md:order-2">
           <Button
             variant="ghost"
             size="icon"
@@ -2005,7 +2017,7 @@ export default function Editor() {
             </div>
 
             <div className="grid grid-cols-4 gap-2">
-              {(designAssets[assetsCategory as keyof typeof designAssets] || []).map((asset, idx) => (
+              {(designAssets[assetsCategory as keyof typeof designAssets] || []).map((asset: DesignAsset, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleAddAsset(asset)}

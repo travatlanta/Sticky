@@ -339,33 +339,19 @@ export default function Editor() {
     const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125; // outer bleed area
     const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125; // margin inside trim line
     
-    // Trim line position: at bleed boundary (where paper will be cut)
-    const trimLinePixels = bleedInches * pxPerInch * initialScale;
-    // Safe zone position: inside trim line by safe margin amount
-    const safeZonePixels = (bleedInches + safeMarginInches) * pxPerInch * initialScale;
+    // Trim line position: flush with the canvas perimeter.  We no longer
+    // offset the cut line by the bleed amount since the canvas itself
+    // represents the trimmed artwork area.
+    const trimLinePixels = 0;
+    // Safe zone position: inside cut line by the safe margin amount only (no bleed)
+    const safeZonePixels = safeMarginInches * pxPerInch * initialScale;
     
-    // Outer BLEED LINE (dashed gray) - indicates the boundary where artwork should extend to avoid blank edges
-    const bleedLineRect = new window.fabric.Rect({
+    // Red TRIM LINE - shows where paper will be cut
+    const trimRect = new window.fabric.Rect({
       left: 0,
       top: 0,
       width: displayWidth,
       height: displayHeight,
-      fill: "transparent",
-      stroke: "#94a3b8",
-      strokeWidth: 1,
-      strokeDashArray: [4, 4],
-      selectable: false,
-      evented: false,
-      name: "bleedLine",
-      excludeFromExport: true,
-    });
-
-    // Red TRIM LINE - shows where paper will be cut
-    const trimRect = new window.fabric.Rect({
-      left: trimLinePixels,
-      top: trimLinePixels,
-      width: displayWidth - trimLinePixels * 2,
-      height: displayHeight - trimLinePixels * 2,
       fill: "transparent",
       stroke: "#ef4444",
       strokeWidth: 2,
@@ -392,10 +378,6 @@ export default function Editor() {
       excludeFromExport: true,
     });
 
-    // Add the bleed line behind all other guides
-    canvas.add(bleedLineRect);
-    // Send the bleed line behind other guides
-    canvas.sendToBack(bleedLineRect);
     // Add trim and safe guides on top
     canvas.add(trimRect, safeRect);
 
@@ -1151,20 +1133,20 @@ export default function Editor() {
       // them using pxPerInch and the current zoom level.
       const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
       const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125;
-      const trimLinePixels = bleedInches * pxPerInch * newZoom;
-      const safeZonePixels = (bleedInches + safeMarginInches) * pxPerInch * newZoom;
+      const trimLinePixels = 0; // Cut line is flush with canvas perimeter
+      const safeZonePixels = safeMarginInches * pxPerInch * newZoom;
 
       const objects = canvas.getObjects();
       const trimGuide = objects.find((o: any) => o.name === "bleedGuide");
       const safeGuide = objects.find((o: any) => o.name === "safeGuide");
-      const bleedLine = objects.find((o: any) => o.name === "bleedLine");
 
       if (trimGuide) {
+        // Trim guide now sits flush with the canvas perimeter on zoom
         trimGuide.set({
-          left: trimLinePixels,
-          top: trimLinePixels,
-          width: newWidth - trimLinePixels * 2,
-          height: newHeight - trimLinePixels * 2,
+          left: 0,
+          top: 0,
+          width: newWidth,
+          height: newHeight,
         });
         canvas.bringToFront(trimGuide);
       }
@@ -1179,16 +1161,7 @@ export default function Editor() {
         canvas.bringToFront(safeGuide);
       }
 
-      // Update the outer bleed line to match the new canvas dimensions and send it to the back
-      if (bleedLine) {
-        bleedLine.set({
-          left: 0,
-          top: 0,
-          width: newWidth,
-          height: newHeight,
-        });
-        canvas.sendToBack(bleedLine);
-      }
+      // No outer bleed line; nothing to update
 
       canvas.renderAll();
 
@@ -1237,12 +1210,10 @@ export default function Editor() {
         const objects = canvas.getObjects();
         const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
         const safeGuide = objects.find((o: any) => o.name === "safeGuide");
-        const bleedLine = objects.find((o: any) => o.name === "bleedLine");
         const customShape = objects.find((o: any) => o.name === "customShapeOutline");
         // Temporarily remove guides and outlines to avoid including them in the exported artwork
         if (bleedGuide) canvas.remove(bleedGuide);
         if (safeGuide) canvas.remove(safeGuide);
-        if (bleedLine) canvas.remove(bleedLine);
         if (customShape) canvas.remove(customShape);
         // Export at 300 DPI (Fabric default is 72 DPI).  Adjust multiplier
         // relative to the initial scale used to display the canvas.  This
@@ -1253,11 +1224,6 @@ export default function Editor() {
         // Restore guides, bleed line, and custom shape for editing
         if (bleedGuide) canvas.add(bleedGuide);
         if (safeGuide) canvas.add(safeGuide);
-        if (bleedLine) {
-          canvas.add(bleedLine);
-          // Keep the outer bleed line behind other guides
-          canvas.sendToBack(bleedLine);
-        }
         if (customShape) {
           canvas.add(customShape);
           canvas.sendToBack(customShape);
@@ -1408,7 +1374,7 @@ export default function Editor() {
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-gray-100">
-      <div className="bg-white border-b px-3 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+      <div className="bg-white border-b px-3 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2 sticky top-0 z-20">
         <div className="flex items-center gap-2 min-w-0 flex-1 mb-2 md:mb-0">
           <h1 className="font-heading font-bold text-sm md:text-lg text-gray-900 truncate">
             {(design as any)?.name || "Untitled"}
@@ -1495,6 +1461,7 @@ export default function Editor() {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onWheel={(e) => { e.preventDefault(); handleZoom(e.deltaY < 0 ? 0.25 : -0.25); }}
       >
         <div className="relative">
           <div className="bg-white rounded-lg shadow-lg p-2 md:p-6">

@@ -10,7 +10,8 @@ import {
   Save, ShoppingCart, Upload, Type, 
   Undo, Redo, ZoomIn, ZoomOut, Trash2, Square,
   Circle, Info, X, MoreVertical, Layers, FileImage, Sparkles,
-  Paintbrush, Palette, PenTool, Eraser, Wand2, Sun
+  Paintbrush, Palette, PenTool, Eraser, Wand2, Sun,
+  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -50,6 +51,10 @@ export default function Editor() {
   const [brushSize, setBrushSize] = useState(5);
   const [showEffects, setShowEffects] = useState(false);
   const [canvasBackground, setCanvasBackground] = useState("#ffffff");
+  const [showTextMenu, setShowTextMenu] = useState(false);
+  const [selectedFont, setSelectedFont] = useState("Arial");
+  const [textColor, setTextColor] = useState("#000000");
+  const [fontSize, setFontSize] = useState(24);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialScaleRef = useRef<number>(1);
 
@@ -520,6 +525,131 @@ export default function Editor() {
       saveState();
       scheduleAutoSave();
       toast({ title: enabled ? "Shadow added" : "Shadow removed" });
+    }
+  };
+
+  // Google Fonts list - popular fonts for design
+  const fontList = [
+    { name: "Arial", family: "Arial, sans-serif" },
+    { name: "Helvetica", family: "Helvetica, Arial, sans-serif" },
+    { name: "Times New Roman", family: "Times New Roman, serif" },
+    { name: "Georgia", family: "Georgia, serif" },
+    { name: "Courier New", family: "Courier New, monospace" },
+    { name: "Verdana", family: "Verdana, sans-serif" },
+    { name: "Impact", family: "Impact, sans-serif" },
+    { name: "Comic Sans MS", family: "Comic Sans MS, cursive" },
+    { name: "Trebuchet MS", family: "Trebuchet MS, sans-serif" },
+    { name: "Palatino", family: "Palatino Linotype, serif" },
+    { name: "Lucida Console", family: "Lucida Console, monospace" },
+    { name: "Tahoma", family: "Tahoma, sans-serif" },
+    { name: "Century Gothic", family: "Century Gothic, sans-serif" },
+    { name: "Garamond", family: "Garamond, serif" },
+    { name: "Brush Script MT", family: "Brush Script MT, cursive" },
+  ];
+
+  const handleApplyFont = (fontFamily: string) => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text' && activeObj.set) {
+      activeObj.set({ fontFamily });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+      setSelectedFont(fontFamily.split(',')[0]);
+    } else {
+      toast({ title: "Select text first", description: "Click on a text object to change its font" });
+    }
+  };
+
+  const handleApplyTextColor = (color: string) => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text' && activeObj.set) {
+      activeObj.set({ fill: color });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+      setTextColor(color);
+    }
+  };
+
+  const handleApplyFontSize = (size: number) => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text' && activeObj.set) {
+      activeObj.set({ fontSize: size });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+      setFontSize(size);
+    }
+  };
+
+  const handleToggleBold = () => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text' && activeObj.set) {
+      const currentWeight = activeObj.fontWeight || 'normal';
+      activeObj.set({ fontWeight: currentWeight === 'bold' ? 'normal' : 'bold' });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+    }
+  };
+
+  const handleToggleItalic = () => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text' && activeObj.set) {
+      const currentStyle = activeObj.fontStyle || 'normal';
+      activeObj.set({ fontStyle: currentStyle === 'italic' ? 'normal' : 'italic' });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+    }
+  };
+
+  const handleToggleUnderline = () => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text' && activeObj.set) {
+      activeObj.set({ underline: !activeObj.underline });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+    }
+  };
+
+  const handleApplyTextAlign = (align: string) => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text' && activeObj.set) {
+      activeObj.set({ textAlign: align });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+    }
+  };
+
+  const handleApplyLetterSpacing = (spacing: number) => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text' && activeObj.set) {
+      activeObj.set({ charSpacing: spacing * 10 }); // Fabric uses units of 1/1000 em
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+    }
+  };
+
+  const handleApplyLineHeight = (height: number) => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.type === 'i-text' && activeObj.set) {
+      activeObj.set({ lineHeight: height });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
     }
   };
 
@@ -1034,7 +1164,7 @@ export default function Editor() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleAddText}
+              onClick={() => { handleAddText(); setShowTextMenu(true); }}
               className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
               data-testid="button-add-text"
             >
@@ -1132,7 +1262,7 @@ export default function Editor() {
             <FileImage className="h-5 w-5" />
           </Button>
         )}
-        <Button variant="ghost" size="icon" onClick={handleAddText} title="Add Text" data-testid="button-text-desktop">
+        <Button variant="ghost" size="icon" onClick={() => { handleAddText(); setShowTextMenu(true); }} title="Add Text" data-testid="button-text-desktop">
           <Type className="h-5 w-5" />
         </Button>
         <Button variant="ghost" size="icon" onClick={handleAddRect} title="Rectangle" data-testid="button-rect-desktop">
@@ -1669,6 +1799,204 @@ export default function Editor() {
               variant="outline"
               className="w-full mt-4" 
               onClick={() => setShowEffects(false)}
+            >
+              Done
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {showTextMenu && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowTextMenu(false)} data-testid="overlay-text-menu">
+          <div 
+            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="modal-text-menu"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Type className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="font-heading font-bold text-lg">Text Formatting</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowTextMenu(false)} data-testid="button-close-text-menu">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Font Family</label>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                  {fontList.map((font) => (
+                    <button
+                      key={font.name}
+                      onClick={() => handleApplyFont(font.family)}
+                      className={`text-left px-3 py-2 rounded-md border-2 transition-colors ${
+                        selectedFont === font.name 
+                          ? 'border-orange-500 bg-orange-50' 
+                          : 'border-gray-200 hover:border-orange-300'
+                      }`}
+                      style={{ fontFamily: font.family }}
+                      data-testid={`button-font-${font.name.toLowerCase().replace(/\s/g, '-')}`}
+                    >
+                      <span className="text-sm">{font.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Font Size</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="8"
+                    max="120"
+                    value={fontSize}
+                    onChange={(e) => handleApplyFontSize(Number(e.target.value))}
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                    data-testid="input-font-size"
+                  />
+                  <span className="text-sm font-medium w-12 text-center">{fontSize}px</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Text Color</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => handleApplyTextColor(e.target.value)}
+                    className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200"
+                    data-testid="input-text-color"
+                  />
+                  <div className="flex gap-2 flex-wrap">
+                    {['#000000', '#ffffff', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ee7518'].map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => handleApplyTextColor(color)}
+                        className={`w-7 h-7 rounded-full border-2 ${textColor === color ? 'border-orange-500 ring-2 ring-orange-200' : 'border-gray-300'}`}
+                        style={{ backgroundColor: color }}
+                        data-testid={`button-text-color-${color.replace('#', '')}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Text Style</label>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleToggleBold}
+                    className="flex-1"
+                    data-testid="button-bold"
+                  >
+                    <Bold className="h-4 w-4 mr-1" />
+                    Bold
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleToggleItalic}
+                    className="flex-1"
+                    data-testid="button-italic"
+                  >
+                    <Italic className="h-4 w-4 mr-1" />
+                    Italic
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleToggleUnderline}
+                    className="flex-1"
+                    data-testid="button-underline"
+                  >
+                    <Underline className="h-4 w-4 mr-1" />
+                    Underline
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Text Alignment</label>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleApplyTextAlign('left')}
+                    className="flex-1"
+                    data-testid="button-align-left"
+                  >
+                    <AlignLeft className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleApplyTextAlign('center')}
+                    className="flex-1"
+                    data-testid="button-align-center"
+                  >
+                    <AlignCenter className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleApplyTextAlign('right')}
+                    className="flex-1"
+                    data-testid="button-align-right"
+                  >
+                    <AlignRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Letter Spacing</label>
+                <input
+                  type="range"
+                  min="-10"
+                  max="100"
+                  defaultValue="0"
+                  onChange={(e) => handleApplyLetterSpacing(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                  data-testid="input-letter-spacing"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Tight</span>
+                  <span>Wide</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Line Height</label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="3"
+                  step="0.1"
+                  defaultValue="1.2"
+                  onChange={(e) => handleApplyLineHeight(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                  data-testid="input-line-height"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Compact</span>
+                  <span>Spacious</span>
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              variant="outline"
+              className="w-full mt-4" 
+              onClick={() => setShowTextMenu(false)}
+              data-testid="button-done-text-menu"
             >
               Done
             </Button>

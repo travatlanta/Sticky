@@ -2,6 +2,7 @@
 
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,9 @@ export default function Editor() {
   const designId = params.designId as string;
   const router = useRouter();
   const { toast } = useToast();
+  // Retrieve the current session.  If no user is present, the user is not
+  // logged in.  We use this to gate save and cart actions.
+  const { data: session } = useSession();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const fabricCanvasRef = useRef<any>(null);
@@ -105,10 +109,15 @@ export default function Editor() {
        * above the text.  This keeps the menu close to the edited text on
        * both mobile and desktop, improving usability.
        */
-      const menuWidth = 150;
-      const menuHeight = 30;
+      const menuWidth = 180;
+      const menuHeight = 32;
+      // Position the menu centred horizontally beneath the selected text.  The
+      // y coordinate is computed by adding the text's height and a small
+      // vertical gap so the menu sits just below the bounding box rather than
+      // floating far away.  This improves usability on both mobile and
+      // desktop and keeps the controls in context with the edited text.
       const x = canvasRect.left + bounding.left + (bounding.width - menuWidth) / 2;
-      const y = canvasRect.top + bounding.top - menuHeight - 8;
+      const y = canvasRect.top + bounding.top + bounding.height + 8;
       setInlineMenuPosition({ x, y });
       setShowInlineTextMenu(true);
     } else {
@@ -1133,63 +1142,18 @@ export default function Editor() {
     setZoom(newZoom);
     if (fabricCanvasRef.current) {
       const canvas = fabricCanvasRef.current;
-      // Calculate new dimensions based on the product's template size.  We only
-      // update the displayed canvas size via setDimensions with the `cssOnly`
-      // option to avoid errors where Fabric's backstore dimensions are
-      // undefined (see errors like `Cannot set properties of undefined (setting 'width')`).
-      const templateWidth = (product as any)?.templateWidth || 300;
-      const templateHeight = (product as any)?.templateHeight || 300;
-      // Derive pxPerInch similar to initCanvas: 100 px corresponds to 1 inch.
-      const pxPerInch = templateWidth && templateHeight
-        ? (templateWidth / (templateWidth / 100))
-        : 100;
-      const newWidth = templateWidth * newZoom;
-      const newHeight = templateHeight * newZoom;
-
+      // Apply the zoom uniformly to the entire canvas.  We do not modify
+      // the CSS dimensions or reposition guides here.  Calling
+      // `setZoom()` scales all objects—including the trim and safe guides—
+      // so the guides remain tight to the canvas perimeter.
       canvas.setZoom(newZoom);
-      // Update only the CSS dimensions of the canvas.  This avoids
-      // manipulating the internal canvas backstores that Fabric manages and
-      // prevents errors when the underlying contexts are undefined.
-      canvas.setDimensions({ width: newWidth, height: newHeight }, { cssOnly: true });
-
-      // Recalculate guide positions based on pxPerInch instead of DPI.  The
-      // product bleed and safe margins are specified in inches, so convert
-      // them using pxPerInch and the current zoom level.
-      const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
-      const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125;
-      const trimLinePixels = 0; // Cut line is flush with canvas perimeter
-      const safeZonePixels = safeMarginInches * pxPerInch * newZoom;
-
-      const objects = canvas.getObjects();
-      const trimGuide = objects.find((o: any) => o.name === "bleedGuide");
-      const safeGuide = objects.find((o: any) => o.name === "safeGuide");
-
-      if (trimGuide) {
-        // Trim guide now sits flush with the canvas perimeter on zoom
-        trimGuide.set({
-          left: 0,
-          top: 0,
-          width: newWidth,
-          height: newHeight,
-        });
-        canvas.bringToFront(trimGuide);
-      }
-
-      if (safeGuide) {
-        safeGuide.set({
-          left: safeZonePixels,
-          top: safeZonePixels,
-          width: newWidth - safeZonePixels * 2,
-          height: newHeight - safeZonePixels * 2,
-        });
-        canvas.bringToFront(safeGuide);
-      }
-
-      // No outer bleed line; nothing to update
-
       canvas.renderAll();
-
-      // Redraw measurement rulers for the new zoom level
+      // Redraw measurement ticks based on the new zoom level.  Remove any
+      // previously drawn tick marks before adding new ones.
+      if (measurementObjectsRef.current.length > 0) {
+        measurementObjectsRef.current.forEach((obj: any) => canvas.remove(obj));
+        measurementObjectsRef.current = [];
+      }
       addMeasurements(canvas, product, newZoom);
     }
   };
@@ -1202,6 +1166,15 @@ export default function Editor() {
   // canvas JSON via the `saveMutation` hook and showing a toast.
   async function handleSave() {
     if (!fabricCanvasRef.current) return;
+    // Require authentication to save designs.  If the user is not logged in
+    // redirect them to the login page and abort the save.  Display a toast
+    // informing them that sign in is required.  The login route may be
+    // customised in your application; adjust as necessary.
+    if (!session?.user) {
+      toast({ title: "Please sign in", description: "You need to be logged in to save designs.", variant: "destructive" });
+      router.push("/login");
+      return;
+    }
     const json = fabricCanvasRef.current.toJSON();
     await saveMutation.mutateAsync(json);
     toast({ title: "Saved!" });
@@ -1224,6 +1197,13 @@ export default function Editor() {
    *     remains on the editor page to continue designing other products.
    */
   const handleAddToCart = async () => {
+    // Require authentication when adding to cart.  Redirect to login if
+    // necessary.  handleSave() will perform its own auth check.
+    if (!session?.user) {
+      toast({ title: "Please sign in", description: "You need to be logged in to add items to your cart.", variant: "destructive" });
+      router.push("/login");
+      return;
+    }
     await handleSave();
     try {
       let highResExportUrl: string | null = null;
@@ -1498,20 +1478,20 @@ export default function Editor() {
             {showInlineTextMenu && inlineMenuPosition && (
               <div
                 /*
-                 * Inline text formatting popover.  Use a slightly larger padding
-                 * and softer border to improve the look of the menu.  The shadow
-                 * adds subtle depth and the rounded corners make it feel more
-                 * integrated with the editor.  A consistent gap is applied
-                 * between buttons so icons are not cramped together.
+                 * Inline text formatting popover.  Place it directly below the
+                 * selected text and use a pill‑shaped container with subtle
+                 * shadow.  Extra horizontal padding ensures buttons are not
+                 * cramped, and a small gap separates each icon.  The
+                 * border and rounded‑full shape give it a modern look.
                  */
-                className="absolute z-30 bg-white border border-gray-200 rounded-lg shadow-md p-2 flex items-center gap-2"
+                className="absolute z-30 bg-white border border-gray-300 rounded-full shadow-lg px-3 py-1.5 flex items-center space-x-2"
                 style={{ left: inlineMenuPosition.x, top: inlineMenuPosition.y }}
               >
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleToggleBold}
-                  className="h-6 w-6"
+                  className="h-6 w-6 hover:bg-gray-100 rounded-full p-1"
                 >
                   <Bold className="h-4 w-4" />
                 </Button>
@@ -1519,7 +1499,7 @@ export default function Editor() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleApplyFontSize(fontSize + 2)}
-                  className="h-6 w-6"
+                  className="h-6 w-6 hover:bg-gray-100 rounded-full p-1"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -1527,7 +1507,7 @@ export default function Editor() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleApplyFontSize(Math.max(fontSize - 2, 8))}
-                  className="h-6 w-6"
+                  className="h-6 w-6 hover:bg-gray-100 rounded-full p-1"
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
@@ -1542,7 +1522,7 @@ export default function Editor() {
                   variant="ghost"
                   size="icon"
                   onClick={handleDelete}
-                  className="h-6 w-6"
+                  className="h-6 w-6 hover:bg-gray-100 rounded-full p-1"
                   title="Delete"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -1554,7 +1534,7 @@ export default function Editor() {
                     setShowTextMenu(true);
                     setShowInlineTextMenu(false);
                   }}
-                  className="h-6 w-6"
+                  className="h-6 w-6 hover:bg-gray-100 rounded-full p-1"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>

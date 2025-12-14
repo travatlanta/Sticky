@@ -1,6 +1,18 @@
+/*
+ * Sticky Banditos Checkout Page
+ *
+ * This file defines the client-side checkout experience. It has been updated
+ * to improve spacing around the page, gracefully handle missing Square
+ * environment variables, and ensure the payment form only renders when
+ * properly configured. If Square credentials are missing, a friendly
+ * message is shown instead of throwing a client-side exception. The page
+ * also includes ample vertical padding so the content doesn’t feel
+ * cramped against the header or footer.
+ */
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { PaymentForm, CreditCard } from 'react-square-web-payments-sdk';
@@ -57,10 +69,16 @@ export default function CheckoutClient() {
     phone: '',
   });
 
-  const { data: cart, isLoading: cartLoading } = useQuery<{ items: CartItem[]; subtotal: number; total: number }>({
+  // Retrieve cart details. The query key matches the API route used for the cart.
+  const { data: cart, isLoading: cartLoading } = useQuery<{
+    items: CartItem[];
+    subtotal: number;
+    total: number;
+  }>({
     queryKey: ['/api/cart'],
   });
 
+  // Mutation to create a payment on the server. It posts to the create-payment API.
   const paymentMutation = useMutation({
     mutationFn: async (paymentData: { sourceId: string; shippingAddress: ShippingAddress }) => {
       const response = await fetch('/api/checkout/create-payment', {
@@ -90,11 +108,17 @@ export default function CheckoutClient() {
     },
   });
 
+  // Handle submission of the shipping form. Validates required fields then moves to payment step.
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shippingAddress.firstName || !shippingAddress.lastName || 
-        !shippingAddress.address1 || !shippingAddress.city || 
-        !shippingAddress.state || !shippingAddress.zip) {
+    if (
+      !shippingAddress.firstName ||
+      !shippingAddress.lastName ||
+      !shippingAddress.address1 ||
+      !shippingAddress.city ||
+      !shippingAddress.state ||
+      !shippingAddress.zip
+    ) {
       toast({
         title: 'Missing Information',
         description: 'Please fill in all required shipping fields.',
@@ -105,6 +129,7 @@ export default function CheckoutClient() {
     setStep('payment');
   };
 
+  // Handle card tokenization result from Square PaymentForm.
   const handlePayment = async (tokenResult: any) => {
     if (tokenResult.status === 'OK' && tokenResult.token) {
       paymentMutation.mutate({
@@ -120,6 +145,12 @@ export default function CheckoutClient() {
     }
   };
 
+  // Determine Square payment configuration. If missing, a user-friendly message will be shown.
+  const squareAppId = process.env.NEXT_PUBLIC_SQUARE_APP_ID || '';
+  const squareLocationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID || '';
+  const squareConfigured = Boolean(squareAppId && squareLocationId);
+
+  // Render loading spinner while cart data loads.
   if (cartLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -128,6 +159,7 @@ export default function CheckoutClient() {
     );
   }
 
+  // Show an empty cart state with a link back to products if no items are present.
   if (!cart?.items?.length) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -141,21 +173,27 @@ export default function CheckoutClient() {
     );
   }
 
+  // Calculate subtotal and totals on the client. The server already returns these, but fallback if missing.
   const subtotal = cart.subtotal || cart.items.reduce((sum, item) => sum + parseFloat(item.unitPrice) * item.quantity, 0);
-  const shipping = 15.00;
+  const shipping = 15.0;
   const total = subtotal + shipping;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    {/*
+      Apply generous vertical padding to prevent the checkout page from appearing
+      cramped against the site’s header or footer. Using py-20 instead of
+      py-12 adds extra breathing room at the top and bottom of the page. The
+      container remains centered with a max width to keep content aligned.
+    */}
+    <div className="container mx-auto px-4 py-20 max-w-6xl">
       <Link href="/cart" className="inline-flex items-center gap-2 text-gray-600 hover:text-orange-500 mb-6">
         <ArrowLeft className="h-4 w-4" />
         Back to Cart
       </Link>
-
       <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
+          {/* Shipping address card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -173,7 +211,7 @@ export default function CheckoutClient() {
                         id="firstName"
                         data-testid="input-first-name"
                         value={shippingAddress.firstName}
-                        onChange={(e) => setShippingAddress(prev => ({ ...prev, firstName: e.target.value }))}
+                        onChange={(e) => setShippingAddress((prev) => ({ ...prev, firstName: e.target.value }))}
                         required
                       />
                     </div>
@@ -183,7 +221,7 @@ export default function CheckoutClient() {
                         id="lastName"
                         data-testid="input-last-name"
                         value={shippingAddress.lastName}
-                        onChange={(e) => setShippingAddress(prev => ({ ...prev, lastName: e.target.value }))}
+                        onChange={(e) => setShippingAddress((prev) => ({ ...prev, lastName: e.target.value }))}
                         required
                       />
                     </div>
@@ -194,7 +232,7 @@ export default function CheckoutClient() {
                       id="address1"
                       data-testid="input-address1"
                       value={shippingAddress.address1}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, address1: e.target.value }))}
+                      onChange={(e) => setShippingAddress((prev) => ({ ...prev, address1: e.target.value }))}
                       placeholder="Street address"
                       required
                     />
@@ -205,7 +243,7 @@ export default function CheckoutClient() {
                       id="address2"
                       data-testid="input-address2"
                       value={shippingAddress.address2}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, address2: e.target.value }))}
+                      onChange={(e) => setShippingAddress((prev) => ({ ...prev, address2: e.target.value }))}
                       placeholder="Apartment, suite, etc. (optional)"
                     />
                   </div>
@@ -216,7 +254,7 @@ export default function CheckoutClient() {
                         id="city"
                         data-testid="input-city"
                         value={shippingAddress.city}
-                        onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
+                        onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))}
                         required
                       />
                     </div>
@@ -226,7 +264,7 @@ export default function CheckoutClient() {
                         id="state"
                         data-testid="input-state"
                         value={shippingAddress.state}
-                        onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
+                        onChange={(e) => setShippingAddress((prev) => ({ ...prev, state: e.target.value }))}
                         placeholder="TX"
                         required
                       />
@@ -237,7 +275,7 @@ export default function CheckoutClient() {
                         id="zip"
                         data-testid="input-zip"
                         value={shippingAddress.zip}
-                        onChange={(e) => setShippingAddress(prev => ({ ...prev, zip: e.target.value }))}
+                        onChange={(e) => setShippingAddress((prev) => ({ ...prev, zip: e.target.value }))}
                         required
                       />
                     </div>
@@ -249,7 +287,7 @@ export default function CheckoutClient() {
                       data-testid="input-phone"
                       type="tel"
                       value={shippingAddress.phone}
-                      onChange={(e) => setShippingAddress(prev => ({ ...prev, phone: e.target.value }))}
+                      onChange={(e) => setShippingAddress((prev) => ({ ...prev, phone: e.target.value }))}
                       placeholder="For delivery updates"
                     />
                   </div>
@@ -259,24 +297,29 @@ export default function CheckoutClient() {
                 </form>
               ) : (
                 <div className="space-y-2">
-                  <p className="font-medium">{shippingAddress.firstName} {shippingAddress.lastName}</p>
-                  <p className="text-gray-600">{shippingAddress.address1}</p>
-                  {shippingAddress.address2 && <p className="text-gray-600">{shippingAddress.address2}</p>}
-                  <p className="text-gray-600">{shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}</p>
-                  {shippingAddress.phone && <p className="text-gray-600">{shippingAddress.phone}</p>}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setStep('shipping')}
-                    data-testid="button-edit-shipping"
-                  >
-                    Edit
-                  </Button>
-                </div>
+                  <p className="font-medium">
+                    {shippingAddress.firstName} {shippingAddress.lastName}
+                  </p>
+                    <p className="text-gray-600">{shippingAddress.address1}</p>
+                    {shippingAddress.address2 && <p className="text-gray-600">{shippingAddress.address2}</p>}
+                    <p className="text-gray-600">
+                      {shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}
+                    </p>
+                    {shippingAddress.phone && <p className="text-gray-600">{shippingAddress.phone}</p>}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStep('shipping')}
+                      data-testid="button-edit-shipping"
+                    >
+                      Edit
+                    </Button>
+                  </div>
               )}
             </CardContent>
           </Card>
 
+          {/* Payment card shows after shipping step */}
           {step === 'payment' && (
             <Card>
               <CardHeader>
@@ -291,11 +334,15 @@ export default function CheckoutClient() {
                     <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
                     <span className="ml-2">Processing payment...</span>
                   </div>
+                ) : !squareConfigured ? (
+                  <div className="p-4 bg-red-100 text-red-700 rounded-md text-center">
+                    Payment system is not properly configured. Please contact support.
+                  </div>
                 ) : (
                   <div className="sq-payment-form">
                     <PaymentForm
-                      applicationId={process.env.NEXT_PUBLIC_SQUARE_APP_ID!}
-                      locationId={process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!}
+                      applicationId={squareAppId}
+                      locationId={squareLocationId}
                       cardTokenizeResponseReceived={handlePayment}
                       createPaymentRequest={() => ({
                         countryCode: 'US',
@@ -323,7 +370,7 @@ export default function CheckoutClient() {
             </Card>
           )}
         </div>
-
+        {/* Order summary sticky card */}
         <div className="lg:col-span-1">
           <Card className="sticky top-4">
             <CardHeader>
@@ -331,7 +378,7 @@ export default function CheckoutClient() {
             </CardHeader>
             <CardContent className="space-y-4">
               {cart.items.map((item) => (
-                <div key={item.id} className="flex gap-3" data-testid={`checkout-item-${item.id}`}>
+                <div key={item.id} className="flex gap-3" data-testid={`checkout-item-${item.id}`}> 
                   <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
                     {item.design?.previewUrl ? (
                       <Image
@@ -362,9 +409,7 @@ export default function CheckoutClient() {
                   </div>
                 </div>
               ))}
-
               <Separator />
-
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>

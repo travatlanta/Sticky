@@ -96,10 +96,19 @@ export default function Editor() {
     if (obj && obj.type === 'i-text') {
       const canvasRect = canvasRef.current.getBoundingClientRect();
       const bounding = obj.getBoundingRect();
-      // Position the menu centered horizontally over the text and slightly
-      // above it.  Adjust the x offset to centre the menu (approx width 120).
-      const x = canvasRect.left + bounding.left + bounding.width / 2 - 60;
-      const y = canvasRect.top + bounding.top - 45;
+      /*
+       * Position the inline text menu immediately above the selected text and
+       * centre it horizontally relative to the text's bounding box.  The
+       * approximate width of the menu is ~150px and its height is ~30px.
+       * Subtract half of the menu width to centre it.  Subtract the menu
+       * height plus a small margin from the y coordinate so it appears just
+       * above the text.  This keeps the menu close to the edited text on
+       * both mobile and desktop, improving usability.
+       */
+      const menuWidth = 150;
+      const menuHeight = 30;
+      const x = canvasRect.left + bounding.left + (bounding.width - menuWidth) / 2;
+      const y = canvasRect.top + bounding.top - menuHeight - 8;
       setInlineMenuPosition({ x, y });
       setShowInlineTextMenu(true);
     } else {
@@ -1481,7 +1490,14 @@ export default function Editor() {
             {/* Inline text edit menu: shows when a text object is selected */}
             {showInlineTextMenu && inlineMenuPosition && (
               <div
-                className="absolute z-30 bg-white border border-gray-200 rounded-lg shadow-md p-1 flex items-center gap-1"
+                /*
+                 * Inline text formatting popover.  Use a slightly larger padding
+                 * and softer border to improve the look of the menu.  The shadow
+                 * adds subtle depth and the rounded corners make it feel more
+                 * integrated with the editor.  A consistent gap is applied
+                 * between buttons so icons are not cramped together.
+                 */
+                className="absolute z-30 bg-white border border-gray-200 rounded-lg shadow-md p-2 flex items-center gap-2"
                 style={{ left: inlineMenuPosition.x, top: inlineMenuPosition.y }}
               >
                 <Button
@@ -1515,6 +1531,15 @@ export default function Editor() {
                   className="w-6 h-6 p-0 border-0 cursor-pointer"
                   title="Text color"
                 />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDelete}
+                  className="h-6 w-6"
+                  title="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1571,7 +1596,11 @@ export default function Editor() {
 
               <Button
                 variant="ghost"
-                onClick={() => { handleAddText(); setShowTextMenu(true); }}
+                onClick={() => {
+                  // Add a new text object and rely on the inline menu to appear.  Do
+                  // not open the full text formatting modal immediately on mobile.
+                  handleAddText();
+                }}
                 className="flex flex-col items-center gap-0.5 h-auto min-h-[52px] py-2 px-3 min-w-[52px] touch-manipulation"
                 data-testid="button-add-text"
               >
@@ -1656,7 +1685,11 @@ export default function Editor() {
             <FileImage className="h-5 w-5" />
           </Button>
         )}
-        <Button variant="ghost" size="icon" onClick={() => { handleAddText(); setShowTextMenu(true); }} title="Add Text" data-testid="button-text-desktop">
+        <Button variant="ghost" size="icon" onClick={() => {
+          // Add a new text object without opening the full text menu.  The
+          // inline menu will appear automatically near the selected text.
+          handleAddText();
+        }} title="Add Text" data-testid="button-text-desktop">
           <Type className="h-5 w-5" />
         </Button>
         <Button variant="ghost" size="icon" onClick={() => setShowAssets(true)} title="Assets" data-testid="button-assets-desktop">
@@ -2025,11 +2058,16 @@ export default function Editor() {
                   data-testid={`button-asset-${asset.name.toLowerCase().replace(/\s/g, '-')}`}
                 >
                   <svg viewBox="0 0 24 24" className="w-8 h-8 mb-1">
-                    <path 
-                      d={asset.path} 
-                      fill={asset.fill || "none"} 
-                      stroke={asset.stroke || "none"} 
-                      strokeWidth={asset.strokeWidth || 0}
+                    <path
+                      d={asset.path}
+                      fill={asset.fill || "none"}
+                      /*
+                       * Access `stroke` and `strokeWidth` via a type cast to
+                       * avoid TypeScript complaining about missing properties
+                       * when inferring a union type from the asset objects.
+                       */
+                      stroke={(asset as any).stroke || "none"}
+                      strokeWidth={(asset as any).strokeWidth || 0}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />

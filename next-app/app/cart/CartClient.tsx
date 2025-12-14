@@ -9,7 +9,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, ShoppingBag, ArrowRight, Sticker, Sparkles } from "lucide-react";
+import { Trash2, ShoppingBag, ArrowRight, Sticker } from "lucide-react";
 
 export default function Cart() {
   const { data: session, status } = useSession();
@@ -44,17 +44,18 @@ export default function Cart() {
       router.push("/login");
       return;
     }
-    toast({
-      title: "Coming Soon",
-      description: "Checkout functionality will be available soon!",
-    });
+    // Navigate to the checkout page for authenticated users. The cart page
+    // previously showed a "Coming Soon" toast which prevented checkout.
+    // Now we simply push to the dedicated checkout route.
+    router.push("/checkout");
   };
 
-  const subtotal = cart?.items?.reduce(
-    (sum: number, item: any) =>
-      sum + parseFloat(item.unitPrice || item.product?.basePrice || 0) * item.quantity,
-    0
-  ) || 0;
+  const subtotal =
+    cart?.items?.reduce(
+      (sum: number, item: any) =>
+        sum + parseFloat(item.unitPrice || item.product?.basePrice || 0) * item.quantity,
+      0
+    ) || 0;
   const shipping = 15;
   const total = subtotal + shipping;
 
@@ -83,7 +84,7 @@ export default function Cart() {
           <h1 className="font-heading text-4xl md:text-5xl text-gray-900">Shopping Cart</h1>
         </div>
 
-        {(cart?.items?.length ?? 0) > 0 ? (
+        { (cart?.items?.length ?? 0) > 0 ? (
           <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-2 space-y-4">
               {cart?.items?.map((item: any) => (
@@ -117,7 +118,11 @@ export default function Cart() {
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>
-                    <Link href={`/editor/${item.designId}`}>
+                    {/* When linking to the editor, prefer the design's id property if
+                       available. Fall back to designId (numeric) for backward
+                       compatibility. Converting to string ensures correct route
+                       matching. */}
+                    <Link href={`/editor/${item.design?.id ?? item.designId}`}>
                       <Button variant="outline" size="sm" className="border-orange-200 hover:bg-orange-50">
                         Edit Design
                       </Button>

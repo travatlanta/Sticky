@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Save, ShoppingCart, Upload, Type, 
   Undo, Redo, ZoomIn, ZoomOut, Trash2, Square,
-  Circle, Info, X, MoreVertical, Layers, FileImage
+  Circle, Info, X, MoreVertical, Layers, FileImage, Sparkles
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -41,6 +41,8 @@ export default function Editor() {
   const [activeObject, setActiveObject] = useState<any>(null);
   const [showCustomShapeModal, setShowCustomShapeModal] = useState(false);
   const [customShapeUploaded, setCustomShapeUploaded] = useState(false);
+  const [showAssets, setShowAssets] = useState(false);
+  const [assetsCategory, setAssetsCategory] = useState("shapes");
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialScaleRef = useRef<number>(1);
 
@@ -341,6 +343,82 @@ export default function Editor() {
     fabricCanvasRef.current.add(circle);
     fabricCanvasRef.current.setActiveObject(circle);
     fabricCanvasRef.current.renderAll();
+  };
+
+  const designAssets = {
+    shapes: [
+      { name: "Star", path: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z", fill: "#f59e0b" },
+      { name: "Heart", path: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z", fill: "#ef4444" },
+      { name: "Diamond", path: "M12 2L2 12l10 10 10-10L12 2z", fill: "#8b5cf6" },
+      { name: "Triangle", path: "M12 2L2 22h20L12 2z", fill: "#10b981" },
+      { name: "Pentagon", path: "M12 2l9.51 6.91-3.63 11.18H6.12L2.49 8.91 12 2z", fill: "#3b82f6" },
+      { name: "Hexagon", path: "M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z", fill: "#ec4899" },
+      { name: "Octagon", path: "M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86L7.86 2z", fill: "#14b8a6" },
+      { name: "Arrow Right", path: "M5 12h14M12 5l7 7-7 7", fill: "none", stroke: "#374151", strokeWidth: 2 },
+      { name: "Arrow Up", path: "M12 19V5M5 12l7-7 7 7", fill: "none", stroke: "#374151", strokeWidth: 2 },
+      { name: "Curved Arrow", path: "M3 12a9 9 0 1 0 9-9M12 3l-4 4 4 4", fill: "none", stroke: "#374151", strokeWidth: 2 },
+    ],
+    badges: [
+      { name: "Circle Badge", path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z", fill: "#ee7518" },
+      { name: "Starburst", path: "M12 2l2 5 5-2-2 5 5 2-5 2 2 5-5-2-2 5-2-5-5 2 2-5-5-2 5-2-2-5 5 2 2-5z", fill: "#f59e0b" },
+      { name: "Shield", path: "M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z", fill: "#3b82f6" },
+      { name: "Ribbon", path: "M4 2h16l-2 5 2 5H4l2-5-2-5z", fill: "#ef4444" },
+      { name: "Certificate", path: "M4 4h16v12H4V4zM2 18l4-2v6l6-3 6 3v-6l4 2", fill: "#10b981" },
+      { name: "Seal", path: "M12 2l1.5 4 4-.5-2 3.5 3 2.5-3.5 1.5.5 4-4-2L12 17l-1.5-4-4 2 .5-4-3.5-1.5 3-2.5-2-3.5 4 .5L12 2z", fill: "#8b5cf6" },
+    ],
+    icons: [
+      { name: "Checkmark", path: "M20 6L9 17l-5-5", fill: "none", stroke: "#22c55e", strokeWidth: 3 },
+      { name: "X Mark", path: "M18 6L6 18M6 6l12 12", fill: "none", stroke: "#ef4444", strokeWidth: 3 },
+      { name: "Plus", path: "M12 5v14M5 12h14", fill: "none", stroke: "#3b82f6", strokeWidth: 2 },
+      { name: "Phone", path: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z", fill: "#374151" },
+      { name: "Email", path: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6", fill: "none", stroke: "#374151", strokeWidth: 2 },
+      { name: "Location", path: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a2 2 0 100-4 2 2 0 000 4z", fill: "#ef4444" },
+      { name: "Globe", path: "M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z", fill: "none", stroke: "#3b82f6", strokeWidth: 2 },
+      { name: "Calendar", path: "M19 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM16 2v4M8 2v4M3 10h18", fill: "none", stroke: "#374151", strokeWidth: 2 },
+    ],
+    decorative: [
+      { name: "Wave", path: "M2 12c2-2 4-4 6-2s4 4 6 2 4-4 6-2 4 4 6 2", fill: "none", stroke: "#3b82f6", strokeWidth: 2 },
+      { name: "Zigzag", path: "M2 12l4-4 4 8 4-8 4 8 4-8 4 4", fill: "none", stroke: "#f59e0b", strokeWidth: 2 },
+      { name: "Burst", path: "M12 3l1.5 6 6.5-1.5-4 5.5 5.5 4-6.5-1.5L12 21l-3-5.5L2.5 17l5.5-4-4-5.5L10.5 9 12 3z", fill: "#8b5cf6" },
+      { name: "Sparkle", path: "M12 3v18M3 12h18M5.5 5.5l13 13M18.5 5.5l-13 13", fill: "none", stroke: "#f59e0b", strokeWidth: 2 },
+      { name: "Ring", path: "M12 2a10 10 0 100 20 10 10 0 000-20zM12 6a6 6 0 100 12 6 6 0 000-12z", fill: "#ee7518" },
+      { name: "Swirl", path: "M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12a10 10 0 005 8.66", fill: "none", stroke: "#ec4899", strokeWidth: 2 },
+      { name: "Dots", path: "M12 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM12 10.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM12 18a1.5 1.5 0 110 3 1.5 1.5 0 010-3z", fill: "#374151" },
+      { name: "Lines", path: "M3 6h18M3 12h18M3 18h18", fill: "none", stroke: "#374151", strokeWidth: 2 },
+    ],
+  };
+
+  const handleAddAsset = (asset: { name: string; path: string; fill?: string; stroke?: string; strokeWidth?: number }) => {
+    if (!fabricCanvasRef.current || !window.fabric) return;
+    
+    const canvas = fabricCanvasRef.current;
+    const targetSize = Math.min(canvas.width, canvas.height) * 0.2;
+    
+    const pathObj = new window.fabric.Path(asset.path, {
+      fill: asset.fill === "none" ? "transparent" : (asset.fill || "transparent"),
+      stroke: asset.stroke || null,
+      strokeWidth: asset.strokeWidth || 0,
+      strokeUniform: true,
+      strokeLineCap: "round",
+      strokeLineJoin: "round",
+    });
+    
+    const bounds = pathObj.getBoundingRect();
+    const maxDim = Math.max(bounds.width, bounds.height);
+    const scaleFactor = maxDim > 0 ? targetSize / maxDim : 1;
+    
+    pathObj.set({
+      scaleX: scaleFactor,
+      scaleY: scaleFactor,
+      left: canvas.width / 2 - (bounds.width * scaleFactor) / 2,
+      top: canvas.height / 2 - (bounds.height * scaleFactor) / 2,
+    });
+    
+    canvas.add(pathObj);
+    canvas.setActiveObject(pathObj);
+    canvas.renderAll();
+    setShowAssets(false);
+    toast({ title: `${asset.name} added` });
   };
 
   const handleUpload = () => {
@@ -884,6 +962,17 @@ export default function Editor() {
               <span className="text-[10px]">Circle</span>
             </Button>
 
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAssets(true)}
+              className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
+              data-testid="button-assets"
+            >
+              <Sparkles className="h-5 w-5" />
+              <span className="text-[10px]">Assets</span>
+            </Button>
+
             {activeObject && (
               <Button
                 variant="ghost"
@@ -927,6 +1016,9 @@ export default function Editor() {
         </Button>
         <Button variant="ghost" size="icon" onClick={handleAddCircle} title="Circle" data-testid="button-circle-desktop">
           <Circle className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => setShowAssets(true)} title="Assets" data-testid="button-assets-desktop">
+          <Sparkles className="h-5 w-5" />
         </Button>
         <div className="border-t w-full my-1" />
         <Button
@@ -1139,6 +1231,78 @@ export default function Editor() {
                 Skip for now
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showAssets && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowAssets(false)}>
+          <div 
+            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="font-heading font-bold text-lg">Design Assets</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowAssets(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+              {[
+                { key: "shapes", label: "Shapes" },
+                { key: "badges", label: "Badges" },
+                { key: "icons", label: "Icons" },
+                { key: "decorative", label: "Decorative" },
+              ].map((cat) => (
+                <Button
+                  key={cat.key}
+                  variant={assetsCategory === cat.key ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAssetsCategory(cat.key)}
+                  className={assetsCategory === cat.key ? "bg-orange-500 hover:bg-orange-600" : ""}
+                  data-testid={`button-category-${cat.key}`}
+                >
+                  {cat.label}
+                </Button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-4 gap-2">
+              {(designAssets[assetsCategory as keyof typeof designAssets] || []).map((asset, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleAddAsset(asset)}
+                  className="group bg-gray-50 rounded-lg p-3 hover:bg-orange-50 transition-colors border-2 border-transparent hover:border-orange-300 flex flex-col items-center"
+                  data-testid={`button-asset-${asset.name.toLowerCase().replace(/\s/g, '-')}`}
+                >
+                  <svg viewBox="0 0 24 24" className="w-8 h-8 mb-1">
+                    <path 
+                      d={asset.path} 
+                      fill={asset.fill || "none"} 
+                      stroke={asset.stroke || "none"} 
+                      strokeWidth={asset.strokeWidth || 0}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className="text-[10px] text-gray-600 truncate w-full text-center">{asset.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <Button 
+              variant="outline"
+              className="w-full mt-4" 
+              onClick={() => setShowAssets(false)}
+            >
+              Close
+            </Button>
           </div>
         </div>
       )}

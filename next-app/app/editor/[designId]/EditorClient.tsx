@@ -45,11 +45,25 @@ export default function Editor() {
 
   const { data: design, isLoading } = useQuery<any>({
     queryKey: ["/api/designs", designId],
+    queryFn: async () => {
+      const res = await fetch(`/api/designs/${designId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch design");
+      return res.json();
+    },
     enabled: !!designId,
   });
 
   const { data: product } = useQuery<any>({
     queryKey: ["/api/products", design?.productId],
+    queryFn: async () => {
+      const res = await fetch(`/api/products/${design?.productId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch product");
+      return res.json();
+    },
     enabled: !!design?.productId,
   });
 

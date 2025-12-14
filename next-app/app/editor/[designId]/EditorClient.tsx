@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Save, ShoppingCart, Upload, Type, 
   Undo, Redo, ZoomIn, ZoomOut, Trash2, Square,
-  Circle, Info, X, MoreVertical, Layers, FileImage, Sparkles
+  Circle, Info, X, MoreVertical, Layers, FileImage, Sparkles,
+  Paintbrush, Palette, PenTool, Eraser
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -43,6 +44,10 @@ export default function Editor() {
   const [customShapeUploaded, setCustomShapeUploaded] = useState(false);
   const [showAssets, setShowAssets] = useState(false);
   const [assetsCategory, setAssetsCategory] = useState("shapes");
+  const [showDrawing, setShowDrawing] = useState(false);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [brushColor, setBrushColor] = useState("#000000");
+  const [brushSize, setBrushSize] = useState(5);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialScaleRef = useRef<number>(1);
 
@@ -419,6 +424,35 @@ export default function Editor() {
     canvas.renderAll();
     setShowAssets(false);
     toast({ title: `${asset.name} added` });
+  };
+
+  const handleToggleDrawingMode = (enable: boolean) => {
+    if (!fabricCanvasRef.current) return;
+    const canvas = fabricCanvasRef.current;
+    
+    canvas.isDrawingMode = enable;
+    setIsDrawingMode(enable);
+    
+    if (enable) {
+      canvas.freeDrawingBrush.color = brushColor;
+      canvas.freeDrawingBrush.width = brushSize;
+      canvas.freeDrawingBrush.strokeLineCap = "round";
+      canvas.freeDrawingBrush.strokeLineJoin = "round";
+    }
+  };
+
+  const handleBrushColorChange = (color: string) => {
+    setBrushColor(color);
+    if (fabricCanvasRef.current && isDrawingMode) {
+      fabricCanvasRef.current.freeDrawingBrush.color = color;
+    }
+  };
+
+  const handleBrushSizeChange = (size: number) => {
+    setBrushSize(size);
+    if (fabricCanvasRef.current && isDrawingMode) {
+      fabricCanvasRef.current.freeDrawingBrush.width = size;
+    }
   };
 
   const handleUpload = () => {
@@ -973,6 +1007,17 @@ export default function Editor() {
               <span className="text-[10px]">Assets</span>
             </Button>
 
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDrawing(true)}
+              className={`flex flex-col items-center gap-0.5 h-auto py-2 px-3 ${isDrawingMode ? 'text-orange-500 bg-orange-50' : ''}`}
+              data-testid="button-draw"
+            >
+              <Paintbrush className="h-5 w-5" />
+              <span className="text-[10px]">Draw</span>
+            </Button>
+
             {activeObject && (
               <Button
                 variant="ghost"
@@ -1019,6 +1064,16 @@ export default function Editor() {
         </Button>
         <Button variant="ghost" size="icon" onClick={() => setShowAssets(true)} title="Assets" data-testid="button-assets-desktop">
           <Sparkles className="h-5 w-5" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setShowDrawing(true)} 
+          title="Draw" 
+          data-testid="button-draw-desktop"
+          className={isDrawingMode ? 'text-orange-500 bg-orange-50' : ''}
+        >
+          <Paintbrush className="h-5 w-5" />
         </Button>
         <div className="border-t w-full my-1" />
         <Button
@@ -1303,6 +1358,140 @@ export default function Editor() {
             >
               Close
             </Button>
+          </div>
+        </div>
+      )}
+
+      {showDrawing && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => { handleToggleDrawingMode(false); setShowDrawing(false); }}>
+          <div 
+            className="bg-white w-full md:max-w-sm md:rounded-xl rounded-t-xl p-4 md:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Paintbrush className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="font-heading font-bold text-lg">Drawing Tools</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => { handleToggleDrawingMode(false); setShowDrawing(false); }}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Tool</label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={!isDrawingMode ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => handleToggleDrawingMode(true)}
+                    className={isDrawingMode ? "bg-orange-500 hover:bg-orange-600" : ""}
+                    data-testid="button-brush-tool"
+                  >
+                    <Paintbrush className="h-4 w-4 mr-1" />
+                    Brush
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (!fabricCanvasRef.current) return;
+                      const activeObj = fabricCanvasRef.current.getActiveObject();
+                      if (activeObj && activeObj.set) {
+                        activeObj.set('fill', brushColor);
+                        fabricCanvasRef.current.renderAll();
+                        toast({ title: "Fill applied" });
+                      } else {
+                        toast({ title: "Select an object first", description: "Click on a shape to fill it with color" });
+                      }
+                    }}
+                    data-testid="button-fill-tool"
+                  >
+                    <Palette className="h-4 w-4 mr-1" />
+                    Fill
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Color</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={brushColor}
+                    onChange={(e) => handleBrushColorChange(e.target.value)}
+                    className="w-12 h-12 rounded-lg cursor-pointer border-2 border-gray-200"
+                    data-testid="input-brush-color"
+                  />
+                  <div className="flex gap-2 flex-wrap">
+                    {['#000000', '#ffffff', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'].map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => handleBrushColorChange(color)}
+                        className={`w-8 h-8 rounded-full border-2 ${brushColor === color ? 'border-orange-500 ring-2 ring-orange-200' : 'border-gray-200'}`}
+                        style={{ backgroundColor: color }}
+                        data-testid={`button-color-${color.replace('#', '')}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Brush Size: {brushSize}px
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  value={brushSize}
+                  onChange={(e) => handleBrushSizeChange(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                  data-testid="input-brush-size"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Fine</span>
+                  <span>Thick</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-3 py-2">
+                <div 
+                  className="rounded-full border-2 border-gray-300"
+                  style={{ 
+                    width: Math.min(brushSize * 2, 60), 
+                    height: Math.min(brushSize * 2, 60),
+                    backgroundColor: brushColor 
+                  }}
+                />
+                <span className="text-sm text-gray-500">Preview</span>
+              </div>
+
+              <Button
+                className={`w-full ${isDrawingMode ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'}`}
+                onClick={() => {
+                  handleToggleDrawingMode(!isDrawingMode);
+                  if (!isDrawingMode) {
+                    setShowDrawing(false);
+                    toast({ title: "Drawing mode enabled", description: "Draw freely on the canvas" });
+                  }
+                }}
+                data-testid="button-toggle-drawing"
+              >
+                <PenTool className="h-4 w-4 mr-2" />
+                {isDrawingMode ? 'Stop Drawing' : 'Start Drawing'}
+              </Button>
+
+              {isDrawingMode && (
+                <p className="text-xs text-center text-gray-500">
+                  Tap &quot;Stop Drawing&quot; to select and move objects again
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}

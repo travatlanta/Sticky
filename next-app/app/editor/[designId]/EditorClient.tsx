@@ -13,7 +13,8 @@ import {
   Paintbrush, Palette, PenTool, Eraser, Wand2, Sun,
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   HelpCircle, CheckCircle, Image, FileType, Droplets, MousePointer,
-  Move, RotateCcw, ChevronLeft, ChevronRight
+  Move, RotateCcw, ChevronLeft, ChevronRight,
+  Plus, Minus, MoreHorizontal
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -62,6 +63,13 @@ export default function Editor() {
   const [tutorialStep, setTutorialStep] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Inline text edit menu state: when a text object is selected the editor
+  // shows a small floating menu near the object with quick actions
+  // (bold, font size, color, more options).  The position is updated
+  // whenever the selection changes or the object moves.
+  const [showInlineTextMenu, setShowInlineTextMenu] = useState(false);
+  const [inlineMenuPosition, setInlineMenuPosition] = useState<{ x: number; y: number } | null>(null);
+
   // Cart preview state: holds the current cart data and whether the preview
   // overlay is visible.  When an item is added to the cart, the preview
   // becomes visible and displays cart items along with a checkout button.
@@ -74,6 +82,30 @@ export default function Editor() {
 
   // Keep track of measurement ruler objects so they can be removed and re-added on zoom
   const measurementObjectsRef = useRef<any[]>([]);
+
+  /**
+   * Update the inline text edit menu position based on the currently
+   * selected object.  If the object is a text instance, compute its
+   * bounding box relative to the page and position the menu slightly
+   * above the object.  Otherwise hide the inline menu.  This helper
+   * is used in canvas event handlers when the selection changes or
+   * objects are modified.
+   */
+  const updateInlineMenu = useCallback((obj: any) => {
+    if (!canvasRef.current) return;
+    if (obj && obj.type === 'i-text') {
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const bounding = obj.getBoundingRect();
+      // Position the menu centered horizontally over the text and slightly
+      // above it.  Adjust the x offset to centre the menu (approx width 120).
+      const x = canvasRect.left + bounding.left + bounding.width / 2 - 60;
+      const y = canvasRect.top + bounding.top - 45;
+      setInlineMenuPosition({ x, y });
+      setShowInlineTextMenu(true);
+    } else {
+      setShowInlineTextMenu(false);
+    }
+  }, []);
 
   /**
    * Draw ruler tick marks and labels along the top and left edges of the canvas.
@@ -222,7 +254,7 @@ export default function Editor() {
       await handleSave();
     }
     router.push(`/editor/${newId}`);
-  }, [router, handleSave]);
+  }, [router]);
 
   const saveMutation = useMutation({
     mutationFn: async (canvasJson: any) => {
@@ -296,6 +328,22 @@ export default function Editor() {
     // Safe zone position: inside trim line by safe margin amount
     const safeZonePixels = (bleedInches + safeMarginInches) * dpi * initialScale;
     
+    // Outer BLEED LINE (dashed gray) - indicates the boundary where artwork should extend to avoid blank edges
+    const bleedLineRect = new window.fabric.Rect({
+      left: 0,
+      top: 0,
+      width: displayWidth,
+      height: displayHeight,
+      fill: "transparent",
+      stroke: "#94a3b8",
+      strokeWidth: 1,
+      strokeDashArray: [4, 4],
+      selectable: false,
+      evented: false,
+      name: "bleedLine",
+      excludeFromExport: true,
+    });
+
     // Red TRIM LINE - shows where paper will be cut
     const trimRect = new window.fabric.Rect({
       left: trimLinePixels,
@@ -328,6 +376,11 @@ export default function Editor() {
       excludeFromExport: true,
     });
 
+    // Add the bleed line behind all other guides
+    canvas.add(bleedLineRect);
+    // Send the bleed line behind other guides
+    canvas.sendToBack(bleedLineRect);
+    // Add trim and safe guides on top
     canvas.add(trimRect, safeRect);
 
     if ((design as any)?.canvasJson) {
@@ -351,6 +404,11 @@ export default function Editor() {
     canvas.on("object:modified", () => {
       saveState();
       scheduleAutoSave();
+      // Update the inline text menu position if a text object is active
+      if (fabricCanvasRef.current) {
+        const active = fabricCanvasRef.current.getActiveObject();
+        updateInlineMenu(active);
+      }
     });
 
     canvas.on("object:added", (e: any) => {
@@ -366,15 +424,20 @@ export default function Editor() {
     });
 
     canvas.on("selection:created", (e: any) => {
-      setActiveObject(e.selected?.[0] || null);
+      const obj = e.selected?.[0] || null;
+      setActiveObject(obj);
+      updateInlineMenu(obj);
     });
 
     canvas.on("selection:updated", (e: any) => {
-      setActiveObject(e.selected?.[0] || null);
+      const obj = e.selected?.[0] || null;
+      setActiveObject(obj);
+      updateInlineMenu(obj);
     });
 
     canvas.on("selection:cleared", () => {
       setActiveObject(null);
+      setShowInlineTextMenu(false);
     });
 
     // Add measurement rulers based on product dimensions
@@ -1036,7 +1099,15 @@ export default function Editor() {
   };
 
   const handleZoom = (delta: number) => {
-    const newZoom = Math.max(0.2, Math.min(3, zoom + delta));
+    // Use a relative zoom approach: if the delta is less than one in magnitude
+    // treat it as a percentage change (e.g. delta 0.25 increases zoom by 25%).
+    let newZoom: number;
+    if (Math.abs(delta) < 1) {
+      newZoom = zoom * (1 + delta);
+    } else {
+      newZoom = zoom + delta;
+    }
+    newZoom = Math.max(0.2, Math.min(3, newZoom));
     setZoom(newZoom);
     if (fabricCanvasRef.current) {
       const canvas = fabricCanvasRef.current;
@@ -1065,6 +1136,7 @@ export default function Editor() {
       const objects = canvas.getObjects();
       const trimGuide = objects.find((o: any) => o.name === "bleedGuide");
       const safeGuide = objects.find((o: any) => o.name === "safeGuide");
+      const bleedLine = objects.find((o: any) => o.name === "bleedLine");
 
       if (trimGuide) {
         trimGuide.set({
@@ -1086,6 +1158,17 @@ export default function Editor() {
         canvas.bringToFront(safeGuide);
       }
 
+      // Update the outer bleed line to match the new canvas dimensions and send it to the back
+      if (bleedLine) {
+        bleedLine.set({
+          left: 0,
+          top: 0,
+          width: newWidth,
+          height: newHeight,
+        });
+        canvas.sendToBack(bleedLine);
+      }
+
       canvas.renderAll();
 
       // Redraw measurement rulers for the new zoom level
@@ -1093,12 +1176,18 @@ export default function Editor() {
     }
   };
 
-  const handleSave = async () => {
+  // Define handleSave as a function declaration instead of a constant arrow
+  // function.  Function declarations are hoisted, allowing the
+  // `handleSelectDesign` callback to reference `handleSave` before its
+  // definition without causing a "used before declaration" error during
+  // compilation.  The implementation remains the same, saving the current
+  // canvas JSON via the `saveMutation` hook and showing a toast.
+  async function handleSave() {
     if (!fabricCanvasRef.current) return;
     const json = fabricCanvasRef.current.toJSON();
     await saveMutation.mutateAsync(json);
     toast({ title: "Saved!" });
-  };
+  }
 
   /**
    * Add the current design to the cart without leaving the editor.  This
@@ -1127,9 +1216,12 @@ export default function Editor() {
         const objects = canvas.getObjects();
         const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
         const safeGuide = objects.find((o: any) => o.name === "safeGuide");
+        const bleedLine = objects.find((o: any) => o.name === "bleedLine");
         const customShape = objects.find((o: any) => o.name === "customShapeOutline");
+        // Temporarily remove guides and outlines to avoid including them in the exported artwork
         if (bleedGuide) canvas.remove(bleedGuide);
         if (safeGuide) canvas.remove(safeGuide);
+        if (bleedLine) canvas.remove(bleedLine);
         if (customShape) canvas.remove(customShape);
         // Export at 300 DPI (Fabric default is 72 DPI).  Adjust multiplier
         // relative to the initial scale used to display the canvas.  This
@@ -1137,13 +1229,19 @@ export default function Editor() {
         const baseDpiMultiplier = 300 / 72;
         const multiplier = baseDpiMultiplier / (initialScaleRef.current || 1);
         const dataUrl = canvas.toDataURL({ format: 'png', multiplier, quality: 1 });
-        // Restore guides and custom shape for editing
+        // Restore guides, bleed line, and custom shape for editing
         if (bleedGuide) canvas.add(bleedGuide);
         if (safeGuide) canvas.add(safeGuide);
+        if (bleedLine) {
+          canvas.add(bleedLine);
+          // Keep the outer bleed line behind other guides
+          canvas.sendToBack(bleedLine);
+        }
         if (customShape) {
           canvas.add(customShape);
           canvas.sendToBack(customShape);
         }
+        // Bring the cut and safe guides to the front
         if (bleedGuide) canvas.bringToFront(bleedGuide);
         if (safeGuide) canvas.bringToFront(safeGuide);
         canvas.renderAll();
@@ -1380,6 +1478,56 @@ export default function Editor() {
         <div className="relative">
           <div className="bg-white rounded-lg shadow-lg p-2 md:p-6">
             <canvas ref={canvasRef} className="block touch-none" data-testid="design-canvas" />
+            {/* Inline text edit menu: shows when a text object is selected */}
+            {showInlineTextMenu && inlineMenuPosition && (
+              <div
+                className="absolute z-30 bg-white border border-gray-200 rounded-lg shadow-md p-1 flex items-center gap-1"
+                style={{ left: inlineMenuPosition.x, top: inlineMenuPosition.y }}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleToggleBold}
+                  className="h-6 w-6"
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleApplyFontSize(fontSize + 2)}
+                  className="h-6 w-6"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleApplyFontSize(Math.max(fontSize - 2, 8))}
+                  className="h-6 w-6"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <input
+                  type="color"
+                  value={textColor}
+                  onChange={(e) => handleApplyTextColor(e.target.value)}
+                  className="w-6 h-6 p-0 border-0 cursor-pointer"
+                  title="Text color"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setShowTextMenu(true);
+                    setShowInlineTextMenu(false);
+                  }}
+                  className="h-6 w-6"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
           
           <div className="flex absolute -bottom-7 left-0 right-0 items-center justify-center gap-4 md:gap-6 text-xs">

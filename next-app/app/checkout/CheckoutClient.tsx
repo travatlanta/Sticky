@@ -179,12 +179,25 @@ export default function CheckoutClient() {
   // `{ shippingCost, freeShipping }` from the settings API. If fetching
   // fails, a fallback of 15 is used. When freeShipping is true, the
   // computed shipping cost will be zero.
-  const { data: shippingData } = useQuery({
+  // Retrieve shipping settings via React Query. Provide a generic type
+  // argument so that the returned `data` property will have the
+  // `automaticShipping` field in addition to `shippingCost` and
+  // `freeShipping`. Without specifying the generic type, TypeScript
+  // would infer an insufficient type and produce an error when accessing
+  // `automaticShipping`.
+  const { data: shippingData } = useQuery<
+    { shippingCost: number; freeShipping: boolean; automaticShipping: boolean },
+    Error
+  >({
     queryKey: ["shipping"],
     queryFn: async () => {
       const res = await fetch("/api/settings/shipping");
       if (!res.ok) throw new Error("Failed to load shipping settings");
-      return res.json() as Promise<{ shippingCost: number; freeShipping: boolean }>;
+      return res.json() as Promise<{
+        shippingCost: number;
+        freeShipping: boolean;
+        automaticShipping: boolean;
+      }>;
     },
   });
   // Compute shipping based on settings and the number of items in the cart.

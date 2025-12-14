@@ -7,26 +7,43 @@ import { db } from '@/lib/db';
 import { orders, orderItems, cartItems, carts, products } from '@/shared/schema';
 import { eq } from 'drizzle-orm';
 
+interface ShippingAddress {
+  firstName: string;
+  lastName: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: 'Please log in to complete your order' }, { status: 401 });
     }
 
-    const { sourceId, shippingAddress, billingAddress } = await request.json();
+    const body = await request.json();
+    const { sourceId, shippingAddress, billingAddress } = body as {
+      sourceId: string;
+      shippingAddress?: ShippingAddress;
+      billingAddress?: ShippingAddress;
+    };
 
     if (!sourceId) {
       return NextResponse.json(
-        { error: 'Missing required field: sourceId (payment token)' },
+        { error: 'Payment information is missing. Please try again.' },
         { status: 400 }
       );
     }
 
     const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID;
     if (!locationId) {
+      console.error('NEXT_PUBLIC_SQUARE_LOCATION_ID not configured');
       return NextResponse.json(
-        { error: 'Square location ID not configured' },
+        { error: 'Payment system not properly configured. Please contact support.' },
         { status: 500 }
       );
     }
@@ -34,7 +51,7 @@ export async function POST(request: NextRequest) {
     const userCart = await db.select().from(carts).where(eq(carts.userId, session.user.id)).limit(1);
     
     if (userCart.length === 0) {
-      return NextResponse.json({ error: 'Cart not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Your cart is empty' }, { status: 404 });
     }
 
     const items = await db
@@ -47,7 +64,7 @@ export async function POST(request: NextRequest) {
       .where(eq(cartItems.cartId, userCart[0].id));
 
     if (items.length === 0) {
-      return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
+      return NextResponse.json({ error: 'Your cart is empty' }, { status: 400 });
     }
 
     let subtotal = 0;
@@ -72,10 +89,13 @@ export async function POST(request: NextRequest) {
       locationId,
       idempotencyKey,
       autocomplete: true,
-      note: `Order for ${session.user.email}`,
+      note: `Sticky Banditos order for ${session.user.email}`,
+      buyerEmailAddress: session.user.email || undefined,
     });
 
-    if (paymentResponse.payment?.status === 'COMPLETED') {
+    const payment = paymentResponse.payment;
+
+    if (payment?.status === 'COMPLETED') {
       const [newOrder] = await db.insert(orders).values({
         userId: session.user.id,
         status: 'paid',
@@ -83,9 +103,9 @@ export async function POST(request: NextRequest) {
         shippingCost: shippingCost.toFixed(2),
         taxAmount: taxAmount.toFixed(2),
         totalAmount: totalAmount.toFixed(2),
-        shippingAddress: shippingAddress || null,
-        billingAddress: billingAddress || null,
-        stripePaymentIntentId: paymentResponse.payment.id,
+        shippingAddress: shippingAddress ? JSON.stringify(shippingAddress) : null,
+        billingAddress: billingAddress ? JSON.stringify(billingAddress) : null,
+        stripePaymentIntentId: payment.id,
       }).returning();
 
       for (const item of items) {
@@ -105,25 +125,37 @@ export async function POST(request: NextRequest) {
         success: true,
         orderId: newOrder.id,
         payment: {
-          id: paymentResponse.payment.id,
-          status: paymentResponse.payment.status,
-          receiptUrl: paymentResponse.payment.receiptUrl,
+          id: payment.id,
+          status: payment.status,
+          receiptUrl: payment.receiptUrl,
         },
       });
     }
 
     return NextResponse.json({
       success: false,
-      error: 'Payment was not completed',
+      error: 'Payment was not completed. Please try again.',
       payment: {
-        id: paymentResponse.payment?.id,
-        status: paymentResponse.payment?.status,
+        id: payment?.id,
+        status: payment?.status,
       },
     }, { status: 400 });
   } catch (error: any) {
     console.error('Square payment error:', error);
     
-    const errorMessage = error.errors?.[0]?.detail || error.message || 'Payment failed';
+    let errorMessage = 'Payment failed. Please try again.';
+    
+    if (error.errors && Array.isArray(error.errors)) {
+      errorMessage = error.errors[0]?.detail || errorMessage;
+    } else if (error.message) {
+      if (error.message.includes('INVALID_CARD')) {
+        errorMessage = 'Invalid card information. Please check your card details.';
+      } else if (error.message.includes('CARD_DECLINED')) {
+        errorMessage = 'Your card was declined. Please try a different payment method.';
+      } else if (error.message.includes('INSUFFICIENT_FUNDS')) {
+        errorMessage = 'Insufficient funds. Please try a different card.';
+      }
+    }
     
     return NextResponse.json(
       { success: false, error: errorMessage },

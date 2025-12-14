@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { MapPin, Mail, Phone } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -19,10 +20,20 @@ export default function Footer() {
               />
               <span className="font-display font-bold text-xl text-white">Sticky Banditos</span>
             </Link>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-400 text-sm mb-4">
               Premium custom printing for stickers, labels, and more. 
               High-quality materials, fast turnaround.
             </p>
+            <div className="space-y-2 text-sm text-gray-400">
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>
+                  Sticky Banditos LLC<br />
+                  1607 W Friess Dr<br />
+                  Phoenix, AZ
+                </span>
+              </div>
+            </div>
           </div>
           
           <div>
@@ -54,8 +65,17 @@ export default function Footer() {
           </div>
         </div>
         
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} Sticky Banditos. All rights reserved.</p>
+        <div className="border-t border-gray-800 mt-8 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-gray-500">
+              &copy; {new Date().getFullYear()} Sticky Banditos LLC. All rights reserved.
+            </p>
+            <nav className="flex flex-wrap gap-4 justify-center text-sm text-gray-500">
+              <Link href="/terms" className="hover:text-orange-400 transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="hover:text-orange-400 transition-colors">Privacy Policy</Link>
+              <Link href="/refunds" className="hover:text-orange-400 transition-colors">Refund Policy</Link>
+            </nav>
+          </div>
         </div>
       </div>
     </footer>

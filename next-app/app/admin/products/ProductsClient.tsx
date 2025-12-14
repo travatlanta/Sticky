@@ -6,7 +6,21 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Check, X, Package, Upload, Image, Layout, FileImage, Edit2, CheckCircle, Layers } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  Package,
+  Upload,
+  Image,
+  Layout,
+  FileImage,
+  Edit2,
+  CheckCircle,
+  Layers,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -418,9 +432,13 @@ export default function AdminProducts() {
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
+                    placeholder="e.g., custom-sticker-pack"
                     required
                     data-testid="input-product-slug"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use lowercase letters, numbers, or hyphens; avoid using only numbers. This slug becomes part of the product URL.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Base Price</label>
@@ -861,7 +879,7 @@ export default function AdminProducts() {
                               <p className="text-xs text-gray-500 truncate">{template.description}</p>
                             )}
                             <div className="flex items-center justify-between mt-2">
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${template.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${template.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}> 
                                 {template.isActive ? 'Active' : 'Inactive'}
                               </span>
                               <Button

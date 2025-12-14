@@ -10,7 +10,7 @@ import {
   Save, ShoppingCart, Upload, Type, 
   Undo, Redo, ZoomIn, ZoomOut, Trash2, Square,
   Circle, Info, X, MoreVertical, Layers, FileImage, Sparkles,
-  Paintbrush, Palette, PenTool, Eraser
+  Paintbrush, Palette, PenTool, Eraser, Wand2, Sun
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -48,6 +48,8 @@ export default function Editor() {
   const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [brushColor, setBrushColor] = useState("#000000");
   const [brushSize, setBrushSize] = useState(5);
+  const [showEffects, setShowEffects] = useState(false);
+  const [canvasBackground, setCanvasBackground] = useState("#ffffff");
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialScaleRef = useRef<number>(1);
 
@@ -206,6 +208,10 @@ export default function Editor() {
         const safeGuide = objects.find((o: any) => o.name === "safeGuide");
         if (bleedGuide) canvas.bringToFront(bleedGuide);
         if (safeGuide) canvas.bringToFront(safeGuide);
+        // Sync canvas background state with loaded design
+        if (canvas.backgroundColor) {
+          setCanvasBackground(canvas.backgroundColor as string);
+        }
         canvas.renderAll();
       });
     } else {
@@ -452,6 +458,68 @@ export default function Editor() {
     setBrushSize(size);
     if (fabricCanvasRef.current && isDrawingMode) {
       fabricCanvasRef.current.freeDrawingBrush.width = size;
+    }
+  };
+
+  const handleCanvasBackgroundChange = (color: string) => {
+    setCanvasBackground(color);
+    if (fabricCanvasRef.current) {
+      fabricCanvasRef.current.backgroundColor = color;
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+    }
+  };
+
+  const handleApplyBorder = (strokeWidth: number, strokeColor: string) => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.set) {
+      activeObj.set({
+        stroke: strokeColor,
+        strokeWidth: strokeWidth,
+        strokeUniform: true,
+      });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+      toast({ title: "Border applied" });
+    } else {
+      toast({ title: "Select an object first", description: "Click on a shape or image to add a border" });
+    }
+  };
+
+  const handleApplyOpacity = (opacity: number) => {
+    if (!fabricCanvasRef.current) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.set) {
+      activeObj.set({ opacity: opacity / 100 });
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+    }
+  };
+
+  const handleApplyShadow = (enabled: boolean) => {
+    if (!fabricCanvasRef.current || !window.fabric) return;
+    const activeObj = fabricCanvasRef.current.getActiveObject();
+    if (activeObj && activeObj.set) {
+      if (enabled) {
+        activeObj.set({
+          shadow: new window.fabric.Shadow({
+            color: 'rgba(0,0,0,0.3)',
+            blur: 10,
+            offsetX: 5,
+            offsetY: 5,
+          })
+        });
+      } else {
+        activeObj.set({ shadow: null });
+      }
+      fabricCanvasRef.current.renderAll();
+      saveState();
+      scheduleAutoSave();
+      toast({ title: enabled ? "Shadow added" : "Shadow removed" });
     }
   };
 
@@ -1018,6 +1086,17 @@ export default function Editor() {
               <span className="text-[10px]">Draw</span>
             </Button>
 
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowEffects(true)}
+              className="flex flex-col items-center gap-0.5 h-auto py-2 px-3"
+              data-testid="button-effects"
+            >
+              <Wand2 className="h-5 w-5" />
+              <span className="text-[10px]">Effects</span>
+            </Button>
+
             {activeObject && (
               <Button
                 variant="ghost"
@@ -1074,6 +1153,9 @@ export default function Editor() {
           className={isDrawingMode ? 'text-orange-500 bg-orange-50' : ''}
         >
           <Paintbrush className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => setShowEffects(true)} title="Effects" data-testid="button-effects-desktop">
+          <Wand2 className="h-5 w-5" />
         </Button>
         <div className="border-t w-full my-1" />
         <Button
@@ -1492,6 +1574,104 @@ export default function Editor() {
                 </p>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {showEffects && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowEffects(false)}>
+          <div 
+            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Wand2 className="h-4 w-4 text-orange-600" />
+                </div>
+                <h3 className="font-heading font-bold text-lg">Effects</h3>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowEffects(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Canvas Background</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={canvasBackground}
+                    onChange={(e) => handleCanvasBackgroundChange(e.target.value)}
+                    className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200"
+                    data-testid="input-canvas-background"
+                  />
+                  <div className="flex gap-2 flex-wrap">
+                    {['#ffffff', '#f3f4f6', '#fef3c7', '#fee2e2', '#dbeafe', '#dcfce7', '#1f2937', '#000000'].map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => handleCanvasBackgroundChange(color)}
+                        className={`w-7 h-7 rounded-full border-2 ${canvasBackground === color ? 'border-orange-500 ring-2 ring-orange-200' : 'border-gray-300'}`}
+                        style={{ backgroundColor: color }}
+                        data-testid={`button-bg-${color.replace('#', '')}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Object Border</label>
+                <p className="text-xs text-gray-500 mb-2">Select an object first, then apply a border</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleApplyBorder(2, '#000000')} data-testid="button-border-thin">Thin Black</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleApplyBorder(4, '#000000')} data-testid="button-border-medium">Medium Black</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleApplyBorder(2, '#ee7518')} data-testid="button-border-orange">Orange</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleApplyBorder(3, '#3b82f6')} data-testid="button-border-blue">Blue</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleApplyBorder(3, '#ef4444')} data-testid="button-border-red">Red</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleApplyBorder(0, 'transparent')} data-testid="button-border-none">Remove</Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Object Opacity</label>
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  defaultValue="100"
+                  onChange={(e) => handleApplyOpacity(Number(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                  data-testid="input-opacity"
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Transparent</span>
+                  <span>Solid</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Drop Shadow</label>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleApplyShadow(true)} data-testid="button-shadow-add">
+                    <Sun className="h-4 w-4 mr-1" />
+                    Add Shadow
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleApplyShadow(false)} data-testid="button-shadow-remove">
+                    Remove Shadow
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              variant="outline"
+              className="w-full mt-4" 
+              onClick={() => setShowEffects(false)}
+            >
+              Done
+            </Button>
           </div>
         </div>
       )}

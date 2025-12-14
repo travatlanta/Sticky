@@ -426,7 +426,7 @@ export default function AdminProducts() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Slug</label>
+                  <label className="block text-sm font-medium mb-1">URL Slug</label>
                   <input
                     type="text"
                     value={formData.slug}

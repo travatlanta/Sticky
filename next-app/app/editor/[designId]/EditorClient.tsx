@@ -1266,7 +1266,10 @@ export default function Editor() {
         // reject the request on some environments.  Include selectedOptions
         // and basePrice when available.  Use the numeric designId and productId.
         body: JSON.stringify({
-          productId: Number((design as any)?.productId),
+          // Always send the product ID from the loaded product.  Using
+          // `design?.productId` can result in undefined when the design is
+          // newly created, causing the cart API to reject the request.
+          productId: Number((product as any)?.id || (design as any)?.productId),
           designId: Number(designId!),
           quantity: 1,
           selectedOptions: (design as any)?.selectedOptions || null,

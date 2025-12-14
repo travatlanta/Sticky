@@ -426,7 +426,8 @@ export default function AdminProducts() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">URL Slug</label>
+                  {/* Label for the URL path input. Avoid using the term "slug" so it's clear to administrators. */}
+                  <label className="block text-sm font-medium mb-1">URL Path</label>
                   <input
                     type="text"
                     value={formData.slug}
@@ -437,7 +438,7 @@ export default function AdminProducts() {
                     data-testid="input-product-slug"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Use lowercase letters, numbers, or hyphens; avoid using only numbers. This slug becomes part of the product URL.
+                    Use lowercase letters, numbers, or hyphens; avoid using only numbers. This value becomes part of the product URL.
                   </p>
                 </div>
                 <div>

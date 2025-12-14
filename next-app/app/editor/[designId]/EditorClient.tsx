@@ -42,6 +42,7 @@ export default function Editor() {
   const [showCustomShapeModal, setShowCustomShapeModal] = useState(false);
   const [customShapeUploaded, setCustomShapeUploaded] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initialScaleRef = useRef<number>(1);
 
   const { data: design, isLoading } = useQuery<any>({
     queryKey: ["/api/designs", designId],
@@ -123,6 +124,7 @@ export default function Editor() {
     const scaleX = (containerWidth - 48) / templateWidth;
     const scaleY = (containerHeight - 80) / templateHeight;
     const initialScale = Math.max(Math.min(scaleX, scaleY, 1), 0.15);
+    initialScaleRef.current = initialScale; // Store for consistent 300 DPI exports
     
     const displayWidth = templateWidth * initialScale;
     const displayHeight = templateHeight * initialScale;
@@ -550,7 +552,11 @@ export default function Editor() {
         if (safeGuide) canvas.remove(safeGuide);
         if (customShape) canvas.remove(customShape);
         
-        const multiplier = 300 / 72;
+        // Calculate multiplier to achieve 300 DPI at the template's original dimensions
+        // The canvas is scaled by initialScale, so we divide by it to get consistent output
+        // regardless of current zoom level during editing
+        const baseDpiMultiplier = 300 / 72; // ~4.17x for 300 DPI from 72 DPI base
+        const multiplier = baseDpiMultiplier / initialScaleRef.current;
         const dataUrl = canvas.toDataURL({
           format: 'png',
           multiplier: multiplier,

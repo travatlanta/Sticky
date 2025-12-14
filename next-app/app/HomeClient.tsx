@@ -129,7 +129,7 @@ export default function HomeClient() {
       {/* Features Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-100">
               <div className="w-14 h-14 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl mx-auto mb-4 flex items-center justify-center shadow-lg shadow-orange-500/30">
                 <Palette className="h-7 w-7 text-white" />
@@ -427,7 +427,7 @@ export default function HomeClient() {
             <p className="text-lg text-gray-600">Start creating with our most loved print products</p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
             <Link href="/products" className="group">
               <div className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 text-center border border-orange-100 group-hover:-translate-y-2">
                 <div className="w-32 h-32 bg-gradient-to-br from-pink-300 via-orange-300 to-yellow-300 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg">

@@ -921,28 +921,32 @@ export default function Editor() {
     setZoom(newZoom);
     if (fabricCanvasRef.current) {
       const canvas = fabricCanvasRef.current;
-      
+      // Calculate new dimensions based on the product's template size.  We only
+      // update the displayed canvas size via setDimensions with the `cssOnly`
+      // option to avoid errors where Fabric's backstore dimensions are
+      // undefined (see errors like `Cannot set properties of undefined (setting 'width')`).
       const templateWidth = (product as any)?.templateWidth || 300;
       const templateHeight = (product as any)?.templateHeight || 300;
       const dpi = 300;
-      
       const newWidth = templateWidth * newZoom;
       const newHeight = templateHeight * newZoom;
-      
+
       canvas.setZoom(newZoom);
-      canvas.setWidth(newWidth);
-      canvas.setHeight(newHeight);
-      
+      // Update only the CSS dimensions of the canvas.  This avoids
+      // manipulating the internal canvas backstores that Fabric manages and
+      // prevents errors when the underlying contexts are undefined.
+      canvas.setDimensions({ width: newWidth, height: newHeight }, { cssOnly: true });
+
       // Print industry standard: trim line at bleed boundary, safe zone inside trim
       const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
       const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125;
       const trimLinePixels = bleedInches * dpi * newZoom;
       const safeZonePixels = (bleedInches + safeMarginInches) * dpi * newZoom;
-      
+
       const objects = canvas.getObjects();
       const trimGuide = objects.find((o: any) => o.name === "bleedGuide");
       const safeGuide = objects.find((o: any) => o.name === "safeGuide");
-      
+
       if (trimGuide) {
         trimGuide.set({
           left: trimLinePixels,
@@ -952,7 +956,7 @@ export default function Editor() {
         });
         canvas.bringToFront(trimGuide);
       }
-      
+
       if (safeGuide) {
         safeGuide.set({
           left: safeZonePixels,
@@ -962,7 +966,7 @@ export default function Editor() {
         });
         canvas.bringToFront(safeGuide);
       }
-      
+
       canvas.renderAll();
     }
   };
@@ -1214,7 +1218,7 @@ export default function Editor() {
 
       <main 
         ref={canvasContainerRef}
-        className="flex-1 flex items-center justify-center p-3 md:p-6 overflow-auto touch-none"
+        className="flex-1 flex items-center justify-center p-3 md:p-6 overflow-auto touch-none pb-28 md:pb-0"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -1237,7 +1241,7 @@ export default function Editor() {
         </div>
       </main>
 
-      <div className="bg-white border-t px-2 py-2 md:hidden safe-area-bottom">
+      <div className="bg-white border-t px-2 py-2 md:hidden safe-area-bottom fixed bottom-0 left-0 right-0 z-20">
         <div className="flex items-center gap-2">
           <div className="flex-1 overflow-x-auto scrollbar-hide">
             <div className="flex items-center gap-1 min-w-max pb-1">
@@ -1338,10 +1342,66 @@ export default function Editor() {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 pl-2 border-l">
-            <Button variant="outline" size="icon" onClick={handleSave} className="min-h-[44px] min-w-[44px] touch-manipulation" data-testid="button-save">
+            {/* Undo/Redo actions */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleUndo}
+              disabled={undoStack.length === 0}
+              className="min-h-[44px] min-w-[44px] touch-manipulation"
+              data-testid="button-undo-mobile"
+            >
+              <Undo className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRedo}
+              disabled={redoStack.length === 0}
+              className="min-h-[44px] min-w-[44px] touch-manipulation"
+              data-testid="button-redo-mobile"
+            >
+              <Redo className="h-5 w-5" />
+            </Button>
+
+            {/* Zoom controls */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleZoom(-0.25)}
+                className="min-h-[44px] min-w-[44px] touch-manipulation"
+                data-testid="button-zoom-out-mobile"
+              >
+                <ZoomOut className="h-5 w-5" />
+              </Button>
+              <span className="text-xs font-medium min-w-[40px] text-center">{Math.round(zoom * 100)}%</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleZoom(0.25)}
+                className="min-h-[44px] min-w-[44px] touch-manipulation"
+                data-testid="button-zoom-in-mobile"
+              >
+                <ZoomIn className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Save and Cart actions */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleSave}
+              className="min-h-[44px] min-w-[44px] touch-manipulation"
+              data-testid="button-save-mobile"
+            >
               <Save className="h-5 w-5" />
             </Button>
-            <Button onClick={handleAddToCart} className="bg-orange-500 hover:bg-orange-600 min-h-[44px] px-4 touch-manipulation" data-testid="button-add-to-cart">
+            <Button
+              onClick={handleAddToCart}
+              className="bg-orange-500 hover:bg-orange-600 min-h-[44px] px-4 touch-manipulation"
+              data-testid="button-add-to-cart-mobile"
+            >
               <ShoppingCart className="h-5 w-5 mr-1" />
               <span className="text-sm font-medium">Cart</span>
             </Button>

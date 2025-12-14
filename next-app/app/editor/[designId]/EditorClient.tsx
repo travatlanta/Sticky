@@ -146,27 +146,35 @@ export default function Editor() {
     setZoom(initialScale);
     fabricCanvasRef.current = canvas;
 
-    const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
-    const safeZoneInches = parseFloat((product as any)?.safeZoneSize) || 0.25;
+    // Print industry standard guide positions:
+    // - Canvas includes bleed area on all sides
+    // - TRIM LINE (red): where paper gets cut, at bleed distance from canvas edge
+    // - SAFE ZONE (green): where important content should stay, inside the trim line
+    const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125; // outer bleed area
+    const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125; // margin inside trim line
     
-    const bleedPixels = bleedInches * dpi * initialScale;
-    const safeZonePixels = safeZoneInches * dpi * initialScale;
+    // Trim line position: at bleed boundary (where paper will be cut)
+    const trimLinePixels = bleedInches * dpi * initialScale;
+    // Safe zone position: inside trim line by safe margin amount
+    const safeZonePixels = (bleedInches + safeMarginInches) * dpi * initialScale;
     
-    const bleedRect = new window.fabric.Rect({
-      left: bleedPixels,
-      top: bleedPixels,
-      width: displayWidth - bleedPixels * 2,
-      height: displayHeight - bleedPixels * 2,
+    // Red TRIM LINE - shows where paper will be cut
+    const trimRect = new window.fabric.Rect({
+      left: trimLinePixels,
+      top: trimLinePixels,
+      width: displayWidth - trimLinePixels * 2,
+      height: displayHeight - trimLinePixels * 2,
       fill: "transparent",
       stroke: "#ef4444",
       strokeWidth: 2,
       strokeDashArray: [8, 4],
       selectable: false,
       evented: false,
-      name: "bleedGuide",
+      name: "bleedGuide", // Keep name for compatibility
       excludeFromExport: true,
     });
 
+    // Green SAFE ZONE - keep important content inside this area
     const safeRect = new window.fabric.Rect({
       left: safeZonePixels,
       top: safeZonePixels,
@@ -182,7 +190,7 @@ export default function Editor() {
       excludeFromExport: true,
     });
 
-    canvas.add(bleedRect, safeRect);
+    canvas.add(trimRect, safeRect);
 
     if ((design as any)?.canvasJson) {
       canvas.loadFromJSON((design as any).canvasJson, () => {
@@ -194,7 +202,7 @@ export default function Editor() {
         canvas.renderAll();
       });
     } else {
-      canvas.bringToFront(bleedRect);
+      canvas.bringToFront(trimRect);
       canvas.bringToFront(safeRect);
     }
 
@@ -515,23 +523,24 @@ export default function Editor() {
       canvas.setWidth(newWidth);
       canvas.setHeight(newHeight);
       
+      // Print industry standard: trim line at bleed boundary, safe zone inside trim
       const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
-      const safeZoneInches = parseFloat((product as any)?.safeZoneSize) || 0.25;
-      const bleedPixels = bleedInches * dpi * newZoom;
-      const safeZonePixels = safeZoneInches * dpi * newZoom;
+      const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125;
+      const trimLinePixels = bleedInches * dpi * newZoom;
+      const safeZonePixels = (bleedInches + safeMarginInches) * dpi * newZoom;
       
       const objects = canvas.getObjects();
-      const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
+      const trimGuide = objects.find((o: any) => o.name === "bleedGuide");
       const safeGuide = objects.find((o: any) => o.name === "safeGuide");
       
-      if (bleedGuide) {
-        bleedGuide.set({
-          left: bleedPixels,
-          top: bleedPixels,
-          width: newWidth - bleedPixels * 2,
-          height: newHeight - bleedPixels * 2,
+      if (trimGuide) {
+        trimGuide.set({
+          left: trimLinePixels,
+          top: trimLinePixels,
+          width: newWidth - trimLinePixels * 2,
+          height: newHeight - trimLinePixels * 2,
         });
-        canvas.bringToFront(bleedGuide);
+        canvas.bringToFront(trimGuide);
       }
       
       if (safeGuide) {

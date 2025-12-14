@@ -255,12 +255,20 @@ export default function Editor() {
       });
       if (!res.ok) return [];
       const raw = await res.json();
-      // Deduplicate designs by ID to avoid showing duplicate entries in the
-      // dropdown.  Use a Set to track IDs and filter out any repeats.
-      const seen = new Set();
+      /*
+       * Deduplicate designs by productId rather than by design ID.  The
+       * previous implementation used a Set keyed on the design ID, which
+       * allowed multiple designs for the same product to appear in the
+       * dropdown and cluttered the menu.  Here we track each design's
+       * productId in a Set and only include the first design for each
+       * product.  This way the user sees one entry per product line (e.g.,
+       * "Kiss‑Cut Stickers Design", "Circle Stickers Design") and can
+       * start a fresh design on that product without duplicate entries.
+       */
+      const seenProducts = new Set();
       return raw.filter((item: any) => {
-        if (seen.has(item.id)) return false;
-        seen.add(item.id);
+        if (seenProducts.has(item.productId)) return false;
+        seenProducts.add(item.productId);
         return true;
       });
     },
@@ -468,17 +476,16 @@ export default function Editor() {
     setRedoStack([]);
   }, []);
 
+  /*
+   * Auto‑save is intentionally disabled.  Previously we scheduled an
+   * automatic save 15 seconds after any change to the canvas, but this
+   * resulted in excessive design records being created as soon as a user
+   * touched the editor.  Designs should only be persisted when the user
+   * explicitly clicks the “Save” button or adds the design to the cart.
+   */
   const scheduleAutoSave = useCallback(() => {
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-    autoSaveTimeoutRef.current = setTimeout(() => {
-      if (fabricCanvasRef.current) {
-        const json = fabricCanvasRef.current.toJSON();
-        saveMutation.mutate(json);
-      }
-    }, 15000);
-  }, [saveMutation]);
+    // no-op: auto-save disabled
+  }, []);
 
   useEffect(() => {
     // Initialize the canvas as soon as a design is available.  In the original

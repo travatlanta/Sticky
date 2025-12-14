@@ -1,15 +1,21 @@
 "use client";
 
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Flame, Eye, EyeOff, Home, ArrowUp, ArrowDown, Upload, Star, Calendar } from "lucide-react";
+import { Plus, Pencil, Trash2, Flame, Eye, EyeOff, Home, ArrowUp, ArrowDown, Upload, Star, Calendar, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+interface Product {
+  id: number;
+  name: string;
+  slug: string;
+}
 
 interface Deal {
   id: number;
@@ -114,6 +120,8 @@ export default function AdminDeals() {
   const [showForm, setShowForm] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [formData, setFormData] = useState(defaultFormData);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -121,6 +129,38 @@ export default function AdminDeals() {
   const { data: deals, isLoading } = useQuery<Deal[]>({
     queryKey: ["/api/admin/deals"],
   });
+
+  const { data: products } = useQuery<Product[]>({
+    queryKey: ["/api/admin/products"],
+  });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      
+      const response = await fetch('/api/admin/upload/deal-image', {
+        method: 'POST',
+        credentials: 'include',
+        body: uploadFormData,
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      setFormData({ ...formData, imageUrl: data.url });
+      toast({ title: "Image uploaded successfully" });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({ title: "Failed to upload image", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -337,15 +377,49 @@ export default function AdminDeals() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1">Image URL</label>
-                    <input
-                      type="text"
-                      value={formData.imageUrl}
-                      onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="https://example.com/deal-image.jpg"
-                      data-testid="input-deal-image"
-                    />
+                    <label className="block text-sm font-medium mb-2">Deal Image</label>
+                    <div className="flex items-start gap-4">
+                      <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
+                        {formData.imageUrl ? (
+                          <img 
+                            src={formData.imageUrl} 
+                            alt="Deal preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Image className="h-8 w-8 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          data-testid="input-deal-image"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                          className="w-full"
+                          data-testid="button-upload-deal-image"
+                        >
+                          {isUploading ? (
+                            "Uploading..."
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              {formData.imageUrl ? "Change Image" : "Upload Image"}
+                            </>
+                          )}
+                        </Button>
+                        <p className="text-xs text-gray-500">JPG, PNG, GIF, or WebP. Max 10MB.</p>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Deal Price *</label>
@@ -406,15 +480,20 @@ export default function AdminDeals() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Link URL</label>
-                    <input
-                      type="text"
+                    <label className="block text-sm font-medium mb-1">Link to Product</label>
+                    <select
                       value={formData.linkUrl}
                       onChange={(e) => setFormData({ ...formData, linkUrl: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="/products/die-cut-stickers-3x3"
-                      data-testid="input-deal-link"
-                    />
+                      data-testid="select-deal-product"
+                    >
+                      <option value="">Select a product...</option>
+                      {products?.map((product) => (
+                        <option key={product.id} value={`/products/${product.slug}`}>
+                          {product.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Badge Text</label>

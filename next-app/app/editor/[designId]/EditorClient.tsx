@@ -118,13 +118,19 @@ export default function Editor() {
     const templateHeight = (product as any)?.templateHeight || 300;
     const dpi = 300;
     
-    const containerWidth = canvasContainerRef.current?.clientWidth || 350;
-    const containerHeight = canvasContainerRef.current?.clientHeight || 350;
+    const containerWidth = canvasContainerRef.current?.clientWidth || 500;
+    const containerHeight = canvasContainerRef.current?.clientHeight || 500;
     
-    const scaleX = (containerWidth - 48) / templateWidth;
-    const scaleY = (containerHeight - 80) / templateHeight;
-    const initialScale = Math.max(Math.min(scaleX, scaleY, 1), 0.15);
-    initialScaleRef.current = initialScale; // Store for consistent 300 DPI exports
+    // Calculate scale to fill about 80% of the available container
+    const padding = 40;
+    const availableWidth = containerWidth - padding;
+    const availableHeight = containerHeight - padding;
+    
+    const scaleX = availableWidth / templateWidth;
+    const scaleY = availableHeight / templateHeight;
+    // Use the smaller scale to fit in container, but set reasonable min/max
+    const initialScale = Math.max(Math.min(scaleX, scaleY, 2), 0.3);
+    initialScaleRef.current = initialScale;
     
     const displayWidth = templateWidth * initialScale;
     const displayHeight = templateHeight * initialScale;
@@ -476,8 +482,24 @@ export default function Editor() {
     }
   };
 
+  const handleFitToScreen = () => {
+    if (!fabricCanvasRef.current || !canvasContainerRef.current) return;
+    
+    const templateWidth = (product as any)?.templateWidth || 300;
+    const templateHeight = (product as any)?.templateHeight || 300;
+    const containerWidth = canvasContainerRef.current.clientWidth;
+    const containerHeight = canvasContainerRef.current.clientHeight;
+    
+    const padding = 40;
+    const scaleX = (containerWidth - padding) / templateWidth;
+    const scaleY = (containerHeight - padding) / templateHeight;
+    const fitScale = Math.min(scaleX, scaleY);
+    
+    handleZoom(fitScale - zoom);
+  };
+
   const handleZoom = (delta: number) => {
-    const newZoom = Math.max(0.1, Math.min(2, zoom + delta));
+    const newZoom = Math.max(0.2, Math.min(3, zoom + delta));
     setZoom(newZoom);
     if (fabricCanvasRef.current) {
       const canvas = fabricCanvasRef.current;

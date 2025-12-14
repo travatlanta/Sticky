@@ -1464,7 +1464,7 @@ export default function Editor() {
         onWheel={(e) => { e.preventDefault(); handleZoom(e.deltaY < 0 ? 0.25 : -0.25); }}
       >
         <div className="relative">
-          <div className="bg-white rounded-lg shadow-lg p-2 md:p-6">
+          <div className="bg-white rounded-lg shadow-lg p-0 md:p-0">
             <canvas ref={canvasRef} className="block touch-none" data-testid="design-canvas" />
             {/* Inline text edit menu: shows when a text object is selected */}
             {showInlineTextMenu && inlineMenuPosition && (

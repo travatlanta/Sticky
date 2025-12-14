@@ -1,12 +1,11 @@
 /*
- * Checkout-specific error page
+ * Global error page for Sticky Banditos.
  *
- * When an uncaught exception occurs during the checkout process, this page
- * provides a consistent and friendly experience. It mirrors the global
- * error page, displaying the Sticky Banditos logo and offering simple
- * actions to recover: reload the page or return home. Keeping this file
- * scoped to the checkout route ensures that errors within the payment
- * flow render a helpful message instead of the generic Next.js error.
+ * When any uncaught error occurs in the app router, this component will be
+ * rendered. It provides a consistent, friendly experience for users by
+ * displaying the brand logo and offering simple steps to recover. Users can
+ * reload the page or navigate back to the home page. Updating this file
+ * ensures all client-side exceptions share the same template.
  */
 
 'use client';
@@ -14,10 +13,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-// The error boundary for the checkout route receives the error and a reset
-// function to retry rendering. The digest property is optional and not used
-// here, but included for completeness.
-export default function CheckoutError({
+// According to Next.js docs, error components receive two props: the error
+// object and a reset function to retry the rendering. We don’t need the
+// digest here, but preserving the generic types ensures type safety.
+export default function GlobalError({
   error,
   reset,
 }: {
@@ -27,6 +26,7 @@ export default function CheckoutError({
   return (
     <html>
       <body className="min-h-screen flex flex-col items-center justify-center bg-white p-8 text-center">
+        {/* Site logo */}
         <Image
           src="/logo-icon.png"
           alt="Sticky Banditos logo"
@@ -34,10 +34,9 @@ export default function CheckoutError({
           height={80}
           className="mb-4 rounded-md shadow-md"
         />
-        <h1 className="text-3xl font-bold mb-2">Uh‑oh! Checkout issue.</h1>
+        <h1 className="text-3xl font-bold mb-2">Oops! Something went wrong.</h1>
         <p className="text-gray-600 mb-6">
-          We're experiencing a technical difficulty with checkout. Please try
-          reloading the page or head back to the home page.
+          We're experiencing a technical difficulty. Please try reloading the page or head back to the home page.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
           <button

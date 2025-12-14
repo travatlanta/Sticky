@@ -1689,9 +1689,9 @@ export default function Editor() {
       </div>
 
       {showTemplates && templates && templates.length > 0 && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowTemplates(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center pb-24" onClick={() => setShowTemplates(false)}>
           <div 
-            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[65vh] md:max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -1749,9 +1749,9 @@ export default function Editor() {
       )}
 
       {showHelp && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowHelp(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center pb-24" onClick={() => setShowHelp(false)}>
           <div 
-            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[65vh] md:max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -1826,9 +1826,9 @@ export default function Editor() {
 
       {/* Cart preview overlay: shown after successfully adding an item to the cart.  */}
       {showCartPreview && cartPreview && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowCartPreview(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center pb-24" onClick={() => setShowCartPreview(false)}>
           <div
-            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[65vh] md:max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -1913,9 +1913,9 @@ export default function Editor() {
       )}
 
       {showCustomShapeModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowCustomShapeModal(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center pb-24" onClick={() => setShowCustomShapeModal(false)}>
           <div 
-            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[65vh] md:max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -1967,9 +1967,9 @@ export default function Editor() {
       )}
 
       {showAssets && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowAssets(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center pb-24" onClick={() => setShowAssets(false)}>
           <div 
-            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[65vh] md:max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -2173,9 +2173,9 @@ export default function Editor() {
       )}
 
       {showEffects && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowEffects(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center pb-24" onClick={() => setShowEffects(false)}>
           <div 
-            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[65vh] md:max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -2272,12 +2272,22 @@ export default function Editor() {
 
       {showTextMenu && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-start justify-center md:justify-end"
+          className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-start justify-center md:justify-end pb-24"
           onClick={() => setShowTextMenu(false)}
           data-testid="overlay-text-menu"
         >
           <div 
-            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[80vh] overflow-y-auto"
+            /*
+             * Limit the height of the modal on small screens so that the canvas
+             * remains visible when the menu is open.  Previously the menus used
+             * max‑h-[80vh]/[85vh], which caused them to fill nearly the entire
+             * viewport and hide the canvas and bottom toolbar on mobile.  By
+             * lowering the maximum height to 65% of the viewport height we ensure
+             * there is always some space left for the user to see their design
+             * behind the overlay.  The md breakpoint retains the previous 80vh
+             * limit for desktop.
+             */
+            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[65vh] md:max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             data-testid="modal-text-menu"
           >
@@ -2473,9 +2483,9 @@ export default function Editor() {
       )}
 
       {showUploadMenu && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowUploadMenu(false)} data-testid="overlay-upload-menu">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center pb-24" onClick={() => setShowUploadMenu(false)} data-testid="overlay-upload-menu">
           <div 
-            className="bg-white w-full md:max-w-2xl md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[85vh] overflow-y-auto"
+            className="bg-white w-full md:max-w-2xl md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[65vh] md:max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             data-testid="modal-upload-menu"
           >
@@ -2584,9 +2594,9 @@ export default function Editor() {
       )}
 
       {showTutorial && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center" onClick={() => setShowTutorial(false)} data-testid="overlay-tutorial">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center pb-24" onClick={() => setShowTutorial(false)} data-testid="overlay-tutorial">
           <div 
-            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[85vh] overflow-y-auto"
+            className="bg-white w-full md:max-w-lg md:rounded-xl rounded-t-xl p-4 md:p-6 max-h-[65vh] md:max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             data-testid="modal-tutorial"
           >

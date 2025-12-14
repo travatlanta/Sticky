@@ -206,11 +206,17 @@ export default function ProductDetail() {
       const designRes = await fetch("/api/designs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // When creating a design via quick order, supply both the high-res export
+        // URL and a preview URL. Without a preview, the cart and checkout pages
+        // fall back to a placeholder icon. Use the uploaded artwork as both
+        // the high-res and preview images. This allows the cart to display a
+        // thumbnail without any additional processing.
         body: JSON.stringify({
           productId: product.id,
           name: `${product.name} - Quick Order`,
           selectedOptions,
           highResExportUrl: uploadData.url,
+          previewUrl: uploadData.url,
         }),
         credentials: "include",
       });

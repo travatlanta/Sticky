@@ -303,7 +303,12 @@ export default function Editor() {
         clearTimeout(autoSaveTimeoutRef.current);
       }
       if (fabricCanvasRef.current) {
+        // Dispose of the Fabric canvas when the component unmounts or the design changes.
+        // Without resetting the ref to null, future event handlers (e.g. undo/redo
+        // callbacks) may still attempt to call methods on a disposed canvas,
+        // leading to errors such as "Cannot read properties of null (reading 'clearRect')".
         fabricCanvasRef.current.dispose();
+        fabricCanvasRef.current = null;
       }
     };
   }, [design, loadFabric]);

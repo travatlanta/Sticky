@@ -45,6 +45,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.5.0",
+    "react-square-web-payments-sdk": "^3.2.4-beta.1",
+    "square": "^43.2.1",
     "stripe": "^17.5.0",
     "tailwind-merge": "^2.5.5",
     "wouter": "^3.3.5",

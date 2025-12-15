@@ -36,6 +36,8 @@ export async function PUT(
         bleedSize: body.bleedSize,
         safeZoneSize: body.safeZoneSize,
         supportsCustomShape: body.supportsCustomShape,
+        shippingType: body.shippingType,
+        flatShippingPrice: body.shippingType === 'flat' ? (body.flatShippingPrice || '0') : '0',
         updatedAt: new Date(),
       })
       .where(eq(products.id, parseInt(id)))

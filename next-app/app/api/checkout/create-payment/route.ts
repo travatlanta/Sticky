@@ -3,12 +3,11 @@ export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { carts, orders, orderItems } from '@shared/schema';
+import { carts, cartItems, orders, orderItems } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
-// Load Square dynamically (SDK typings workaround)
 const Square: any = require('square');
 
 function noCache(res: NextResponse) {
@@ -37,21 +36,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const cart = await db.query.carts.findFirst({
-      where: eq(carts.sessionId, sessionId),
-      // 🔧 FIX: remove invalid nested relation
-      with: {
-        items: true,
-      },
-    });
+    // ✅ STEP 1: fetch cart WITHOUT relations
+    const cart = await db
+      .select()
+      .from(carts)
+      .where(eq(carts.sessionId, sessionId))
+      .limit(1)
+      .then(rows => rows[0]);
 
-    if (!cart || !cart.items) {
+    if (!cart) {
       return noCache(
         NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
       );
     }
 
-    const items = cart.items as any[];
+    // ✅ STEP 2: fetch cart items separately
+    const items = await db
+      .select()
+      .from(cartItems)
+      .where(eq(cartItems.cartId, cart.id));
 
     if (items.length === 0) {
       return noCache(
@@ -59,8 +62,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const totalAmount = Number((cart as any).totalAmount ?? (cart as any).total ?? 0);
-    const subtotal = Number((cart as any).subtotal ?? totalAmount);
+    const totalAmount = Number(cart.totalAmount ?? cart.total ?? 0);
+    const subtotal = Number(cart.subtotal ?? totalAmount);
 
     if (totalAmount <= 0) {
       return noCache(

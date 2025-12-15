@@ -8,6 +8,11 @@
  * message is shown instead of throwing a client-side exception. The page
  * also includes ample vertical padding so the content doesn’t feel
  * cramped against the header or footer.
+ *
+ * FIX:
+ * - Removed ALL $15 shipping fallbacks and checkout-side shipping settings query.
+ * - Checkout now uses shipping returned by /api/cart (cart.shipping) only.
+ * - Also fixes React hook order error by removing the conditional shipping settings hook.
  */
 
 'use client';
@@ -70,9 +75,11 @@ export default function CheckoutClient() {
   });
 
   // Retrieve cart details. The query key matches the API route used for the cart.
+  // NOTE: /api/cart now returns shipping + total fields.
   const { data: cart, isLoading: cartLoading } = useQuery<{
     items: CartItem[];
     subtotal: number;
+    shipping: number;
     total: number;
   }>({
     queryKey: ['/api/cart'],
@@ -173,43 +180,16 @@ export default function CheckoutClient() {
     );
   }
 
-  // Calculate subtotal and totals on the client. The server already returns these, but fallback if missing.
-  const subtotal = cart.subtotal || cart.items.reduce((sum, item) => sum + parseFloat(item.unitPrice) * item.quantity, 0);
-  // Fetch shipping configuration from the server. This query loads
-  // `{ shippingCost, freeShipping }` from the settings API. If fetching
-  // fails, a fallback of 15 is used. When freeShipping is true, the
-  // computed shipping cost will be zero.
-  // Retrieve shipping settings via React Query. Provide a generic type
-  // argument so that the returned `data` property will have the
-  // `automaticShipping` field in addition to `shippingCost` and
-  // `freeShipping`. Without specifying the generic type, TypeScript
-  // would infer an insufficient type and produce an error when accessing
-  // `automaticShipping`.
-  const { data: shippingData } = useQuery<
-    { shippingCost: number; freeShipping: boolean; automaticShipping: boolean },
-    Error
-  >({
-    queryKey: ["shipping"],
-    queryFn: async () => {
-      const res = await fetch("/api/settings/shipping");
-      if (!res.ok) throw new Error("Failed to load shipping settings");
-      return res.json() as Promise<{
-        shippingCost: number;
-        freeShipping: boolean;
-        automaticShipping: boolean;
-      }>;
-    },
-  });
-  // Compute shipping based on settings and the number of items in the cart.
-  const itemCount = cart.items.length;
-  let shipping: number;
-  if (shippingData?.freeShipping) {
-    shipping = 0;
-  } else if (shippingData?.automaticShipping) {;
-    shipping = base * itemCount;
-  } else {
-  }
-  const total = subtotal + shipping;
+  // Calculate subtotal and totals on the client. The server returns these, but fallback if missing.
+  const subtotal =
+    (typeof cart.subtotal === 'number' ? cart.subtotal : 0) ||
+    cart.items.reduce((sum, item) => sum + parseFloat(item.unitPrice) * item.quantity, 0);
+
+  // Shipping now comes ONLY from /api/cart. No settings query. No $15 fallback.
+  const shipping = typeof cart.shipping === 'number' ? cart.shipping : 0;
+
+  // Total from /api/cart when provided, otherwise subtotal + shipping.
+  const total = typeof cart.total === 'number' ? cart.total : subtotal + shipping;
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-6xl">
@@ -327,21 +307,21 @@ export default function CheckoutClient() {
                   <p className="font-medium">
                     {shippingAddress.firstName} {shippingAddress.lastName}
                   </p>
-                    <p className="text-gray-600">{shippingAddress.address1}</p>
-                    {shippingAddress.address2 && <p className="text-gray-600">{shippingAddress.address2}</p>}
-                    <p className="text-gray-600">
-                      {shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}
-                    </p>
-                    {shippingAddress.phone && <p className="text-gray-600">{shippingAddress.phone}</p>}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setStep('shipping')}
-                      data-testid="button-edit-shipping"
-                    >
-                      Edit
-                    </Button>
-                  </div>
+                  <p className="text-gray-600">{shippingAddress.address1}</p>
+                  {shippingAddress.address2 && <p className="text-gray-600">{shippingAddress.address2}</p>}
+                  <p className="text-gray-600">
+                    {shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}
+                  </p>
+                  {shippingAddress.phone && <p className="text-gray-600">{shippingAddress.phone}</p>}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStep('shipping')}
+                    data-testid="button-edit-shipping"
+                  >
+                    Edit
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -405,7 +385,7 @@ export default function CheckoutClient() {
             </CardHeader>
             <CardContent className="space-y-4">
               {cart.items.map((item) => (
-                <div key={item.id} className="flex gap-3" data-testid={`checkout-item-${item.id}`}> 
+                <div key={item.id} className="flex gap-3" data-testid={`checkout-item-${item.id}`}>
                   <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
                     {item.design?.previewUrl ? (
                       <Image

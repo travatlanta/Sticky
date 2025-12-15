@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔧 Fetch cart WITHOUT relations (no PK issues)
+    // Fetch cart (no relations)
     const cart = await db
       .select()
       .from(carts)
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔧 Fetch cart items separately
+    // Fetch cart items separately
     const items = await db
       .select()
       .from(cartItems)
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔧 Drizzle column typing fix
+    // Drizzle typing fixes
     const cartRow = cart as any;
     const totalAmount = Number(cartRow.totalAmount ?? cartRow.total ?? 0);
     const subtotal = Number(cartRow.subtotal ?? totalAmount);
@@ -108,12 +108,13 @@ export async function POST(request: Request) {
       })
       .returning();
 
+    // ✅ FIX: ensure unitPrice is never null
     for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,
         productId: item.productId,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
+        unitPrice: String(item.unitPrice ?? '0'),
       });
     }
 

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
-import { Client } from 'square';
+import { eq } from 'drizzle-orm';
+
+// ✅ CommonJS Square import (REQUIRED for your SDK version)
+const Square = require('square');
 
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
-import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,8 +75,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Initialize Square client
-    const square = new Client({
+    // ✅ Initialize Square client (CORRECT)
+    const square = new Square.Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment:
         process.env.NODE_ENV === 'production'

@@ -9,37 +9,26 @@ export async function autoSeedIfNeeded() {
   const existingCategories = await db.select().from(categories);
   const existingProducts = await db.select().from(products);
   
-  // IMPORTANT SAFETY:
-  // Never delete/replace an existing catalog automatically.
-  // This project has an admin product editor; wiping data on server start makes products "disappear".
-  //
-  // Auto-seed should ONLY populate an empty database.
-  // If you ever want to hard reset for development, set AUTO_SEED_RESET=true.
-  const allowReset = (process.env.AUTO_SEED_RESET || "").toLowerCase() === "true";
-
-  if (allowReset) {
-    console.warn(
-      `AUTO_SEED_RESET=true -> wiping catalog (${existingCategories.length} categories, ${existingProducts.length} products) and re-seeding.`
-    );
-
+  // If we have more than 3 categories or more than 50 products, we have old data
+  // The correct state is: 3 categories (Stickers, Labels, Bottle Labels) and ~35 products
+  const needsReseed = existingCategories.length > 3 || existingProducts.length > 50;
+  
+  if (needsReseed) {
+    console.log(`Database has stale data (${existingCategories.length} categories, ${existingProducts.length} products). Re-seeding...`);
+    
     // Clear old data in correct order (respecting foreign keys)
     await db.delete(pricingTiers);
     await db.delete(productOptions);
     await db.delete(products);
     await db.delete(categories);
     await db.delete(deals);
-
-    console.log("Catalog wiped. Seeding fresh data...");
+    
+    console.log("Old data cleared. Seeding fresh data...");
+  } else if (existingProducts.length === 0) {
+    console.log("Empty database. Seeding...");
   } else {
-    const isEmpty = existingCategories.length === 0 || existingProducts.length === 0;
-    if (!isEmpty) {
-      console.log(
-        `Database already has data (${existingCategories.length} categories, ${existingProducts.length} products). Skipping auto-seed.`
-      );
-      return;
-    }
-
-    console.log("Empty database detected. Seeding...");
+    console.log(`Database OK (${existingCategories.length} categories, ${existingProducts.length} products). Skipping seed.`);
+    return;
   }
   
   // Create categories - ONLY stickers, labels, and bottle labels

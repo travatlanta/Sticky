@@ -8,11 +8,14 @@ import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
-// Load Square dynamically to avoid SDK typing issues
+// Square SDK (loaded dynamically to avoid TS export issues)
 const Square: any = require('square');
 
 function noCache(res: NextResponse) {
-  res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.headers.set(
+    'Cache-Control',
+    'no-store, no-cache, must-revalidate, proxy-revalidate'
+  );
   res.headers.set('Pragma', 'no-cache');
   res.headers.set('Expires', '0');
   return res;
@@ -25,7 +28,10 @@ export async function POST(request: Request) {
 
     if (!sourceId) {
       return noCache(
-        NextResponse.json({ error: 'Missing payment source' }, { status: 400 })
+        NextResponse.json(
+          { error: 'Missing payment source' },
+          { status: 400 }
+        )
       );
     }
 
@@ -37,7 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch cart (no relations)
+    // Fetch cart (no relations — avoids Drizzle PK issues)
     const cart = await db
       .select()
       .from(carts)
@@ -63,7 +69,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Drizzle typing fixes
+    // Drizzle typing guard (runtime values exist, TS cannot infer)
     const cartRow = cart as any;
     const totalAmount = Number(cartRow.totalAmount ?? cartRow.total ?? 0);
     const subtotal = Number(cartRow.subtotal ?? totalAmount);
@@ -74,6 +80,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Initialize Square client
     const square = new Square.Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment:
@@ -82,6 +89,7 @@ export async function POST(request: Request) {
           : 'sandbox',
     });
 
+    // 🔧 FIXED ADDRESS MAPPING (THIS WAS THE ISSUE)
     await square.payments.create({
       sourceId,
       idempotencyKey: randomUUID(),
@@ -94,11 +102,14 @@ export async function POST(request: Request) {
         addressLine2: shippingAddress.address2 || undefined,
         locality: shippingAddress.city,
         administrativeDistrictLevel1: shippingAddress.state,
-        postalCode: shippingAddress.zip,
-        country: 'US',
+        postalCode: shippingAddress.zip, // REQUIRED by Square
+        country: 'US',                   // REQUIRED by Square
+        firstName: shippingAddress.firstName,
+        lastName: shippingAddress.lastName,
       },
     });
 
+    // Create order
     const [order] = await db
       .insert(orders)
       .values({
@@ -108,7 +119,7 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    // ✅ FIX: ensure unitPrice is never null
+    // Create order items
     for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,

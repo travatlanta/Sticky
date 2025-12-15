@@ -3,8 +3,8 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 
-// Square SDK (factory-based for your version)
-const Square = require('square');
+// ✅ CORRECT Square import for your installed SDK
+const { Client, Environment } = require('square');
 
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Calculate subtotal (NO SHIPPING)
+    // Subtotal only — NO SHIPPING
     const subtotal = items.reduce(
       (sum, item) => sum + Number(item.unitPrice ?? '0') * item.quantity,
       0
@@ -75,13 +75,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Correct Square initialization for your SDK
-    const square = Square({
+    // ✅ Proper Square client initialization
+    const square = new Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment:
         process.env.NODE_ENV === 'production'
-          ? 'production'
-          : 'sandbox',
+          ? Environment.Production
+          : Environment.Sandbox,
     });
 
     const payment = await square.paymentsApi.createPayment({
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
       })
       .returning();
 
-    // Create order items (null-safe)
+    // Create order items
     for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,

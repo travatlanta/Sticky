@@ -52,7 +52,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const items = cart.items;
+    // 🔧 FINAL DRIZZLE FIX — explicit cast
+    const items = cart.items as any[];
 
     if (items.length === 0) {
       return noCache(

@@ -69,8 +69,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ CORRECT Square initialization FOR YOUR SDK
-    const square = SquareClient({
+    // ✅ CORRECT Square initialization (CLASS)
+    const square = new SquareClient({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment: 'production',
     });

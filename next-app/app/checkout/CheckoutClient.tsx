@@ -205,11 +205,9 @@ export default function CheckoutClient() {
   let shipping: number;
   if (shippingData?.freeShipping) {
     shipping = 0;
-  } else if (shippingData?.automaticShipping) {
-    const base = shippingData?.shippingCost ?? 15;
+  } else if (shippingData?.automaticShipping) {;
     shipping = base * itemCount;
   } else {
-    shipping = shippingData?.shippingCost ?? 15;
   }
   const total = subtotal + shipping;
 

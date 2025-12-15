@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔧 FINAL DRIZZLE FIX — explicit cast
+    // 🔧 DRIZZLE RELATION TYPE FIX
     const items = cart.items as any[];
 
     if (items.length === 0) {
@@ -61,7 +61,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const total = Number(cart.total ?? 0);
+    // 🔧 DRIZZLE COLUMN TYPE FIX
+    const total = Number((cart as any).total ?? 0);
 
     if (total <= 0) {
       return noCache(

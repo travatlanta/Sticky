@@ -1,14 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Product, ShippingType } from '../../../../shared/types/product';
+
+type ShippingType = 'free' | 'flat' | 'calculated';
+
+interface Product {
+  shippingType?: ShippingType;
+  flatShippingPrice?: number | null;
+}
 
 export default function ProductForm({ product }: { product?: Product }) {
   const [shippingType, setShippingType] = useState<ShippingType>(
-    product?.shippingType || 'calculated'
+    product?.shippingType ?? 'calculated'
   );
   const [flatPrice, setFlatPrice] = useState<number>(
-    product?.flatShippingPrice || 0
+    product?.flatShippingPrice ?? 0
   );
 
   return (

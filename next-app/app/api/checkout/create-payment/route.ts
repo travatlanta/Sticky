@@ -1,165 +1,145 @@
-import { NextRequest, NextResponse } from 'next/server';
-import squareClient from '@/lib/square';
-import { randomUUID } from 'crypto';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { orders, orderItems, cartItems, carts, products } from '@/shared/schema';
-import { eq } from 'drizzle-orm';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-interface ShippingAddress {
-  firstName: string;
-  lastName: string;
-  address1: string;
-  address2?: string;
-  city: string;
-  state: string;
-  zip: string;
-  phone?: string;
+import { NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { carts, cartItems, products, designs } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import { cookies } from 'next/headers';
+import { randomUUID } from 'crypto';
+
+// IMPORTANT:
+// We CANNOT use '@/server/services/shipping' here because Next.js app router
+// does not resolve that alias. We must import via a relative path.
+import { calculateShippingForItems } from '../../../../server/services/shipping';
+
+function noCache(res: NextResponse) {
+  res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.headers.set('Pragma', 'no-cache');
+  res.headers.set('Expires', '0');
+  return res;
 }
 
-export async function POST(request: NextRequest) {
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Please log in to complete your order' }, { status: 401 });
+    const cookieStore = cookies();
+    let sessionId = cookieStore.get('cart-session-id')?.value;
+
+    if (!sessionId) {
+      sessionId = randomUUID();
+      cookieStore.set({
+        name: 'cart-session-id',
+        value: sessionId,
+        httpOnly: true,
+        path: '/',
+        sameSite: 'lax',
+      });
     }
 
-    const body = await request.json();
-    const { sourceId, shippingAddress, billingAddress } = body as {
-      sourceId: string;
-      shippingAddress?: ShippingAddress;
-      billingAddress?: ShippingAddress;
-    };
+    let [cart] = await db
+      .select()
+      .from(carts)
+      .where(eq(carts.sessionId, sessionId));
 
-    if (!sourceId) {
-      return NextResponse.json(
-        { error: 'Payment information is missing. Please try again.' },
-        { status: 400 }
-      );
-    }
-
-    const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID;
-    if (!locationId) {
-      console.error('NEXT_PUBLIC_SQUARE_LOCATION_ID not configured');
-      return NextResponse.json(
-        { error: 'Payment system not properly configured. Please contact support.' },
-        { status: 500 }
-      );
-    }
-
-    const userCart = await db.select().from(carts).where(eq(carts.userId, session.user.id)).limit(1);
-    
-    if (userCart.length === 0) {
-      return NextResponse.json({ error: 'Your cart is empty' }, { status: 404 });
+    if (!cart) {
+      [cart] = await db.insert(carts).values({ sessionId }).returning();
     }
 
     const items = await db
       .select({
-        cartItem: cartItems,
+        id: cartItems.id,
+        quantity: cartItems.quantity,
+        unitPrice: cartItems.unitPrice,
+        selectedOptions: cartItems.selectedOptions,
         product: products,
+        design: designs,
       })
       .from(cartItems)
-      .innerJoin(products, eq(cartItems.productId, products.id))
-      .where(eq(cartItems.cartId, userCart[0].id));
+      .leftJoin(products, eq(cartItems.productId, products.id))
+      .leftJoin(designs, eq(cartItems.designId, designs.id))
+      .where(eq(cartItems.cartId, cart.id));
 
-    if (items.length === 0) {
-      return NextResponse.json({ error: 'Your cart is empty' }, { status: 400 });
-    }
+    const subtotal = items.reduce((sum, item) => {
+      const price = item.unitPrice ? Number(item.unitPrice) : 0;
+      return sum + price * item.quantity;
+    }, 0);
 
-    let subtotal = 0;
-    for (const item of items) {
-      const unitPrice = parseFloat(item.cartItem.unitPrice || item.product.basePrice);
-      subtotal += unitPrice * item.cartItem.quantity;
-    }
+    const shipping = calculateShippingForItems(
+      items.map((i) => ({
+        product: i.product as any,
+        quantity: i.quantity,
+      }))
+    );
 
-    const shippingCost = 15.00;
-    const taxAmount = 0;
-    const totalAmount = subtotal + shippingCost + taxAmount;
-    const amountInCents = Math.round(totalAmount * 100);
+    const total = subtotal + shipping;
 
-    const idempotencyKey = randomUUID();
+    return noCache(
+      NextResponse.json({
+        items,
+        subtotal,
+        shipping,
+        total,
+      })
+    );
+  } catch (error) {
+    console.error('Error fetching cart:', error);
+    return noCache(
+      NextResponse.json({
+        items: [],
+        subtotal: 0,
+        shipping: 0,
+        total: 0,
+      })
+    );
+  }
+}
 
-    const paymentResponse = await squareClient.payments.create({
-      sourceId,
-      amountMoney: {
-        amount: BigInt(amountInCents),
-        currency: 'USD',
-      },
-      locationId,
-      idempotencyKey,
-      autocomplete: true,
-      note: `Sticky Banditos order for ${session.user.email}`,
-      buyerEmailAddress: session.user.email || undefined,
-    });
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
 
-    const payment = paymentResponse.payment;
+    const cookieStore = cookies();
+    let sessionId = cookieStore.get('cart-session-id')?.value;
 
-    if (payment?.status === 'COMPLETED') {
-      const [newOrder] = await db.insert(orders).values({
-        userId: session.user.id,
-        status: 'paid',
-        subtotal: subtotal.toFixed(2),
-        shippingCost: shippingCost.toFixed(2),
-        taxAmount: taxAmount.toFixed(2),
-        totalAmount: totalAmount.toFixed(2),
-        shippingAddress: shippingAddress ? JSON.stringify(shippingAddress) : null,
-        billingAddress: billingAddress ? JSON.stringify(billingAddress) : null,
-        stripePaymentIntentId: payment.id,
-      }).returning();
-
-      for (const item of items) {
-        await db.insert(orderItems).values({
-          orderId: newOrder.id,
-          productId: item.cartItem.productId,
-          designId: item.cartItem.designId,
-          quantity: item.cartItem.quantity,
-          unitPrice: item.cartItem.unitPrice || item.product.basePrice,
-          selectedOptions: item.cartItem.selectedOptions,
-        });
-      }
-
-      await db.delete(cartItems).where(eq(cartItems.cartId, userCart[0].id));
-
-      return NextResponse.json({
-        success: true,
-        orderId: newOrder.id,
-        payment: {
-          id: payment.id,
-          status: payment.status,
-          receiptUrl: payment.receiptUrl,
-        },
+    if (!sessionId) {
+      sessionId = randomUUID();
+      cookieStore.set({
+        name: 'cart-session-id',
+        value: sessionId,
+        httpOnly: true,
+        path: '/',
+        sameSite: 'lax',
       });
     }
 
-    return NextResponse.json({
-      success: false,
-      error: 'Payment was not completed. Please try again.',
-      payment: {
-        id: payment?.id,
-        status: payment?.status,
-      },
-    }, { status: 400 });
-  } catch (error: any) {
-    console.error('Square payment error:', error);
-    
-    let errorMessage = 'Payment failed. Please try again.';
-    
-    if (error.errors && Array.isArray(error.errors)) {
-      errorMessage = error.errors[0]?.detail || errorMessage;
-    } else if (error.message) {
-      if (error.message.includes('INVALID_CARD')) {
-        errorMessage = 'Invalid card information. Please check your card details.';
-      } else if (error.message.includes('CARD_DECLINED')) {
-        errorMessage = 'Your card was declined. Please try a different payment method.';
-      } else if (error.message.includes('INSUFFICIENT_FUNDS')) {
-        errorMessage = 'Insufficient funds. Please try a different card.';
-      }
+    let [cart] = await db
+      .select()
+      .from(carts)
+      .where(eq(carts.sessionId, sessionId));
+
+    if (!cart) {
+      [cart] = await db.insert(carts).values({ sessionId }).returning();
     }
-    
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: 500 }
-    );
+
+    const [item] = await db
+      .insert(cartItems)
+      .values({
+        cartId: cart.id,
+        productId: body.productId,
+        designId: body.designId || null,
+        quantity: body.quantity || 1,
+        selectedOptions: body.selectedOptions || null,
+        unitPrice: body.unitPrice || null,
+      })
+      .returning();
+
+    return noCache(NextResponse.json(item));
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    return noCache(NextResponse.json({ message: 'Failed to add to cart' }, { status: 500 }));
   }
+}
+
+export async function OPTIONS() {
+  return noCache(NextResponse.json({}));
 }

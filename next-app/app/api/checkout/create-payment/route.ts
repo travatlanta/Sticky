@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
+// Load Square dynamically to avoid SDK typing issues
 const Square: any = require('square');
 
 function noCache(res: NextResponse) {
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // ✅ STEP 1: fetch cart WITHOUT relations
+    // 🔧 Fetch cart WITHOUT relations (no PK issues)
     const cart = await db
       .select()
       .from(carts)
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // ✅ STEP 2: fetch cart items separately
+    // 🔧 Fetch cart items separately
     const items = await db
       .select()
       .from(cartItems)
@@ -62,8 +63,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const totalAmount = Number(cart.totalAmount ?? cart.total ?? 0);
-    const subtotal = Number(cart.subtotal ?? totalAmount);
+    // 🔧 Drizzle column typing fix
+    const cartRow = cart as any;
+    const totalAmount = Number(cartRow.totalAmount ?? cartRow.total ?? 0);
+    const subtotal = Number(cartRow.subtotal ?? totalAmount);
 
     if (totalAmount <= 0) {
       return noCache(

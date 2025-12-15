@@ -296,7 +296,10 @@ export default function OrderDetail() {
                                   <input
                                     type="file"
                                     accept="image/*,.pdf,.svg,.ai,.psd,.eps"
-                                    ref={(ref) => (fileInputRefs.current[item.design.id] = ref)}
+                                    /* Assign the ref for this design id without returning a value to satisfy TypeScript's ref type */
+                                    ref={(ref) => {
+                                      fileInputRefs.current[item.design.id] = ref;
+                                    }}
                                     onChange={(e) => handleUpload(item.design.id, e.target.files?.[0])}
                                     className="text-xs"
                                   />

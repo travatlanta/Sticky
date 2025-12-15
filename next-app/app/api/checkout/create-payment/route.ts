@@ -60,11 +60,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Subtotal only (no shipping)
+    // Subtotal only (no shipping). Convert to a number for tax calculation.
     const subtotal = items.reduce(
       (sum, i) => sum + Number(i.unitPrice ?? '0') * i.quantity,
       0
     );
+
+    // Compute tax amount based on the combined Arizona (state), Maricopa County, and Phoenix city tax rates.
+    // As of July 1, 2025, the combined rate is 9.1% (state 5.6%, county 0.7%, city 2.8%)【774609075341561†L124-L131】.
+    const TAX_RATE = 0.091;
+    const taxAmount = parseFloat((subtotal * TAX_RATE).toFixed(2));
+
+    // Shipping cost is currently disabled and set to zero by default.
+    const shippingCost = 0;
 
     // Allow free orders: if the subtotal is zero or less, skip payment processing and create a paid order directly.
     if (subtotal <= 0) {
@@ -77,9 +85,10 @@ export async function POST(req: Request) {
         .values({
           userId,
           status: 'paid',
-          subtotal: subtotal.toString(),
+          subtotal: subtotal.toFixed(2),
+          taxAmount: '0',
           shippingCost: '0',
-          totalAmount: subtotal.toString(),
+          totalAmount: subtotal.toFixed(2),
           shippingAddress: shippingAddress ?? null,
         })
         .returning();
@@ -99,8 +108,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Construct payload for Square API
-    const amountInCents = Math.round(subtotal * 100);
+    // Construct payload for Square API. Include taxes and shipping in the amount charged.
+    const totalForPayment = subtotal + taxAmount + shippingCost;
+    const amountInCents = Math.round(totalForPayment * 100);
     const paymentPayload = {
       source_id: sourceId,
       idempotency_key: randomUUID(),
@@ -149,16 +159,18 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id ?? null;
 
-    // Create order with explicit zero shipping cost and associated user
+    // Compute total by adding subtotal, tax, and shipping.
+    const total = subtotal + taxAmount + shippingCost;
+    // Create order with calculated tax amount and shipping cost, associated with the current user
     const [order] = await db
       .insert(orders)
       .values({
         userId,
         status: 'paid',
-        subtotal: subtotal.toString(),
-        // Shipping is disabled, so set shipping cost to zero
-        shippingCost: '0',
-        totalAmount: subtotal.toString(),
+        subtotal: subtotal.toFixed(2),
+        taxAmount: taxAmount.toFixed(2),
+        shippingCost: shippingCost.toFixed(2),
+        totalAmount: total.toFixed(2),
         // Persist the provided shipping address on the order for future reference
         shippingAddress: shippingAddress ?? null,
       })

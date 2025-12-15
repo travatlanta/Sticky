@@ -3,7 +3,7 @@ export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { carts, cartItems, orders, orderItems } from '@shared/schema';
+import { carts, orders, orderItems } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
@@ -18,14 +18,7 @@ function noCache(res: NextResponse) {
 
 export async function POST(request: Request) {
   try {
-    let body: any;
-    try {
-      body = await request.json();
-    } catch {
-      const text = await request.text();
-      body = text ? JSON.parse(text) : {};
-    }
-
+    const body = await request.json();
     const { sourceId, shippingAddress } = body;
 
     if (!sourceId) {
@@ -34,8 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const cookieStore = cookies();
-    const sessionId = cookieStore.get('cart-session-id')?.value;
+    const sessionId = cookies().get('cart-session-id')?.value;
 
     if (!sessionId) {
       return noCache(
@@ -54,16 +46,16 @@ export async function POST(request: Request) {
       },
     });
 
-    if (!cart || !cart.items.length) {
+    // 🔧 FIX: explicit guard so TS does not infer `never`
+    if (!cart || !cart.items || cart.items.length === 0) {
       return noCache(
         NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
       );
     }
 
-    // ✅ Shipping already finalized in /api/cart
     const total = Number(cart.total ?? 0);
 
-    if (!total || total <= 0) {
+    if (total <= 0) {
       return noCache(
         NextResponse.json({ error: 'Invalid cart total' }, { status: 400 })
       );
@@ -71,13 +63,10 @@ export async function POST(request: Request) {
 
     const square = new SquareClient({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-      environment:
-        process.env.NODE_ENV === 'production'
-          ? 'production'
-          : 'sandbox',
+      environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
     });
 
-    const paymentResult = await square.payments.create({
+    await square.payments.create({
       sourceId,
       idempotencyKey: randomUUID(),
       amountMoney: {
@@ -112,10 +101,7 @@ export async function POST(request: Request) {
     }
 
     return noCache(
-      NextResponse.json({
-        success: true,
-        orderId: order.id,
-      })
+      NextResponse.json({ success: true, orderId: order.id })
     );
   } catch (err) {
     console.error('Checkout payment error:', err);

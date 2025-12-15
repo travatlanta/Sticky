@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 
     // Calculate subtotal (NO SHIPPING)
     const subtotal = items.reduce(
-      (sum, item) => sum + Number(item.unitPrice) * item.quantity,
+      (sum, item) => sum + Number(item.unitPrice ?? '0') * item.quantity,
       0
     );
 
@@ -110,7 +110,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create order (NO sessionId — schema does not support it)
+    // Create order
     const [order] = await db
       .insert(orders)
       .values({
@@ -120,13 +120,13 @@ export async function POST(req: Request) {
       })
       .returning();
 
-    // Create order items
+    // Create order items — NULL-SAFE
     for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,
         productId: item.productId,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
+        unitPrice: String(item.unitPrice ?? '0'),
       });
     }
 

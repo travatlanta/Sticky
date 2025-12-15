@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-import { createClient } from 'square';
 
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
@@ -72,16 +71,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ CORRECT Square initialization (APIMatic SDK)
-    const square = createClient({
-      bearerAuthCredentials: {
-        accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-      },
+    // ✅ CORRECT Square initialization (square-legacy)
+    const square = require('square-legacy')({
+      accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment: 'production',
     });
 
     // Create payment
-    const paymentResult = await square.paymentsApi.createPayment({
+    const paymentResult = await square.payments.createPayment({
       sourceId,
       idempotencyKey: randomUUID(),
       locationId: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!,
@@ -101,7 +98,7 @@ export async function POST(req: Request) {
       },
     });
 
-    const payment = paymentResult.result.payment;
+    const payment = paymentResult?.payment;
 
     if (!payment || payment.status !== 'COMPLETED') {
       return noCache(

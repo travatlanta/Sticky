@@ -8,8 +8,8 @@ import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
-// Square SDK (loaded dynamically to avoid TS export issues)
-const Square: any = require('square');
+// Square SDK (CommonJS import to avoid TS export issues)
+const Square = require('square');
 
 function noCache(res: NextResponse) {
   res.headers.set(
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch cart (no relations — avoids Drizzle PK issues)
+    // Fetch cart (no relations)
     const cart = await db
       .select()
       .from(carts)
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Drizzle typing guard (runtime values exist, TS cannot infer)
+    // Runtime-safe totals (Drizzle typing workaround)
     const cartRow = cart as any;
     const totalAmount = Number(cartRow.totalAmount ?? cartRow.total ?? 0);
     const subtotal = Number(cartRow.subtotal ?? totalAmount);
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
           : 'sandbox',
     });
 
-    // 🔧 FIXED ADDRESS MAPPING (THIS WAS THE ISSUE)
+    // Create Square payment
     await square.payments.create({
       sourceId,
       idempotencyKey: randomUUID(),
@@ -102,8 +102,8 @@ export async function POST(request: Request) {
         addressLine2: shippingAddress.address2 || undefined,
         locality: shippingAddress.city,
         administrativeDistrictLevel1: shippingAddress.state,
-        postalCode: shippingAddress.zip, // REQUIRED by Square
-        country: 'US',                   // REQUIRED by Square
+        postalCode: shippingAddress.zip,
+        country: 'US',
         firstName: shippingAddress.firstName,
         lastName: shippingAddress.lastName,
       },
@@ -132,10 +132,21 @@ export async function POST(request: Request) {
     return noCache(
       NextResponse.json({ success: true, orderId: order.id })
     );
-  } catch (err) {
-    console.error('Checkout route fatal error:', err);
+  } catch (err: any) {
+    // 🔴 TEMPORARY DEBUG — DO NOT REMOVE UNTIL SQUARE ERROR IS CONFIRMED
+    console.error(
+      'Square error:',
+      err?.errors ?? err?.response?.body ?? err
+    );
+
     return noCache(
-      NextResponse.json({ error: 'Payment failed' }, { status: 500 })
+      NextResponse.json(
+        {
+          error: 'Payment failed',
+          square: err?.errors ?? err?.response?.body ?? err,
+        },
+        { status: 400 }
+      )
     );
   }
 }

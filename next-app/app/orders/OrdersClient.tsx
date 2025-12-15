@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { Package, ArrowRight, Clock, CheckCircle, Truck, Sparkles } from "lucide-react";
+import { Package, ArrowRight, Clock, CheckCircle, Truck } from "lucide-react";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -77,7 +77,6 @@ export default function Orders() {
             {orders.map((order: any) => {
               const status = statusConfig[order.status] || statusConfig.pending;
               const StatusIcon = status.icon;
-
               return (
                 <div key={order.id} className="bg-white rounded-2xl p-6 shadow-md border border-orange-100">
                   <div className="flex items-center justify-between mb-4">
@@ -90,7 +89,6 @@ export default function Orders() {
                       <span className="font-medium text-sm">{status.label}</span>
                     </div>
                   </div>
-
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-gray-600">
@@ -101,9 +99,7 @@ export default function Orders() {
                           day: "numeric",
                         })}
                       </p>
-                      <p className="text-2xl font-bold text-orange-500 mt-1">
-                        {formatPrice(order.totalAmount)}
-                      </p>
+                      <p className="text-2xl font-bold text-orange-500 mt-1">{formatPrice(order.totalAmount)}</p>
                     </div>
                     <Link href={`/orders/${order.id}`}>
                       <Button variant="outline" className="border-orange-200 hover:bg-orange-50">
@@ -112,7 +108,6 @@ export default function Orders() {
                       </Button>
                     </Link>
                   </div>
-
                   {order.trackingNumber && (
                     <div className="mt-4 pt-4 border-t border-orange-100">
                       <p className="text-sm text-gray-600">
@@ -132,9 +127,7 @@ export default function Orders() {
           <div className="bg-white rounded-2xl p-12 text-center border border-orange-100 shadow-md">
             <Package className="h-20 w-20 text-orange-300 mx-auto mb-4" />
             <h3 className="font-heading text-2xl text-gray-900 mb-2">No orders yet</h3>
-            <p className="text-gray-500 mb-6">
-              When you place an order, it will appear here.
-            </p>
+            <p className="text-gray-500 mb-6">When you place an order, it will appear here.</p>
             <Link href="/products">
               <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700">
                 Browse Products

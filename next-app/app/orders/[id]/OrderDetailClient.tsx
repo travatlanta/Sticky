@@ -1,7 +1,6 @@
 "use client";
 
-
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -20,7 +19,9 @@ import {
   Sticker,
   CreditCard,
   FileImage,
+  Upload,
 } from "lucide-react";
+import { useState, useRef } from "react";
 
 interface OrderItem {
   id: number;
@@ -30,6 +31,7 @@ interface OrderItem {
   product?: {
     name: string;
   };
+  design?: any;
 }
 
 interface Order {
@@ -71,6 +73,61 @@ export default function OrderDetail() {
   const id = params?.id as string;
   const { data: session, status: sessionStatus } = useSession();
   const isAuthenticated = sessionStatus === "authenticated";
+  const queryClient = useQueryClient();
+
+  // state for file type selections per design
+  const [downloadSelections, setDownloadSelections] = useState<Record<number, string>>({});
+  // refs for file inputs per design id
+  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  // helper to compute download link
+  const getDownloadLink = (design: any, type: string) => {
+    if (!design) return "#";
+    switch (type) {
+      case "pdf":
+        return `/api/designs/${design.id}/pdf`;
+      case "png":
+      case "jpg":
+        return design.highResExportUrl || design.previewUrl || "#";
+      case "svg":
+        return design.customShapeUrl || design.highResExportUrl || design.previewUrl || "#";
+      default:
+        return design.highResExportUrl || design.previewUrl || "#";
+    }
+  };
+
+  // handle design file upload and update
+  const handleUpload = async (designId: number, file: File | undefined) => {
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await fetch("/api/upload/artwork", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const uploadData = await uploadRes.json();
+      // update design with new URLs
+      await fetch(`/api/designs/${designId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          highResExportUrl: uploadData.url,
+          previewUrl: uploadData.url,
+        }),
+      });
+      // refresh the order data
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+    } catch (err) {
+      console.error("Error uploading design", err);
+    } finally {
+      // reset input value
+      if (fileInputRefs.current[designId]) fileInputRefs.current[designId]!.value = "";
+    }
+  };
 
   const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -132,13 +189,10 @@ export default function OrderDetail() {
 
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">
-              Order #{order.id}
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">Order #{order.id}</h1>
             <p className="text-gray-500 dark:text-muted-foreground flex items-center mt-1">
               <Calendar className="h-4 w-4 mr-2" />
-              Placed on{" "}
-              {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-US", {
+              Placed on {order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
@@ -165,7 +219,7 @@ export default function OrderDetail() {
                   {order.items?.map((item: any) => (
                     <div
                       key={item.id}
-                      className="flex gap-4 p-4 bg-gray-50 dark:bg-muted rounded-lg"
+                      className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 dark:bg-muted rounded-lg"
                       data-testid={`order-item-${item.id}`}
                     >
                       <div className="w-16 h-16 bg-white dark:bg-background rounded-lg flex items-center justify-center flex-shrink-0 border">
@@ -175,9 +229,7 @@ export default function OrderDetail() {
                         <h4 className="font-semibold text-gray-900 dark:text-foreground">
                           {item.product?.name || "Product"}
                         </h4>
-                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                          Quantity: {item.quantity}
-                        </p>
+                        <p className="text-sm text-gray-500 dark:text-muted-foreground">Quantity: {item.quantity}</p>
                         {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
                           <div className="mt-1 flex flex-wrap gap-1">
                             {Object.entries(item.selectedOptions).map(([key, value]) => (
@@ -187,8 +239,77 @@ export default function OrderDetail() {
                             ))}
                           </div>
                         )}
+                        {/* Design details */}
+                        {item.design && (
+                          <div className="mt-3 p-3 border rounded-lg bg-white dark:bg-background">
+                            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                              <FileImage className="h-3 w-3" /> Design
+                            </p>
+                            <div className="flex gap-3">
+                              {(item.design.highResExportUrl || item.design.previewUrl) && (
+                                <a
+                                  href={item.design.highResExportUrl || item.design.previewUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block"
+                                >
+                                  <img
+                                    src={item.design.highResExportUrl || item.design.previewUrl}
+                                    alt="Design preview"
+                                    className="w-20 h-20 object-contain bg-gray-100 rounded border"
+                                  />
+                                </a>
+                              )}
+                              <div className="flex-1 text-xs">
+                                <p className="text-gray-700 dark:text-foreground font-medium">
+                                  {item.design.name || "Untitled Design"}
+                                </p>
+                                <div className="mt-1 flex items-center gap-2">
+                                  <select
+                                    value={downloadSelections[item.design.id] || "pdf"}
+                                    onChange={(e) =>
+                                      setDownloadSelections({
+                                        ...downloadSelections,
+                                        [item.design.id]: e.target.value,
+                                      })
+                                    }
+                                    className="border rounded px-1 py-0.5 text-xs"
+                                  >
+                                    <option value="pdf">PDF</option>
+                                    <option value="png">PNG</option>
+                                    <option value="jpg">JPG</option>
+                                    <option value="svg">SVG</option>
+                                  </select>
+                                  <a
+                                    href={getDownloadLink(
+                                      item.design,
+                                      downloadSelections[item.design.id] || "pdf"
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-orange-600 hover:underline"
+                                  >
+                                    Download
+                                  </a>
+                                </div>
+                                <div className="mt-2">
+                                  <input
+                                    type="file"
+                                    accept="image/*,.pdf,.svg,.ai,.psd,.eps"
+                                    ref={(ref) => (fileInputRefs.current[item.design.id] = ref)}
+                                    onChange={(e) => handleUpload(item.design.id, e.target.files?.[0])}
+                                    className="text-xs"
+                                  />
+                                  <p className="text-[10px] text-gray-500 mt-1">
+                                    Upload a new artwork file to replace the current design
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right sm:w-32">
                         <p className="font-semibold text-gray-900 dark:text-foreground">
                           {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
                         </p>
@@ -277,38 +398,11 @@ export default function OrderDetail() {
                       <span className="font-medium">{formatPrice(order.taxAmount || "0")}</span>
                     </div>
                   )}
-                  <div className="border-t pt-3 flex justify-between">
-                    <span className="text-lg font-bold">Total</span>
-                    <span className="text-lg font-bold text-primary">
-                      {formatPrice(order.totalAmount)}
-                    </span>
+                  <div className="flex justify-between text-xl font-bold">
+                    <span>Total</span>
+                    <span>{formatPrice(order.totalAmount)}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {order.notes && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Order Notes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 dark:text-muted-foreground">{order.notes}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Need Help?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 dark:text-muted-foreground text-sm mb-4">
-                  Have questions about your order? Our support team is here to help.
-                </p>
-                <Button variant="outline" className="w-full" data-testid="button-contact-support">
-                  Contact Support
-                </Button>
               </CardContent>
             </Card>
           </div>

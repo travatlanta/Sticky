@@ -66,9 +66,36 @@ export async function POST(req: Request) {
       0
     );
 
+    // Allow free orders: if the subtotal is zero or less, skip payment processing and create a paid order directly.
     if (subtotal <= 0) {
+      // Lookup the current authenticated user to associate the order with their account.
+      const session = await getServerSession(authOptions);
+      const userId = session?.user?.id ?? null;
+      // Create the order with zero shipping cost and mark it as paid.
+      const [order] = await db
+        .insert(orders)
+        .values({
+          userId,
+          status: 'paid',
+          subtotal: subtotal.toString(),
+          shippingCost: '0',
+          totalAmount: subtotal.toString(),
+          shippingAddress: shippingAddress ?? null,
+        })
+        .returning();
+      // Create order items referencing the cart items.
+      for (const item of items) {
+        await db.insert(orderItems).values({
+          orderId: order.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: String(item.unitPrice ?? '0'),
+        });
+      }
+      // Clear the cart and its items.
+      await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
       return noCache(
-        NextResponse.json({ error: 'Invalid cart total' }, { status: 400 })
+        NextResponse.json({ success: true, orderId: order.id })
       );
     }
 

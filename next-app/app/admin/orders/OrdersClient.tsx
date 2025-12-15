@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
@@ -9,6 +8,9 @@ import { formatPrice } from "@/lib/utils";
 import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * Order interface represents a single order in the admin panel.
+ */
 interface Order {
   id: number;
   userId: string;
@@ -22,6 +24,7 @@ interface Order {
   items?: any[];
 }
 
+// List of possible order statuses
 const statusOptions = [
   "pending",
   "paid",
@@ -32,6 +35,7 @@ const statusOptions = [
   "cancelled",
 ];
 
+// Mapping of statuses to CSS classes for badge colours
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800",
   paid: "bg-blue-100 text-blue-800",
@@ -46,6 +50,25 @@ export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // keep track of file type selection per design id for download
+  const [downloadSelections, setDownloadSelections] = useState<Record<number, string>>({});
+
+  // helper to compute the download URL based on design data and selected file type
+  const getDownloadLink = (design: any, type: string) => {
+    if (!design) return "#";
+    switch (type) {
+      case "pdf":
+        return `/api/designs/${design.id}/pdf`;
+      case "png":
+      case "jpg":
+        return design.highResExportUrl || design.previewUrl || "#";
+      case "svg":
+        return design.customShapeUrl || design.highResExportUrl || design.previewUrl || "#";
+      default:
+        return design.highResExportUrl || design.previewUrl || "#";
+    }
+  };
 
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/admin/orders"],
@@ -130,7 +153,7 @@ export default function AdminOrders() {
         ) : orders && orders.length > 0 ? (
           <div className="space-y-3">
             {orders.map((order) => (
-              <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm" data-testid={`order-card-${order.id}`}>
+              <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm" data-testid={`order-card-${order.id}`}> 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -271,15 +294,15 @@ export default function AdminOrders() {
                               </p>
                               <div className="flex items-start gap-3">
                                 {(item.design.highResExportUrl || item.design.previewUrl) && (
-                                  <a 
-                                    href={item.design.highResExportUrl || item.design.previewUrl} 
-                                    target="_blank" 
+                                  <a
+                                    href={item.design.highResExportUrl || item.design.previewUrl}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="block"
                                   >
-                                    <img 
-                                      src={item.design.highResExportUrl || item.design.previewUrl} 
-                                      alt="Design preview" 
+                                    <img
+                                      src={item.design.highResExportUrl || item.design.previewUrl}
+                                      alt="Design preview"
                                       className="w-20 h-20 object-contain bg-gray-100 rounded border"
                                     />
                                   </a>
@@ -287,9 +310,9 @@ export default function AdminOrders() {
                                 <div className="flex-1 text-xs">
                                   <p className="text-gray-700 font-medium">{item.design.name || "Untitled Design"}</p>
                                   {item.design.highResExportUrl && (
-                                    <a 
-                                      href={item.design.highResExportUrl} 
-                                      target="_blank" 
+                                    <a
+                                      href={item.design.highResExportUrl}
+                                      target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-orange-600 hover:underline inline-flex items-center gap-1 mt-1"
                                     >
@@ -297,15 +320,44 @@ export default function AdminOrders() {
                                     </a>
                                   )}
                                   {item.design.customShapeUrl && (
-                                    <a 
-                                      href={item.design.customShapeUrl} 
-                                      target="_blank" 
+                                    <a
+                                      href={item.design.customShapeUrl}
+                                      target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-blue-600 hover:underline inline-flex items-center gap-1 mt-1 ml-3"
                                     >
                                       <Eye className="h-3 w-3" /> Custom Shape
                                     </a>
                                   )}
+                                  {/* Download controls */}
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <select
+                                      value={downloadSelections[item.design.id] || "pdf"}
+                                      onChange={(e) =>
+                                        setDownloadSelections({
+                                          ...downloadSelections,
+                                          [item.design.id]: e.target.value,
+                                        })
+                                      }
+                                      className="border rounded px-1 py-0.5 text-xs"
+                                    >
+                                      <option value="pdf">PDF</option>
+                                      <option value="png">PNG</option>
+                                      <option value="jpg">JPG</option>
+                                      <option value="svg">SVG</option>
+                                    </select>
+                                    <a
+                                      href={getDownloadLink(
+                                        item.design,
+                                        downloadSelections[item.design.id] || "pdf"
+                                      )}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-orange-600 hover:underline text-xs"
+                                    >
+                                      Download
+                                    </a>
+                                  </div>
                                 </div>
                               </div>
                             </div>

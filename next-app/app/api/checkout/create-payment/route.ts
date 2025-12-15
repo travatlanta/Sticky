@@ -54,7 +54,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Drizzle relation typing fix
     const items = cart.items as any[];
 
     if (items.length === 0) {
@@ -63,8 +62,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Drizzle column typing fix
-    const totalAmount = Number((cart as any).total ?? 0);
+    const totalAmount = Number((cart as any).totalAmount ?? (cart as any).total ?? 0);
     const subtotal = Number((cart as any).subtotal ?? totalAmount);
 
     if (totalAmount <= 0) {
@@ -81,22 +79,36 @@ export async function POST(request: Request) {
           : 'sandbox',
     });
 
-    await square.payments.create({
-      sourceId,
-      idempotencyKey: randomUUID(),
-      amountMoney: {
-        amount: Math.round(totalAmount * 100),
-        currency: 'USD',
-      },
-      shippingAddress: {
-        addressLine1: shippingAddress.address1,
-        addressLine2: shippingAddress.address2 || undefined,
-        locality: shippingAddress.city,
-        administrativeDistrictLevel1: shippingAddress.state,
-        postalCode: shippingAddress.zip,
-        country: 'US',
-      },
-    });
+    try {
+      await square.payments.create({
+        sourceId,
+        idempotencyKey: randomUUID(),
+        amountMoney: {
+          amount: Math.round(totalAmount * 100),
+          currency: 'USD',
+        },
+        shippingAddress: {
+          addressLine1: shippingAddress.address1,
+          addressLine2: shippingAddress.address2 || undefined,
+          locality: shippingAddress.city,
+          administrativeDistrictLevel1: shippingAddress.state,
+          postalCode: shippingAddress.zip,
+          country: 'US',
+        },
+      });
+    } catch (squareError: any) {
+      console.error('❌ Square payment error:', JSON.stringify(squareError, null, 2));
+
+      return noCache(
+        NextResponse.json(
+          {
+            error: 'Square payment failed',
+            details: squareError?.errors || squareError?.message || squareError,
+          },
+          { status: 500 }
+        )
+      );
+    }
 
     const [order] = await db
       .insert(orders)
@@ -120,7 +132,7 @@ export async function POST(request: Request) {
       NextResponse.json({ success: true, orderId: order.id })
     );
   } catch (err) {
-    console.error('Checkout payment error:', err);
+    console.error('Checkout route fatal error:', err);
     return noCache(
       NextResponse.json({ error: 'Payment failed' }, { status: 500 })
     );

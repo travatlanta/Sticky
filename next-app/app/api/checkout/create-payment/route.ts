@@ -3,8 +3,9 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { Client } from 'square';
 
-import { db } from '../../../../server/db';
-import { carts, cartItems, orders, orderItems } from '../../../../server/db/schema';
+import { db } from '../../../../lib/db';
+import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
+import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,29 +28,42 @@ export async function POST(req: Request) {
       );
     }
 
-    const sessionId = cookies().get('cart_session')?.value;
+    const sessionId = cookies().get('cart-session-id')?.value;
     if (!sessionId) {
       return noCache(
         NextResponse.json({ error: 'No cart session' }, { status: 400 })
       );
     }
 
-    const cart = await db.query.carts.findFirst({
-      where: (c, { eq }) => eq(c.sessionId, sessionId),
-      with: {
-        items: true,
-      },
-    });
+    // Fetch cart
+    const cart = await db
+      .select()
+      .from(carts)
+      .where(eq(carts.sessionId, sessionId))
+      .limit(1)
+      .then(rows => rows[0]);
 
-    if (!cart || cart.items.length === 0) {
+    if (!cart) {
       return noCache(
         NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
       );
     }
 
-    // 🔒 NO SHIPPING — subtotal only
-    const subtotal = cart.items.reduce(
-      (sum, item) => sum + Number(item.price) * item.quantity,
+    // Fetch cart items
+    const items = await db
+      .select()
+      .from(cartItems)
+      .where(eq(cartItems.cartId, cart.id));
+
+    if (items.length === 0) {
+      return noCache(
+        NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
+      );
+    }
+
+    // Calculate subtotal (NO SHIPPING)
+    const subtotal = items.reduce(
+      (sum, item) => sum + Number(item.unitPrice) * item.quantity,
       0
     );
 
@@ -59,7 +73,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Square client — CORRECT SDK USAGE
+    // Initialize Square client
     const square = new Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment:
@@ -68,6 +82,7 @@ export async function POST(req: Request) {
           : 'sandbox',
     });
 
+    // Create Square payment
     const payment = await square.paymentsApi.createPayment({
       sourceId,
       idempotencyKey: randomUUID(),
@@ -93,6 +108,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Create order
     const [order] = await db
       .insert(orders)
       .values({
@@ -103,18 +119,18 @@ export async function POST(req: Request) {
       })
       .returning();
 
-    for (const item of cart.items) {
+    // Create order items
+    for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,
         productId: item.productId,
         quantity: item.quantity,
-        price: item.price,
+        unitPrice: item.unitPrice,
       });
     }
 
-    await db.delete(cartItems).where(
-      (ci, { eq }) => eq(ci.cartId, cart.id)
-    );
+    // Clear cart
+    await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
 
     return noCache(
       NextResponse.json({ success: true, orderId: order.id })

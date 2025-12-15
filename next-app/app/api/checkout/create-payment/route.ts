@@ -46,8 +46,10 @@ export async function POST(request: Request) {
       },
     });
 
-    // 🔧 FIX: explicit guard so TS does not infer `never`
-    if (!cart || !cart.items || cart.items.length === 0) {
+    // 🔧 DRIZZLE TYPE FIX — prevent `never`
+    const items = cart?.items as typeof cart.items | undefined;
+
+    if (!cart || !items || items.length === 0) {
       return noCache(
         NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
       );
@@ -91,7 +93,7 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    for (const item of cart.items) {
+    for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,
         productId: item.productId,

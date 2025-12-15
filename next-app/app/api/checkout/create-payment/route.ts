@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
-// 🔧 IMPORTANT: load Square dynamically to avoid broken typings
+// Load Square dynamically to avoid SDK typing issues
 const Square: any = require('square');
 
 function noCache(res: NextResponse) {
@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Drizzle relation typing fix
     const items = cart.items as any[];
 
     if (items.length === 0) {
@@ -62,15 +63,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const total = Number((cart as any).total ?? 0);
+    // Drizzle column typing fix
+    const totalAmount = Number((cart as any).total ?? 0);
+    const subtotal = Number((cart as any).subtotal ?? totalAmount);
 
-    if (total <= 0) {
+    if (totalAmount <= 0) {
       return noCache(
         NextResponse.json({ error: 'Invalid cart total' }, { status: 400 })
       );
     }
 
-    // 🔧 Create Square client WITHOUT touching broken typings
     const square = new Square.Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment:
@@ -83,7 +85,7 @@ export async function POST(request: Request) {
       sourceId,
       idempotencyKey: randomUUID(),
       amountMoney: {
-        amount: Math.round(total * 100),
+        amount: Math.round(totalAmount * 100),
         currency: 'USD',
       },
       shippingAddress: {
@@ -99,7 +101,8 @@ export async function POST(request: Request) {
     const [order] = await db
       .insert(orders)
       .values({
-        total,
+        subtotal: String(subtotal),
+        totalAmount: String(totalAmount),
         status: 'paid',
       })
       .returning();

@@ -3,8 +3,8 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { Client } from 'square';
 
-import { db } from '@/server/db';
-import { carts, cartItems, orders, orderItems } from '@/server/db/schema';
+import { db } from '../../../../server/db';
+import { carts, cartItems, orders, orderItems } from '../../../../server/db/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +27,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get cart by session
     const sessionId = cookies().get('cart_session')?.value;
     if (!sessionId) {
       return noCache(
@@ -48,7 +47,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Calculate totals (NO SHIPPING HERE)
+    // 🔒 NO SHIPPING — subtotal only
     const subtotal = cart.items.reduce(
       (sum, item) => sum + Number(item.price) * item.quantity,
       0
@@ -60,7 +59,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Initialize Square client (CORRECT SDK USAGE)
+    // ✅ Square client — CORRECT SDK USAGE
     const square = new Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment:
@@ -69,7 +68,6 @@ export async function POST(req: Request) {
           : 'sandbox',
     });
 
-    // Create payment
     const payment = await square.paymentsApi.createPayment({
       sourceId,
       idempotencyKey: randomUUID(),
@@ -95,7 +93,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create order
     const [order] = await db
       .insert(orders)
       .values({
@@ -106,7 +103,6 @@ export async function POST(req: Request) {
       })
       .returning();
 
-    // Insert order items
     for (const item of cart.items) {
       await db.insert(orderItems).values({
         orderId: order.id,
@@ -116,7 +112,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // Clear cart
     await db.delete(cartItems).where(
       (ci, { eq }) => eq(ci.cartId, cart.id)
     );

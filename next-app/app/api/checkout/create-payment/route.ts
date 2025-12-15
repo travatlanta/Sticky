@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-import { Client, Environment } from '@square/square';
+// Import Client and Environment from the legacy SDK
+import { Client, Environment } from 'square';
 
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Subtotal ONLY (no shipping)
+    // Subtotal only (no shipping)
     const subtotal = items.reduce(
       (sum, i) => sum + Number(i.unitPrice ?? '0') * i.quantity,
       0
@@ -72,13 +73,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Correct Square initialization using the official SDK
+    // Initialise Square client using the legacy SDK
     const square = new Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-      environment:
-        process.env.NODE_ENV === 'production'
-          ? Environment.Production
-          : Environment.Sandbox,
+      environment: Environment.Production,
     });
 
     // Create payment
@@ -133,9 +131,7 @@ export async function POST(req: Request) {
     // Clear cart
     await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
 
-    return noCache(
-      NextResponse.json({ success: true, orderId: order.id })
-    );
+    return noCache(NextResponse.json({ success: true, orderId: order.id }));
   } catch (err) {
     console.error('Checkout route fatal error:', err);
     return noCache(

@@ -231,8 +231,9 @@ export const orders = pgTable("orders", {
   userId: varchar("user_id").references(() => users.id),
   status: orderStatusEnum("status").default("pending"),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  // Set default shipping cost to 0.00 now that shipping is disabled.
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default(
-    "15.00"
+    "0.00"
   ),
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
   discountAmount: decimal("discount_amount", {
@@ -280,6 +281,7 @@ export const promotions = pgTable("promotions", {
   startsAt: timestamp("starts_at"),
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Messages

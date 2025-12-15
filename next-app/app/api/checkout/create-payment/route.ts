@@ -4,6 +4,8 @@ import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,13 +118,22 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create order
+    // Lookup the current authenticated user to associate the order with their account.
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id ?? null;
+
+    // Create order with explicit zero shipping cost and associated user
     const [order] = await db
       .insert(orders)
       .values({
+        userId,
         status: 'paid',
         subtotal: subtotal.toString(),
+        // Shipping is disabled, so set shipping cost to zero
+        shippingCost: '0',
         totalAmount: subtotal.toString(),
+        // Persist the provided shipping address on the order for future reference
+        shippingAddress: shippingAddress ?? null,
       })
       .returning();
 

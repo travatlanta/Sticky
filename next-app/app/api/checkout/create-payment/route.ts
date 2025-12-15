@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 
-// ✅ CommonJS Square import (REQUIRED for your SDK version)
+// CommonJS Square import (required for your SDK version)
 const Square = require('square');
 
 import { db } from '../../../../lib/db';
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Initialize Square client (CORRECT)
+    // Initialize Square client
     const square = new Square.Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment:
@@ -110,11 +110,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create order
+    // Create order (NO sessionId — schema does not support it)
     const [order] = await db
       .insert(orders)
       .values({
-        sessionId,
         status: 'paid',
         subtotal: subtotal.toString(),
         totalAmount: subtotal.toString(),

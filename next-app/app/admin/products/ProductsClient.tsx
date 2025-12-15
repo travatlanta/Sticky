@@ -20,6 +20,7 @@ import {
   Edit2,
   CheckCircle,
   Layers,
+  Truck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -359,6 +360,17 @@ export default function AdminProducts() {
             <div className="flex items-start gap-2">
               <Layers className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
               <p className="text-sm"><span className="font-semibold text-gray-800">Templates</span><br /><span className="text-gray-600">Add pre-made designs for customers</span></p>
+            </div>
+            {/* Shipping Settings */}
+            <div className="flex items-start gap-2">
+              <Truck className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm">
+                <span className="font-semibold text-gray-800">Shipping Settings</span>
+                <br />
+                <a href="/admin/shipping" className="text-gray-600 underline hover:text-orange-600">
+                  Adjust shipping options
+                </a>
+              </p>
             </div>
           </div>
         </div>

@@ -31,6 +31,16 @@ export async function POST(request: Request) {
 
     const slug = body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     
+    // Derive shipping values with sensible defaults.  If a shippingType is not
+    // provided, default to 'calculated'.  If a flatShippingPrice is provided as
+    // an empty string or undefined, coerce it to null so the database can store
+    // a null value.  When shippingType is 'flat', the client should pass
+    // flatShippingPrice explicitly.
+    const shippingType = body.shippingType || 'calculated';
+    const flatShippingPrice = body.flatShippingPrice === '' || body.flatShippingPrice === undefined
+      ? null
+      : body.flatShippingPrice;
+
     const [product] = await db
       .insert(products)
       .values({
@@ -48,6 +58,8 @@ export async function POST(request: Request) {
         bleedSize: body.bleedSize || '0.125',
         safeZoneSize: body.safeZoneSize || '0.25',
         supportsCustomShape: body.supportsCustomShape || false,
+        shippingType: shippingType,
+        flatShippingPrice: flatShippingPrice,
       })
       .returning();
 

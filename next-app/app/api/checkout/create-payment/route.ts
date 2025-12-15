@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-import { Client, Environment } from 'square';
+import Square from 'square';
 
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
@@ -10,7 +10,10 @@ import { carts, cartItems, orders, orderItems } from '../../../../shared/schema'
 export const dynamic = 'force-dynamic';
 
 function noCache(res: NextResponse) {
-  res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.headers.set(
+    'Cache-Control',
+    'no-store, no-cache, must-revalidate, proxy-revalidate'
+  );
   return res;
 }
 
@@ -20,18 +23,17 @@ export async function POST(req: Request) {
 
     if (!sourceId) {
       return noCache(
-        NextResponse.json({ error: 'Missing payment source' }, { status: 400 }),
+        NextResponse.json({ error: 'Missing payment source' }, { status: 400 })
       );
     }
 
     const sessionId = cookies().get('cart-session-id')?.value;
     if (!sessionId) {
       return noCache(
-        NextResponse.json({ error: 'No cart session' }, { status: 400 }),
+        NextResponse.json({ error: 'No cart session' }, { status: 400 })
       );
     }
 
-    // Fetch cart and items
     const cart = await db
       .select()
       .from(carts)
@@ -41,7 +43,7 @@ export async function POST(req: Request) {
 
     if (!cart) {
       return noCache(
-        NextResponse.json({ error: 'Cart is empty' }, { status: 400 }),
+        NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
       );
     }
 
@@ -52,33 +54,32 @@ export async function POST(req: Request) {
 
     if (!items.length) {
       return noCache(
-        NextResponse.json({ error: 'Cart is empty' }, { status: 400 }),
+        NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
       );
     }
 
-    // Compute subtotal
     const subtotal = items.reduce(
       (sum, i) => sum + Number(i.unitPrice ?? '0') * i.quantity,
-      0,
+      0
     );
 
     if (subtotal <= 0) {
       return noCache(
-        NextResponse.json({ error: 'Invalid cart total' }, { status: 400 }),
+        NextResponse.json({ error: 'Invalid cart total' }, { status: 400 })
       );
     }
 
-    // Initialise the Square client using the correct class
-    const client = new Client({
-      accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-      environment:
-        process.env.NODE_ENV === 'production' ? Environment.Production : Environment.Sandbox,
+    // ✅ CORRECT Square initialization for APIMatic SDK (PRODUCTION)
+    const square = new Square({
+      bearerAuthCredentials: {
+        accessToken: process.env.SQUARE_ACCESS_TOKEN!,
+      },
+      environment: 'production',
     });
 
-    // Create a payment via the API
-    const paymentResponse = await client.paymentsApi.createPayment({
+    const payment = await square.paymentsApi.createPayment({
       sourceId,
-      locationId: process.env.SQUARE_LOCATION_ID!,  // must be set in Vercel env
+      locationId: process.env.SQUARE_LOCATION_ID!,
       idempotencyKey: randomUUID(),
       amountMoney: {
         amount: Math.round(subtotal * 100),
@@ -96,13 +97,12 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!paymentResponse.result.payment || paymentResponse.result.payment.status !== 'COMPLETED') {
+    if (!payment.result?.payment || payment.result.payment.status !== 'COMPLETED') {
       return noCache(
-        NextResponse.json({ error: 'Payment failed' }, { status: 400 }),
+        NextResponse.json({ error: 'Payment failed' }, { status: 400 })
       );
     }
 
-    // Persist the order and items
     const [order] = await db
       .insert(orders)
       .values({
@@ -121,16 +121,15 @@ export async function POST(req: Request) {
       });
     }
 
-    // Clear the cart
     await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
 
     return noCache(
-      NextResponse.json({ success: true, orderId: order.id }),
+      NextResponse.json({ success: true, orderId: order.id })
     );
   } catch (err) {
     console.error('Checkout route fatal error:', err);
     return noCache(
-      NextResponse.json({ error: 'Checkout failed' }, { status: 500 }),
+      NextResponse.json({ error: 'Checkout failed' }, { status: 500 })
     );
   }
 }

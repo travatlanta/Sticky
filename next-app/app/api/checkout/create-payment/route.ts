@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-import Square from 'square';
+import { SquareClient } from 'square';
 
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
@@ -69,8 +69,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ CORRECT Square initialization (THIS FIXES THE CRASH)
-    const square = new Square({
+    // ✅ CORRECT Square initialization FOR YOUR SDK
+    const square = SquareClient({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment: 'production',
     });

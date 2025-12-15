@@ -68,6 +68,9 @@ export default function CheckoutClient() {
     zip: '',
     phone: '',
   });
+  const [shippingQuote, setShippingQuote] = useState<number | null>(null);
+  const [shippingMultiplier, setShippingMultiplier] = useState<number>(1);
+
 
   // Retrieve cart details. The query key matches the API route used for the cart.
   const { data: cart, isLoading: cartLoading } = useQuery<{
@@ -77,6 +80,26 @@ export default function CheckoutClient() {
   }>({
     queryKey: ['/api/cart'],
   });
+
+  const quoteMutation = useMutation({
+    mutationFn: async (addr: ShippingAddress) => {
+      const res = await fetch("/api/checkout/shipping-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shippingAddress: { state: addr.state, zip: addr.zip } }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to calculate shipping");
+      }
+      return res.json() as Promise<{ shippingCost: number; locationMultiplier: number }>;
+    },
+    onSuccess: (data) => {
+      setShippingQuote(Number(data.shippingCost) || 0);
+      setShippingMultiplier(Number(data.locationMultiplier) || 1);
+    },
+  });
+
 
   // Mutation to create a payment on the server. It posts to the create-payment API.
   const paymentMutation = useMutation({
@@ -108,8 +131,9 @@ export default function CheckoutClient() {
     },
   });
 
-  // Handle submission of the shipping form. Validates required fields then moves to payment step.
-  const handleShippingSubmit = (e: React.FormEvent) => {
+  // Handle submission of the shipping form. Validates required fields, requests a live shipping quote,
+// then moves to the payment step.
+  const handleShippingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
       !shippingAddress.firstName ||
@@ -126,7 +150,17 @@ export default function CheckoutClient() {
       });
       return;
     }
-    setStep('payment');
+
+    try {
+      await quoteMutation.mutateAsync(shippingAddress);
+      setStep('payment');
+    } catch (error: any) {
+      toast({
+        title: 'Shipping Quote Failed',
+        description: error?.message || 'Could not calculate shipping for this address.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Handle card tokenization result from Square PaymentForm.
@@ -175,43 +209,9 @@ export default function CheckoutClient() {
 
   // Calculate subtotal and totals on the client. The server already returns these, but fallback if missing.
   const subtotal = cart.subtotal || cart.items.reduce((sum, item) => sum + parseFloat(item.unitPrice) * item.quantity, 0);
-  // Fetch shipping configuration from the server. This query loads
-  // `{ shippingCost, freeShipping }` from the settings API. If fetching
-  // fails, a fallback of 15 is used. When freeShipping is true, the
-  // computed shipping cost will be zero.
-  // Retrieve shipping settings via React Query. Provide a generic type
-  // argument so that the returned `data` property will have the
-  // `automaticShipping` field in addition to `shippingCost` and
-  // `freeShipping`. Without specifying the generic type, TypeScript
-  // would infer an insufficient type and produce an error when accessing
-  // `automaticShipping`.
-  const { data: shippingData } = useQuery<
-    { shippingCost: number; freeShipping: boolean; automaticShipping: boolean },
-    Error
-  >({
-    queryKey: ["shipping"],
-    queryFn: async () => {
-      const res = await fetch("/api/settings/shipping");
-      if (!res.ok) throw new Error("Failed to load shipping settings");
-      return res.json() as Promise<{
-        shippingCost: number;
-        freeShipping: boolean;
-        automaticShipping: boolean;
-      }>;
-    },
-  });
-  // Compute shipping based on settings and the number of items in the cart.
-  const itemCount = cart.items.length;
-  let shipping: number;
-  if (shippingData?.freeShipping) {
-    shipping = 0;
-  } else if (shippingData?.automaticShipping) {
-    const base = shippingData?.shippingCost ?? 15;
-    shipping = base * itemCount;
-  } else {
-    shipping = shippingData?.shippingCost ?? 15;
-  }
-  const total = subtotal + shipping;
+  // Shipping is quoted after the customer enters their address.
+  const shipping = shippingQuote ?? 0;
+  const total = subtotal + (shippingQuote === null ? 0 : shipping);
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-6xl">
@@ -446,7 +446,7 @@ export default function CheckoutClient() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span>${shipping.toFixed(2)}</span>
+                  <span>{shippingQuote === null ? "—" : `$${shipping.toFixed(2)}`}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">

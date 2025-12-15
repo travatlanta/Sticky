@@ -3,8 +3,8 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 
-// ✅ CORRECT Square import for your installed SDK
-const { Client, Environment } = require('square');
+// ✅ Correct Square import for your installed SDK
+const { Client } = require('square');
 
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
@@ -75,13 +75,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Proper Square client initialization
+    // ✅ PROPER Square client initialization (STRING ENVIRONMENT)
     const square = new Client({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment:
         process.env.NODE_ENV === 'production'
-          ? Environment.Production
-          : Environment.Sandbox,
+          ? 'production'
+          : 'sandbox',
     });
 
     const payment = await square.paymentsApi.createPayment({

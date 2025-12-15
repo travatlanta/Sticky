@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-
-// ✅ Correct Square import for your installed SDK
-const { Client } = require('square');
+import Square from 'square';
 
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
@@ -21,8 +19,7 @@ function noCache(res: NextResponse) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { sourceId, shippingAddress } = body;
+    const { sourceId, shippingAddress } = await req.json();
 
     if (!sourceId) {
       return noCache(
@@ -37,13 +34,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Fetch cart
     const cart = await db
       .select()
       .from(carts)
       .where(eq(carts.sessionId, sessionId))
       .limit(1)
-      .then(rows => rows[0]);
+      .then(r => r[0]);
 
     if (!cart) {
       return noCache(
@@ -51,21 +47,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Fetch cart items
     const items = await db
       .select()
       .from(cartItems)
       .where(eq(cartItems.cartId, cart.id));
 
-    if (items.length === 0) {
+    if (!items.length) {
       return noCache(
         NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
       );
     }
 
-    // Subtotal only — NO SHIPPING
     const subtotal = items.reduce(
-      (sum, item) => sum + Number(item.unitPrice ?? '0') * item.quantity,
+      (sum, i) => sum + Number(i.unitPrice ?? '0') * i.quantity,
       0
     );
 
@@ -75,17 +69,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ PROPER Square client initialization (STRING ENVIRONMENT)
-    const square = new Client({
+    // ✅ CORRECT Square initialization (THIS FIXES THE CRASH)
+    const square = new Square({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-      environment:
-        process.env.NODE_ENV === 'production'
-          ? 'production'
-          : 'sandbox',
+      environment: 'production',
     });
 
     const payment = await square.paymentsApi.createPayment({
       sourceId,
+      locationId: process.env.SQUARE_LOCATION_ID!,
       idempotencyKey: randomUUID(),
       amountMoney: {
         amount: Math.round(subtotal * 100),
@@ -109,7 +101,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create order
     const [order] = await db
       .insert(orders)
       .values({
@@ -119,7 +110,6 @@ export async function POST(req: Request) {
       })
       .returning();
 
-    // Create order items
     for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,
@@ -129,7 +119,6 @@ export async function POST(req: Request) {
       });
     }
 
-    // Clear cart
     await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
 
     return noCache(

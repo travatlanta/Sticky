@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
@@ -25,6 +24,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Define the product shape used in this admin UI. Note that shipping fields
+// are optional on the product list but can be set when creating or editing.
 interface Product {
   id: number;
   name: string;
@@ -35,6 +36,9 @@ interface Product {
   isActive: boolean;
   isFeatured: boolean;
   categoryId: number | null;
+  // Shipping information for this product. When omitted, defaults to calculated shipping.
+  shippingType?: 'free' | 'flat' | 'calculated';
+  flatShippingPrice?: string | null;
 }
 
 interface ProductTemplate {
@@ -59,6 +63,9 @@ export default function AdminProducts() {
     isActive: true,
     isFeatured: false,
     thumbnailUrl: "",
+    // default shipping configuration for new products
+    shippingType: "calculated" as 'free' | 'flat' | 'calculated',
+    flatShippingPrice: "",
   });
   const createFileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingCreate, setIsUploadingCreate] = useState(false);
@@ -83,15 +90,15 @@ export default function AdminProducts() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/admin/upload/product-image', {
         method: 'POST',
         credentials: 'include',
         body: formData,
       });
-      
+
       if (!response.ok) throw new Error('Upload failed');
-      
+
       const data = await response.json();
       return data.url;
     } catch (error) {
@@ -106,7 +113,7 @@ export default function AdminProducts() {
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingProduct) return;
-    
+
     const imageUrl = await uploadProductImage(file);
     if (imageUrl) {
       setEditingProduct({ ...editingProduct, thumbnailUrl: imageUrl });
@@ -116,20 +123,20 @@ export default function AdminProducts() {
   const handleCreateImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     setIsUploadingCreate(true);
     try {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
-      
+
       const response = await fetch('/api/admin/upload/product-image', {
         method: 'POST',
         credentials: 'include',
         body: uploadFormData,
       });
-      
+
       if (!response.ok) throw new Error('Upload failed');
-      
+
       const data = await response.json();
       setFormData({ ...formData, thumbnailUrl: data.url });
       toast({ title: "Image uploaded successfully" });
@@ -146,15 +153,15 @@ export default function AdminProducts() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/admin/upload/template-image', {
         method: 'POST',
         credentials: 'include',
         body: formData,
       });
-      
+
       if (!response.ok) throw new Error('Upload failed');
-      
+
       const data = await response.json();
       return data.url;
     } catch (error) {
@@ -169,7 +176,7 @@ export default function AdminProducts() {
   const handleTemplateImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     const imageUrl = await uploadTemplateImage(file);
     if (imageUrl) {
       setTemplateForm({ ...templateForm, previewImageUrl: imageUrl });
@@ -207,7 +214,7 @@ export default function AdminProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       setShowCreateForm(false);
-      setFormData({ name: "", slug: "", description: "", basePrice: "", isActive: true, isFeatured: false, thumbnailUrl: "" });
+      setFormData({ name: "", slug: "", description: "", basePrice: "", isActive: true, isFeatured: false, thumbnailUrl: "", shippingType: "calculated", flatShippingPrice: "" });
       toast({ title: "Product created successfully" });
     },
     onError: () => toast({ title: "Failed to create product", variant: "destructive" }),
@@ -476,6 +483,39 @@ export default function AdminProducts() {
                   />
                 </div>
               </div>
+              {/* Shipping Options */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Shipping Type</label>
+                  <select
+                    value={formData.shippingType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, shippingType: e.target.value as 'free' | 'flat' | 'calculated' })
+                    }
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    data-testid="select-shipping-type"
+                  >
+                    <option value="calculated">Calculated</option>
+                    <option value="flat">Flat</option>
+                    <option value="free">Free</option>
+                  </select>
+                </div>
+                {formData.shippingType === 'flat' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Flat Shipping Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.flatShippingPrice || ''}
+                      onChange={(e) =>
+                        setFormData({ ...formData, flatShippingPrice: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      data-testid="input-flat-shipping-price"
+                    />
+                  </div>
+                )}
+              </div>
               <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -610,7 +650,7 @@ export default function AdminProducts() {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <Tabs defaultValue="details" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="details" data-testid="tab-product-details">
@@ -627,6 +667,7 @@ export default function AdminProducts() {
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
+                      if (!editingProduct) return;
                       updateMutation.mutate({
                         id: editingProduct.id,
                         data: editingProduct,
@@ -730,6 +771,49 @@ export default function AdminProducts() {
                         rows={3}
                         data-testid="input-edit-description"
                       />
+                    </div>
+                    {/* Shipping Options for Editing */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Shipping Type</label>
+                        <select
+                          value={editingProduct.shippingType || 'calculated'}
+                          onChange={(e) =>
+                            setEditingProduct({
+                              ...editingProduct,
+                              shippingType: e.target.value as 'free' | 'flat' | 'calculated',
+                              flatShippingPrice:
+                                e.target.value === 'flat'
+                                  ? (editingProduct.flatShippingPrice ?? '')
+                                  : null,
+                            })
+                          }
+                          className="w-full px-3 py-2 border rounded-lg text-sm"
+                          data-testid="select-edit-shipping-type"
+                        >
+                          <option value="calculated">Calculated</option>
+                          <option value="flat">Flat</option>
+                          <option value="free">Free</option>
+                        </select>
+                      </div>
+                      {editingProduct.shippingType === 'flat' && (
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Flat Shipping Price</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editingProduct.flatShippingPrice || ''}
+                            onChange={(e) =>
+                              setEditingProduct({
+                                ...editingProduct,
+                                flatShippingPrice: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 border rounded-lg text-sm"
+                            data-testid="input-edit-flat-shipping-price"
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center space-x-4">
                       <label className="flex items-center space-x-2">

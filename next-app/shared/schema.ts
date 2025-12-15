@@ -44,6 +44,12 @@ export const discountTypeEnum = pgEnum("discount_type", [
 
 export const senderTypeEnum = pgEnum("sender_type", ["user", "admin"]);
 
+// Shipping type enum for per-product shipping settings.  Allowed values are
+// 'free' (no shipping cost), 'flat' (fixed shipping cost per product), and
+// 'calculated' (use automatic/global shipping calculation). The default is
+// 'calculated' when creating new products.
+export const shippingTypeEnum = pgEnum("shipping_type", ["free", "flat", "calculated"]);
+
 // Session storage table (required for Replit Auth)
 export const sessions = pgTable(
   "sessions",
@@ -111,6 +117,14 @@ export const products = pgTable("products", {
   bleedSize: decimal("bleed_size", { precision: 4, scale: 3 }).default("0.125"),
   safeZoneSize: decimal("safe_zone_size", { precision: 4, scale: 3 }).default("0.25"),
   supportsCustomShape: boolean("supports_custom_shape").default(false),
+
+  // Per‑product shipping configuration.  If shippingType is 'flat', a
+  // flatShippingPrice must be provided; otherwise it can be null.  When
+  // shippingType is 'free', shipping is free and flatShippingPrice is ignored.
+  // When shippingType is 'calculated', the system will fall back to global or
+  // automatically calculated shipping rates.
+  shippingType: shippingTypeEnum("shipping_type").default("calculated"),
+  flatShippingPrice: decimal("flat_shipping_price", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

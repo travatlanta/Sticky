@@ -35,6 +35,13 @@ interface Product {
   isActive: boolean;
   isFeatured: boolean;
   categoryId: number | null;
+
+  // Per-product shipping settings.  These are returned from the API and
+  // optionally edited in the admin form.  shippingType can be 'free',
+  // 'flat', or 'calculated'.  flatShippingPrice should be a string
+  // representing a decimal or null when not used.
+  shippingType?: string;
+  flatShippingPrice?: string | null;
 }
 
 interface ProductTemplate {
@@ -59,6 +66,8 @@ export default function AdminProducts() {
     isActive: true,
     isFeatured: false,
     thumbnailUrl: "",
+    shippingType: "calculated" as string,
+    flatShippingPrice: "" as string | null,
   });
   const createFileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingCreate, setIsUploadingCreate] = useState(false);
@@ -207,7 +216,18 @@ export default function AdminProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       setShowCreateForm(false);
-      setFormData({ name: "", slug: "", description: "", basePrice: "", isActive: true, isFeatured: false, thumbnailUrl: "" });
+      // Reset form data including shipping fields
+      setFormData({
+        name: "",
+        slug: "",
+        description: "",
+        basePrice: "",
+        isActive: true,
+        isFeatured: false,
+        thumbnailUrl: "",
+        shippingType: "calculated",
+        flatShippingPrice: "",
+      });
       toast({ title: "Product created successfully" });
     },
     onError: () => toast({ title: "Failed to create product", variant: "destructive" }),
@@ -475,6 +495,34 @@ export default function AdminProducts() {
                     data-testid="input-product-description"
                   />
                 </div>
+                {/* Shipping type selector */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Shipping Type</label>
+                  <select
+                    value={formData.shippingType}
+                    onChange={(e) => setFormData({ ...formData, shippingType: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    data-testid="select-shipping-type"
+                  >
+                    <option value="calculated">Calculated</option>
+                    <option value="flat">Flat Rate</option>
+                    <option value="free">Free</option>
+                  </select>
+                </div>
+                {/* Flat shipping price input shown only when shippingType is 'flat' */}
+                {formData.shippingType === 'flat' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Flat Shipping Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.flatShippingPrice ?? ''}
+                      onChange={(e) => setFormData({ ...formData, flatShippingPrice: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      data-testid="input-flat-shipping-price"
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
@@ -731,6 +779,38 @@ export default function AdminProducts() {
                         data-testid="input-edit-description"
                       />
                     </div>
+                {/* Shipping type selector for editing existing products */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Shipping Type</label>
+                  <select
+                    value={editingProduct.shippingType || 'calculated'}
+                    onChange={(e) =>
+                      setEditingProduct({ ...editingProduct, shippingType: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border rounded-lg"
+                    data-testid="select-edit-shipping-type"
+                  >
+                    <option value="calculated">Calculated</option>
+                    <option value="flat">Flat Rate</option>
+                    <option value="free">Free</option>
+                  </select>
+                </div>
+                {/* Flat shipping price input shown only when editingProduct.shippingType is 'flat' */}
+                {editingProduct.shippingType === 'flat' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Flat Shipping Price</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingProduct.flatShippingPrice ?? ''}
+                      onChange={(e) =>
+                        setEditingProduct({ ...editingProduct, flatShippingPrice: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg"
+                      data-testid="input-edit-flat-shipping-price"
+                    />
+                  </div>
+                )}
                     <div className="flex items-center space-x-4">
                       <label className="flex items-center space-x-2">
                         <input

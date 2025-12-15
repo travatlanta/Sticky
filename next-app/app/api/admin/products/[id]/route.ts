@@ -19,6 +19,15 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    // Derive shipping values.  Default shippingType to the existing value
+    // ('calculated') if not provided.  Coerce empty string or undefined
+    // flatShippingPrice to null.  When shippingType is 'flat', clients should
+    // provide flatShippingPrice.
+    const shippingType = body.shippingType || 'calculated';
+    const flatShippingPrice = body.flatShippingPrice === '' || body.flatShippingPrice === undefined
+      ? null
+      : body.flatShippingPrice;
+
     const [product] = await db
       .update(products)
       .set({
@@ -36,6 +45,8 @@ export async function PUT(
         bleedSize: body.bleedSize,
         safeZoneSize: body.safeZoneSize,
         supportsCustomShape: body.supportsCustomShape,
+        shippingType: shippingType,
+        flatShippingPrice: flatShippingPrice,
         updatedAt: new Date(),
       })
       .where(eq(products.id, parseInt(id)))

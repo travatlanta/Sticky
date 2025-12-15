@@ -7,6 +7,7 @@ import { carts, cartItems, products, designs } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
+import { calculateShippingForItems } from '@/server/services/shipping';
 
 function noCache(res: NextResponse) {
   res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -54,22 +55,44 @@ export async function GET() {
       .leftJoin(designs, eq(cartItems.designId, designs.id))
       .where(eq(cartItems.cartId, cart.id));
 
-    return noCache(NextResponse.json({ items }));
+    const subtotal = items.reduce((sum, item) => {
+      const price = item.unitPrice ? Number(item.unitPrice) : 0;
+      return sum + price * item.quantity;
+    }, 0);
+
+    const shipping = calculateShippingForItems(
+      items.map((i) => ({
+        product: i.product as any,
+        quantity: i.quantity,
+      }))
+    );
+
+    const total = subtotal + shipping;
+
+    return noCache(
+      NextResponse.json({
+        items,
+        subtotal,
+        shipping,
+        total,
+      })
+    );
   } catch (error) {
     console.error('Error fetching cart:', error);
-    return noCache(NextResponse.json({ items: [] }));
+    return noCache(
+      NextResponse.json({
+        items: [],
+        subtotal: 0,
+        shipping: 0,
+        total: 0,
+      })
+    );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    let body: any;
-    try {
-      body = await request.json();
-    } catch {
-      const text = await request.text();
-      body = text ? JSON.parse(text) : {};
-    }
+    const body = await request.json();
 
     const cookieStore = cookies();
     let sessionId = cookieStore.get('cart-session-id')?.value;

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-import Square from 'square';
+import { createClient } from 'square';
 
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Fetch cart
     const cart = await db
       .select()
       .from(carts)
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Fetch cart items
     const items = await db
       .select()
       .from(cartItems)
@@ -58,6 +60,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Subtotal ONLY (no shipping)
     const subtotal = items.reduce(
       (sum, i) => sum + Number(i.unitPrice ?? '0') * i.quantity,
       0
@@ -69,18 +72,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ CORRECT Square initialization for APIMatic SDK (PRODUCTION)
-    const square = new Square({
+    // ✅ CORRECT Square initialization (APIMatic SDK)
+    const square = createClient({
       bearerAuthCredentials: {
         accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       },
       environment: 'production',
     });
 
-    const payment = await square.paymentsApi.createPayment({
+    // Create payment
+    const paymentResult = await square.paymentsApi.createPayment({
       sourceId,
-      locationId: process.env.SQUARE_LOCATION_ID!,
       idempotencyKey: randomUUID(),
+      locationId: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!,
       amountMoney: {
         amount: Math.round(subtotal * 100),
         currency: 'USD',
@@ -97,12 +101,15 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!payment.result?.payment || payment.result.payment.status !== 'COMPLETED') {
+    const payment = paymentResult.result.payment;
+
+    if (!payment || payment.status !== 'COMPLETED') {
       return noCache(
         NextResponse.json({ error: 'Payment failed' }, { status: 400 })
       );
     }
 
+    // Create order
     const [order] = await db
       .insert(orders)
       .values({
@@ -112,6 +119,7 @@ export async function POST(req: Request) {
       })
       .returning();
 
+    // Create order items
     for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,
@@ -121,6 +129,7 @@ export async function POST(req: Request) {
       });
     }
 
+    // Clear cart
     await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
 
     return noCache(

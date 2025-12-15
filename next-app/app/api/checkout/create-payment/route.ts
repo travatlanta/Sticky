@@ -6,7 +6,6 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { orders, orderItems, cartItems, carts, products } from '@/shared/schema';
 import { eq } from 'drizzle-orm';
-import { computeShippingQuote } from '@/lib/shipping';
 
 interface ShippingAddress {
   firstName: string;
@@ -49,16 +48,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Locate cart: prefer userId cart, otherwise fall back to cookie session cart.
-    let userCart = await db.select().from(carts).where(eq(carts.userId, session.user.id)).limit(1);
-
-    if (userCart.length === 0) {
-      const sessionId = request.cookies.get("cart-session-id")?.value;
-      if (sessionId) {
-        userCart = await db.select().from(carts).where(eq(carts.sessionId, sessionId)).limit(1);
-      }
-    }
-
+    const userCart = await db.select().from(carts).where(eq(carts.userId, session.user.id)).limit(1);
+    
     if (userCart.length === 0) {
       return NextResponse.json({ error: 'Your cart is empty' }, { status: 404 });
     }
@@ -82,21 +73,7 @@ export async function POST(request: NextRequest) {
       subtotal += unitPrice * item.cartItem.quantity;
     }
 
-    let shippingCost = 15.00;
-
-    if (shippingAddress) {
-      const quoteItems = items.map((row) => ({
-        quantity: row.cartItem.quantity,
-        shippingType: (row.product as any).shippingType,
-        flatShippingPrice: (row.product as any).flatShippingPrice,
-      }));
-      const quote = await computeShippingQuote(quoteItems, {
-        state: shippingAddress.state,
-        zip: shippingAddress.zip,
-      });
-      shippingCost = quote.shippingCost;
-    }
-
+    const shippingCost = 15.00;
     const taxAmount = 0;
     const totalAmount = subtotal + shippingCost + taxAmount;
     const amountInCents = Math.round(totalAmount * 100);

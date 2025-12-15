@@ -35,8 +35,6 @@ interface Product {
   isActive: boolean;
   isFeatured: boolean;
   categoryId: number | null;
-  shippingType?: "free" | "flat" | "calculated";
-  flatShippingPrice?: string | null;
 }
 
 interface ProductTemplate {
@@ -61,8 +59,6 @@ export default function AdminProducts() {
     isActive: true,
     isFeatured: false,
     thumbnailUrl: "",
-    shippingType: "calculated" as "free" | "flat" | "calculated",
-    flatShippingPrice: "",
   });
   const createFileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingCreate, setIsUploadingCreate] = useState(false);
@@ -211,7 +207,7 @@ export default function AdminProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       setShowCreateForm(false);
-      setFormData({ name: "", slug: "", description: "", basePrice: "", isActive: true, isFeatured: false, thumbnailUrl: "", shippingType: "calculated", flatShippingPrice: "" });
+      setFormData({ name: "", slug: "", description: "", basePrice: "", isActive: true, isFeatured: false, thumbnailUrl: "" });
       toast({ title: "Product created successfully" });
     },
     onError: () => toast({ title: "Failed to create product", variant: "destructive" }),
@@ -480,47 +476,6 @@ export default function AdminProducts() {
                   />
                 </div>
               </div>
-              <div className="border-t pt-4 mt-2">
-                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Truck className="h-4 w-4" />
-                  Shipping
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Shipping Type</label>
-                    <select
-                      value={formData.shippingType}
-                      onChange={(e) => setFormData({ ...formData, shippingType: e.target.value as any })}
-                      className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
-                      data-testid="select-product-shipping-type"
-                    >
-                      <option value="calculated">Calculated (address-based)</option>
-                      <option value="flat">Flat rate</option>
-                      <option value="free">Free shipping</option>
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Calculated uses the customer's address at checkout. Flat rate charges a fixed amount for this product.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Flat Shipping Price</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.flatShippingPrice}
-                      onChange={(e) => setFormData({ ...formData, flatShippingPrice: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg text-sm"
-                      placeholder="0.00"
-                      disabled={formData.shippingType !== "flat"}
-                      data-testid="input-product-flat-shipping-price"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Only used when Shipping Type is set to Flat rate.
-                    </p>
-                  </div>
-                </div>
-              </div>
               <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -775,51 +730,6 @@ export default function AdminProducts() {
                         rows={3}
                         data-testid="input-edit-description"
                       />
-                    </div>
-                    <div className="border-t pt-4">
-                      <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                        <Truck className="h-4 w-4" />
-                        Shipping
-                      </h3>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Shipping Type</label>
-                          <select
-                            value={editingProduct.shippingType || "calculated"}
-                            onChange={(e) =>
-                              setEditingProduct({ ...editingProduct, shippingType: e.target.value as any })
-                            }
-                            className="w-full px-3 py-2 border rounded-lg bg-white"
-                            data-testid="select-edit-shipping-type"
-                          >
-                            <option value="calculated">Calculated (address-based)</option>
-                            <option value="flat">Flat rate</option>
-                            <option value="free">Free shipping</option>
-                          </select>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Calculated uses the customer's address at checkout. Flat rate charges a fixed amount for this product.
-                          </p>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Flat Shipping Price</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={editingProduct.flatShippingPrice || ""}
-                            onChange={(e) =>
-                              setEditingProduct({ ...editingProduct, flatShippingPrice: e.target.value })
-                            }
-                            className="w-full px-3 py-2 border rounded-lg"
-                            placeholder="0.00"
-                            disabled={(editingProduct.shippingType || "calculated") !== "flat"}
-                            data-testid="input-edit-flat-shipping-price"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Only used when Shipping Type is set to Flat rate.
-                          </p>
-                        </div>
-                      </div>
                     </div>
                     <div className="flex items-center space-x-4">
                       <label className="flex items-center space-x-2">

@@ -2,10 +2,6 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-
-// ✅ CORRECT imports for Square SDK v43+
-import { SquareClient, SquareEnvironment } from 'square';
-
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
 
@@ -62,7 +58,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Subtotal ONLY — NO SHIPPING
+    // Subtotal only (no shipping)
     const subtotal = items.reduce(
       (sum, i) => sum + Number(i.unitPrice ?? '0') * i.quantity,
       0
@@ -74,40 +70,49 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ CORRECT Square client initialization (PRODUCTION)
-    const square = new SquareClient({
-      bearerAuthCredentials: {
-        accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-      },
-      environment: SquareEnvironment.Production,
-    });
-
-    // Create payment
-    const paymentResult = await square.paymentsApi.createPayment({
-      sourceId,
-      idempotencyKey: randomUUID(),
-      locationId: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!,
-      amountMoney: {
-        amount: Math.round(subtotal * 100),
+    // Construct payload for Square API
+    const amountInCents = Math.round(subtotal * 100);
+    const paymentPayload = {
+      source_id: sourceId,
+      idempotency_key: randomUUID(),
+      location_id: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!,
+      amount_money: {
+        amount: amountInCents,
         currency: 'USD',
       },
-      billingAddress: {
-        firstName: shippingAddress?.firstName,
-        lastName: shippingAddress?.lastName,
-        addressLine1: shippingAddress?.address1,
-        addressLine2: shippingAddress?.address2,
+      billing_address: {
+        first_name: shippingAddress?.firstName,
+        last_name: shippingAddress?.lastName,
+        address_line_1: shippingAddress?.address1,
+        address_line_2: shippingAddress?.address2,
         locality: shippingAddress?.city,
-        administrativeDistrictLevel1: shippingAddress?.state,
-        postalCode: shippingAddress?.zip,
+        administrative_district_level_1: shippingAddress?.state,
+        postal_code: shippingAddress?.zip,
         country: 'US',
       },
+    };
+
+    // Call Square Payments API directly
+    const accessToken = process.env.SQUARE_ACCESS_TOKEN!;
+    const response = await fetch('https://connect.squareup.com/v2/payments', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'Square-Version': '2024-05-22',
+      },
+      body: JSON.stringify(paymentPayload),
     });
 
-    const payment = paymentResult.result.payment;
+    const paymentResult = await response.json();
+    const payment = paymentResult.payment;
 
     if (!payment || payment.status !== 'COMPLETED') {
       return noCache(
-        NextResponse.json({ error: 'Payment failed' }, { status: 400 })
+        NextResponse.json(
+          { error: paymentResult?.errors?.[0]?.detail || 'Payment failed' },
+          { status: 400 }
+        )
       );
     }
 

@@ -43,7 +43,6 @@ export const discountTypeEnum = pgEnum("discount_type", [
 ]);
 
 export const senderTypeEnum = pgEnum("sender_type", ["user", "admin"]);
-export const shippingTypeEnum = pgEnum("shipping_type", ["free", "flat", "calculated"]);
 
 // Session storage table (required for Replit Auth)
 export const sessions = pgTable(
@@ -112,8 +111,6 @@ export const products = pgTable("products", {
   bleedSize: decimal("bleed_size", { precision: 4, scale: 3 }).default("0.125"),
   safeZoneSize: decimal("safe_zone_size", { precision: 4, scale: 3 }).default("0.25"),
   supportsCustomShape: boolean("supports_custom_shape").default(false),
-  shippingType: shippingTypeEnum("shipping_type").default("calculated"),
-  flatShippingPrice: decimal("flat_shipping_price", { precision: 10, scale: 2 }).default("0"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

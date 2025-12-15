@@ -48,8 +48,6 @@ export async function POST(request: Request) {
         bleedSize: body.bleedSize || '0.125',
         safeZoneSize: body.safeZoneSize || '0.25',
         supportsCustomShape: body.supportsCustomShape || false,
-        shippingType: body.shippingType || 'calculated',
-        flatShippingPrice: body.shippingType === 'flat' ? (body.flatShippingPrice || '0') : '0',
       })
       .returning();
 

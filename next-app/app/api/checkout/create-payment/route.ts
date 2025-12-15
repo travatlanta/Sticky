@@ -7,7 +7,7 @@ import { carts, orders, orderItems } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
-import { SquareClient } from 'square';
+import { Client, Environment } from 'square';
 
 function noCache(res: NextResponse) {
   res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔧 DRIZZLE RELATION TYPE FIX
+    // 🔧 Drizzle relation typing fix
     const items = cart.items as any[];
 
     if (items.length === 0) {
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 🔧 DRIZZLE COLUMN TYPE FIX
+    // 🔧 Drizzle column typing fix
     const total = Number((cart as any).total ?? 0);
 
     if (total <= 0) {
@@ -70,12 +70,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const square = new SquareClient({
+    const square = new Client({
+      environment:
+        process.env.NODE_ENV === 'production'
+          ? Environment.Production
+          : Environment.Sandbox,
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
-      environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
     });
 
-    await square.payments.create({
+    await square.paymentsApi.createPayment({
       sourceId,
       idempotencyKey: randomUUID(),
       amountMoney: {

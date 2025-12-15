@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 
-// CommonJS Square import (required for your SDK version)
+// Square SDK (factory-based for your version)
 const Square = require('square');
 
 import { db } from '../../../../lib/db';
@@ -75,8 +75,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Initialize Square client
-    const square = new Square.Client({
+    // ✅ Correct Square initialization for your SDK
+    const square = Square({
       accessToken: process.env.SQUARE_ACCESS_TOKEN!,
       environment:
         process.env.NODE_ENV === 'production'
@@ -84,7 +84,6 @@ export async function POST(req: Request) {
           : 'sandbox',
     });
 
-    // Create Square payment
     const payment = await square.paymentsApi.createPayment({
       sourceId,
       idempotencyKey: randomUUID(),
@@ -120,7 +119,7 @@ export async function POST(req: Request) {
       })
       .returning();
 
-    // Create order items — NULL-SAFE
+    // Create order items (null-safe)
     for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,

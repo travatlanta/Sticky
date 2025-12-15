@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
-// Load Square dynamically to avoid SDK typing issues
+// Load Square dynamically (SDK typings workaround)
 const Square: any = require('square');
 
 function noCache(res: NextResponse) {
@@ -39,12 +39,9 @@ export async function POST(request: Request) {
 
     const cart = await db.query.carts.findFirst({
       where: eq(carts.sessionId, sessionId),
+      // 🔧 FIX: remove invalid nested relation
       with: {
-        items: {
-          with: {
-            product: true,
-          },
-        },
+        items: true,
       },
     });
 
@@ -79,36 +76,22 @@ export async function POST(request: Request) {
           : 'sandbox',
     });
 
-    try {
-      await square.payments.create({
-        sourceId,
-        idempotencyKey: randomUUID(),
-        amountMoney: {
-          amount: Math.round(totalAmount * 100),
-          currency: 'USD',
-        },
-        shippingAddress: {
-          addressLine1: shippingAddress.address1,
-          addressLine2: shippingAddress.address2 || undefined,
-          locality: shippingAddress.city,
-          administrativeDistrictLevel1: shippingAddress.state,
-          postalCode: shippingAddress.zip,
-          country: 'US',
-        },
-      });
-    } catch (squareError: any) {
-      console.error('❌ Square payment error:', JSON.stringify(squareError, null, 2));
-
-      return noCache(
-        NextResponse.json(
-          {
-            error: 'Square payment failed',
-            details: squareError?.errors || squareError?.message || squareError,
-          },
-          { status: 500 }
-        )
-      );
-    }
+    await square.payments.create({
+      sourceId,
+      idempotencyKey: randomUUID(),
+      amountMoney: {
+        amount: Math.round(totalAmount * 100),
+        currency: 'USD',
+      },
+      shippingAddress: {
+        addressLine1: shippingAddress.address1,
+        addressLine2: shippingAddress.address2 || undefined,
+        locality: shippingAddress.city,
+        administrativeDistrictLevel1: shippingAddress.state,
+        postalCode: shippingAddress.zip,
+        country: 'US',
+      },
+    });
 
     const [order] = await db
       .insert(orders)

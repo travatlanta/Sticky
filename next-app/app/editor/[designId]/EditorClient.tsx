@@ -15,14 +15,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { 
   Upload, ShoppingCart, Check, Loader2, ChevronDown, ChevronUp,
   Minus, Plus, ArrowLeft, Type, Shapes, Brush, Palette, Image as ImageIcon,
   Square, Circle, Triangle, Star, Heart, Smile, Undo2, Redo2, Trash2,
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
-  PaintBucket, Eraser, Pipette, Move, X, Save, Download
+  PaintBucket, Eraser, Pipette, Move, X, Save, Download, HelpCircle,
+  FolderOpen, Layers
 } from "lucide-react";
-import { getContourFromImage, expandContour, scaleContourPath } from "@/lib/contour-tracer";
+import { getContourFromImage, expandContour, scaleContourPath, traceContour } from "@/lib/contour-tracer";
 
 type FabricModule = typeof import("fabric");
 let fabricModule: FabricModule | null = null;
@@ -57,6 +64,8 @@ interface Product {
   printHeightInches?: string;
   printDpi?: number;
   supportsCustomShape?: boolean;
+  bleedSize?: string;
+  safeZoneSize?: string;
 }
 
 interface Design {
@@ -79,12 +88,14 @@ interface PriceCalculation {
   subtotal: number;
 }
 
-const DEFAULT_QUANTITY_OPTIONS = [25, 50, 100, 250, 500, 1000];
+interface UploadedAsset {
+  id: string;
+  url: string;
+  name: string;
+  thumbnail: string;
+}
 
-const EMOJI_LIST = [
-  "star", "heart", "fire", "sparkles", "sun", "moon", "lightning", "cloud",
-  "flower", "leaf", "trophy", "gift", "crown", "diamond", "music", "camera"
-];
+const DEFAULT_QUANTITY_OPTIONS = [25, 50, 100, 250, 500, 1000];
 
 const FONT_FAMILIES = [
   "Arial", "Helvetica", "Times New Roman", "Georgia", "Verdana",
@@ -97,6 +108,15 @@ const PRESET_COLORS = [
   "#4169e1", "#ffd700", "#ff4500", "#1e90ff", "#dc143c", "#00ced1"
 ];
 
+const HELP_TIPS: Record<string, string> = {
+  text: "Add text to your design. Click 'Add Text' then edit directly on the canvas.",
+  graphics: "Add shapes, icons, or upload your own images to the design.",
+  draw: "Draw freehand on your design using the brush tool.",
+  adjust: "Change the bleed color (border area) and product options like material and quantity.",
+  uploads: "Upload multiple images here to use as design elements. They'll appear in your gallery.",
+  canvas: "This is your design area. The gray border shows the bleed zone that will be trimmed. Keep important content inside.",
+};
+
 export default function Editor() {
   const params = useParams();
   const designId = params.designId as string;
@@ -105,6 +125,7 @@ export default function Editor() {
   const { toast } = useToast();
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<any>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -113,7 +134,7 @@ export default function Editor() {
   const [activeTab, setActiveTab] = useState("text");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
-  const [imageSize, setImageSize] = useState({ width: 2, height: 2 });
+  const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
   const [quantity, setQuantity] = useState(50);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
   const [isUploading, setIsUploading] = useState(false);
@@ -137,7 +158,12 @@ export default function Editor() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [fabricLoaded, setFabricLoaded] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [canvasDimensions, setCanvasDimensions] = useState({ width: 400, height: 400 });
+  const [productDimensionsInches, setProductDimensionsInches] = useState({ width: 4, height: 4 });
   const animationFrameRef = useRef<number>();
+
+  const PIXELS_PER_INCH = 100;
 
   const { data: design, isLoading: designLoading, error: designError } = useQuery<Design>({
     queryKey: [`/api/designs/${designId}`],
@@ -162,6 +188,18 @@ export default function Editor() {
   });
 
   useEffect(() => {
+    if (product) {
+      const widthInches = parseFloat(product.printWidthInches || "4");
+      const heightInches = parseFloat(product.printHeightInches || "4");
+      setProductDimensionsInches({ width: widthInches, height: heightInches });
+      
+      const newWidth = Math.round(widthInches * PIXELS_PER_INCH);
+      const newHeight = Math.round(heightInches * PIXELS_PER_INCH);
+      setCanvasDimensions({ width: newWidth, height: newHeight });
+    }
+  }, [product]);
+
+  useEffect(() => {
     if (!canvasRef.current || fabricCanvasRef.current) return;
 
     const initCanvas = async () => {
@@ -170,16 +208,27 @@ export default function Editor() {
       }
       
       const canvas = new fabricModule.Canvas(canvasRef.current!, {
-        backgroundColor: "#f3f4f6",
+        backgroundColor: "#ffffff",
         selection: true,
         preserveObjectStacking: true,
       });
 
       fabricCanvasRef.current = canvas;
 
-      canvas.on("object:modified", saveCanvasState);
-      canvas.on("object:added", saveCanvasState);
-      canvas.on("object:removed", saveCanvasState);
+      canvas.on("object:modified", () => {
+        saveCanvasState();
+        updateContourFromCanvas();
+      });
+      canvas.on("object:added", () => {
+        saveCanvasState();
+        updateContourFromCanvas();
+      });
+      canvas.on("object:removed", () => {
+        saveCanvasState();
+        updateContourFromCanvas();
+      });
+      canvas.on("object:moving", updateContourFromCanvas);
+      canvas.on("object:scaling", updateContourFromCanvas);
       
       setFabricLoaded(true);
     };
@@ -202,18 +251,30 @@ export default function Editor() {
       const container = previewContainerRef.current;
       if (!container) return;
 
-      const containerWidth = container.clientWidth - 40;
-      const containerHeight = container.clientHeight - 40;
-      const size = Math.min(containerWidth, containerHeight, 500);
+      const rulerOffset = 40;
+      const padding = 40;
+      const containerWidth = container.clientWidth - rulerOffset - padding;
+      const containerHeight = container.clientHeight - rulerOffset - padding;
+      
+      const productWidth = canvasDimensions.width;
+      const productHeight = canvasDimensions.height;
+      
+      const scaleX = containerWidth / productWidth;
+      const scaleY = containerHeight / productHeight;
+      const scale = Math.min(scaleX, scaleY, 1.5);
+      
+      const displayWidth = Math.round(productWidth * scale);
+      const displayHeight = Math.round(productHeight * scale);
 
-      canvas.setDimensions({ width: size, height: size });
+      canvas.setDimensions({ width: displayWidth, height: displayHeight });
+      canvas.setZoom(scale);
       canvas.renderAll();
     };
 
     updateCanvasSize();
     window.addEventListener("resize", updateCanvasSize);
     return () => window.removeEventListener("resize", updateCanvasSize);
-  }, [designLoading]);
+  }, [designLoading, canvasDimensions]);
 
   useEffect(() => {
     if (design?.previewUrl && !uploadedImage) {
@@ -251,10 +312,10 @@ export default function Editor() {
   const [priceLoading, setPriceLoading] = useState(false);
 
   const calculatePrice = useCallback(async () => {
-    if (!product?.slug) return;
+    if (!product?.id) return;
     setPriceLoading(true);
     try {
-      const res = await fetch(`/api/products/${product.slug}/calculate-price`, {
+      const res = await fetch(`/api/products/${product.id}/calculate-price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quantity, selectedOptions }),
@@ -268,14 +329,14 @@ export default function Editor() {
     } finally {
       setPriceLoading(false);
     }
-  }, [product?.slug, quantity, selectedOptions]);
+  }, [product?.id, quantity, selectedOptions]);
 
   useEffect(() => {
     if (priceCalculationTimeoutRef.current) {
       clearTimeout(priceCalculationTimeoutRef.current);
     }
     priceCalculationTimeoutRef.current = setTimeout(() => {
-      if (product?.slug) {
+      if (product?.id) {
         calculatePrice();
       }
     }, 300);
@@ -284,7 +345,33 @@ export default function Editor() {
         clearTimeout(priceCalculationTimeoutRef.current);
       }
     };
-  }, [product?.slug, quantity, selectedOptions, calculatePrice]);
+  }, [product?.id, quantity, selectedOptions, calculatePrice]);
+
+  const updateContourFromCanvas = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas || !product?.supportsCustomShape) return;
+
+    const dataUrl = canvas.toDataURL({
+      format: 'png',
+      quality: 1,
+    });
+
+    const img = new Image();
+    img.onload = () => {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = img.width;
+      tempCanvas.height = img.height;
+      const ctx = tempCanvas.getContext('2d');
+      if (!ctx) return;
+      
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      
+      const newContour = traceContour(imageData, 10, 2);
+      setContourPath(newContour);
+    };
+    img.src = dataUrl;
+  }, [product?.supportsCustomShape]);
 
   const saveCanvasState = useCallback(() => {
     const canvas = fabricCanvasRef.current;
@@ -549,177 +636,238 @@ export default function Editor() {
       const reader = new FileReader();
       reader.onload = async (event) => {
         const dataUrl = event.target?.result as string;
-        setUploadedImage(dataUrl);
         
         const img = new Image();
-        img.onload = () => {
-          const dpi = product?.printDpi || 300;
-          const widthInches = Math.round((img.width / dpi) * 10) / 10;
-          const heightInches = Math.round((img.height / dpi) * 10) / 10;
-          setImageSize({
-            width: Math.max(1, Math.min(12, widthInches || 2)),
-            height: Math.max(1, Math.min(12, heightInches || 2)),
+        img.onload = async () => {
+          const canvas = fabricCanvasRef.current;
+          if (!canvas || !fabricModule) return;
+
+          const fabricImg = new fabricModule.Image(img, {
+            left: canvas.width! / 2,
+            top: canvas.height! / 2,
+            originX: "center",
+            originY: "center",
           });
 
-          const path = getContourFromImage(img, 0.25, 10, 3);
-          const scaledPath = scaleContourPath(path, 4, 4);
-          setContourPath(scaledPath);
+          const maxSize = Math.min(canvas.width!, canvas.height!) * 0.8;
+          const scale = Math.min(maxSize / img.width, maxSize / img.height);
+          fabricImg.scale(scale);
 
-          const canvas = fabricCanvasRef.current;
-          if (canvas && fabricModule) {
-            fabricModule.FabricImage.fromURL(dataUrl).then((fabricImg) => {
-              const canvasWidth = canvas.width! - 40;
-              const canvasHeight = canvas.height! - 40;
-              const scale = Math.min(canvasWidth / fabricImg.width!, canvasHeight / fabricImg.height!);
-              
-              fabricImg.scale(scale);
-              fabricImg.set({
-                left: canvas.width! / 2,
-                top: canvas.height! / 2,
-                originX: "center",
-                originY: "center",
-              });
-              
-              canvas.add(fabricImg);
-              canvas.sendObjectToBack(fabricImg);
-              canvas.renderAll();
-            });
+          canvas.add(fabricImg);
+          canvas.setActiveObject(fabricImg);
+          canvas.renderAll();
+
+          if (product?.supportsCustomShape) {
+            const newContour = getContourFromImage(img, scale, 10, 2);
+            setContourPath(newContour);
           }
+
+          const asset: UploadedAsset = {
+            id: Date.now().toString(),
+            url: dataUrl,
+            name: file.name,
+            thumbnail: dataUrl,
+          };
+          setUploadedAssets(prev => [...prev, asset]);
         };
         img.src = dataUrl;
       };
       reader.readAsDataURL(file);
-
-      const formData = new FormData();
-      formData.append("file", file);
-      
-      const uploadRes = await fetch("/api/upload/artwork", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (uploadRes.ok) {
-        const { url } = await uploadRes.json();
-        await fetch(`/api/designs/${designId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ previewUrl: url, highResExportUrl: url }),
-          credentials: "include",
-        });
-      }
-
-      toast({ title: "Upload complete", description: "Your artwork has been uploaded." });
     } catch (error) {
-      toast({ title: "Upload failed", description: "Please try again.", variant: "destructive" });
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your file.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }
   };
 
-  const saveDesign = async () => {
-    setIsSaving(true);
-    try {
-      const canvas = fabricCanvasRef.current;
-      if (!canvas) return;
-      
-      const canvasJson = canvas.toJSON();
-      const previewDataUrl = canvas.toDataURL({ format: "png", quality: 0.8 });
-      
-      await fetch(`/api/designs/${designId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          canvasJson,
-          bleedColor,
-          contourPath,
-          selectedOptions,
-        }),
-        credentials: "include",
+  const handleMultiFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    setIsUploading(true);
+    const newAssets: UploadedAsset[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+
+        newAssets.push({
+          id: `${Date.now()}-${i}`,
+          url: dataUrl,
+          name: file.name,
+          thumbnail: dataUrl,
+        });
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+      }
+    }
+
+    setUploadedAssets(prev => [...prev, ...newAssets]);
+    setIsUploading(false);
+    
+    toast({
+      title: "Upload complete",
+      description: `${newAssets.length} file(s) added to your gallery.`,
+    });
+  };
+
+  const addAssetToCanvas = useCallback((asset: UploadedAsset) => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas || !fabricModule) return;
+
+    const img = new Image();
+    img.onload = () => {
+      const fabricImg = new fabricModule!.Image(img, {
+        left: canvas.width! / 2,
+        top: canvas.height! / 2,
+        originX: "center",
+        originY: "center",
       });
 
-      toast({ title: "Design saved", description: "Your changes have been saved." });
+      const maxSize = Math.min(canvas.width!, canvas.height!) * 0.5;
+      const scale = Math.min(maxSize / img.width, maxSize / img.height);
+      fabricImg.scale(scale);
+
+      canvas.add(fabricImg);
+      canvas.setActiveObject(fabricImg);
+      canvas.renderAll();
+    };
+    img.src = asset.url;
+  }, []);
+
+  const removeAsset = useCallback((assetId: string) => {
+    setUploadedAssets(prev => prev.filter(a => a.id !== assetId));
+  }, []);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent | React.TouchEvent) => {
+    if (isInteracting) return;
+    
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
+    
+    if (clientX === undefined || clientY === undefined) return;
+
+    const x = ((clientX - rect.left) / rect.width - 0.5) * 6;
+    const y = ((clientY - rect.top) / rect.height - 0.5) * 6;
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    
+    animationFrameRef.current = requestAnimationFrame(() => {
+      setMousePosition({ x, y });
+    });
+  }, [isInteracting]);
+
+  const handlePointerLeave = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    animationFrameRef.current = requestAnimationFrame(() => {
+      setMousePosition({ x: 0, y: 0 });
+    });
+  }, []);
+
+  const saveDesign = async () => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+
+    setIsSaving(true);
+    try {
+      const canvasJson = canvas.toJSON();
+      const previewUrl = canvas.toDataURL({ format: 'png', quality: 0.8 });
+
+      const res = await fetch(`/api/designs/${designId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          canvasJson,
+          previewUrl,
+          contourPath,
+          bleedColor,
+          selectedOptions,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to save');
+      
+      toast({
+        title: "Design saved",
+        description: "Your design has been saved successfully.",
+      });
     } catch (error) {
-      toast({ title: "Save failed", description: "Please try again.", variant: "destructive" });
+      console.error("Save error:", error);
+      toast({
+        title: "Save failed",
+        description: "There was an error saving your design.",
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleAddToCart = async () => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+
     try {
       await saveDesign();
-      
-      const unitPrice = calculatedPrice?.pricePerUnit 
-        ? (calculatedPrice.pricePerUnit + (calculatedPrice.optionsCost || 0))
-        : parseFloat(product?.basePrice || "0");
 
-      const res = await fetch("/api/cart/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           productId: product?.id,
+          designId: parseInt(designId),
           quantity,
           selectedOptions,
-          designId: parseInt(designId),
-          unitPrice: unitPrice.toString(),
+          unitPrice: calculatedPrice?.pricePerUnit,
         }),
-        credentials: "include",
       });
 
-      if (!res.ok) throw new Error("Failed to add to cart");
+      if (!res.ok) throw new Error('Failed to add to cart');
 
       setAddedToCart(true);
-      toast({ title: "Added to cart", description: "Your design has been added to your cart." });
+      toast({
+        title: "Added to cart",
+        description: `${quantity} ${product?.name} added to your cart.`,
+      });
+
+      setTimeout(() => {
+        router.push('/cart');
+      }, 1500);
     } catch (error) {
-      toast({ title: "Failed to add to cart", description: "Please try again.", variant: "destructive" });
+      console.error("Add to cart error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handlePointerMove = useCallback((e: React.PointerEvent | React.TouchEvent) => {
-    const container = previewContainerRef.current;
-    if (!container) return;
-    
-    const rect = container.getBoundingClientRect();
-    let clientX: number, clientY: number;
-    
-    if ("touches" in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-    
-    const x = (clientX - rect.left - rect.width / 2) / rect.width;
-    const y = (clientY - rect.top - rect.height / 2) / rect.height;
-    
-    setMousePosition({ x: x * 15, y: y * 15 });
-    setIsInteracting(true);
-  }, []);
-
-  const handlePointerLeave = useCallback(() => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    
-    const animate = () => {
-      setMousePosition(prev => ({
-        x: prev.x * 0.9,
-        y: prev.y * 0.9,
-      }));
-      if (Math.abs(mousePosition.x) > 0.1 || Math.abs(mousePosition.y) > 0.1) {
-        animationFrameRef.current = requestAnimationFrame(animate);
-      } else {
-        setIsInteracting(false);
-      }
-    };
-    
-    animationFrameRef.current = requestAnimationFrame(animate);
-  }, [mousePosition]);
-
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(price);
   };
 
   const openColorPicker = (target: "brush" | "text" | "fill" | "bleed") => {
@@ -749,6 +897,41 @@ export default function Editor() {
         break;
     }
     setShowColorPicker(false);
+  };
+
+  const renderRuler = (orientation: 'horizontal' | 'vertical') => {
+    const isHorizontal = orientation === 'horizontal';
+    const size = isHorizontal ? productDimensionsInches.width : productDimensionsInches.height;
+    const ticks = [];
+    
+    for (let i = 0; i <= size; i++) {
+      const pos = (i / size) * 100;
+      ticks.push(
+        <div
+          key={i}
+          className={`absolute ${isHorizontal ? 'flex flex-col items-center' : 'flex items-center'}`}
+          style={isHorizontal ? { left: `${pos}%`, transform: 'translateX(-50%)' } : { top: `${pos}%`, transform: 'translateY(-50%)' }}
+        >
+          <div className={`bg-muted-foreground/50 ${isHorizontal ? 'w-px h-3' : 'h-px w-3'}`} />
+          <span className="text-[10px] text-muted-foreground ml-1">{i}"</span>
+        </div>
+      );
+      
+      if (i < size) {
+        for (let j = 1; j < 4; j++) {
+          const minorPos = ((i + j * 0.25) / size) * 100;
+          ticks.push(
+            <div
+              key={`${i}-${j}`}
+              className={`absolute bg-muted-foreground/30 ${isHorizontal ? 'w-px h-1.5' : 'h-px w-1.5'}`}
+              style={isHorizontal ? { left: `${minorPos}%` } : { top: `${minorPos}%` }}
+            />
+          );
+        }
+      }
+    }
+    
+    return ticks;
   };
 
   if (isNewDesign) {
@@ -796,231 +979,307 @@ export default function Editor() {
   }
 
   return (
-    <div className="min-h-screen bg-muted flex flex-col">
-      <header className="bg-card border-b sticky top-0 z-50">
-        <div className="flex items-center justify-between gap-2 px-4 py-3">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} data-testid="button-back">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="font-semibold text-lg truncate max-w-[180px]" data-testid="text-product-name">
-            {product?.name || "Design Editor"}
-          </h1>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={undo} disabled={undoStack.length === 0} data-testid="button-undo">
-              <Undo2 className="w-5 h-5" />
+    <TooltipProvider delayDuration={300}>
+      <div className="min-h-screen bg-muted flex flex-col">
+        <header className="bg-card border-b sticky top-0 z-50">
+          <div className="flex items-center justify-between gap-2 px-4 py-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()} data-testid="button-back">
+              <ArrowLeft className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={redo} disabled={redoStack.length === 0} data-testid="button-redo">
-              <Redo2 className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={deleteSelected} data-testid="button-delete">
-              <Trash2 className="w-5 h-5" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={saveDesign} disabled={isSaving} data-testid="button-save">
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            </Button>
+            <h1 className="font-semibold text-lg truncate max-w-[180px]" data-testid="text-product-name">
+              {product?.name || "Design Editor"}
+            </h1>
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={undo} disabled={undoStack.length === 0} data-testid="button-undo">
+                    <Undo2 className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Undo</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={redo} disabled={redoStack.length === 0} data-testid="button-redo">
+                    <Redo2 className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Redo</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={deleteSelected} data-testid="button-delete">
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete selected</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={saveDesign} disabled={isSaving} data-testid="button-save">
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Save design</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => setShowHelp(!showHelp)} data-testid="button-help">
+                    <HelpCircle className="w-5 h-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Help & Tips</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        <div 
-          ref={previewContainerRef}
-          className="flex-1 flex items-center justify-center p-4 relative overflow-hidden"
-          onPointerMove={handlePointerMove}
-          onPointerLeave={handlePointerLeave}
-          onTouchMove={handlePointerMove}
-          onTouchEnd={handlePointerLeave}
-          data-testid="preview-container"
-        >
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           <div 
-            className="relative transition-transform duration-100 ease-out"
-            style={{
-              transform: `perspective(1000px) rotateX(${-mousePosition.y}deg) rotateY(${mousePosition.x}deg)`,
-            }}
+            ref={previewContainerRef}
+            className="flex-1 flex items-center justify-center p-2 lg:p-4 relative overflow-hidden min-h-[50vh] lg:min-h-0"
+            onPointerMove={handlePointerMove}
+            onPointerLeave={handlePointerLeave}
+            onTouchMove={handlePointerMove}
+            onTouchEnd={handlePointerLeave}
+            data-testid="preview-container"
           >
-            <div 
-              className="absolute inset-[-12px] rounded-lg shadow-2xl"
-              style={{ 
-                backgroundColor: bleedColor,
-                clipPath: contourPath ? `path('${expandContour(contourPath, 12)}')` : undefined,
-              }}
-            />
-            <canvas 
-              ref={canvasRef} 
-              className="relative z-10 rounded-lg shadow-lg bg-white"
-              style={{ touchAction: "none" }}
-              data-testid="canvas-editor"
-            />
-          </div>
-          
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,.pdf,.svg"
-            onChange={handleFileUpload}
-            className="hidden"
-            data-testid="input-file-upload"
-          />
-        </div>
-
-        <div className="lg:w-80 bg-card border-t lg:border-t-0 lg:border-l flex flex-col">
-          <div className="lg:hidden flex justify-center pt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setToolDockOpen(!toolDockOpen)}
-              className="w-full max-w-[200px]"
-              data-testid="button-toggle-tools"
-            >
-              {toolDockOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-              <span className="ml-2">{toolDockOpen ? "Hide Tools" : "Show Tools"}</span>
-            </Button>
-          </div>
-
-          <div className={`flex-1 overflow-y-auto transition-all ${toolDockOpen ? "max-h-[60vh] lg:max-h-none" : "max-h-0 lg:max-h-none overflow-hidden"}`}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="w-full grid grid-cols-4 sticky top-0 bg-card z-10">
-                <TabsTrigger value="text" data-testid="tab-text">
-                  <Type className="w-4 h-4" />
-                </TabsTrigger>
-                <TabsTrigger value="graphics" data-testid="tab-graphics">
-                  <Shapes className="w-4 h-4" />
-                </TabsTrigger>
-                <TabsTrigger value="draw" data-testid="tab-draw">
-                  <Brush className="w-4 h-4" />
-                </TabsTrigger>
-                <TabsTrigger value="adjust" data-testid="tab-adjust">
-                  <Palette className="w-4 h-4" />
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="text" className="p-4 space-y-4">
-                <Button className="w-full" onClick={addText} data-testid="button-add-text">
-                  <Type className="w-4 h-4 mr-2" /> Add Text
-                </Button>
+            <div className="relative flex items-start">
+              <div className="absolute -left-10 top-10 bottom-0 w-8 flex flex-col items-end pr-1" style={{ height: `calc(100% - 40px)` }}>
+                <div className="relative h-full w-full">
+                  {renderRuler('vertical')}
+                </div>
+              </div>
+              
+              <div className="flex flex-col">
+                <div className="h-8 relative ml-10" style={{ width: `${(canvasDimensions.width / Math.max(canvasDimensions.width, canvasDimensions.height)) * 100}%`, minWidth: fabricCanvasRef.current?.width || canvasDimensions.width }}>
+                  {renderRuler('horizontal')}
+                </div>
                 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Font</label>
-                  <select
-                    value={fontFamily}
-                    onChange={(e) => setFontFamily(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md border bg-background"
-                    data-testid="select-font"
-                  >
-                    {FONT_FAMILIES.map(font => (
-                      <option key={font} value={font}>{font}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Size: {fontSize}px</label>
-                  <Slider
-                    value={[fontSize]}
-                    onValueChange={([val]) => setFontSize(val)}
-                    min={12}
-                    max={72}
-                    step={1}
-                    data-testid="slider-font-size"
+                <div 
+                  className="relative transition-transform duration-100 ease-out ml-10"
+                  style={{
+                    transform: `perspective(1000px) rotateX(${-mousePosition.y}deg) rotateY(${mousePosition.x}deg)`,
+                  }}
+                >
+                  {product?.supportsCustomShape && contourPath ? (
+                    <svg 
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: -16,
+                        top: -16,
+                        width: `calc(100% + 32px)`,
+                        height: `calc(100% + 32px)`,
+                      }}
+                    >
+                      <defs>
+                        <filter id="bleed-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                          <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.25"/>
+                        </filter>
+                      </defs>
+                      <path 
+                        d={expandContour(contourPath, 16)} 
+                        fill={bleedColor}
+                        filter="url(#bleed-shadow)"
+                        transform="translate(16, 16)"
+                      />
+                    </svg>
+                  ) : (
+                    <div 
+                      className="absolute inset-[-12px] rounded-lg shadow-2xl"
+                      style={{ backgroundColor: bleedColor }}
+                    />
+                  )}
+                  <canvas 
+                    ref={canvasRef} 
+                    className="relative z-10 rounded-lg shadow-lg"
+                    style={{ touchAction: "none" }}
+                    data-testid="canvas-editor"
                   />
+                  
+                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground whitespace-nowrap">
+                    {productDimensionsInches.width}" × {productDimensionsInches.height}"
+                  </div>
                 </div>
+              </div>
+            </div>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf,.svg"
+              onChange={handleFileUpload}
+              className="hidden"
+              data-testid="input-file-upload"
+            />
+            <input
+              ref={multiFileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleMultiFileUpload}
+              className="hidden"
+              data-testid="input-multi-file-upload"
+            />
+          </div>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Color</label>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => openColorPicker("text")}
-                    data-testid="button-text-color"
-                  >
-                    <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: textColor }} />
-                    {textColor}
+          <div className="lg:w-72 xl:w-80 bg-card border-t lg:border-t-0 lg:border-l flex flex-col max-h-[50vh] lg:max-h-none">
+            <div className="lg:hidden flex justify-center pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setToolDockOpen(!toolDockOpen)}
+                className="w-full max-w-[200px]"
+                data-testid="button-toggle-tools"
+              >
+                {toolDockOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                <span className="ml-2">{toolDockOpen ? "Hide Tools" : "Show Tools"}</span>
+              </Button>
+            </div>
+
+            <div className={`flex-1 overflow-y-auto transition-all ${toolDockOpen ? "max-h-[60vh] lg:max-h-none" : "max-h-0 lg:max-h-none overflow-hidden"}`}>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="w-full grid grid-cols-5 sticky top-0 bg-card z-10">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="text" data-testid="tab-text">
+                        <Type className="w-4 h-4" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>{HELP_TIPS.text}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="graphics" data-testid="tab-graphics">
+                        <Shapes className="w-4 h-4" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>{HELP_TIPS.graphics}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="uploads" data-testid="tab-uploads">
+                        <FolderOpen className="w-4 h-4" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>{HELP_TIPS.uploads}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="draw" data-testid="tab-draw">
+                        <Brush className="w-4 h-4" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>{HELP_TIPS.draw}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="adjust" data-testid="tab-adjust">
+                        <Palette className="w-4 h-4" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>{HELP_TIPS.adjust}</TooltipContent>
+                  </Tooltip>
+                </TabsList>
+
+                <TabsContent value="text" className="p-3 space-y-3">
+                  <Button className="w-full" onClick={addText} data-testid="button-add-text">
+                    <Type className="w-4 h-4 mr-2" /> Add Text
                   </Button>
-                </div>
-              </TabsContent>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Font</label>
+                    <select
+                      value={fontFamily}
+                      onChange={(e) => setFontFamily(e.target.value)}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm"
+                      data-testid="select-font"
+                    >
+                      {FONT_FAMILIES.map(font => (
+                        <option key={font} value={font}>{font}</option>
+                      ))}
+                    </select>
+                  </div>
 
-              <TabsContent value="graphics" className="p-4 space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-3">Shapes</h3>
-                  <div className="grid grid-cols-5 gap-2">
-                    <Button variant="outline" size="icon" onClick={() => addShape("square")} data-testid="button-shape-square">
-                      <Square className="w-5 h-5" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addShape("circle")} data-testid="button-shape-circle">
-                      <Circle className="w-5 h-5" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addShape("triangle")} data-testid="button-shape-triangle">
-                      <Triangle className="w-5 h-5" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addShape("star")} data-testid="button-shape-star">
-                      <Star className="w-5 h-5" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addShape("heart")} data-testid="button-shape-heart">
-                      <Heart className="w-5 h-5" />
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Size: {fontSize}px</label>
+                    <Slider
+                      value={[fontSize]}
+                      onValueChange={([val]) => setFontSize(val)}
+                      min={12}
+                      max={72}
+                      step={1}
+                      data-testid="slider-font-size"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Color</label>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => openColorPicker("text")}
+                      data-testid="button-text-color"
+                    >
+                      <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: textColor }} />
+                      {textColor}
                     </Button>
                   </div>
-                </div>
+                </TabsContent>
 
-                <div>
-                  <h3 className="text-sm font-medium mb-3">Icons</h3>
-                  <div className="grid grid-cols-4 gap-2">
-                    <Button variant="outline" size="icon" onClick={() => addEmoji("star")} data-testid="button-emoji-star">
-                      <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addEmoji("heart")} data-testid="button-emoji-heart">
-                      <Heart className="w-5 h-5 fill-red-500 text-red-500" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addEmoji("smile")} data-testid="button-emoji-smile">
-                      <Smile className="w-5 h-5" />
+                <TabsContent value="graphics" className="p-3 space-y-3">
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Shapes</h3>
+                    <div className="grid grid-cols-5 gap-1">
+                      <Button variant="outline" size="icon" onClick={() => addShape("square")} data-testid="button-shape-square">
+                        <Square className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => addShape("circle")} data-testid="button-shape-circle">
+                        <Circle className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => addShape("triangle")} data-testid="button-shape-triangle">
+                        <Triangle className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => addShape("star")} data-testid="button-shape-star">
+                        <Star className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => addShape("heart")} data-testid="button-shape-heart">
+                        <Heart className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Clipart</h3>
+                    <div className="grid grid-cols-4 gap-1">
+                      <Button variant="outline" size="icon" onClick={() => addClipart("arrow")} data-testid="button-clipart-arrow" title="Arrow">
+                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => addClipart("checkmark")} data-testid="button-clipart-check" title="Checkmark">
+                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => addClipart("badge")} data-testid="button-clipart-badge" title="Badge">
+                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => addClipart("lightning")} data-testid="button-clipart-lightning" title="Lightning">
+                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8H7z"/></svg>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Fill Color</label>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => openColorPicker("fill")}
+                      data-testid="button-fill-color"
+                    >
+                      <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: fillColor }} />
+                      {fillColor}
                     </Button>
                   </div>
-                </div>
 
-                <div>
-                  <h3 className="text-sm font-medium mb-3">Clipart</h3>
-                  <div className="grid grid-cols-4 gap-2">
-                    <Button variant="outline" size="icon" onClick={() => addClipart("arrow")} data-testid="button-clipart-arrow" title="Arrow">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addClipart("checkmark")} data-testid="button-clipart-check" title="Checkmark">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addClipart("badge")} data-testid="button-clipart-badge" title="Badge">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addClipart("ribbon")} data-testid="button-clipart-ribbon" title="Ribbon">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zM10 4h4v3h-4V4zm6 11h-3v3h-2v-3H8v-2h3v-3h2v3h3v2z"/></svg>
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addClipart("burst")} data-testid="button-clipart-burst" title="Burst">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M12 3l1.45 3.55L17 8l-3.55 1.45L12 13l-1.45-3.55L7 8l3.55-1.45L12 3zm5.5 6l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1zM6 14l1.35 3.15L10.5 18.5l-3.15 1.35L6 23l-1.35-3.15L1.5 18.5l3.15-1.35L6 14z"/></svg>
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addClipart("banner")} data-testid="button-clipart-banner" title="Banner">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-7 14l-4-4h3V8h2v6h3l-4 4z"/></svg>
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addClipart("speechBubble")} data-testid="button-clipart-speech" title="Speech">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-3 12H7v-2h10v2zm0-3H7V9h10v2zm0-3H7V6h10v2z"/></svg>
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => addClipart("lightning")} data-testid="button-clipart-lightning" title="Lightning">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8H7z"/></svg>
-                    </Button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Fill Color</label>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => openColorPicker("fill")}
-                    data-testid="button-fill-color"
-                  >
-                    <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: fillColor }} />
-                    {fillColor}
-                  </Button>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium mb-3">Upload Image</h3>
                   <Button
                     variant="outline"
                     className="w-full"
@@ -1035,234 +1294,329 @@ export default function Editor() {
                     )}
                     Upload Image
                   </Button>
-                </div>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="draw" className="p-4 space-y-4">
-                <div className="flex gap-2">
+                <TabsContent value="uploads" className="p-3 space-y-3">
                   <Button
-                    variant={drawingMode ? "default" : "outline"}
-                    className="flex-1"
-                    onClick={() => toggleDrawingMode(!drawingMode)}
-                    data-testid="button-toggle-draw"
+                    className="w-full"
+                    onClick={() => multiFileInputRef.current?.click()}
+                    disabled={isUploading}
+                    data-testid="button-upload-multiple"
                   >
-                    <Brush className="w-4 h-4 mr-2" />
-                    {drawingMode ? "Drawing" : "Draw"}
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    Upload Files
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => toggleDrawingMode(false)}
-                    data-testid="button-select-mode"
-                  >
-                    <Move className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Brush Size: {brushWidth}px</label>
-                  <Slider
-                    value={[brushWidth]}
-                    onValueChange={([val]) => setBrushWidth(val)}
-                    min={1}
-                    max={50}
-                    step={1}
-                    data-testid="slider-brush-size"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Brush Color</label>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => openColorPicker("brush")}
-                    data-testid="button-brush-color"
-                  >
-                    <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: brushColor }} />
-                    {brushColor}
-                  </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="adjust" className="p-4 space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Bleed/Border Color</label>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => openColorPicker("bleed")}
-                    data-testid="button-bleed-color"
-                  >
-                    <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: bleedColor }} />
-                    {bleedColor}
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    This is the color that appears around your design
-                  </p>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h3 className="text-sm font-medium mb-3">Product Options</h3>
                   
-                  {(product?.options?.filter(o => o.optionType === "material")?.length ?? 0) > 0 && (
-                    <div className="mb-4">
-                      <label className="text-sm text-muted-foreground mb-2 block">Material</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {product?.options?.filter(o => o.optionType === "material").map((option) => (
+                  <p className="text-xs text-muted-foreground">
+                    Upload multiple images to use in your design. Click an image to add it to the canvas.
+                  </p>
+
+                  {uploadedAssets.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FolderOpen className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No uploads yet</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {uploadedAssets.map((asset) => (
+                        <div
+                          key={asset.id}
+                          className="relative group aspect-square rounded-md overflow-hidden border bg-muted cursor-pointer hover:ring-2 hover:ring-primary"
+                          onClick={() => addAssetToCanvas(asset)}
+                          data-testid={`asset-${asset.id}`}
+                        >
+                          <img
+                            src={asset.thumbnail}
+                            alt={asset.name}
+                            className="w-full h-full object-cover"
+                          />
                           <button
-                            key={option.id}
-                            onClick={() => setSelectedOptions({ ...selectedOptions, material: option.id })}
-                            className={`p-2 rounded-md border text-sm text-left transition-all ${
-                              selectedOptions.material === option.id
-                                ? "border-primary bg-primary/10"
-                                : "border-border hover:border-primary/50"
-                            }`}
-                            data-testid={`button-material-${option.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeAsset(asset.id);
+                            }}
+                            className="absolute top-1 right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            data-testid={`remove-asset-${asset.id}`}
                           >
-                            {option.name}
+                            <X className="w-3 h-3" />
                           </button>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   )}
+                </TabsContent>
 
-                  {(product?.options?.filter(o => o.optionType === "coating")?.length ?? 0) > 0 && (
-                    <div className="mb-4">
-                      <label className="text-sm text-muted-foreground mb-2 block">Finish</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {product?.options?.filter(o => o.optionType === "coating").map((option) => (
-                          <button
-                            key={option.id}
-                            onClick={() => setSelectedOptions({ ...selectedOptions, coating: option.id })}
-                            className={`p-2 rounded-md border text-sm text-left transition-all ${
-                              selectedOptions.coating === option.id
-                                ? "border-primary bg-primary/10"
-                                : "border-border hover:border-primary/50"
-                            }`}
-                            data-testid={`button-coating-${option.id}`}
-                          >
-                            {option.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="border-t pt-4">
-                  <label className="text-sm font-medium mb-3 block">Quantity</label>
-                  <div className="flex items-center gap-2 mb-3">
+                <TabsContent value="draw" className="p-3 space-y-3">
+                  <div className="flex gap-2">
+                    <Button
+                      variant={drawingMode ? "default" : "outline"}
+                      className="flex-1"
+                      onClick={() => toggleDrawingMode(!drawingMode)}
+                      data-testid="button-toggle-draw"
+                    >
+                      <Brush className="w-4 h-4 mr-2" />
+                      {drawingMode ? "Drawing" : "Draw"}
+                    </Button>
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => setQuantity(Math.max(product?.minQuantity || 1, quantity - 25))}
-                      data-testid="button-quantity-decrease"
+                      onClick={() => toggleDrawingMode(false)}
+                      data-testid="button-select-mode"
                     >
-                      <Minus className="w-4 h-4" />
+                      <Move className="w-4 h-4" />
                     </Button>
-                    <Input
-                      type="number"
-                      min={product?.minQuantity || 1}
-                      value={quantity}
-                      onChange={(e) => setQuantity(parseInt(e.target.value) || product?.minQuantity || 1)}
-                      className="w-20 text-center"
-                      data-testid="input-quantity"
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Brush Size: {brushWidth}px</label>
+                    <Slider
+                      value={[brushWidth]}
+                      onValueChange={([val]) => setBrushWidth(val)}
+                      min={1}
+                      max={50}
+                      step={1}
+                      data-testid="slider-brush-size"
                     />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Brush Color</label>
                     <Button
                       variant="outline"
-                      size="icon"
-                      onClick={() => setQuantity(quantity + 25)}
-                      data-testid="button-quantity-increase"
+                      className="w-full justify-start"
+                      onClick={() => openColorPicker("brush")}
+                      data-testid="button-brush-color"
                     >
-                      <Plus className="w-4 h-4" />
+                      <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: brushColor }} />
+                      {brushColor}
                     </Button>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {DEFAULT_QUANTITY_OPTIONS.slice(0, 4).map((qty) => (
-                      <button
-                        key={qty}
-                        onClick={() => setQuantity(qty)}
-                        className={`px-3 py-1 text-xs rounded-full transition-all ${
-                          quantity === qty
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted hover:bg-muted/80"
-                        }`}
-                        data-testid={`button-qty-${qty}`}
-                      >
-                        {qty}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+                </TabsContent>
 
-          <div className="border-t p-4 bg-card">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground">Total</span>
-              <span className="text-xl font-bold" data-testid="text-total-price">
-                {priceLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  formatPrice(calculatedPrice?.subtotal || 0)
-                )}
-              </span>
+                <TabsContent value="adjust" className="p-3 space-y-3">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Bleed/Border Color</label>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => openColorPicker("bleed")}
+                      data-testid="button-bleed-color"
+                    >
+                      <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: bleedColor }} />
+                      {bleedColor}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Color around your design
+                    </p>
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <h3 className="text-sm font-medium mb-2">Product Options</h3>
+                    
+                    {(product?.options?.filter(o => o.optionType === "material")?.length ?? 0) > 0 && (
+                      <div className="mb-3">
+                        <label className="text-xs text-muted-foreground mb-1 block">Material</label>
+                        <div className="grid grid-cols-2 gap-1">
+                          {product?.options?.filter(o => o.optionType === "material").map((option) => (
+                            <button
+                              key={option.id}
+                              onClick={() => setSelectedOptions({ ...selectedOptions, material: option.id })}
+                              className={`p-2 rounded-md border text-xs text-left transition-all ${
+                                selectedOptions.material === option.id
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                              data-testid={`button-material-${option.id}`}
+                            >
+                              {option.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(product?.options?.filter(o => o.optionType === "coating")?.length ?? 0) > 0 && (
+                      <div className="mb-3">
+                        <label className="text-xs text-muted-foreground mb-1 block">Finish</label>
+                        <div className="grid grid-cols-2 gap-1">
+                          {product?.options?.filter(o => o.optionType === "coating").map((option) => (
+                            <button
+                              key={option.id}
+                              onClick={() => setSelectedOptions({ ...selectedOptions, coating: option.id })}
+                              className={`p-2 rounded-md border text-xs text-left transition-all ${
+                                selectedOptions.coating === option.id
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                              data-testid={`button-coating-${option.id}`}
+                            >
+                              {option.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t pt-3">
+                    <label className="text-sm font-medium mb-2 block">Quantity</label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setQuantity(Math.max(product?.minQuantity || 1, quantity - 25))}
+                        data-testid="button-quantity-decrease"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        min={product?.minQuantity || 1}
+                        value={quantity}
+                        onChange={(e) => setQuantity(parseInt(e.target.value) || product?.minQuantity || 1)}
+                        className="w-16 text-center"
+                        data-testid="input-quantity"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setQuantity(quantity + 25)}
+                        data-testid="button-quantity-increase"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {DEFAULT_QUANTITY_OPTIONS.slice(0, 4).map((qty) => (
+                        <button
+                          key={qty}
+                          onClick={() => setQuantity(qty)}
+                          className={`px-2 py-1 text-xs rounded-full transition-all ${
+                            quantity === qty
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted hover:bg-muted/80"
+                          }`}
+                          data-testid={`button-qty-${qty}`}
+                        >
+                          {qty}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
-            {calculatedPrice && (
-              <p className="text-xs text-muted-foreground mb-3">
-                {formatPrice(calculatedPrice.pricePerUnit + (calculatedPrice.optionsCost || 0))} per unit
-              </p>
-            )}
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={handleAddToCart}
-              disabled={addedToCart}
-              data-testid="button-add-to-cart"
-            >
-              {addedToCart ? (
-                <>
-                  <Check className="w-4 h-4 mr-2" /> Added to Cart
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="w-4 h-4 mr-2" /> Add to Cart
-                </>
+
+            <div className="border-t p-3 bg-card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="text-xl font-bold" data-testid="text-total-price">
+                  {priceLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    formatPrice(calculatedPrice?.subtotal || 0)
+                  )}
+                </span>
+              </div>
+              {calculatedPrice && (
+                <p className="text-xs text-muted-foreground mb-2">
+                  {formatPrice(calculatedPrice.pricePerUnit + (calculatedPrice.optionsCost || 0))} per unit
+                </p>
               )}
-            </Button>
+              <Button
+                className="w-full"
+                onClick={handleAddToCart}
+                disabled={addedToCart}
+                data-testid="button-add-to-cart"
+              >
+                {addedToCart ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" /> Added to Cart
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-4 h-4 mr-2" /> Add to Cart
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <Dialog open={showColorPicker} onOpenChange={setShowColorPicker}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Choose Color</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-6 gap-2">
-            {PRESET_COLORS.map((color) => (
-              <button
-                key={color}
-                onClick={() => handleColorSelect(color)}
-                className="w-10 h-10 rounded-md border-2 hover:scale-110 transition-transform"
-                style={{ backgroundColor: color }}
-                data-testid={`color-${color.replace("#", "")}`}
+        <Dialog open={showColorPicker} onOpenChange={setShowColorPicker}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Choose Color</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-6 gap-2">
+              {PRESET_COLORS.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => handleColorSelect(color)}
+                  className="w-10 h-10 rounded-md border-2 hover:scale-110 transition-transform"
+                  style={{ backgroundColor: color }}
+                  data-testid={`color-${color.replace("#", "")}`}
+                />
+              ))}
+            </div>
+            <div className="mt-4">
+              <label className="text-sm font-medium mb-2 block">Custom Color</label>
+              <Input
+                type="color"
+                className="w-full h-12 p-1"
+                onChange={(e) => handleColorSelect(e.target.value)}
+                data-testid="input-custom-color"
               />
-            ))}
-          </div>
-          <div className="mt-4">
-            <label className="text-sm font-medium mb-2 block">Custom Color</label>
-            <Input
-              type="color"
-              className="w-full h-12 p-1"
-              onChange={(e) => handleColorSelect(e.target.value)}
-              data-testid="input-custom-color"
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showHelp} onOpenChange={setShowHelp}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editor Help</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 text-sm">
+              <div>
+                <h3 className="font-medium mb-1">Canvas Area</h3>
+                <p className="text-muted-foreground">{HELP_TIPS.canvas}</p>
+              </div>
+              <div>
+                <h3 className="font-medium mb-1">Adding Text</h3>
+                <p className="text-muted-foreground">{HELP_TIPS.text}</p>
+              </div>
+              <div>
+                <h3 className="font-medium mb-1">Graphics & Shapes</h3>
+                <p className="text-muted-foreground">{HELP_TIPS.graphics}</p>
+              </div>
+              <div>
+                <h3 className="font-medium mb-1">Uploads Gallery</h3>
+                <p className="text-muted-foreground">{HELP_TIPS.uploads}</p>
+              </div>
+              <div>
+                <h3 className="font-medium mb-1">Drawing</h3>
+                <p className="text-muted-foreground">{HELP_TIPS.draw}</p>
+              </div>
+              <div>
+                <h3 className="font-medium mb-1">Adjustments</h3>
+                <p className="text-muted-foreground">{HELP_TIPS.adjust}</p>
+              </div>
+              <div className="pt-2 border-t">
+                <h3 className="font-medium mb-1">Die-Cut Stickers</h3>
+                <p className="text-muted-foreground">
+                  For die-cut products, the sticker shape follows your design's contours. 
+                  Upload an image with transparency, and the border will automatically 
+                  wrap around the visible parts of your design.
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }

@@ -260,6 +260,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/products/by-id/:id", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+      }
+      
+      const product = await storage.getProductById(productId);
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      const options = await storage.getProductOptions(product.id);
+      const pricingTiers = await storage.getPricingTiers(product.id);
+
+      res.json({ ...product, options, pricingTiers });
+    } catch (error) {
+      console.error("Error fetching product by ID:", error);
+      res.status(500).json({ message: "Failed to fetch product" });
+    }
+  });
+
   app.get("/api/products/:slug", async (req, res) => {
     try {
       const product = await storage.getProductBySlug(req.params.slug);

@@ -50,6 +50,13 @@ export async function POST(request: Request) {
         .returning();
     }
 
+    // Ensure unitPrice is always a valid string (default to '0' for free products)
+    let unitPrice = '0';
+    if (body.unitPrice !== undefined && body.unitPrice !== null && body.unitPrice !== '') {
+      const parsed = parseFloat(String(body.unitPrice));
+      unitPrice = isNaN(parsed) ? '0' : parsed.toString();
+    }
+
     // Insert new cart item
     const [item] = await db
       .insert(cartItems)
@@ -59,7 +66,7 @@ export async function POST(request: Request) {
         designId: body.designId || null,
         quantity: body.quantity || 1,
         selectedOptions: body.selectedOptions || null,
-        unitPrice: body.unitPrice || null,
+        unitPrice: unitPrice,
       })
       .returning();
 

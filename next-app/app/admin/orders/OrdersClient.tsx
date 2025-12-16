@@ -6,8 +6,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+
+interface OrderUser {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+}
 
 interface Order {
   id: number;
@@ -15,11 +24,17 @@ interface Order {
   status: string;
   subtotal: string;
   shippingCost: string;
+  taxAmount?: string;
+  discountAmount?: string;
   totalAmount: string;
   trackingNumber: string | null;
+  trackingCarrier?: string | null;
+  notes?: string | null;
   createdAt: string;
   shippingAddress: any;
+  billingAddress?: any;
   items?: any[];
+  user?: OrderUser | null;
 }
 
 const statusOptions = [
@@ -179,140 +194,279 @@ export default function AdminOrders() {
 
         {selectedOrder && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-auto">
-              <div className="p-6 border-b flex justify-between items-center">
-                <h2 className="text-lg font-semibold">Order #{selectedOrder.id}</h2>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedOrder(null)}>
-                  <X className="h-4 w-4" />
-                </Button>
+            <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
+              <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                <div>
+                  <h2 className="text-xl font-bold">Order #{selectedOrder.id}</h2>
+                  <p className="text-sm text-gray-500">{formatDate(selectedOrder.createdAt)}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge className={statusColors[selectedOrder.status] || "bg-gray-100"}>
+                    {selectedOrder.status.replace("_", " ")}
+                  </Badge>
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
+
               <div className="p-6 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Status</p>
-                    <p className="font-medium capitalize">{selectedOrder.status.replace("_", " ")}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Date</p>
-                    <p className="font-medium">{formatDate(selectedOrder.createdAt)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Subtotal</p>
-                    <p className="font-medium">{formatPrice(selectedOrder.subtotal)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Total</p>
-                    <p className="font-medium">{formatPrice(selectedOrder.totalAmount)}</p>
+                {/* Customer Information */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    Customer Information
+                  </h3>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Name</p>
+                        <p className="font-medium">
+                          {orderDetails?.user?.firstName || orderDetails?.user?.lastName 
+                            ? `${orderDetails?.user?.firstName || ''} ${orderDetails?.user?.lastName || ''}`.trim()
+                            : selectedOrder.shippingAddress?.name || 'Guest Customer'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Email</p>
+                        <p className="font-medium text-sm">
+                          {orderDetails?.user?.email || 'Not provided'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Phone</p>
+                        <p className="font-medium">
+                          {orderDetails?.user?.phone || selectedOrder.shippingAddress?.phone || 'Not provided'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
+                {/* Shipping Address */}
                 {selectedOrder.shippingAddress && (
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Shipping Address</p>
-                    <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-gray-600" />
+                      Shipping Address
+                    </h3>
+                    <div className="text-sm">
                       {typeof selectedOrder.shippingAddress === "object" ? (
                         <>
-                          <p>{selectedOrder.shippingAddress.name}</p>
-                          <p>{selectedOrder.shippingAddress.street}</p>
+                          {selectedOrder.shippingAddress.name && (
+                            <p className="font-medium">{selectedOrder.shippingAddress.name}</p>
+                          )}
+                          {selectedOrder.shippingAddress.street && (
+                            <p>{selectedOrder.shippingAddress.street}</p>
+                          )}
+                          {selectedOrder.shippingAddress.address1 && (
+                            <p>{selectedOrder.shippingAddress.address1}</p>
+                          )}
+                          {selectedOrder.shippingAddress.address2 && (
+                            <p>{selectedOrder.shippingAddress.address2}</p>
+                          )}
                           <p>
                             {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}{" "}
-                            {selectedOrder.shippingAddress.zip}
+                            {selectedOrder.shippingAddress.zip || selectedOrder.shippingAddress.zipCode}
                           </p>
+                          {selectedOrder.shippingAddress.country && (
+                            <p>{selectedOrder.shippingAddress.country}</p>
+                          )}
                         </>
                       ) : (
-                        <p>{JSON.stringify(selectedOrder.shippingAddress)}</p>
+                        <p>{String(selectedOrder.shippingAddress)}</p>
                       )}
                     </div>
                   </div>
                 )}
 
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Tracking Number</p>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={selectedOrder.trackingNumber || ""}
-                      onChange={(e) =>
-                        setSelectedOrder({ ...selectedOrder, trackingNumber: e.target.value })
-                      }
-                      placeholder="Enter tracking number"
-                      className="flex-1 px-3 py-2 border rounded-lg"
-                    />
-                    <Button
-                      onClick={() =>
-                        updateMutation.mutate({
-                          id: selectedOrder.id,
-                          data: { trackingNumber: selectedOrder.trackingNumber },
-                        })
-                      }
-                    >
-                      Save
-                    </Button>
+                {/* Order Items */}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Package className="h-5 w-5 text-gray-600" />
+                    Order Items ({orderDetails?.items?.length || selectedOrder.items?.length || 0})
+                  </h3>
+                  <div className="space-y-3">
+                    {(orderDetails?.items || selectedOrder.items || []).map((item: any) => (
+                      <div key={item.id} className="bg-white rounded-lg border p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">{item.product?.name || `Product #${item.productId}`}</p>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                              <span>Qty: <strong>{item.quantity}</strong></span>
+                              <span>Unit Price: <strong>{formatPrice(item.unitPrice)}</strong></span>
+                              <span className="text-green-600 font-semibold">
+                                Subtotal: {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
+                              </span>
+                            </div>
+                            {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {Object.entries(item.selectedOptions).map(([key, value]) => (
+                                  <Badge key={key} variant="outline" className="text-xs">
+                                    {key}: {String(value)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Design Files Section */}
+                        {item.design && (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                              <Palette className="h-4 w-4 text-orange-500" />
+                              Customer Design: {item.design.name || 'Untitled'}
+                            </p>
+                            <div className="flex flex-wrap items-start gap-4">
+                              {/* Design Preview */}
+                              {(item.design.highResExportUrl || item.design.previewUrl) && (
+                                <a 
+                                  href={item.design.highResExportUrl || item.design.previewUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="block"
+                                >
+                                  <img 
+                                    src={item.design.highResExportUrl || item.design.previewUrl} 
+                                    alt="Design preview" 
+                                    className="w-24 h-24 object-contain bg-gray-100 rounded-lg border-2 border-gray-200"
+                                  />
+                                </a>
+                              )}
+                              
+                              {/* Download Buttons */}
+                              <div className="flex flex-col gap-2">
+                                {item.design.highResExportUrl && (
+                                  <a 
+                                    href={item.design.highResExportUrl} 
+                                    download
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-3 py-2 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                    Download Print File
+                                  </a>
+                                )}
+                                {item.design.customShapeUrl && (
+                                  <a 
+                                    href={item.design.customShapeUrl} 
+                                    download
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                                  >
+                                    <FileImage className="h-4 w-4" />
+                                    Download Die-Cut Shape
+                                  </a>
+                                )}
+                                {item.printFileUrl && (
+                                  <a 
+                                    href={item.printFileUrl} 
+                                    download
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                    Download Production File
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {(!orderDetails?.items?.length && !selectedOrder.items?.length) && (
+                      <div className="text-center py-4 text-gray-500">
+                        No items found for this order
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {orderDetails?.items && orderDetails.items.length > 0 && (
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Order Items</p>
-                    <div className="bg-gray-50 rounded-lg divide-y">
-                      {orderDetails.items.map((item: any) => (
-                        <div key={item.id} className="p-3">
-                          <div className="flex justify-between mb-2">
-                            <div>
-                              <p className="font-medium">{item.product?.name || `Product #${item.productId}`}</p>
-                              <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                            </div>
-                            <p className="font-medium">{formatPrice(item.unitPrice)}</p>
-                          </div>
-                          {item.design && (
-                            <div className="mt-2 bg-white rounded-lg border p-2">
-                              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                                <Palette className="h-3 w-3" /> Customer Design
-                              </p>
-                              <div className="flex items-start gap-3">
-                                {(item.design.highResExportUrl || item.design.previewUrl) && (
-                                  <a 
-                                    href={item.design.highResExportUrl || item.design.previewUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="block"
-                                  >
-                                    <img 
-                                      src={item.design.highResExportUrl || item.design.previewUrl} 
-                                      alt="Design preview" 
-                                      className="w-20 h-20 object-contain bg-gray-100 rounded border"
-                                    />
-                                  </a>
-                                )}
-                                <div className="flex-1 text-xs">
-                                  <p className="text-gray-700 font-medium">{item.design.name || "Untitled Design"}</p>
-                                  {item.design.highResExportUrl && (
-                                    <a 
-                                      href={item.design.highResExportUrl} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-orange-600 hover:underline inline-flex items-center gap-1 mt-1"
-                                    >
-                                      <Eye className="h-3 w-3" /> View High-Res
-                                    </a>
-                                  )}
-                                  {item.design.customShapeUrl && (
-                                    <a 
-                                      href={item.design.customShapeUrl} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline inline-flex items-center gap-1 mt-1 ml-3"
-                                    >
-                                      <Eye className="h-3 w-3" /> Custom Shape
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                {/* Financial Summary */}
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-green-600" />
+                    Financial Summary
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Subtotal</span>
+                      <span className="font-medium">{formatPrice(selectedOrder.subtotal)}</span>
                     </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Shipping</span>
+                      <span className="font-medium">{formatPrice(selectedOrder.shippingCost || '0')}</span>
+                    </div>
+                    {parseFloat(selectedOrder.taxAmount || '0') > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Tax</span>
+                        <span className="font-medium">{formatPrice(selectedOrder.taxAmount || '0')}</span>
+                      </div>
+                    )}
+                    {parseFloat(selectedOrder.discountAmount || '0') > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Discount</span>
+                        <span className="font-medium">-{formatPrice(selectedOrder.discountAmount || '0')}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between pt-2 border-t border-green-200 text-lg font-bold">
+                      <span>Total</span>
+                      <span className="text-green-700">{formatPrice(selectedOrder.totalAmount)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tracking & Shipping */}
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Truck className="h-5 w-5 text-indigo-600" />
+                    Shipping & Tracking
+                  </h3>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-500 block mb-1">Tracking Number</label>
+                      <input
+                        type="text"
+                        value={selectedOrder.trackingNumber || ""}
+                        onChange={(e) =>
+                          setSelectedOrder({ ...selectedOrder, trackingNumber: e.target.value })
+                        }
+                        placeholder="Enter tracking number"
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        onClick={() =>
+                          updateMutation.mutate({
+                            id: selectedOrder.id,
+                            data: { trackingNumber: selectedOrder.trackingNumber },
+                          })
+                        }
+                      >
+                        Save Tracking
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Notes */}
+                {selectedOrder.notes && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-900 mb-2">Order Notes</h3>
+                    <p className="text-sm text-gray-700">{selectedOrder.notes}</p>
                   </div>
                 )}
               </div>

@@ -4,6 +4,8 @@ import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +27,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const sessionId = cookies().get('cart-session-id')?.value;
+    // Get current user session
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id || null;
+
+    const sessionId = (await cookies()).get('cart-session-id')?.value;
     if (!sessionId) {
       return noCache(
         NextResponse.json({ error: 'No cart session' }, { status: 400 })
@@ -116,23 +122,46 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create order
+    // Format shipping address for storage
+    const formattedShippingAddress = shippingAddress ? {
+      name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
+      firstName: shippingAddress.firstName,
+      lastName: shippingAddress.lastName,
+      street: shippingAddress.address1,
+      address1: shippingAddress.address1,
+      address2: shippingAddress.address2,
+      city: shippingAddress.city,
+      state: shippingAddress.state,
+      zip: shippingAddress.zip,
+      country: shippingAddress.country || 'US',
+      phone: shippingAddress.phone,
+    } : null;
+
+    // Create order with all data
     const [order] = await db
       .insert(orders)
       .values({
+        userId: userId,
         status: 'paid',
         subtotal: subtotal.toString(),
+        shippingCost: '0',
+        taxAmount: '0',
+        discountAmount: '0',
         totalAmount: subtotal.toString(),
+        shippingAddress: formattedShippingAddress,
+        stripePaymentIntentId: payment.id,
       })
       .returning();
 
-    // Create order items
+    // Create order items with design links
     for (const item of items) {
       await db.insert(orderItems).values({
         orderId: order.id,
         productId: item.productId,
+        designId: item.designId,
         quantity: item.quantity,
         unitPrice: String(item.unitPrice ?? '0'),
+        selectedOptions: item.selectedOptions,
       });
     }
 

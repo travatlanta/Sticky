@@ -1222,12 +1222,22 @@ export default function Editor() {
         if (bleedGuide) canvas.remove(bleedGuide);
         if (safeGuide) canvas.remove(safeGuide);
         if (customShape) canvas.remove(customShape);
+        
+        // Save the current background and set to transparent for export
+        const originalBackground = canvas.backgroundColor;
+        canvas.backgroundColor = null;
+        canvas.renderAll();
+        
         // Export at 300 DPI (Fabric default is 72 DPI).  Adjust multiplier
         // relative to the initial scale used to display the canvas.  This
         // ensures consistent output regardless of zoom level during editing.
         const baseDpiMultiplier = 300 / 72;
         const multiplier = baseDpiMultiplier / (initialScaleRef.current || 1);
         const dataUrl = canvas.toDataURL({ format: 'png', multiplier, quality: 1 });
+        
+        // Restore the original background for editing
+        canvas.backgroundColor = originalBackground;
+        canvas.renderAll();
         // Restore guides, bleed line, and custom shape for editing
         if (bleedGuide) canvas.add(bleedGuide);
         if (safeGuide) canvas.add(safeGuide);

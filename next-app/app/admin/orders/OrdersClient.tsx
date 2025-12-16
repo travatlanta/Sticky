@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { jsPDF } from "jspdf";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
@@ -71,76 +72,104 @@ export default function AdminOrders() {
   const { toast } = useToast();
 
   const handleDownload = async (url: string, itemId: number, designName: string) => {
-    const format = downloadFormats[itemId] || 'pdf';
+    const format = downloadFormats[itemId] || 'png';
     setDownloading(prev => ({ ...prev, [itemId]: true }));
+    const fileName = designName.replace(/[^a-z0-9]/gi, '_');
     
     try {
       const response = await fetch(url);
       const blob = await response.blob();
       
-      let finalBlob = blob;
-      let extension = format;
+      // Load image for all conversions
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
       
-      // For PNG format, convert if needed
-      if (format === 'png' && !blob.type.includes('png')) {
-        const img = new Image();
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx?.drawImage(img, 0, 0);
-            canvas.toBlob((newBlob) => {
-              if (newBlob) {
-                finalBlob = newBlob;
-              }
-              resolve();
-            }, 'image/png');
-          };
-          img.onerror = reject;
-          img.src = URL.createObjectURL(blob);
-        });
-      }
-      
-      // For JPEG format
-      if (format === 'jpg' && !blob.type.includes('jpeg')) {
-        const img = new Image();
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            if (ctx) {
-              ctx.fillStyle = '#FFFFFF';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              ctx.drawImage(img, 0, 0);
-            }
-            canvas.toBlob((newBlob) => {
-              if (newBlob) {
-                finalBlob = newBlob;
-              }
-              resolve();
-            }, 'image/jpeg', 0.95);
-          };
-          img.onerror = reject;
-          img.src = URL.createObjectURL(blob);
-        });
-      }
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = URL.createObjectURL(blob);
+      });
 
-      // Create download link
-      const downloadUrl = URL.createObjectURL(finalBlob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `${designName.replace(/[^a-z0-9]/gi, '_')}.${extension}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(downloadUrl);
+      if (format === 'pdf') {
+        // Convert to PDF using jsPDF
+        const imgWidth = img.width;
+        const imgHeight = img.height;
+        
+        // Create PDF with image dimensions (in mm, assuming 72 DPI)
+        const pxToMm = 0.264583;
+        const pdfWidth = imgWidth * pxToMm;
+        const pdfHeight = imgHeight * pxToMm;
+        
+        const pdf = new jsPDF({
+          orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
+          unit: 'mm',
+          format: [pdfWidth, pdfHeight],
+        });
+        
+        // Draw image on canvas to get data URL
+        const canvas = document.createElement('canvas');
+        canvas.width = imgWidth;
+        canvas.height = imgHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+        }
+        const imgData = canvas.toDataURL('image/png');
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`${fileName}.pdf`);
+        
+      } else if (format === 'jpg') {
+        // Convert to JPEG with white background
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        }
+        
+        canvas.toBlob((newBlob) => {
+          if (newBlob) {
+            const downloadUrl = URL.createObjectURL(newBlob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `${fileName}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
+          }
+        }, 'image/jpeg', 0.95);
+        
+      } else {
+        // PNG - download original or convert to PNG
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+        }
+        
+        canvas.toBlob((newBlob) => {
+          if (newBlob) {
+            const downloadUrl = URL.createObjectURL(newBlob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `${fileName}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(downloadUrl);
+          }
+        }, 'image/png');
+      }
       
+      // Clean up
+      URL.revokeObjectURL(img.src);
       toast({ title: `Downloaded as ${format.toUpperCase()}` });
     } catch (error) {
       console.error('Download error:', error);
@@ -493,18 +522,16 @@ export default function AdminOrders() {
                                 {item.design.highResExportUrl && (
                                   <div className="flex items-center gap-2">
                                     <Select
-                                      value={downloadFormats[item.id] || 'pdf'}
+                                      value={downloadFormats[item.id] || 'png'}
                                       onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, [item.id]: value }))}
                                     >
                                       <SelectTrigger className="w-28" data-testid={`select-format-${item.id}`}>
                                         <SelectValue placeholder="Format" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="pdf">PDF</SelectItem>
                                         <SelectItem value="png">PNG</SelectItem>
                                         <SelectItem value="jpg">JPG</SelectItem>
-                                        <SelectItem value="svg">SVG</SelectItem>
-                                        <SelectItem value="tiff">TIFF</SelectItem>
+                                        <SelectItem value="pdf">PDF</SelectItem>
                                       </SelectContent>
                                     </Select>
                                     <Button

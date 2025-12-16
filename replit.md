@@ -216,10 +216,11 @@ Key data entities:
   - `designId` on order items for design linkage
   - `selectedOptions` on order items for product configuration
   - Square payment ID for reference
-- **Customer Order Page** (`/orders/[id]`): Full order details with:
+- **Customer Order Page** (`/orders/:id`): Full order details with:
   - Order items with product info and selected options
-  - Print-ready file download buttons
+  - Design preview thumbnails with download buttons (Preview, Print File, Die-Cut Shape)
   - Shipping address, tracking info, order summary
+- **API Enhancement**: `/api/orders/:id` now enriches order items with design and product data (same as admin endpoint)
 
 ### Checkout Price Handling (Fixed)
 - **Issue**: Cart items with null unitPrice caused $NaN display and 400 errors at checkout

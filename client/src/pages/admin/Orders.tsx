@@ -50,7 +50,7 @@ export default function AdminOrders() {
     queryKey: ["/api/admin/orders"],
   });
 
-  const { data: orderDetails } = useQuery<Order>({
+  const { data: orderDetails, isLoading: isLoadingDetails } = useQuery<Order>({
     queryKey: ["/api/admin/orders", selectedOrder?.id],
     enabled: !!selectedOrder,
   });
@@ -248,7 +248,11 @@ export default function AdminOrders() {
                 <div>
                   <p className="text-xs text-gray-500 font-medium mb-2">Order Items ({orderDetails?.items?.length || 0})</p>
                   <div className="bg-gray-50 rounded-lg divide-y max-h-80 overflow-auto">
-                    {orderDetails?.items?.map((item: any) => (
+                    {isLoadingDetails ? (
+                      <div className="p-4 text-center text-sm text-gray-500">Loading items...</div>
+                    ) : !orderDetails?.items?.length ? (
+                      <div className="p-4 text-center text-sm text-gray-500">No items</div>
+                    ) : orderDetails.items.map((item: any) => (
                       <div key={item.id} className="p-3">
                         <div className="flex gap-3">
                           <div className="w-16 h-16 bg-white rounded border flex-shrink-0 overflow-hidden flex items-center justify-center">

@@ -5,7 +5,7 @@ import { messages } from '@shared/schema';
 import { eq, asc } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import openai, { SYSTEM_PROMPT } from '@/lib/openai';
+import { getOpenAIClient, SYSTEM_PROMPT } from '@/lib/openai';
 
 export async function GET(request: Request) {
   try {
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
       aiResponse = "I understand you'd like to speak with a member of our support team. I've flagged this conversation for our team, and someone will get back to you soon. In the meantime, is there anything else I can help you with?";
     } else {
       try {
+        const openai = getOpenAIClient();
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: chatMessages,

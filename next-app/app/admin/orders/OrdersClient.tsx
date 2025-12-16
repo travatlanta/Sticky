@@ -499,6 +499,11 @@ export default function AdminOrders() {
                             <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                               <Palette className="h-4 w-4 text-orange-500" />
                               Customer Design: {item.design.name || 'Untitled'}
+                              {item.design.highResExportUrl && (
+                                <Badge variant="outline" className="ml-2 text-xs uppercase">
+                                  {item.design.highResExportUrl.split('.').pop()?.split('?')[0] || 'PNG'}
+                                </Badge>
+                              )}
                             </p>
                             <div className="flex flex-wrap items-start gap-4">
                               {/* Design Preview */}

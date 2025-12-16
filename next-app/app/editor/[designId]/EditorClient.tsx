@@ -27,7 +27,7 @@ import {
   Square, Circle, Triangle, Star, Heart, Smile, Undo2, Redo2, Trash2,
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   PaintBucket, Eraser, Pipette, Move, X, Save, Download, HelpCircle,
-  FolderOpen, Layers
+  FolderOpen, Layers, Sparkles, Sun, Moon, Droplets, Zap, CircleDot
 } from "lucide-react";
 import { getContourFromImage, expandContour, scaleContourPath, traceContour } from "@/lib/contour-tracer";
 
@@ -114,6 +114,7 @@ const HELP_TIPS: Record<string, string> = {
   draw: "Draw freehand on your design using the brush tool.",
   adjust: "Change the bleed color (border area) and product options like material and quantity.",
   uploads: "Upload multiple images here to use as design elements. They'll appear in your gallery.",
+  effects: "Add visual effects like shadows, glow, and outlines to selected elements.",
   canvas: "This is your design area. The gray border shows the bleed zone that will be trimmed. Keep important content inside.",
 };
 
@@ -161,6 +162,17 @@ export default function Editor() {
   const [showHelp, setShowHelp] = useState(false);
   const [canvasDimensions, setCanvasDimensions] = useState({ width: 400, height: 400 });
   const [productDimensionsInches, setProductDimensionsInches] = useState({ width: 4, height: 4 });
+  const [shadowEnabled, setShadowEnabled] = useState(false);
+  const [shadowColor, setShadowColor] = useState("#000000");
+  const [shadowBlur, setShadowBlur] = useState(15);
+  const [shadowOffsetX, setShadowOffsetX] = useState(5);
+  const [shadowOffsetY, setShadowOffsetY] = useState(5);
+  const [glowEnabled, setGlowEnabled] = useState(false);
+  const [glowColor, setGlowColor] = useState("#ffff00");
+  const [glowBlur, setGlowBlur] = useState(20);
+  const [outlineEnabled, setOutlineEnabled] = useState(false);
+  const [outlineColor, setOutlineColor] = useState("#ffffff");
+  const [outlineWidth, setOutlineWidth] = useState(3);
   const animationFrameRef = useRef<number>();
 
   const PIXELS_PER_INCH = 100;
@@ -625,6 +637,109 @@ export default function Editor() {
     canvas.freeDrawingBrush.width = brushWidth;
   }, [brushColor, brushWidth]);
 
+  const applyDropShadow = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject) {
+      toast({
+        title: "No object selected",
+        description: "Please select an element on the canvas first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    activeObject.set({
+      shadow: {
+        color: shadowColor,
+        blur: shadowBlur,
+        offsetX: shadowOffsetX,
+        offsetY: shadowOffsetY,
+      }
+    });
+    canvas.renderAll();
+    setShadowEnabled(true);
+    toast({ title: "Drop shadow applied" });
+  }, [shadowColor, shadowBlur, shadowOffsetX, shadowOffsetY, toast]);
+
+  const applyGlow = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject) {
+      toast({
+        title: "No object selected",
+        description: "Please select an element on the canvas first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    activeObject.set({
+      shadow: {
+        color: glowColor,
+        blur: glowBlur,
+        offsetX: 0,
+        offsetY: 0,
+      }
+    });
+    canvas.renderAll();
+    setGlowEnabled(true);
+    toast({ title: "Glow effect applied" });
+  }, [glowColor, glowBlur, toast]);
+
+  const applyOutline = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject) {
+      toast({
+        title: "No object selected",
+        description: "Please select an element on the canvas first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    activeObject.set({
+      stroke: outlineColor,
+      strokeWidth: outlineWidth,
+    });
+    canvas.renderAll();
+    setOutlineEnabled(true);
+    toast({ title: "Outline applied" });
+  }, [outlineColor, outlineWidth, toast]);
+
+  const removeEffects = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    
+    const activeObject = canvas.getActiveObject();
+    if (!activeObject) {
+      toast({
+        title: "No object selected",
+        description: "Please select an element on the canvas first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    activeObject.set({
+      shadow: null,
+      stroke: null,
+      strokeWidth: 0,
+    });
+    canvas.renderAll();
+    setShadowEnabled(false);
+    setGlowEnabled(false);
+    setOutlineEnabled(false);
+    toast({ title: "Effects removed" });
+  }, [toast]);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -642,7 +757,8 @@ export default function Editor() {
           const canvas = fabricCanvasRef.current;
           if (!canvas || !fabricModule) return;
 
-          const fabricImg = new fabricModule.Image(img, {
+          const FabricImageClass = fabricModule.FabricImage as any;
+          const fabricImg = new FabricImageClass(img, {
             left: canvas.width! / 2,
             top: canvas.height! / 2,
             originX: "center",
@@ -727,7 +843,8 @@ export default function Editor() {
 
     const img = new Image();
     img.onload = () => {
-      const fabricImg = new fabricModule!.Image(img, {
+      const FabricImageClass = fabricModule!.FabricImage as any;
+      const fabricImg = new FabricImageClass(img, {
         left: canvas.width! / 2,
         top: canvas.height! / 2,
         originX: "center",
@@ -1139,7 +1256,7 @@ export default function Editor() {
 
             <div className={`flex-1 overflow-y-auto transition-all ${toolDockOpen ? "max-h-[60vh] lg:max-h-none" : "max-h-0 lg:max-h-none overflow-hidden"}`}>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="w-full grid grid-cols-5 sticky top-0 bg-card z-10">
+                <TabsList className="w-full grid grid-cols-6 sticky top-0 bg-card z-10">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <TabsTrigger value="text" data-testid="tab-text">
@@ -1171,6 +1288,14 @@ export default function Editor() {
                       </TabsTrigger>
                     </TooltipTrigger>
                     <TooltipContent>{HELP_TIPS.draw}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="effects" data-testid="tab-effects">
+                        <Sparkles className="w-4 h-4" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>{HELP_TIPS.effects}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1227,43 +1352,87 @@ export default function Editor() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="graphics" className="p-3 space-y-3">
+                <TabsContent value="graphics" className="p-3 space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium mb-2">Shapes</h3>
-                    <div className="grid grid-cols-5 gap-1">
-                      <Button variant="outline" size="icon" onClick={() => addShape("square")} data-testid="button-shape-square">
-                        <Square className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => addShape("circle")} data-testid="button-shape-circle">
-                        <Circle className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => addShape("triangle")} data-testid="button-shape-triangle">
-                        <Triangle className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => addShape("star")} data-testid="button-shape-star">
-                        <Star className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => addShape("heart")} data-testid="button-shape-heart">
-                        <Heart className="w-4 h-4" />
-                      </Button>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Shapes className="w-4 h-4" /> Shapes
+                    </h3>
+                    <div className="grid grid-cols-5 gap-2">
+                      <button 
+                        onClick={() => addShape("square")} 
+                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-blue-500/20 to-blue-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        data-testid="button-shape-square"
+                      >
+                        <Square className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor" />
+                      </button>
+                      <button 
+                        onClick={() => addShape("circle")} 
+                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-green-500/20 to-green-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        data-testid="button-shape-circle"
+                      >
+                        <Circle className="w-6 h-6 text-green-600 dark:text-green-400" fill="currentColor" />
+                      </button>
+                      <button 
+                        onClick={() => addShape("triangle")} 
+                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-orange-500/20 to-orange-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        data-testid="button-shape-triangle"
+                      >
+                        <Triangle className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="currentColor" />
+                      </button>
+                      <button 
+                        onClick={() => addShape("star")} 
+                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-yellow-500/20 to-yellow-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        data-testid="button-shape-star"
+                      >
+                        <Star className="w-6 h-6 text-yellow-600 dark:text-yellow-500" fill="currentColor" />
+                      </button>
+                      <button 
+                        onClick={() => addShape("heart")} 
+                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-red-500/20 to-red-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        data-testid="button-shape-heart"
+                      >
+                        <Heart className="w-6 h-6 text-red-600 dark:text-red-400" fill="currentColor" />
+                      </button>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium mb-2">Clipart</h3>
-                    <div className="grid grid-cols-4 gap-1">
-                      <Button variant="outline" size="icon" onClick={() => addClipart("arrow")} data-testid="button-clipart-arrow" title="Arrow">
-                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => addClipart("checkmark")} data-testid="button-clipart-check" title="Checkmark">
-                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => addClipart("badge")} data-testid="button-clipart-badge" title="Badge">
-                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => addClipart("lightning")} data-testid="button-clipart-lightning" title="Lightning">
-                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8H7z"/></svg>
-                      </Button>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Zap className="w-4 h-4" /> Clipart
+                    </h3>
+                    <div className="grid grid-cols-4 gap-2">
+                      <button 
+                        onClick={() => addClipart("arrow")} 
+                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-indigo-500/20 to-indigo-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        data-testid="button-clipart-arrow" 
+                        title="Arrow"
+                      >
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
+                      </button>
+                      <button 
+                        onClick={() => addClipart("checkmark")} 
+                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-emerald-500/20 to-emerald-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        data-testid="button-clipart-check" 
+                        title="Checkmark"
+                      >
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                      </button>
+                      <button 
+                        onClick={() => addClipart("badge")} 
+                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-amber-500/20 to-amber-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        data-testid="button-clipart-badge" 
+                        title="Badge"
+                      >
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
+                      </button>
+                      <button 
+                        onClick={() => addClipart("lightning")} 
+                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-purple-500/20 to-purple-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        data-testid="button-clipart-lightning" 
+                        title="Lightning"
+                      >
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8H7z"/></svg>
+                      </button>
                     </div>
                   </div>
 
@@ -1395,6 +1564,153 @@ export default function Editor() {
                       {brushColor}
                     </Button>
                   </div>
+                </TabsContent>
+
+                <TabsContent value="effects" className="p-3 space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    Select an element on the canvas, then apply effects below.
+                  </p>
+
+                  <div className="space-y-3 p-3 rounded-md border bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium flex items-center gap-2">
+                        <Moon className="w-4 h-4" /> Drop Shadow
+                      </h3>
+                      <Button size="sm" onClick={applyDropShadow} data-testid="button-apply-shadow">
+                        Apply
+                      </Button>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Blur: {shadowBlur}px</label>
+                      <Slider
+                        value={[shadowBlur]}
+                        onValueChange={([val]) => setShadowBlur(val)}
+                        min={0}
+                        max={50}
+                        step={1}
+                        data-testid="slider-shadow-blur"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">X: {shadowOffsetX}</label>
+                        <Slider
+                          value={[shadowOffsetX]}
+                          onValueChange={([val]) => setShadowOffsetX(val)}
+                          min={-30}
+                          max={30}
+                          step={1}
+                          data-testid="slider-shadow-x"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Y: {shadowOffsetY}</label>
+                        <Slider
+                          value={[shadowOffsetY]}
+                          onValueChange={([val]) => setShadowOffsetY(val)}
+                          min={-30}
+                          max={30}
+                          step={1}
+                          data-testid="slider-shadow-y"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Color</label>
+                      <div className="flex gap-1 flex-wrap">
+                        {["#000000", "#333333", "#666666", "#999999"].map(color => (
+                          <button
+                            key={color}
+                            className={`w-6 h-6 rounded border-2 ${shadowColor === color ? "border-primary" : "border-transparent"}`}
+                            style={{ backgroundColor: color }}
+                            onClick={() => setShadowColor(color)}
+                            data-testid={`shadow-color-${color}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 p-3 rounded-md border bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium flex items-center gap-2">
+                        <Sun className="w-4 h-4" /> Glow Effect
+                      </h3>
+                      <Button size="sm" onClick={applyGlow} data-testid="button-apply-glow">
+                        Apply
+                      </Button>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Intensity: {glowBlur}px</label>
+                      <Slider
+                        value={[glowBlur]}
+                        onValueChange={([val]) => setGlowBlur(val)}
+                        min={5}
+                        max={60}
+                        step={1}
+                        data-testid="slider-glow-blur"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Color</label>
+                      <div className="flex gap-1 flex-wrap">
+                        {["#ffff00", "#00ffff", "#ff00ff", "#ff6600", "#00ff00", "#ffffff"].map(color => (
+                          <button
+                            key={color}
+                            className={`w-6 h-6 rounded border-2 ${glowColor === color ? "border-primary" : "border-muted"}`}
+                            style={{ backgroundColor: color }}
+                            onClick={() => setGlowColor(color)}
+                            data-testid={`glow-color-${color}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 p-3 rounded-md border bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium flex items-center gap-2">
+                        <CircleDot className="w-4 h-4" /> Outline
+                      </h3>
+                      <Button size="sm" onClick={applyOutline} data-testid="button-apply-outline">
+                        Apply
+                      </Button>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Width: {outlineWidth}px</label>
+                      <Slider
+                        value={[outlineWidth]}
+                        onValueChange={([val]) => setOutlineWidth(val)}
+                        min={1}
+                        max={20}
+                        step={1}
+                        data-testid="slider-outline-width"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Color</label>
+                      <div className="flex gap-1 flex-wrap">
+                        {["#ffffff", "#000000", "#ff0000", "#00ff00", "#0000ff", "#ffff00"].map(color => (
+                          <button
+                            key={color}
+                            className={`w-6 h-6 rounded border-2 ${outlineColor === color ? "border-primary" : "border-muted"}`}
+                            style={{ backgroundColor: color }}
+                            onClick={() => setOutlineColor(color)}
+                            data-testid={`outline-color-${color}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={removeEffects}
+                    data-testid="button-remove-effects"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Remove All Effects
+                  </Button>
                 </TabsContent>
 
                 <TabsContent value="adjust" className="p-3 space-y-3">

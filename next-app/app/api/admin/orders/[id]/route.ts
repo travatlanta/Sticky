@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, orderItems, products, designs } from '@shared/schema';
+import { orders, orderItems, products, designs, users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -25,6 +25,19 @@ export async function GET(
 
     if (!order) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
+    }
+
+    // Get user info
+    let user = null;
+    if (order.userId) {
+      const [u] = await db.select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phone: users.phone,
+      }).from(users).where(eq(users.id, order.userId));
+      user = u || null;
     }
 
     const items = await db
@@ -51,7 +64,7 @@ export async function GET(
       })
     );
 
-    return NextResponse.json({ ...order, items: enrichedItems });
+    return NextResponse.json({ ...order, user, items: enrichedItems });
   } catch (error) {
     console.error('Error fetching order:', error);
     return NextResponse.json({ message: 'Failed to fetch order' }, { status: 500 });

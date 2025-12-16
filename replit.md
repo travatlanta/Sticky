@@ -201,6 +201,26 @@ Key data entities:
   - Custom shape file (for die-cut stickers)
   - Design name and preview thumbnail
 
+### Enhanced Order Management
+- **Admin Order Modal**: Comprehensive order details including:
+  - Customer Information: Name, email, phone from user account
+  - Full Shipping Address with all address fields
+  - Order Items: Product name, quantity, unit price, subtotal, selected options
+  - Design Files: Preview thumbnail, Download Print File, Download Die-Cut Shape, Production File buttons
+  - Financial Summary: Subtotal, shipping, tax, discounts, total
+  - Tracking: Input for tracking number with save button
+  - Order Notes display
+- **Checkout Enhancement**: Now stores:
+  - `userId` from authenticated session
+  - `shippingAddress` JSON with all customer address fields
+  - `designId` on order items for design linkage
+  - `selectedOptions` on order items for product configuration
+  - Square payment ID for reference
+- **Customer Order Page** (`/orders/[id]`): Full order details with:
+  - Order items with product info and selected options
+  - Print-ready file download buttons
+  - Shipping address, tracking info, order summary
+
 ## Pending Configuration
 
 ### Stripe Payment Integration

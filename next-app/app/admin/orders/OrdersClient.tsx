@@ -1,7 +1,13 @@
 "use client";
 
-
 import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -59,8 +65,88 @@ const statusColors: Record<string, string> = {
 
 export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [downloadFormats, setDownloadFormats] = useState<Record<number, string>>({});
+  const [downloading, setDownloading] = useState<Record<number, boolean>>({});
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const handleDownload = async (url: string, itemId: number, designName: string) => {
+    const format = downloadFormats[itemId] || 'pdf';
+    setDownloading(prev => ({ ...prev, [itemId]: true }));
+    
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      
+      let finalBlob = blob;
+      let extension = format;
+      
+      // For PNG format, convert if needed
+      if (format === 'png' && !blob.type.includes('png')) {
+        const img = new Image();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx?.drawImage(img, 0, 0);
+            canvas.toBlob((newBlob) => {
+              if (newBlob) {
+                finalBlob = newBlob;
+              }
+              resolve();
+            }, 'image/png');
+          };
+          img.onerror = reject;
+          img.src = URL.createObjectURL(blob);
+        });
+      }
+      
+      // For JPEG format
+      if (format === 'jpg' && !blob.type.includes('jpeg')) {
+        const img = new Image();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx?.fillStyle = '#FFFFFF';
+            ctx?.fillRect(0, 0, canvas.width, canvas.height);
+            ctx?.drawImage(img, 0, 0);
+            canvas.toBlob((newBlob) => {
+              if (newBlob) {
+                finalBlob = newBlob;
+              }
+              resolve();
+            }, 'image/jpeg', 0.95);
+          };
+          img.onerror = reject;
+          img.src = URL.createObjectURL(blob);
+        });
+      }
+
+      // Create download link
+      const downloadUrl = URL.createObjectURL(finalBlob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${designName.replace(/[^a-z0-9]/gi, '_')}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+      
+      toast({ title: `Downloaded as ${format.toUpperCase()}` });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({ title: 'Download failed', variant: 'destructive' });
+    } finally {
+      setDownloading(prev => ({ ...prev, [itemId]: false }));
+    }
+  };
 
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/admin/orders"],
@@ -282,39 +368,69 @@ export default function AdminOrders() {
                   </div>
                 </div>
 
-                {/* Shipping Address */}
+                {/* Billing & Shipping Addresses - Side by Side */}
                 {selectedOrder.shippingAddress && (
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-gray-600" />
-                      Shipping Address
-                    </h3>
-                    <div className="text-sm">
-                      {typeof selectedOrder.shippingAddress === "object" ? (
-                        <>
-                          {selectedOrder.shippingAddress.name && (
-                            <p className="font-medium">{selectedOrder.shippingAddress.name}</p>
-                          )}
-                          {selectedOrder.shippingAddress.street && (
-                            <p>{selectedOrder.shippingAddress.street}</p>
-                          )}
-                          {selectedOrder.shippingAddress.address1 && (
-                            <p>{selectedOrder.shippingAddress.address1}</p>
-                          )}
-                          {selectedOrder.shippingAddress.address2 && (
-                            <p>{selectedOrder.shippingAddress.address2}</p>
-                          )}
-                          <p>
-                            {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}{" "}
-                            {selectedOrder.shippingAddress.zip || selectedOrder.shippingAddress.zipCode}
-                          </p>
-                          {selectedOrder.shippingAddress.country && (
-                            <p>{selectedOrder.shippingAddress.country}</p>
-                          )}
-                        </>
-                      ) : (
-                        <p>{String(selectedOrder.shippingAddress)}</p>
-                      )}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Billing Address */}
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-gray-600" />
+                        Billing Address
+                      </h3>
+                      <div className="text-sm">
+                        {(() => {
+                          const addr = selectedOrder.billingAddress || selectedOrder.shippingAddress;
+                          return typeof addr === "object" ? (
+                            <>
+                              {addr.name && <p className="font-medium">{addr.name}</p>}
+                              {addr.street && <p>{addr.street}</p>}
+                              {addr.address1 && <p>{addr.address1}</p>}
+                              {addr.address2 && <p>{addr.address2}</p>}
+                              <p>
+                                {addr.city}, {addr.state} {addr.zip || addr.zipCode}
+                              </p>
+                              {addr.country && <p>{addr.country}</p>}
+                            </>
+                          ) : (
+                            <p>{String(addr)}</p>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Shipping Address */}
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Truck className="h-5 w-5 text-gray-600" />
+                        Shipping Address
+                      </h3>
+                      <div className="text-sm">
+                        {typeof selectedOrder.shippingAddress === "object" ? (
+                          <>
+                            {selectedOrder.shippingAddress.name && (
+                              <p className="font-medium">{selectedOrder.shippingAddress.name}</p>
+                            )}
+                            {selectedOrder.shippingAddress.street && (
+                              <p>{selectedOrder.shippingAddress.street}</p>
+                            )}
+                            {selectedOrder.shippingAddress.address1 && (
+                              <p>{selectedOrder.shippingAddress.address1}</p>
+                            )}
+                            {selectedOrder.shippingAddress.address2 && (
+                              <p>{selectedOrder.shippingAddress.address2}</p>
+                            )}
+                            <p>
+                              {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}{" "}
+                              {selectedOrder.shippingAddress.zip || selectedOrder.shippingAddress.zipCode}
+                            </p>
+                            {selectedOrder.shippingAddress.country && (
+                              <p>{selectedOrder.shippingAddress.country}</p>
+                            )}
+                          </>
+                        ) : (
+                          <p>{String(selectedOrder.shippingAddress)}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -374,43 +490,73 @@ export default function AdminOrders() {
                                 </a>
                               )}
                               
-                              {/* Download Buttons */}
+                              {/* Download with Format Selection */}
                               <div className="flex flex-col gap-2">
                                 {item.design.highResExportUrl && (
-                                  <a 
-                                    href={item.design.highResExportUrl} 
-                                    download
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-3 py-2 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors"
-                                  >
-                                    <Download className="h-4 w-4" />
-                                    Download Print File
-                                  </a>
+                                  <div className="flex items-center gap-2">
+                                    <Select
+                                      value={downloadFormats[item.id] || 'pdf'}
+                                      onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, [item.id]: value }))}
+                                    >
+                                      <SelectTrigger className="w-28" data-testid={`select-format-${item.id}`}>
+                                        <SelectValue placeholder="Format" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="pdf">PDF</SelectItem>
+                                        <SelectItem value="png">PNG</SelectItem>
+                                        <SelectItem value="jpg">JPG</SelectItem>
+                                        <SelectItem value="svg">SVG</SelectItem>
+                                        <SelectItem value="tiff">TIFF</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <Button
+                                      onClick={() => handleDownload(
+                                        item.design.highResExportUrl,
+                                        item.id,
+                                        item.design.name || 'design'
+                                      )}
+                                      disabled={downloading[item.id]}
+                                      className="bg-orange-500 hover:bg-orange-600"
+                                      data-testid={`button-download-${item.id}`}
+                                    >
+                                      {downloading[item.id] ? (
+                                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                      ) : (
+                                        <Download className="h-4 w-4 mr-2" />
+                                      )}
+                                      Download
+                                    </Button>
+                                  </div>
                                 )}
                                 {item.design.customShapeUrl && (
-                                  <a 
-                                    href={item.design.customShapeUrl} 
-                                    download
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => handleDownload(
+                                      item.design.customShapeUrl,
+                                      item.id + 1000,
+                                      `${item.design.name || 'design'}_diecut`
+                                    )}
+                                    disabled={downloading[item.id + 1000]}
+                                    className="text-blue-700 border-blue-300"
                                   >
-                                    <FileImage className="h-4 w-4" />
+                                    <FileImage className="h-4 w-4 mr-2" />
                                     Download Die-Cut Shape
-                                  </a>
+                                  </Button>
                                 )}
                                 {item.printFileUrl && (
-                                  <a 
-                                    href={item.printFileUrl} 
-                                    download
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => handleDownload(
+                                      item.printFileUrl,
+                                      item.id + 2000,
+                                      `${item.design?.name || 'design'}_production`
+                                    )}
+                                    disabled={downloading[item.id + 2000]}
+                                    className="text-green-700 border-green-300"
                                   >
-                                    <Download className="h-4 w-4" />
+                                    <Download className="h-4 w-4 mr-2" />
                                     Download Production File
-                                  </a>
+                                  </Button>
                                 )}
                               </div>
                             </div>
@@ -426,60 +572,61 @@ export default function AdminOrders() {
                   </div>
                 </div>
 
-                {/* Financial Summary */}
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-green-600" />
-                    Financial Summary
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="font-medium">{formatPrice(selectedOrder.subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Shipping</span>
-                      <span className="font-medium">{formatPrice(selectedOrder.shippingCost || '0')}</span>
-                    </div>
-                    {parseFloat(selectedOrder.taxAmount || '0') > 0 && (
+                {/* Financial Summary & Shipping/Tracking - Side by Side */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Financial Summary */}
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-green-600" />
+                      Financial Summary
+                    </h3>
+                    <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Tax</span>
-                        <span className="font-medium">{formatPrice(selectedOrder.taxAmount || '0')}</span>
+                        <span className="text-gray-600">Subtotal</span>
+                        <span className="font-medium">{formatPrice(selectedOrder.subtotal)}</span>
                       </div>
-                    )}
-                    {parseFloat(selectedOrder.discountAmount || '0') > 0 && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Discount</span>
-                        <span className="font-medium">-{formatPrice(selectedOrder.discountAmount || '0')}</span>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Shipping</span>
+                        <span className="font-medium">{formatPrice(selectedOrder.shippingCost || '0')}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between pt-2 border-t border-green-200 text-lg font-bold">
-                      <span>Total</span>
-                      <span className="text-green-700">{formatPrice(selectedOrder.totalAmount)}</span>
+                      {parseFloat(selectedOrder.taxAmount || '0') > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Tax</span>
+                          <span className="font-medium">{formatPrice(selectedOrder.taxAmount || '0')}</span>
+                        </div>
+                      )}
+                      {parseFloat(selectedOrder.discountAmount || '0') > 0 && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Discount</span>
+                          <span className="font-medium">-{formatPrice(selectedOrder.discountAmount || '0')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-2 border-t border-green-200 text-lg font-bold">
+                        <span>Total</span>
+                        <span className="text-green-700">{formatPrice(selectedOrder.totalAmount)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Tracking & Shipping */}
-                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Truck className="h-5 w-5 text-indigo-600" />
-                    Shipping & Tracking
-                  </h3>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-500 block mb-1">Tracking Number</label>
-                      <input
-                        type="text"
-                        value={selectedOrder.trackingNumber || ""}
-                        onChange={(e) =>
-                          setSelectedOrder({ ...selectedOrder, trackingNumber: e.target.value })
-                        }
-                        placeholder="Enter tracking number"
-                        className="w-full px-3 py-2 border rounded-lg text-sm"
-                      />
-                    </div>
-                    <div className="flex items-end">
+                  {/* Tracking & Shipping */}
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Truck className="h-5 w-5 text-indigo-600" />
+                      Shipping & Tracking
+                    </h3>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-500 block mb-1">Tracking Number</label>
+                        <input
+                          type="text"
+                          value={selectedOrder.trackingNumber || ""}
+                          onChange={(e) =>
+                            setSelectedOrder({ ...selectedOrder, trackingNumber: e.target.value })
+                          }
+                          placeholder="Enter tracking number"
+                          className="w-full px-3 py-2 border rounded-lg text-sm"
+                        />
+                      </div>
                       <Button
                         onClick={() =>
                           updateMutation.mutate({
@@ -487,6 +634,7 @@ export default function AdminOrders() {
                             data: { trackingNumber: selectedOrder.trackingNumber },
                           })
                         }
+                        className="w-full"
                       >
                         Save Tracking
                       </Button>

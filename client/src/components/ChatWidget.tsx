@@ -12,7 +12,9 @@ import {
   Headphones,
   Loader2,
   Bot,
+  LogIn,
 } from "lucide-react";
+import { Link } from "wouter";
 import type { Message } from "@shared/schema";
 
 interface ChatWidgetProps {
@@ -88,14 +90,10 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
     }
   };
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
     <div className="fixed bottom-24 right-6 z-40">
       {isOpen ? (
-        <div className="w-80 sm:w-96 h-[28rem] flex flex-col bg-white rounded-2xl shadow-2xl border border-orange-200 overflow-hidden">
+        <div className="w-80 sm:w-96 h-[28rem] flex flex-col bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-orange-200 dark:border-orange-800 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
             <div className="flex items-center gap-2">
@@ -117,6 +115,31 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
               <X className="w-4 h-4" />
             </Button>
           </div>
+
+          {/* Show login prompt for unauthenticated users */}
+          {!isAuthenticated ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-800">
+              <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center mb-4">
+                <LogIn className="w-10 h-10 text-orange-500" />
+              </div>
+              <h3 className="font-heading font-bold text-lg text-gray-800 dark:text-gray-100 mb-2 text-center">
+                Sign in to Chat
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+                Log in to ask questions about our products, shipping, or get help with your orders.
+              </p>
+              <Link href="/auth">
+                <Button 
+                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+                  data-testid="button-login-to-chat"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <>
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
@@ -216,6 +239,8 @@ export function ChatWidget({ isAuthenticated }: ChatWidgetProps) {
               </Button>
             </div>
           </form>
+            </>
+          )}
         </div>
       ) : (
         <button

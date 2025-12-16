@@ -148,8 +148,12 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating design:', error);
-    return NextResponse.json({ message: 'Failed to create design' }, { status: 500 });
+    console.error('Error details:', error?.message, error?.stack);
+    return NextResponse.json({ 
+      message: 'Failed to create design', 
+      error: error?.message || 'Unknown error'
+    }, { status: 500 });
   }
 }

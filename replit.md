@@ -14,7 +14,7 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Next.js App Router
 - **State Management**: TanStack React Query
 - **Styling**: Tailwind CSS with custom theme, shadcn/ui components
-- **Design Editor**: Simplified Upload+Preview editor (mobile-first, no Fabric.js)
+- **Design Editor**: Full-featured Fabric.js canvas editor with shapes, text, effects, and drawing tools
 - **Key Features**: Product catalog, dynamic pricing, design editor, shopping cart, order management, admin dashboard.
 
 ### Backend (Next.js API Routes)
@@ -49,7 +49,14 @@ Preferred communication style: Simple, everyday language.
 - 90% of users access via mobile, so controls don't cover preview area
 
 ### Feature Specifications
-- **Simplified Upload+Preview Editor**: User uploads artwork, system displays preview with white bleed border, auto-detects dimensions from image, floating animation effect, material/coating/quantity selection, live price calculation. Stores designs in Vercel Blob.
+- **Full Design Editor**: Fabric.js-based canvas editor with:
+  - **Text**: Add and customize text with fonts, colors, and styling
+  - **Graphics**: Shapes (square, circle, triangle, star, heart) and clipart (arrows, checkmarks, badges, lightning)
+  - **Uploads**: Upload images directly to canvas
+  - **Drawing**: Freehand brush tool with color and size controls
+  - **Effects**: Drop shadow (blur, offset, color), glow effect (intensity, color), outline (width, color)
+  - **Adjustments**: Bleed color customization
+  - Mobile-first design with floating toolbar. Stores designs in Vercel Blob.
 - **Live Chat Support**: Real-time chat widget with polling, message history, and admin interface for support.
 - **Order Tracking**: Detailed order views with timeline, shipping, items, and print-ready downloads.
 - **Hot Deals**: Dynamic display of promotional products on homepage and a dedicated deals page.

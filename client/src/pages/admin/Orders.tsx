@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice, formatOrderNumber } from "@/lib/utils";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Order {
@@ -178,160 +178,113 @@ export default function AdminOrders() {
 
         {selectedOrder && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-auto">
-              <div className="p-6 border-b flex justify-between items-center">
-                <h2 className="text-lg font-semibold">Order {formatOrderNumber(selectedOrder.id)}</h2>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedOrder(null)}>
+            <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
+              <div className="p-4 border-b flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-semibold">Order {formatOrderNumber(selectedOrder.id)}</h2>
+                  <span className="text-sm text-gray-500">{formatDate(selectedOrder.createdAt)}</span>
+                  <select
+                    value={selectedOrder.status}
+                    onChange={(e) => {
+                      updateMutation.mutate({ id: selectedOrder.id, data: { status: e.target.value as any } });
+                      setSelectedOrder({ ...selectedOrder, status: e.target.value });
+                    }}
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[selectedOrder.status] || "bg-gray-100"}`}
+                  >
+                    {statusOptions.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
+                  </select>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Status</p>
-                    <p className="font-medium capitalize">{selectedOrder.status.replace("_", " ")}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Date</p>
-                    <p className="font-medium">{formatDate(selectedOrder.createdAt)}</p>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                  <p className="text-sm text-gray-500 font-medium mb-3">Order Summary</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">{formatPrice(selectedOrder.subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Shipping</span>
-                    <span className="font-medium">{formatPrice(selectedOrder.shippingCost || "0")}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax (8.6%)</span>
-                    <span className="font-medium">{formatPrice(selectedOrder.taxAmount || "0")}</span>
-                  </div>
-                  {parseFloat(selectedOrder.discountAmount || "0") > 0 && (
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Discount</span>
-                      <span>-{formatPrice(selectedOrder.discountAmount)}</span>
-                    </div>
-                  )}
-                  <div className="border-t pt-2 mt-2 flex justify-between">
-                    <span className="font-semibold">Total</span>
-                    <span className="font-semibold text-orange-600">{formatPrice(selectedOrder.totalAmount)}</span>
-                  </div>
-                </div>
-
-                {selectedOrder.shippingAddress && (
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Shipping Address</p>
-                    <div className="bg-gray-50 p-3 rounded-lg text-sm">
+              
+              <div className="p-4 grid md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  {selectedOrder.shippingAddress && (
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 font-medium mb-1">Shipping Address</p>
                       {typeof selectedOrder.shippingAddress === "object" ? (
-                        <>
-                          <p>{selectedOrder.shippingAddress.name}</p>
+                        <div className="text-sm">
+                          <p className="font-medium">{selectedOrder.shippingAddress.name}</p>
                           <p>{selectedOrder.shippingAddress.street}</p>
-                          <p>
-                            {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}{" "}
-                            {selectedOrder.shippingAddress.zip}
-                          </p>
-                        </>
+                          <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zip}</p>
+                        </div>
                       ) : (
-                        <p>{JSON.stringify(selectedOrder.shippingAddress)}</p>
+                        <p className="text-sm">{JSON.stringify(selectedOrder.shippingAddress)}</p>
                       )}
                     </div>
+                  )}
+                  
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-xs text-gray-500 font-medium mb-1">Order Summary</p>
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(selectedOrder.subtotal)}</span></div>
+                      <div className="flex justify-between"><span>Shipping</span><span>{formatPrice(selectedOrder.shippingCost || "0")}</span></div>
+                      <div className="flex justify-between"><span>Tax (8.6%)</span><span>{formatPrice(selectedOrder.taxAmount || "0")}</span></div>
+                      {parseFloat(selectedOrder.discountAmount || "0") > 0 && (
+                        <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatPrice(selectedOrder.discountAmount)}</span></div>
+                      )}
+                      <div className="border-t pt-1 mt-1 flex justify-between font-semibold">
+                        <span>Total</span><span className="text-orange-600">{formatPrice(selectedOrder.totalAmount)}</span>
+                      </div>
+                    </div>
                   </div>
-                )}
-
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Tracking Number</p>
-                  <div className="flex space-x-2">
+                  
+                  <div className="flex gap-2">
                     <input
                       type="text"
                       value={selectedOrder.trackingNumber || ""}
-                      onChange={(e) =>
-                        setSelectedOrder({ ...selectedOrder, trackingNumber: e.target.value })
-                      }
-                      placeholder="Enter tracking number"
-                      className="flex-1 px-3 py-2 border rounded-lg"
+                      onChange={(e) => setSelectedOrder({ ...selectedOrder, trackingNumber: e.target.value })}
+                      placeholder="Tracking number"
+                      className="flex-1 px-3 py-2 border rounded-lg text-sm"
                     />
-                    <Button
-                      onClick={() =>
-                        updateMutation.mutate({
-                          id: selectedOrder.id,
-                          data: { trackingNumber: selectedOrder.trackingNumber },
-                        })
-                      }
-                    >
-                      Save
+                    <Button size="sm" onClick={() => updateMutation.mutate({ id: selectedOrder.id, data: { trackingNumber: selectedOrder.trackingNumber } })}>
+                      <Truck className="h-4 w-4 mr-1" /> Save
                     </Button>
                   </div>
                 </div>
-
-                {orderDetails?.items && orderDetails.items.length > 0 && (
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Order Items</p>
-                    <div className="bg-gray-50 rounded-lg divide-y">
-                      {orderDetails.items.map((item: any) => (
-                        <div key={item.id} className="p-3">
-                          <div className="flex justify-between mb-2">
-                            <div>
-                              <p className="font-medium">{item.product?.name || `Product #${item.productId}`}</p>
-                              <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                            </div>
-                            <p className="font-medium">{formatPrice(item.unitPrice)}</p>
+                
+                <div>
+                  <p className="text-xs text-gray-500 font-medium mb-2">Order Items ({orderDetails?.items?.length || 0})</p>
+                  <div className="bg-gray-50 rounded-lg divide-y max-h-80 overflow-auto">
+                    {orderDetails?.items?.map((item: any) => (
+                      <div key={item.id} className="p-3">
+                        <div className="flex gap-3">
+                          <div className="w-16 h-16 bg-white rounded border flex-shrink-0 overflow-hidden flex items-center justify-center">
+                            {item.design?.previewUrl ? (
+                              <img src={item.design.previewUrl} alt="Design" className="w-full h-full object-cover" />
+                            ) : (
+                              <Palette className="h-6 w-6 text-gray-400" />
+                            )}
                           </div>
-                          {item.design && (
-                            <div className="mt-2 bg-white rounded-lg border p-2">
-                              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                                <Palette className="h-3 w-3" /> Customer Design
-                              </p>
-                              <div className="flex items-start gap-3">
-                                {(item.design.highResExportUrl || item.design.previewUrl) && (
-                                  <a 
-                                    href={item.design.highResExportUrl || item.design.previewUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="block"
-                                  >
-                                    <img 
-                                      src={item.design.highResExportUrl || item.design.previewUrl} 
-                                      alt="Design preview" 
-                                      className="w-20 h-20 object-contain bg-gray-100 rounded border"
-                                    />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{item.product?.name || `Product #${item.productId}`}</p>
+                            <p className="text-xs text-gray-500">Qty: {item.quantity} x {formatPrice(item.unitPrice)}</p>
+                            {item.design && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {item.design.highResExportUrl && (
+                                  <a href={item.design.highResExportUrl} download target="_blank" rel="noopener noreferrer">
+                                    <Button variant="outline" size="sm" className="h-6 text-xs px-2">
+                                      <Download className="h-3 w-3 mr-1" /> Print File
+                                    </Button>
                                   </a>
                                 )}
-                                <div className="flex-1 text-xs">
-                                  <p className="text-gray-700 font-medium">{item.design.name || "Untitled Design"}</p>
-                                  {item.design.highResExportUrl && (
-                                    <a 
-                                      href={item.design.highResExportUrl} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-orange-600 hover:underline inline-flex items-center gap-1 mt-1"
-                                    >
-                                      <Eye className="h-3 w-3" /> View High-Res
-                                    </a>
-                                  )}
-                                  {item.design.customShapeUrl && (
-                                    <a 
-                                      href={item.design.customShapeUrl} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline inline-flex items-center gap-1 mt-1 ml-3"
-                                    >
-                                      <Eye className="h-3 w-3" /> Custom Shape
-                                    </a>
-                                  )}
-                                </div>
+                                {item.design.customShapeUrl && (
+                                  <a href={item.design.customShapeUrl} download target="_blank" rel="noopener noreferrer">
+                                    <Button variant="outline" size="sm" className="h-6 text-xs px-2">
+                                      <Download className="h-3 w-3 mr-1" /> Die-Cut
+                                    </Button>
+                                  </a>
+                                )}
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>

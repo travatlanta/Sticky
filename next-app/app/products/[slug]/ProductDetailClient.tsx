@@ -224,6 +224,9 @@ export default function ProductDetail() {
       if (!designRes.ok) throw new Error("Failed to create design");
       const design = await designRes.json();
 
+      // Include option costs in unit price for accurate cart total
+      const fullUnitPrice = parseFloat(calculatedPrice.pricePerUnit) + (parseFloat(calculatedPrice.optionsCost) || 0);
+      
       const cartRes = await fetch("/api/cart/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -232,7 +235,7 @@ export default function ProductDetail() {
           designId: design.id,
           quantity,
           selectedOptions,
-          unitPrice: parseFloat(calculatedPrice.pricePerUnit),
+          unitPrice: fullUnitPrice,
         }),
         credentials: "include",
       });
@@ -390,11 +393,28 @@ export default function ProductDetail() {
                   {calculatedPrice ? formatPrice(calculatedPrice.pricePerUnit) : "..."}
                 </span>
               </div>
-              <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Quantity</span>
                 <span className="font-medium">{quantity}</span>
               </div>
-              <div className="flex justify-between items-center">
+              
+              {calculatedPrice?.addOns && calculatedPrice.addOns.length > 0 && (
+                <div className="border-t border-gray-200 pt-2 mt-2 space-y-1">
+                  {calculatedPrice.addOns.map((addOn: { type: string; name: string; pricePerUnit: number; totalCost: number }, index: number) => (
+                    <div key={index} className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600 capitalize">
+                        {addOn.type}: {addOn.name}
+                        <span className="text-gray-400 ml-1">(+{formatPrice(addOn.pricePerUnit)}/ea)</span>
+                      </span>
+                      <span className="font-medium text-gray-700">
+                        +{formatPrice(addOn.totalCost)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
                 <span className="text-xl font-bold">Total</span>
                 <span className="text-2xl font-bold text-primary-500">
                   {calculatedPrice ? formatPrice(calculatedPrice.subtotal) : "..."}

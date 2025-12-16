@@ -1109,7 +1109,7 @@ export default function Editor() {
                     <div className="mb-4">
                       <label className="text-sm text-muted-foreground mb-2 block">Material</label>
                       <div className="grid grid-cols-2 gap-2">
-                        {product.options.filter(o => o.optionType === "material").map((option) => (
+                        {product?.options?.filter(o => o.optionType === "material").map((option) => (
                           <button
                             key={option.id}
                             onClick={() => setSelectedOptions({ ...selectedOptions, material: option.id })}
@@ -1131,7 +1131,7 @@ export default function Editor() {
                     <div className="mb-4">
                       <label className="text-sm text-muted-foreground mb-2 block">Finish</label>
                       <div className="grid grid-cols-2 gap-2">
-                        {product.options.filter(o => o.optionType === "coating").map((option) => (
+                        {product?.options?.filter(o => o.optionType === "coating").map((option) => (
                           <button
                             key={option.id}
                             onClick={() => setSelectedOptions({ ...selectedOptions, coating: option.id })}

@@ -263,17 +263,16 @@ export default function Editor() {
       const container = previewContainerRef.current;
       if (!container) return;
 
-      const rulerOffset = 40;
-      const padding = 40;
-      const containerWidth = container.clientWidth - rulerOffset - padding;
-      const containerHeight = container.clientHeight - rulerOffset - padding;
+      const padding = 60;
+      const containerWidth = container.clientWidth - padding;
+      const containerHeight = container.clientHeight - padding;
       
       const productWidth = canvasDimensions.width;
       const productHeight = canvasDimensions.height;
       
       const scaleX = containerWidth / productWidth;
       const scaleY = containerHeight / productHeight;
-      const scale = Math.min(scaleX, scaleY, 1.5);
+      const scale = Math.min(scaleX, scaleY, 2.5);
       
       const displayWidth = Math.round(productWidth * scale);
       const displayHeight = Math.round(productHeight * scale);
@@ -839,28 +838,41 @@ export default function Editor() {
 
   const addAssetToCanvas = useCallback((asset: UploadedAsset) => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas || !fabricModule) return;
+    if (!canvas || !fabricModule) {
+      console.log("Canvas or fabricModule not ready");
+      return;
+    }
 
-    const img = new Image();
-    img.onload = () => {
-      const FabricImageClass = fabricModule!.FabricImage as any;
-      const fabricImg = new FabricImageClass(img, {
-        left: canvas.width! / 2,
-        top: canvas.height! / 2,
+    console.log("Adding asset to canvas:", asset.name);
+    
+    const imgElement = document.createElement('img');
+    imgElement.crossOrigin = 'anonymous';
+    imgElement.onload = () => {
+      console.log("Image loaded, creating fabric image");
+      const fabricImg = new fabricModule!.Image(imgElement, {
+        left: canvasDimensions.width / 2,
+        top: canvasDimensions.height / 2,
         originX: "center",
         originY: "center",
       });
 
-      const maxSize = Math.min(canvas.width!, canvas.height!) * 0.5;
-      const scale = Math.min(maxSize / img.width, maxSize / img.height);
+      const maxSize = Math.min(canvasDimensions.width, canvasDimensions.height) * 0.8;
+      const scale = Math.min(maxSize / imgElement.width, maxSize / imgElement.height);
       fabricImg.scale(scale);
 
       canvas.add(fabricImg);
       canvas.setActiveObject(fabricImg);
       canvas.renderAll();
+      console.log("Image added to canvas");
+      
+      toast({ title: "Image added", description: "Click and drag to position it." });
     };
-    img.src = asset.url;
-  }, []);
+    imgElement.onerror = (e) => {
+      console.error("Failed to load image:", e);
+      toast({ title: "Failed to add image", variant: "destructive" });
+    };
+    imgElement.src = asset.url;
+  }, [canvasDimensions, toast]);
 
   const removeAsset = useCallback((assetId: string) => {
     setUploadedAssets(prev => prev.filter(a => a.id !== assetId));
@@ -1016,40 +1028,6 @@ export default function Editor() {
     setShowColorPicker(false);
   };
 
-  const renderRuler = (orientation: 'horizontal' | 'vertical') => {
-    const isHorizontal = orientation === 'horizontal';
-    const size = isHorizontal ? productDimensionsInches.width : productDimensionsInches.height;
-    const ticks = [];
-    
-    for (let i = 0; i <= size; i++) {
-      const pos = (i / size) * 100;
-      ticks.push(
-        <div
-          key={i}
-          className={`absolute ${isHorizontal ? 'flex flex-col items-center' : 'flex items-center'}`}
-          style={isHorizontal ? { left: `${pos}%`, transform: 'translateX(-50%)' } : { top: `${pos}%`, transform: 'translateY(-50%)' }}
-        >
-          <div className={`bg-muted-foreground/50 ${isHorizontal ? 'w-px h-3' : 'h-px w-3'}`} />
-          <span className="text-[10px] text-muted-foreground ml-1">{i}"</span>
-        </div>
-      );
-      
-      if (i < size) {
-        for (let j = 1; j < 4; j++) {
-          const minorPos = ((i + j * 0.25) / size) * 100;
-          ticks.push(
-            <div
-              key={`${i}-${j}`}
-              className={`absolute bg-muted-foreground/30 ${isHorizontal ? 'w-px h-1.5' : 'h-px w-1.5'}`}
-              style={isHorizontal ? { left: `${minorPos}%` } : { top: `${minorPos}%` }}
-            />
-          );
-        }
-      }
-    }
-    
-    return ticks;
-  };
 
   if (isNewDesign) {
     return (
@@ -1154,70 +1132,58 @@ export default function Editor() {
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           <div 
             ref={previewContainerRef}
-            className="flex-1 flex items-center justify-center p-2 lg:p-4 relative overflow-hidden min-h-[50vh] lg:min-h-0"
+            className="flex-1 flex items-center justify-center p-4 lg:p-6 relative overflow-hidden min-h-[50vh] lg:min-h-0"
             onPointerMove={handlePointerMove}
             onPointerLeave={handlePointerLeave}
             onTouchMove={handlePointerMove}
             onTouchEnd={handlePointerLeave}
             data-testid="preview-container"
           >
-            <div className="relative flex items-start">
-              <div className="absolute -left-10 top-10 bottom-0 w-8 flex flex-col items-end pr-1" style={{ height: `calc(100% - 40px)` }}>
-                <div className="relative h-full w-full">
-                  {renderRuler('vertical')}
-                </div>
+            <div className="relative flex flex-col items-center">
+              <div 
+                className="relative transition-transform duration-100 ease-out"
+                style={{
+                  transform: `perspective(1000px) rotateX(${-mousePosition.y}deg) rotateY(${mousePosition.x}deg)`,
+                }}
+              >
+                {product?.supportsCustomShape && contourPath ? (
+                  <svg 
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: -16,
+                      top: -16,
+                      width: `calc(100% + 32px)`,
+                      height: `calc(100% + 32px)`,
+                    }}
+                  >
+                    <defs>
+                      <filter id="bleed-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.25"/>
+                      </filter>
+                    </defs>
+                    <path 
+                      d={expandContour(contourPath, 16)} 
+                      fill={bleedColor}
+                      filter="url(#bleed-shadow)"
+                      transform="translate(16, 16)"
+                    />
+                  </svg>
+                ) : (
+                  <div 
+                    className="absolute inset-[-12px] rounded-lg shadow-2xl"
+                    style={{ backgroundColor: bleedColor }}
+                  />
+                )}
+                <canvas 
+                  ref={canvasRef} 
+                  className="relative z-10 rounded-lg shadow-lg"
+                  style={{ touchAction: "none" }}
+                  data-testid="canvas-editor"
+                />
               </div>
               
-              <div className="flex flex-col">
-                <div className="h-8 relative ml-10" style={{ width: `${(canvasDimensions.width / Math.max(canvasDimensions.width, canvasDimensions.height)) * 100}%`, minWidth: fabricCanvasRef.current?.width || canvasDimensions.width }}>
-                  {renderRuler('horizontal')}
-                </div>
-                
-                <div 
-                  className="relative transition-transform duration-100 ease-out ml-10"
-                  style={{
-                    transform: `perspective(1000px) rotateX(${-mousePosition.y}deg) rotateY(${mousePosition.x}deg)`,
-                  }}
-                >
-                  {product?.supportsCustomShape && contourPath ? (
-                    <svg 
-                      className="absolute pointer-events-none"
-                      style={{
-                        left: -16,
-                        top: -16,
-                        width: `calc(100% + 32px)`,
-                        height: `calc(100% + 32px)`,
-                      }}
-                    >
-                      <defs>
-                        <filter id="bleed-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                          <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.25"/>
-                        </filter>
-                      </defs>
-                      <path 
-                        d={expandContour(contourPath, 16)} 
-                        fill={bleedColor}
-                        filter="url(#bleed-shadow)"
-                        transform="translate(16, 16)"
-                      />
-                    </svg>
-                  ) : (
-                    <div 
-                      className="absolute inset-[-12px] rounded-lg shadow-2xl"
-                      style={{ backgroundColor: bleedColor }}
-                    />
-                  )}
-                  <canvas 
-                    ref={canvasRef} 
-                    className="relative z-10 rounded-lg shadow-lg"
-                    style={{ touchAction: "none" }}
-                    data-testid="canvas-editor"
-                  />
-                  
-                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground whitespace-nowrap">
-                    {productDimensionsInches.width}" × {productDimensionsInches.height}"
-                  </div>
-                </div>
+              <div className="mt-4 text-sm text-muted-foreground font-medium">
+                {productDimensionsInches.width}" × {productDimensionsInches.height}"
               </div>
             </div>
             
@@ -1354,85 +1320,99 @@ export default function Editor() {
 
                 <TabsContent value="graphics" className="p-3 space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <Shapes className="w-4 h-4" /> Shapes
-                    </h3>
+                    <h3 className="text-sm font-medium mb-3">Shapes</h3>
                     <div className="grid grid-cols-5 gap-2">
-                      <button 
+                      <Button 
+                        variant="outline"
+                        size="icon"
                         onClick={() => addShape("square")} 
-                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-blue-500/20 to-blue-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        className="aspect-square"
                         data-testid="button-shape-square"
                       >
-                        <Square className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor" />
-                      </button>
-                      <button 
+                        <Square className="w-5 h-5" />
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="icon"
                         onClick={() => addShape("circle")} 
-                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-green-500/20 to-green-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        className="aspect-square"
                         data-testid="button-shape-circle"
                       >
-                        <Circle className="w-6 h-6 text-green-600 dark:text-green-400" fill="currentColor" />
-                      </button>
-                      <button 
+                        <Circle className="w-5 h-5" />
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="icon"
                         onClick={() => addShape("triangle")} 
-                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-orange-500/20 to-orange-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        className="aspect-square"
                         data-testid="button-shape-triangle"
                       >
-                        <Triangle className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="currentColor" />
-                      </button>
-                      <button 
+                        <Triangle className="w-5 h-5" />
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="icon"
                         onClick={() => addShape("star")} 
-                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-yellow-500/20 to-yellow-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        className="aspect-square"
                         data-testid="button-shape-star"
                       >
-                        <Star className="w-6 h-6 text-yellow-600 dark:text-yellow-500" fill="currentColor" />
-                      </button>
-                      <button 
+                        <Star className="w-5 h-5" />
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="icon"
                         onClick={() => addShape("heart")} 
-                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-red-500/20 to-red-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        className="aspect-square"
                         data-testid="button-shape-heart"
                       >
-                        <Heart className="w-6 h-6 text-red-600 dark:text-red-400" fill="currentColor" />
-                      </button>
+                        <Heart className="w-5 h-5" />
+                      </Button>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <Zap className="w-4 h-4" /> Clipart
-                    </h3>
+                    <h3 className="text-sm font-medium mb-3">Clipart</h3>
                     <div className="grid grid-cols-4 gap-2">
-                      <button 
+                      <Button 
+                        variant="outline"
+                        size="icon"
                         onClick={() => addClipart("arrow")} 
-                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-indigo-500/20 to-indigo-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        className="aspect-square"
                         data-testid="button-clipart-arrow" 
                         title="Arrow"
                       >
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
-                      </button>
-                      <button 
+                        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="icon"
                         onClick={() => addClipart("checkmark")} 
-                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-emerald-500/20 to-emerald-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        className="aspect-square"
                         data-testid="button-clipart-check" 
                         title="Checkmark"
                       >
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                      </button>
-                      <button 
+                        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="icon"
                         onClick={() => addClipart("badge")} 
-                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-amber-500/20 to-amber-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        className="aspect-square"
                         data-testid="button-clipart-badge" 
                         title="Badge"
                       >
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
-                      </button>
-                      <button 
+                        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="icon"
                         onClick={() => addClipart("lightning")} 
-                        className="aspect-square rounded-lg border-2 border-muted bg-gradient-to-br from-purple-500/20 to-purple-600/30 flex items-center justify-center transition-all hover:scale-105 hover:border-primary hover:shadow-md"
+                        className="aspect-square"
                         data-testid="button-clipart-lightning" 
                         title="Lightning"
                       >
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8H7z"/></svg>
-                      </button>
+                        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8H7z"/></svg>
+                      </Button>
                     </div>
                   </div>
 

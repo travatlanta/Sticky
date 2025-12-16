@@ -12,6 +12,8 @@ interface Order {
   status: string;
   subtotal: string;
   shippingCost: string;
+  taxAmount: string;
+  discountAmount: string;
   totalAmount: string;
   trackingNumber: string | null;
   createdAt: string;
@@ -193,13 +195,31 @@ export default function AdminOrders() {
                     <p className="text-sm text-gray-500">Date</p>
                     <p className="font-medium">{formatDate(selectedOrder.createdAt)}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Subtotal</p>
-                    <p className="font-medium">{formatPrice(selectedOrder.subtotal)}</p>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <p className="text-sm text-gray-500 font-medium mb-3">Order Summary</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span className="font-medium">{formatPrice(selectedOrder.subtotal)}</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Total</p>
-                    <p className="font-medium">{formatPrice(selectedOrder.totalAmount)}</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Shipping</span>
+                    <span className="font-medium">{formatPrice(selectedOrder.shippingCost || "0")}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Tax (8.6%)</span>
+                    <span className="font-medium">{formatPrice(selectedOrder.taxAmount || "0")}</span>
+                  </div>
+                  {parseFloat(selectedOrder.discountAmount || "0") > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Discount</span>
+                      <span>-{formatPrice(selectedOrder.discountAmount)}</span>
+                    </div>
+                  )}
+                  <div className="border-t pt-2 mt-2 flex justify-between">
+                    <span className="font-semibold">Total</span>
+                    <span className="font-semibold text-orange-600">{formatPrice(selectedOrder.totalAmount)}</span>
                   </div>
                 </div>
 

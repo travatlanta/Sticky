@@ -329,7 +329,7 @@ export default function Editor() {
     if (!canvas) return;
     const active = canvas.getActiveObjects();
     if (active.length > 0) {
-      active.forEach(obj => canvas.remove(obj));
+      active.forEach((obj: any) => canvas.remove(obj));
       canvas.discardActiveObject();
       canvas.renderAll();
     }

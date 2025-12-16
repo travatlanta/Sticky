@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatOrderNumber } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import type { Order, OrderItem } from "@shared/schema";
 import {
@@ -102,7 +102,7 @@ export default function OrderDetail() {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">
-              Order #{order.id}
+              Order {formatOrderNumber(order.id)}
             </h1>
             <p className="text-gray-500 dark:text-muted-foreground flex items-center mt-1">
               <Calendar className="h-4 w-4 mr-2" />

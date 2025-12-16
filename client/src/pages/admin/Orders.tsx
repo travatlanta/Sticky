@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatOrderNumber } from "@/lib/utils";
 import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -133,7 +133,7 @@ export default function AdminOrders() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-medium text-gray-900">#{order.id}</span>
+                      <span className="font-medium text-gray-900">{formatOrderNumber(order.id)}</span>
                       <span className="text-gray-900 font-medium">{formatPrice(order.totalAmount)}</span>
                     </div>
                     <p className="text-xs text-gray-500">{formatDate(order.createdAt)}</p>
@@ -180,7 +180,7 @@ export default function AdminOrders() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-auto">
               <div className="p-6 border-b flex justify-between items-center">
-                <h2 className="text-lg font-semibold">Order #{selectedOrder.id}</h2>
+                <h2 className="text-lg font-semibold">Order {formatOrderNumber(selectedOrder.id)}</h2>
                 <Button variant="ghost" size="sm" onClick={() => setSelectedOrder(null)}>
                   <X className="h-4 w-4" />
                 </Button>

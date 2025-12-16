@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatOrderNumber } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Package, ArrowRight, Clock, CheckCircle, Truck, Sparkles } from "lucide-react";
 import { useEffect } from "react";
@@ -74,8 +74,8 @@ export default function Orders() {
                 <div key={order.id} className="bg-white rounded-2xl p-6 shadow-md border border-orange-100">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <span className="text-gray-500 text-sm">Order #</span>
-                      <span className="font-heading text-lg ml-1">{order.id}</span>
+                      <span className="text-gray-500 text-sm">Order</span>
+                      <span className="font-heading text-lg ml-1">{formatOrderNumber(order.id)}</span>
                     </div>
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${status.bgColor} ${status.color}`}>
                       <StatusIcon className="h-4 w-4" />

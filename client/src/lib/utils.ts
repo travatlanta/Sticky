@@ -20,3 +20,9 @@ export function slugify(text: string): string {
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+export function formatOrderNumber(orderId: number | string, startOffset: number = 500): string {
+  const id = typeof orderId === "string" ? parseInt(orderId, 10) : orderId;
+  const displayNumber = id + startOffset;
+  return `SB-${displayNumber.toString().padStart(4, "0")}`;
+}

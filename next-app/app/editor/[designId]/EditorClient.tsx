@@ -226,7 +226,7 @@ export default function Editor() {
       try {
         if (!fabricModule) {
           console.log("Loading Fabric.js module...");
-          const fabricImport = await import("fabric");
+          const fabricImport = await import("fabric") as any;
           fabricModule = fabricImport.fabric || fabricImport;
           console.log("Fabric.js loaded successfully", Object.keys(fabricModule));
         }

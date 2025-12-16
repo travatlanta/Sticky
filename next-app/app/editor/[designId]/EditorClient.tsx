@@ -751,13 +751,16 @@ export default function Editor() {
       reader.onload = async (event) => {
         const dataUrl = event.target?.result as string;
         
-        const img = new Image();
-        img.onload = async () => {
-          const canvas = fabricCanvasRef.current;
-          if (!canvas || !fabricModule) return;
+        const canvas = fabricCanvasRef.current;
+        if (!canvas || !fabricModule) return;
 
-          const FabricImageClass = fabricModule.FabricImage as any;
-          const fabricImg = new FabricImageClass(img, {
+        (fabricModule as any).Image.fromURL(dataUrl, (fabricImg: any) => {
+          if (!fabricImg) {
+            toast({ title: "Failed to load image", variant: "destructive" });
+            return;
+          }
+          
+          fabricImg.set({
             left: canvas.width! / 2,
             top: canvas.height! / 2,
             originX: "center",
@@ -765,7 +768,7 @@ export default function Editor() {
           });
 
           const maxSize = Math.min(canvas.width!, canvas.height!) * 0.8;
-          const scale = Math.min(maxSize / img.width, maxSize / img.height);
+          const scale = Math.min(maxSize / fabricImg.width, maxSize / fabricImg.height);
           fabricImg.scale(scale);
 
           canvas.add(fabricImg);
@@ -773,7 +776,8 @@ export default function Editor() {
           canvas.renderAll();
 
           if (product?.supportsCustomShape) {
-            const newContour = getContourFromImage(img, scale, 10, 2);
+            const imgElement = fabricImg.getElement() as HTMLImageElement;
+            const newContour = getContourFromImage(imgElement, scale, 10, 2);
             setContourPath(newContour);
           }
 
@@ -784,8 +788,7 @@ export default function Editor() {
             thumbnail: dataUrl,
           };
           setUploadedAssets(prev => [...prev, asset]);
-        };
-        img.src = dataUrl;
+        });
       };
       reader.readAsDataURL(file);
     } catch (error) {
@@ -845,11 +848,14 @@ export default function Editor() {
 
     console.log("Adding asset to canvas:", asset.name);
     
-    const imgElement = document.createElement('img');
-    imgElement.crossOrigin = 'anonymous';
-    imgElement.onload = () => {
-      console.log("Image loaded, creating fabric image");
-      const fabricImg = new fabricModule!.Image(imgElement, {
+    (fabricModule as any).Image.fromURL(asset.url, (fabricImg: any) => {
+      if (!fabricImg) {
+        console.error("Failed to create fabric image");
+        toast({ title: "Failed to add image", variant: "destructive" });
+        return;
+      }
+      
+      fabricImg.set({
         left: canvasDimensions.width / 2,
         top: canvasDimensions.height / 2,
         originX: "center",
@@ -857,7 +863,7 @@ export default function Editor() {
       });
 
       const maxSize = Math.min(canvasDimensions.width, canvasDimensions.height) * 0.8;
-      const scale = Math.min(maxSize / imgElement.width, maxSize / imgElement.height);
+      const scale = Math.min(maxSize / fabricImg.width, maxSize / fabricImg.height);
       fabricImg.scale(scale);
 
       canvas.add(fabricImg);
@@ -866,12 +872,7 @@ export default function Editor() {
       console.log("Image added to canvas");
       
       toast({ title: "Image added", description: "Click and drag to position it." });
-    };
-    imgElement.onerror = (e) => {
-      console.error("Failed to load image:", e);
-      toast({ title: "Failed to add image", variant: "destructive" });
-    };
-    imgElement.src = asset.url;
+    }, { crossOrigin: 'anonymous' });
   }, [canvasDimensions, toast]);
 
   const removeAsset = useCallback((assetId: string) => {

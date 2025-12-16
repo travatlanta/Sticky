@@ -54,6 +54,7 @@ export default function ProductDetail() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
   const [isQuickOrderLoading, setIsQuickOrderLoading] = useState(false);
+  const [showUploadSection, setShowUploadSection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: product, isLoading } = useQuery<Product>({
@@ -428,107 +429,115 @@ export default function ProductDetail() {
                   <Paintbrush className="mr-2 h-5 w-5" />
                   Design Online
                 </Button>
-                <Button 
-                  onClick={handleQuickOrder} 
-                  size="lg" 
-                  variant="outline"
-                  className="w-full text-lg"
-                  disabled={isQuickOrderLoading || calculatedPrice?.pricePerUnit === undefined || calculatedPrice?.pricePerUnit === null}
-                  data-testid="button-skip-design"
-                >
-                  {isQuickOrderLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="mr-2 h-5 w-5" />
-                      Skip Design & Add to Cart
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-4 text-gray-500">or upload your design</span>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.pdf,.svg,.ai,.psd,.eps"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="quick-order-upload"
-                  data-testid="input-quick-order-file"
-                />
-
-                {uploadedFile ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      {uploadedPreview ? (
-                        <img
-                          src={uploadedPreview}
-                          alt="Preview"
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                          <FileImage className="h-8 w-8 text-gray-400" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{uploadedFile.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearUploadedFile}
-                        data-testid="button-clear-upload"
-                      >
-                        Change
-                      </Button>
-                    </div>
-                    <Button
-                      onClick={handleQuickOrder}
-                      size="lg"
-                      className="w-full"
-                      disabled={isQuickOrderLoading || calculatedPrice?.pricePerUnit === undefined || calculatedPrice?.pricePerUnit === null}
-                      data-testid="button-quick-order"
-                    >
-                      {isQuickOrderLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="mr-2 h-5 w-5" />
-                          Add to Cart
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                ) : (
-                  <label
-                    htmlFor="quick-order-upload"
-                    className="flex flex-col items-center justify-center py-6 cursor-pointer"
+                
+                {!showUploadSection ? (
+                  <Button 
+                    onClick={() => setShowUploadSection(true)} 
+                    size="lg" 
+                    variant="outline"
+                    className="w-full text-lg"
+                    data-testid="button-skip-design"
                   >
-                    <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                    <span className="font-medium text-gray-700">Upload Print-Ready File</span>
-                    <span className="text-sm text-gray-500 mt-1">PNG, JPG, PDF, SVG, AI, PSD, EPS</span>
-                    <span className="text-xs text-gray-400 mt-1">Max 50MB</span>
-                  </label>
+                    <Upload className="mr-2 h-5 w-5" />
+                    I Have My Own Design
+                  </Button>
+                ) : (
+                  <>
+                    <div className="relative my-2">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-gray-300" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="bg-white px-4 text-gray-500">Upload your print-ready file</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,.pdf,.svg,.ai,.psd,.eps"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="quick-order-upload"
+                        data-testid="input-quick-order-file"
+                      />
+
+                      {uploadedFile ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            {uploadedPreview ? (
+                              <img
+                                src={uploadedPreview}
+                                alt="Preview"
+                                className="w-16 h-16 object-cover rounded-lg"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <FileImage className="h-8 w-8 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 truncate">{uploadedFile.name}</p>
+                              <p className="text-sm text-gray-500">
+                                {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={clearUploadedFile}
+                              data-testid="button-clear-upload"
+                            >
+                              Change
+                            </Button>
+                          </div>
+                          <Button
+                            onClick={handleQuickOrder}
+                            size="lg"
+                            className="w-full"
+                            disabled={isQuickOrderLoading || calculatedPrice?.pricePerUnit === undefined || calculatedPrice?.pricePerUnit === null}
+                            data-testid="button-quick-order"
+                          >
+                            {isQuickOrderLoading ? (
+                              <>
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart className="mr-2 h-5 w-5" />
+                                Add to Cart
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor="quick-order-upload"
+                          className="flex flex-col items-center justify-center py-6 cursor-pointer"
+                        >
+                          <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                          <span className="font-medium text-gray-700">Upload Print-Ready File</span>
+                          <span className="text-sm text-gray-500 mt-1">PNG, JPG, PDF, SVG, AI, PSD, EPS</span>
+                          <span className="text-xs text-gray-400 mt-1">Max 50MB</span>
+                        </label>
+                      )}
+                    </div>
+
+                    <Button 
+                      onClick={() => {
+                        setShowUploadSection(false);
+                        clearUploadedFile();
+                      }} 
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-gray-500"
+                      data-testid="button-cancel-upload"
+                    >
+                      Cancel
+                    </Button>
+                  </>
                 )}
               </div>
             </div>

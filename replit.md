@@ -222,6 +222,20 @@ Key data entities:
   - Shipping address, tracking info, order summary
 - **API Enhancement**: `/api/orders/:id` now enriches order items with design and product data (same as admin endpoint)
 
+### Itemized Add-On Pricing in Quotes
+- **Product Options**: All sticker and label products now have material and coating options configured
+  - **Material Options**: Gloss Vinyl (default, $0), Matte Vinyl ($0), Clear Vinyl (+$0.03/unit)
+  - **Coating Options**: Standard (default, $0), UV Lamination (+$0.02/unit)
+- **Calculate Price API**: `POST /api/products/:id/calculate-price` now returns:
+  - `pricePerUnit`: Base price from pricing tier
+  - `optionsCost`: Sum of all selected option price modifiers
+  - `baseSubtotal`: pricePerUnit × quantity (before add-ons)
+  - `subtotal`: (pricePerUnit + optionsCost) × quantity (with add-ons)
+  - `addOns`: Array of {type, name, pricePerUnit, totalCost} for each premium option
+- **Quote Display**: Product detail page shows itemized add-on lines when premium options selected
+  - Format: "material: Clear Vinyl (+$0.03/ea) +$3.00"
+- **Cart Integration**: Unit price stored in cart includes option costs for accurate totals
+
 ### Checkout Price Handling (Fixed)
 - **Issue**: Cart items with null unitPrice caused $NaN display and 400 errors at checkout
 - **Fixes Applied**:

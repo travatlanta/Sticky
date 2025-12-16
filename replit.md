@@ -1,260 +1,79 @@
 # Sticky Banditos Printing Company
 
 ## Overview
-
-Sticky Banditos is a custom printing e-commerce platform that allows customers to design and order custom print products like stickers, business cards, and flyers. The application features a customer-facing storefront with product browsing, an integrated design editor using Fabric.js, shopping cart functionality, and a comprehensive admin panel for managing products, orders, and promotions.
+Sticky Banditos is an e-commerce platform for custom print products like stickers, business cards, and flyers. It features a customer-facing storefront with product browsing, an integrated design editor, shopping cart functionality, and an admin panel for product, order, and promotion management. The project aims to provide a comprehensive solution for custom printing needs.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
+### Frontend
 - **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight alternative to React Router)
-- **State Management**: TanStack React Query for server state
-- **Styling**: Tailwind CSS with custom theme configuration
-- **Component Library**: shadcn/ui components built on Radix UI primitives
-- **Design Editor**: Fabric.js canvas library for custom product design
+- **Routing**: Wouter
+- **State Management**: TanStack React Query
+- **Styling**: Tailwind CSS with custom theme, shadcn/ui components
+- **Design Editor**: Fabric.js for custom product design (Note: A simplified Upload+Preview editor has been implemented in the `next-app` codebase, removing Fabric.js for a mobile-first, upload-focused workflow.)
+- **Key Features**: Product catalog, dynamic pricing, design editor, shopping cart, order management, admin dashboard.
 
-The frontend follows a page-based architecture with shared components. Key pages include:
-- Landing/Home pages for marketing and dashboard
-- Products catalog with category filtering
-- Product detail with dynamic pricing calculator
-- Canvas-based design editor
-- Shopping cart and orders management
-- Admin dashboard with full CRUD capabilities
-
-### Backend Architecture
+### Backend
 - **Runtime**: Node.js with Express
 - **Language**: TypeScript with ES modules
-- **API Design**: RESTful JSON APIs under `/api` prefix
-- **Authentication**: Custom Passport.js with email/password and optional Google OAuth
-- **Session Storage**: PostgreSQL-backed sessions via connect-pg-simple
-
-The server uses a modular structure:
-- `routes.ts` - API endpoint definitions
-- `storage.ts` - Data access layer abstraction
-- `auth.ts` - Authentication middleware, login/register endpoints, admin management
-- `vite.ts` - Development server integration
+- **API Design**: RESTful JSON APIs
+- **Authentication**: Custom Passport.js (email/password, Google OAuth), session-based with PostgreSQL storage.
+- **Modularity**: Structured with `routes.ts`, `storage.ts`, `auth.ts`.
 
 ### Data Storage
 - **Database**: PostgreSQL via Drizzle ORM
-- **Schema Location**: `shared/schema.ts` (shared between client and server)
-- **Migrations**: Drizzle Kit with `db:push` command
-
-Key data entities:
-- Users with admin roles
-- Categories and Products with configurable options
-- Pricing tiers for quantity-based pricing
-- Designs with canvas JSON storage
-- Shopping carts and cart items
-- Orders with status tracking
-- Promotions and site settings
+- **Schema**: Shared `shared/schema.ts`
+- **Key Entities**: Users, Categories, Products, Pricing tiers, Designs, Carts, Orders, Promotions, Site settings.
 
 ### Authentication
-- Custom email/password authentication with bcrypt password hashing
-- Optional Google OAuth login (requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
-- Session-based auth with PostgreSQL session store
-- Admin role checking middleware for protected routes
-- 1-week session TTL with secure cookies
-- Admin management: invite admins via email, revoke admin access
+- Email/password with bcrypt, optional Google OAuth.
+- Session-based authentication with 1-week TTL.
+- Admin role management.
 
 ### Build System
-- **Development**: Vite dev server with HMR proxying to Express
-- **Production**: Vite builds to `dist/public`, esbuild bundles server
-- **Path Aliases**: `@/` maps to `client/src/`, `@shared/` maps to `shared/`
+- **Development**: Vite dev server with HMR proxying to Express.
+- **Production**: Vite builds to `dist/public`, esbuild for server.
+- **Path Aliases**: `@/` (client), `@shared/` (shared).
+
+### UI/UX Decisions
+- Mobile-first design for the unified editor (in `next-app`).
+- Upload+preview workflow for design, similar to StickerApp.com.
+- Distinct styling for AI bot (orange) vs. human support (green) in chat.
+
+### Feature Specifications
+- **Customer Artwork Upload**: API endpoint for uploading artwork (JPG, PNG, GIF, WebP, SVG, PDF up to 50MB) to `/uploads/artwork/`.
+- **Live Chat Support**: Real-time chat widget with polling, message history, and admin interface for support.
+- **Order Tracking**: Detailed order views with timeline, shipping, items, and print-ready downloads.
+- **Hot Deals**: Dynamic display of promotional products on homepage and a dedicated deals page.
+- **Deals Management System**: Admin CRUD for managing deals with scheduling and display options.
+- **Product Template System**: Admin management of reusable product templates with Fabric.js canvas JSON storage.
+- **Admin Users Management**: Comprehensive user list with order statistics and role management.
+- **Admin Finances Dashboard**: Overview of revenue, order count, average order value, and recent transactions.
+- **Admin Support Inbox with AI Escalation**: Shared inbox for escalated customer conversations, AI detects human support requests, distinct styling for AI vs. human responses.
+- **Simplified Upload+Preview Editor (next-app)**: User uploads artwork, system displays preview with bleed border, auto-detects dimensions, calculates size, floating animation, material/coating/quantity selection, live price calculation. Stores designs in Vercel Blob.
+- **Enhanced Order Management**: Comprehensive order details in admin modal and customer view, including full customer info, shipping address, detailed items with selected options, design files, financial summary, tracking, and notes. Checkout stores `userId`, `shippingAddress`, `designId`, `selectedOptions`, and payment ID.
+- **Itemized Add-On Pricing**: Product options (material, coating) with associated costs are itemized in quotes and included in cart unit prices.
+- **Checkout Price Handling**: Robust handling of null/zero unit prices for free products and proper calculation of subtotals.
+
+### Dual Codebase
+- **Production**: Next.js app in `next-app/`.
+- **Development**: Vite+Express app in root `client/` and `server/`.
 
 ## External Dependencies
 
 ### Third-Party Services
-- **Stripe**: Payment processing (initialized when `STRIPE_SECRET_KEY` is set)
-- **Google OAuth**: Optional social login (requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`)
+- **Stripe**: Payment processing (pending configuration).
+- **Google OAuth**: Optional social login.
 
 ### Database
-- **PostgreSQL**: Primary database (requires `DATABASE_URL` environment variable)
-- **Neon Serverless**: PostgreSQL driver for serverless environments (`@neondatabase/serverless`)
+- **PostgreSQL**: Primary database.
+- **Neon Serverless**: PostgreSQL driver for serverless environments.
 
 ### Key Libraries
-- **Fabric.js**: Canvas manipulation for the design editor
-- **PDFKit**: Server-side PDF generation
-- **Multer**: File upload handling
-- **Zod**: Runtime schema validation
-
-### Environment Variables Required
-- `DATABASE_URL` - PostgreSQL connection string
-- `SESSION_SECRET` - Express session secret
-- `GOOGLE_CLIENT_ID` - Google OAuth client ID (optional, for Google login)
-- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret (optional, for Google login)
-- `STRIPE_SECRET_KEY` - Stripe API key (optional)
-- `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key for frontend (optional)
-
-## Recent Features
-
-### Customer Artwork Upload
-- **API Endpoint**: `POST /api/upload/artwork` - uploads customer artwork files
-- **Storage**: Files saved to `/uploads/artwork/` directory
-- **Limits**: 50MB max file size, supports JPG, PNG, GIF, WebP, SVG, PDF
-- **Integration**: Editor page uploads artwork to server before adding to canvas
-
-### Live Chat Support
-- **Component**: `ChatWidget.tsx` - floating chat widget in bottom-right corner
-- **API Endpoints**:
-  - `GET /api/messages` - get user's messages
-  - `POST /api/messages` - send a new message
-  - `GET /api/admin/messages` - get all unread messages (admin)
-  - `POST /api/admin/messages/reply` - reply to user (admin)
-  - `PUT /api/messages/:id/read` - mark message as read
-- **Features**: Real-time polling (5s), message history, support/user distinction
-
-### Order Tracking
-- **Page**: `/orders/:id` - detailed order view with status tracking
-- **Features**: Order timeline, shipping info, order items summary, status badges
-- **Print-Ready Downloads**: Order detail page shows download buttons for:
-  - High-resolution design exports (`highResExportUrl`)
-  - Custom shape files for die-cut stickers (`customShapeUrl`)
-  - Design preview thumbnails inline with order items
-
-### Hot Deals on Products Page
-- **Component**: Products page (`/products`) displays Hot Deals section at top
-- **Data Source**: Fetches from `/api/deals/homepage` endpoint
-- **Features**: Orange/red gradient cards, discount percentage badges, CTA buttons
-
-### Deals Management System
-- **Database**: `deals` table with title, description, pricing, images, CTA links, badges, scheduling
-- **Admin Panel**: Deals management is now integrated into `/admin/products` with a tabbed interface (Products | Hot Deals)
-- **Customer Pages**: 
-  - Homepage Hot Deals section with dynamic cards from `/api/deals/homepage`
-  - `/deals` page showing all active published deals
-- **API Endpoints**:
-  - `GET /api/deals` - get all published deals
-  - `GET /api/deals/homepage` - get deals marked for homepage display
-  - `GET /api/admin/deals` - get all deals (admin)
-  - `POST /api/admin/deals` - create deal (admin)
-  - `PUT /api/admin/deals/:id` - update deal (admin)
-  - `DELETE /api/admin/deals/:id` - delete deal (admin)
-- **Features**: Quantity/size badges, original vs deal pricing, percentage off calculation, expiration dates, CTA buttons with custom links
-
-### Product Template System
-- **Database**: `product_templates` table with name, description, preview image, Fabric.js canvas JSON
-- **Admin Panel**: Templates managed via tabs in product edit modal at `/admin/products`
-- **API Endpoints**:
-  - `GET /api/admin/products/:productId/templates` - get templates for a product (admin)
-  - `POST /api/admin/products/:productId/templates` - create template (admin)
-  - `PUT /api/admin/templates/:id` - update template (admin)
-  - `DELETE /api/admin/templates/:id` - delete template (admin)
-  - `GET /api/products/:productId/templates` - get active templates for customer view
-- **Features**: Preview images, Fabric.js canvas JSON storage, active/inactive toggle, per-product association
-- **File Storage**: Template preview images stored in `/uploads/templates/`
-
-### Admin Users Management
-- **Page**: `/admin/users` - user management with tabbed interface
-- **Tabs**: All Users, Subscribers (no orders), Purchasers (has orders), Admins
-- **API Endpoint**: `GET /api/admin/users` - returns users with order stats (orderCount, totalSpent, hasOrders)
-- **Features**: User lists with order history, email display, admin badges
-
-### Admin Finances Dashboard
-- **Page**: `/admin/finances` - financial overview and reporting
-- **API Endpoint**: `GET /api/admin/finances` - returns financial overview
-- **Data Provided**: totalRevenue, orderCount, averageOrderValue, revenueByStatus (paid/pending/delivered/cancelled), recentOrders list
-- **Features**: Revenue cards, status-based breakdown, recent transactions table
-
-### Admin Support Inbox with AI Escalation
-- **Page**: `/admin/inbox` - shared admin inbox for escalated customer conversations
-- **Database Fields**: `messages` table extended with:
-  - `needsHumanSupport` (boolean) - flags conversations needing human attention
-  - `escalatedAt` (timestamp) - when escalation occurred
-  - `isFromHuman` (boolean) - distinguishes AI bot vs human admin responses
-- **API Endpoints**:
-  - `GET /api/admin/inbox` - get all escalated conversations (admin)
-  - `GET /api/admin/inbox/:userId` - get conversation history for user (admin)
-  - `POST /api/admin/messages/reply` - human admin reply (auto-resolves escalation)
-- **AI Escalation Detection**: The AI chatbot automatically detects when customers request human support using phrases like:
-  - "speak to a person", "talk to human", "real person", "need help from a human"
-  - When detected, AI responds with escalation message and marks conversation
-- **ChatWidget Integration**: Displays different styling for AI bot responses (orange) vs human support team responses (green) with distinct icons and labels
-- **Features**: 
-  - Conversation list with "Needs Reply" badges
-  - Full message history view
-  - Reply functionality that auto-resolves escalation
-  - Real-time polling for new messages
-
-### Enhanced Design Editor (Print-Ready)
-- **Canvas Sizing**: Dynamic canvas dimensions based on product specifications (width/height in inches, DPI)
-- **Database Fields**: Products table extended with:
-  - `widthInches`, `heightInches` (decimal) - physical print dimensions
-  - `dpi` (integer, default 300) - print resolution
-  - `bleedSize` (decimal, default 0.125") - bleed offset for printing
-  - `safeZoneSize` (decimal, default 0.25") - safe zone inside bleed
-  - `supportsCustomShape` (boolean) - enables die-cut sticker uploads
-- **Visual Guides**:
-  - Red dashed bleed line shows printer margin area
-  - Green dashed safe zone line shows content boundary
-  - Guides stay on top when adding objects (event listeners reorder z-index)
-  - Guides update position correctly during zoom operations
-- **Zoom Controls**: Zoom in/out buttons with percentage display, mobile-friendly
-- **Die-Cut Stickers**: Modal prompt for custom shape upload when product supports it
-- **High-Res Export**: 3x scale factor export when adding to cart, stored as `highResExportUrl` on designs
-- **Admin Order View**: Order details modal shows design previews with links to:
-  - High-resolution export file
-  - Custom shape file (for die-cut stickers)
-  - Design name and preview thumbnail
-
-### Enhanced Order Management
-- **Admin Order Modal**: Comprehensive order details including:
-  - Customer Information: Name, email, phone from user account
-  - Full Shipping Address with all address fields
-  - Order Items: Product name, quantity, unit price, subtotal, selected options
-  - Design Files: Preview thumbnail, Download Print File, Download Die-Cut Shape, Production File buttons
-  - Financial Summary: Subtotal, shipping, tax, discounts, total
-  - Tracking: Input for tracking number with save button
-  - Order Notes display
-- **Checkout Enhancement**: Now stores:
-  - `userId` from authenticated session
-  - `shippingAddress` JSON with all customer address fields
-  - `designId` on order items for design linkage
-  - `selectedOptions` on order items for product configuration
-  - Square payment ID for reference
-- **Customer Order Page** (`/orders/:id`): Full order details with:
-  - Order items with product info and selected options
-  - Design preview thumbnails with download buttons (Preview, Print File, Die-Cut Shape)
-  - Shipping address, tracking info, order summary
-- **API Enhancement**: `/api/orders/:id` now enriches order items with design and product data (same as admin endpoint)
-
-### Itemized Add-On Pricing in Quotes
-- **Product Options**: All sticker and label products now have material and coating options configured
-  - **Material Options**: Gloss Vinyl (default, $0), Matte Vinyl ($0), Clear Vinyl (+$0.03/unit)
-  - **Coating Options**: Standard (default, $0), UV Lamination (+$0.02/unit)
-- **Calculate Price API**: `POST /api/products/:id/calculate-price` now returns:
-  - `pricePerUnit`: Base price from pricing tier
-  - `optionsCost`: Sum of all selected option price modifiers
-  - `baseSubtotal`: pricePerUnit × quantity (before add-ons)
-  - `subtotal`: (pricePerUnit + optionsCost) × quantity (with add-ons)
-  - `addOns`: Array of {type, name, pricePerUnit, totalCost} for each premium option
-- **Quote Display**: Product detail page shows itemized add-on lines when premium options selected
-  - Format: "material: Clear Vinyl (+$0.03/ea) +$3.00"
-- **Cart Integration**: Unit price stored in cart includes option costs for accurate totals
-
-### Checkout Price Handling (Fixed)
-- **Issue**: Cart items with null unitPrice caused $NaN display and 400 errors at checkout
-- **Fixes Applied**:
-  - `next-app/app/api/cart/add/route.ts`: Always stores valid unitPrice string, defaults to '0' for free products
-  - `next-app/app/checkout/CheckoutClient.tsx`: Properly handles null/NaN values in subtotal/shipping/total calculations
-  - `next-app/app/api/checkout/create-payment/route.ts`: Allows $0 orders (free products) to complete without payment processing
-
-## Dual Codebase Note
-
-**IMPORTANT**: This project has two codebases:
-1. **Production (stickybanditos.com)**: Uses Next.js app in `next-app/` directory
-2. **Development (Replit)**: Uses Vite+Express app in root `client/` and `server/` directories
-
-When fixing production bugs, modify files in `next-app/`. The root Vite+Express app is a parallel development version.
-
-## Pending Configuration
-
-### Stripe Payment Integration
-- **Status**: Not configured - user wants to set this up later
-- **Required secrets**: `STRIPE_SECRET_KEY` and `VITE_STRIPE_PUBLISHABLE_KEY`
-- **Backend ready**: Payment intent creation endpoint exists at `/api/checkout/create-payment-intent`
-- **Frontend needed**: Checkout page with Stripe Elements when keys are provided
+- **Fabric.js**: Canvas manipulation (used in Vite+Express version for design editor, largely replaced by simplified editor in `next-app`).
+- **PDFKit**: Server-side PDF generation.
+- **Multer**: File upload handling.
+- **Zod**: Runtime schema validation.

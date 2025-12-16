@@ -20,7 +20,17 @@ import {
   Sticker,
   CreditCard,
   FileImage,
+  Download,
+  Image,
 } from "lucide-react";
+
+interface Design {
+  id: number;
+  name: string | null;
+  previewUrl: string | null;
+  highResExportUrl: string | null;
+  customShapeUrl: string | null;
+}
 
 interface OrderItem {
   id: number;
@@ -30,6 +40,7 @@ interface OrderItem {
   product?: {
     name: string;
   };
+  design?: Design | null;
 }
 
 interface Order {
@@ -165,37 +176,87 @@ export default function OrderDetail() {
                   {order.items?.map((item: any) => (
                     <div
                       key={item.id}
-                      className="flex gap-4 p-4 bg-gray-50 dark:bg-muted rounded-lg"
+                      className="p-4 bg-gray-50 dark:bg-muted rounded-lg"
                       data-testid={`order-item-${item.id}`}
                     >
-                      <div className="w-16 h-16 bg-white dark:bg-background rounded-lg flex items-center justify-center flex-shrink-0 border">
-                        {getProductIcon(item.product?.name || "")}
+                      <div className="flex gap-4">
+                        <div className="w-16 h-16 bg-white dark:bg-background rounded-lg flex items-center justify-center flex-shrink-0 border overflow-hidden">
+                          {item.design?.previewUrl ? (
+                            <img src={item.design.previewUrl} alt="Design preview" className="w-full h-full object-cover" />
+                          ) : (
+                            getProductIcon(item.product?.name || "")
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 dark:text-foreground">
+                            {item.product?.name || "Product"}
+                          </h4>
+                          {item.design?.name && (
+                            <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                              Design: {item.design.name}
+                            </p>
+                          )}
+                          <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                            Quantity: {item.quantity}
+                          </p>
+                          {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {Object.entries(item.selectedOptions).map(([key, value]) => (
+                                <Badge key={key} variant="outline" className="text-xs">
+                                  {key}: {String(value)}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900 dark:text-foreground">
+                            {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                            {formatPrice(item.unitPrice)} each
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 dark:text-foreground">
-                          {item.product?.name || "Product"}
-                        </h4>
-                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                          Quantity: {item.quantity}
-                        </p>
-                        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {Object.entries(item.selectedOptions).map(([key, value]) => (
-                              <Badge key={key} variant="outline" className="text-xs">
-                                {key}: {String(value)}
-                              </Badge>
-                            ))}
+                      
+                      {item.design && (item.design.highResExportUrl || item.design.customShapeUrl) && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                            <Image className="h-3 w-3" />
+                            Print-Ready Files
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {item.design.highResExportUrl && (
+                              <a
+                                href={item.design.highResExportUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download
+                                data-testid={`download-highres-${item.id}`}
+                              >
+                                <Button size="sm" variant="outline" className="gap-1">
+                                  <Download className="h-3 w-3" />
+                                  High-Res Design
+                                </Button>
+                              </a>
+                            )}
+                            {item.design.customShapeUrl && (
+                              <a
+                                href={item.design.customShapeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download
+                                data-testid={`download-shape-${item.id}`}
+                              >
+                                <Button size="sm" variant="outline" className="gap-1">
+                                  <Download className="h-3 w-3" />
+                                  Custom Shape
+                                </Button>
+                              </a>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900 dark:text-foreground">
-                          {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                          {formatPrice(item.unitPrice)} each
-                        </p>
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

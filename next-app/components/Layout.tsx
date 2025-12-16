@@ -2,6 +2,7 @@
 
 import Navbar from './Navbar';
 import Footer from './Footer';
+import ChatWidget from './ChatWidget';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ export default function Layout({ children, showFooter = true }: LayoutProps) {
       <Navbar />
       <main className="flex-1">{children}</main>
       {showFooter && <Footer />}
+      <ChatWidget />
     </div>
   );
 }

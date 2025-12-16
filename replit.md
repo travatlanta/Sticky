@@ -111,6 +111,15 @@ Key data entities:
 ### Order Tracking
 - **Page**: `/orders/:id` - detailed order view with status tracking
 - **Features**: Order timeline, shipping info, order items summary, status badges
+- **Print-Ready Downloads**: Order detail page shows download buttons for:
+  - High-resolution design exports (`highResExportUrl`)
+  - Custom shape files for die-cut stickers (`customShapeUrl`)
+  - Design preview thumbnails inline with order items
+
+### Hot Deals on Products Page
+- **Component**: Products page (`/products`) displays Hot Deals section at top
+- **Data Source**: Fetches from `/api/deals/homepage` endpoint
+- **Features**: Orange/red gradient cards, discount percentage badges, CTA buttons
 
 ### Deals Management System
 - **Database**: `deals` table with title, description, pricing, images, CTA links, badges, scheduling

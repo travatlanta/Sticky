@@ -16,7 +16,7 @@ import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   HelpCircle, CheckCircle, Image, FileType, Droplets, MousePointer,
   Move, RotateCcw, ChevronLeft, ChevronRight,
-  Plus, Minus, MoreHorizontal
+  Plus, Minus, MoreHorizontal, ArrowRight
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -80,6 +80,8 @@ export default function Editor() {
   // becomes visible and displays cart items along with a checkout button.
   const [cartPreview, setCartPreview] = useState<any | null>(null);
   const [showCartPreview, setShowCartPreview] = useState(false);
+  // Track whether item has been added to cart - shows Checkout button instead of Add to Cart
+  const [addedToCart, setAddedToCart] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialScaleRef = useRef<number>(1);
   const lastTouchDistanceRef = useRef<number | null>(null);
@@ -1288,6 +1290,7 @@ export default function Editor() {
         setCartPreview(cartData);
         setShowCartPreview(true);
       }
+      setAddedToCart(true);
       toast({ title: 'Added to cart!', description: 'Item added. Continue designing or proceed to checkout.' });
     } catch (error) {
       console.error('Add to cart error:', error);
@@ -1297,6 +1300,16 @@ export default function Editor() {
         variant: 'destructive',
       });
     }
+  };
+
+  /**
+   * Handle checkout: save the design and navigate to checkout page.
+   * This ensures the design is persisted before the user leaves the editor.
+   */
+  const handleCheckout = async () => {
+    await handleSave();
+    setShowCartPreview(false);
+    router.push('/checkout');
   };
 
   const handleApplyTemplate = (template: { id: number; name: string; canvasJson: any }) => {
@@ -1718,10 +1731,17 @@ export default function Editor() {
           <Save className="h-5 w-5 mr-2" />
           Save
         </Button>
-        <Button size="lg" onClick={handleAddToCart} className="bg-orange-500 hover:bg-orange-600" data-testid="button-cart-desktop">
-          <ShoppingCart className="h-5 w-5 mr-2" />
-          Add to Cart
-        </Button>
+        {addedToCart ? (
+          <Button size="lg" onClick={handleCheckout} className="bg-green-500 hover:bg-green-600" data-testid="button-checkout-desktop">
+            <CheckCircle className="h-5 w-5 mr-2" />
+            Checkout
+          </Button>
+        ) : (
+          <Button size="lg" onClick={handleAddToCart} className="bg-orange-500 hover:bg-orange-600" data-testid="button-cart-desktop">
+            <ShoppingCart className="h-5 w-5 mr-2" />
+            Add to Cart
+          </Button>
+        )}
       </div>
 
       {showTemplates && templates && templates.length > 0 && (
@@ -1924,16 +1944,16 @@ export default function Editor() {
                     variant="outline"
                     className="flex-1"
                     onClick={() => setShowCartPreview(false)}
+                    data-testid="button-continue-designing"
                   >
                     Continue Designing
                   </Button>
                   <Button
                     className="flex-1 bg-orange-500 hover:bg-orange-600"
-                    onClick={() => {
-                      setShowCartPreview(false);
-                      router.push('/cart');
-                    }}
+                    onClick={handleCheckout}
+                    data-testid="button-go-checkout"
                   >
+                    <ArrowRight className="h-4 w-4 mr-2" />
                     Checkout
                   </Button>
                 </div>

@@ -900,7 +900,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const totalAmount = subtotal + shippingCost - discountAmount;
+      // Arizona sales tax rate (Phoenix: state 5.6% + county 0.7% + city 2.3% = 8.6%)
+      const TAX_RATE = 0.086;
+      const taxAmount = subtotal * TAX_RATE;
+      const totalAmount = subtotal + shippingCost + taxAmount - discountAmount;
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(totalAmount * 100),
@@ -915,6 +918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clientSecret: paymentIntent.client_secret,
         subtotal,
         shippingCost,
+        taxAmount,
         discountAmount,
         totalAmount,
       });

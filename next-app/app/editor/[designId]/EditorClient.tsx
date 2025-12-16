@@ -142,6 +142,7 @@ export default function Editor() {
   const [addedToCart, setAddedToCart] = useState(false);
   const [contourPath, setContourPath] = useState<string>("");
   const [bleedColor, setBleedColor] = useState("#ffffff");
+  const [bleedSize, setBleedSize] = useState(0.125); // in inches, minimum 0.125"
   const [isSaving, setIsSaving] = useState(false);
   const [brushColor, setBrushColor] = useState("#000000");
   const [brushWidth, setBrushWidth] = useState(5);
@@ -175,6 +176,30 @@ export default function Editor() {
   const animationFrameRef = useRef<number>();
 
   const PIXELS_PER_INCH = 100;
+  const MIN_BLEED_SIZE = 0.125; // Minimum bleed in inches
+
+  // Create checkerboard pattern for transparent background indication
+  const createCheckerboardPattern = useCallback(() => {
+    if (!fabricModule) return null;
+    
+    const patternCanvas = document.createElement('canvas');
+    const size = 20;
+    patternCanvas.width = size * 2;
+    patternCanvas.height = size * 2;
+    const ctx = patternCanvas.getContext('2d');
+    if (!ctx) return null;
+    
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(0, 0, size * 2, size * 2);
+    ctx.fillStyle = '#e0e0e0';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillRect(size, size, size, size);
+    
+    return new fabricModule.Pattern({
+      source: patternCanvas,
+      repeat: 'repeat',
+    });
+  }, [fabricModule]);
 
   const { data: design, isLoading: designLoading, error: designError } = useQuery<Design>({
     queryKey: [`/api/designs/${designId}`],
@@ -341,6 +366,25 @@ export default function Editor() {
       setSelectedOptions(defaults);
     }
   }, [product]);
+
+  // Update canvas background based on product type (checkerboard for die-cut/custom shape)
+  useEffect(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas || !fabricLoaded || !product) return;
+
+    if (product.supportsCustomShape) {
+      const pattern = createCheckerboardPattern();
+      if (pattern) {
+        canvas.setBackgroundColor(pattern as any, () => {
+          canvas.renderAll();
+        });
+      }
+    } else {
+      canvas.setBackgroundColor('#ffffff', () => {
+        canvas.renderAll();
+      });
+    }
+  }, [product, fabricLoaded, createCheckerboardPattern]);
 
   const priceCalculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
@@ -1180,12 +1224,12 @@ export default function Editor() {
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           <div 
             ref={previewContainerRef}
+            data-testid="canvas-container"
             className="flex-1 flex items-center justify-center p-4 lg:p-6 relative overflow-hidden min-h-[50vh] lg:min-h-0"
             onPointerMove={handlePointerMove}
             onPointerLeave={handlePointerLeave}
             onTouchMove={handlePointerMove}
             onTouchEnd={handlePointerLeave}
-            data-testid="preview-container"
           >
             <div className="relative flex flex-col items-center">
               <div 
@@ -1212,7 +1256,7 @@ export default function Editor() {
                       </filter>
                     </defs>
                     <path 
-                      d={expandContour(contourPath, 20)} 
+                      d={expandContour(contourPath, bleedSize * PIXELS_PER_INCH)} 
                       fill={bleedColor}
                       filter="url(#bleed-shadow)"
                     />
@@ -1271,51 +1315,75 @@ export default function Editor() {
 
             <div className={`flex-1 overflow-y-auto transition-all ${toolDockOpen ? "max-h-[60vh] lg:max-h-none" : "max-h-0 lg:max-h-none overflow-hidden"}`}>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="w-full grid grid-cols-6 sticky top-0 bg-card z-10">
+                <TabsList className="w-full grid grid-cols-6 sticky top-0 bg-card z-10 p-1 gap-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TabsTrigger value="text" data-testid="tab-text">
-                        <Type className="w-4 h-4" />
+                      <TabsTrigger 
+                        value="text" 
+                        data-testid="tab-text"
+                        className="data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 py-2.5"
+                      >
+                        <Type className="w-5 h-5" />
                       </TabsTrigger>
                     </TooltipTrigger>
                     <TooltipContent>{HELP_TIPS.text}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TabsTrigger value="graphics" data-testid="tab-graphics">
-                        <Shapes className="w-4 h-4" />
+                      <TabsTrigger 
+                        value="graphics" 
+                        data-testid="tab-graphics"
+                        className="data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 py-2.5"
+                      >
+                        <Shapes className="w-5 h-5" />
                       </TabsTrigger>
                     </TooltipTrigger>
                     <TooltipContent>{HELP_TIPS.graphics}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TabsTrigger value="uploads" data-testid="tab-uploads">
-                        <FolderOpen className="w-4 h-4" />
+                      <TabsTrigger 
+                        value="uploads" 
+                        data-testid="tab-uploads"
+                        className="data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 py-2.5"
+                      >
+                        <FolderOpen className="w-5 h-5" />
                       </TabsTrigger>
                     </TooltipTrigger>
                     <TooltipContent>{HELP_TIPS.uploads}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TabsTrigger value="draw" data-testid="tab-draw">
-                        <Brush className="w-4 h-4" />
+                      <TabsTrigger 
+                        value="draw" 
+                        data-testid="tab-draw"
+                        className="data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 py-2.5"
+                      >
+                        <Brush className="w-5 h-5" />
                       </TabsTrigger>
                     </TooltipTrigger>
                     <TooltipContent>{HELP_TIPS.draw}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TabsTrigger value="effects" data-testid="tab-effects">
-                        <Sparkles className="w-4 h-4" />
+                      <TabsTrigger 
+                        value="effects" 
+                        data-testid="tab-effects"
+                        className="data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 py-2.5"
+                      >
+                        <Sparkles className="w-5 h-5" />
                       </TabsTrigger>
                     </TooltipTrigger>
                     <TooltipContent>{HELP_TIPS.effects}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TabsTrigger value="adjust" data-testid="tab-adjust">
-                        <Palette className="w-4 h-4" />
+                      <TabsTrigger 
+                        value="adjust" 
+                        data-testid="tab-adjust"
+                        className="data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 py-2.5"
+                      >
+                        <Palette className="w-5 h-5" />
                       </TabsTrigger>
                     </TooltipTrigger>
                     <TooltipContent>{HELP_TIPS.adjust}</TooltipContent>
@@ -1831,6 +1899,25 @@ export default function Editor() {
 
                 <TabsContent value="adjust" className="p-3 space-y-3">
                   <div>
+                    <label className="text-sm font-medium mb-1 block">Bleed Zone Size</label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        value={[bleedSize]}
+                        onValueChange={([val]) => setBleedSize(Math.max(MIN_BLEED_SIZE, val))}
+                        min={0.125}
+                        max={0.5}
+                        step={0.0625}
+                        className="flex-1"
+                        data-testid="slider-bleed-size"
+                      />
+                      <span className="text-sm font-medium w-16 text-right">{bleedSize.toFixed(3)}"</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Minimum: {MIN_BLEED_SIZE}" - extra area that may be trimmed
+                    </p>
+                  </div>
+
+                  <div>
                     <label className="text-sm font-medium mb-1 block">Bleed/Border Color</label>
                     <Button
                       variant="outline"
@@ -1842,7 +1929,7 @@ export default function Editor() {
                       {bleedColor}
                     </Button>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Color around your design
+                      {product?.supportsCustomShape ? "Not used for die-cut stickers (transparent background)" : "Color around your design"}
                     </p>
                   </div>
 

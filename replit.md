@@ -49,13 +49,15 @@ Preferred communication style: Simple, everyday language.
 - 90% of users access via mobile, so controls don't cover preview area
 
 ### Feature Specifications
-- **Full Design Editor**: Fabric.js-based canvas editor with:
+- **Full Design Editor**: Fabric.js v5 canvas editor with:
   - **Text**: Add and customize text with fonts, colors, and styling
   - **Graphics**: Shapes (square, circle, triangle, star, heart) and clipart (arrows, checkmarks, badges, lightning)
   - **Uploads**: Upload images directly to canvas
   - **Drawing**: Freehand brush tool with color and size controls
   - **Effects**: Drop shadow (blur, offset, color), glow effect (intensity, color), outline (width, color)
-  - **Adjustments**: Bleed color customization
+  - **Adjustments**: Adjustable bleed zone size (0.125" to 0.5"), bleed color customization
+  - **Die-Cut Support**: Checkerboard pattern background for transparent products (supportsCustomShape=true)
+  - **Tab Styling**: Larger icons (w-5 h-5) with shadow effects on active tabs
   - Mobile-first design with floating toolbar. Stores designs in Vercel Blob.
 - **Live Chat Support**: Real-time chat widget with polling, message history, and admin interface for support.
 - **Order Tracking**: Detailed order views with timeline, shipping, items, and print-ready downloads.

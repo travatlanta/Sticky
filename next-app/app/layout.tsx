@@ -3,6 +3,7 @@ import './globals.css';
 import Providers from './providers';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import ClientWrapper from '@/components/ClientWrapper';
 
 export const metadata: Metadata = {
   title: 'Sticky Banditos - Custom Sticker Printing',
@@ -22,6 +23,7 @@ export default function RootLayout({
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
+          <ClientWrapper />
         </Providers>
       </body>
     </html>

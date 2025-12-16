@@ -303,6 +303,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/products/:id/calculate-price", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+      }
       const { quantity, selectedOptions } = req.body;
 
       const product = await storage.getProductById(productId);

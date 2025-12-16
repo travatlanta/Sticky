@@ -2199,6 +2199,94 @@ export default function Editor() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Fixed Bottom Bar - Add to Cart */}
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-50" data-testid="fixed-cart-bar">
+          <div className="max-w-7xl mx-auto px-3 py-3">
+            <div className="flex items-center justify-between gap-3">
+              {/* Quantity Selector */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantity(Math.max(product?.minQuantity || 1, quantity - 25))}
+                  className="h-9 w-9 shrink-0"
+                  data-testid="button-fixed-qty-decrease"
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+                <div className="flex flex-col items-center min-w-[60px]">
+                  <span className="text-lg font-bold" data-testid="text-fixed-quantity">{quantity}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">qty</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantity(quantity + 25)}
+                  className="h-9 w-9 shrink-0"
+                  data-testid="button-fixed-qty-increase"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Quick Quantity Presets - hidden on very small screens */}
+              <div className="hidden sm:flex items-center gap-1">
+                {DEFAULT_QUANTITY_OPTIONS.slice(0, 4).map((qty) => (
+                  <button
+                    key={qty}
+                    onClick={() => setQuantity(qty)}
+                    className={`px-2 py-1 text-xs rounded-full transition-all ${
+                      quantity === qty
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/80"
+                    }`}
+                    data-testid={`button-fixed-qty-${qty}`}
+                  >
+                    {qty}
+                  </button>
+                ))}
+              </div>
+
+              {/* Price & Add to Cart */}
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-lg font-bold" data-testid="text-fixed-price">
+                    {priceLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin inline" />
+                    ) : (
+                      formatPrice(calculatedPrice?.subtotal || 0)
+                    )}
+                  </div>
+                  {calculatedPrice && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {formatPrice(calculatedPrice.pricePerUnit + (calculatedPrice.optionsCost || 0))}/ea
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={addedToCart}
+                  className="shrink-0"
+                  data-testid="button-fixed-add-to-cart"
+                >
+                  {addedToCart ? (
+                    <>
+                      <Check className="w-4 h-4 mr-1" /> Added
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4 mr-1" /> Add to Cart
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Spacer to prevent content from being hidden behind fixed bar */}
+        <div className="h-20" />
       </div>
     </TooltipProvider>
   );

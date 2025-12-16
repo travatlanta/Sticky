@@ -5,9 +5,21 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { formatPrice } from "@/lib/utils";
 
+interface UserOrder {
+  id: number;
+  status: string;
+  totalAmount: string;
+  createdAt: string;
+}
+
 export default function OrdersClient() {
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [], isLoading } = useQuery<UserOrder[]>({
     queryKey: ["/api/orders"],
+    queryFn: async () => {
+      const res = await fetch("/api/orders");
+      if (!res.ok) throw new Error("Failed to load orders");
+      return res.json();
+    },
   });
 
   return (
@@ -17,18 +29,12 @@ export default function OrdersClient() {
       {isLoading && <p className="text-gray-500">Loading orders…</p>}
 
       <div className="space-y-4">
-        {orders.map((order: any) => (
-          <Link
-            key={order.id}
-            href={`/orders/${order.id}`}
-            className="block"
-          >
+        {orders.map((order) => (
+          <Link key={order.id} href={`/orders/${order.id}`} className="block">
             <div className="border rounded-xl p-4 hover:shadow-md transition bg-white">
               <div className="flex justify-between items-center">
                 <div>
-                  <div className="font-semibold">
-                    Order #{order.id}
-                  </div>
+                  <div className="font-semibold">Order #{order.id}</div>
                   <div className="text-sm text-gray-500">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </div>

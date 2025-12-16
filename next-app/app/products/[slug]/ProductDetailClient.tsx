@@ -107,15 +107,14 @@ export default function ProductDetail() {
   }, [product?.id, quantity, selectedOptions]);
 
   const handleStartDesign = async () => {
-    if (!isAuthenticated) {
-      // Redirect unauthenticated users to the login page rather than a non-existent API route
-      router.push("/login");
+    console.log('handleStartDesign called, product:', product?.id);
+    if (!product) {
+      console.log('No product, returning');
       return;
     }
 
-    if (!product) return;
-
     try {
+      console.log('Creating design for product:', product.id);
       const res = await fetch("/api/designs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,10 +126,17 @@ export default function ProductDetail() {
         credentials: "include",
       });
 
-      if (!res.ok) throw new Error("Failed to create design");
+      console.log('Design response status:', res.status);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Design creation failed:', errorText);
+        throw new Error("Failed to create design");
+      }
       const design = await res.json();
+      console.log('Design created:', design.id, 'navigating to editor');
       router.push(`/editor/${design.id}`);
     } catch (error) {
+      console.error('Error in handleStartDesign:', error);
       toast({
         title: "Error",
         description: "Failed to start design. Please try again.",

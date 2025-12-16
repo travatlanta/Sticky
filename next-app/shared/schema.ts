@@ -193,6 +193,7 @@ export const productTemplates = pgTable("product_templates", {
 export const designs = pgTable("designs", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
+  sessionId: varchar("session_id"), // For anonymous users before login
   productId: integer("product_id").references(() => products.id),
   name: varchar("name", { length: 200 }),
   canvasJson: jsonb("canvas_json"),

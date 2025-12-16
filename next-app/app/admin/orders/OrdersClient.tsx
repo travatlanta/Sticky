@@ -367,7 +367,15 @@ export default function AdminOrders() {
                     </div>
                   </div>
                 )}
-              </div>
+              
+<div className="mt-6">
+  <p className="text-sm text-gray-500 mb-2">Complete Order Record (All Fields)</p>
+  <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+{JSON.stringify(orderDetails, null, 2)}
+  </pre>
+</div>
+
+</div>
             </div>
           </div>
         )}

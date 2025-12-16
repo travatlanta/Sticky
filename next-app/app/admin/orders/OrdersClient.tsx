@@ -283,55 +283,83 @@ export default function AdminOrders() {
           </div>
         ) : orders && orders.length > 0 ? (
           <div className="space-y-3">
-            {orders.map((order) => (
-              <div key={order.id} className="bg-white rounded-xl p-4 shadow-sm" data-testid={`order-card-${order.id}`}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-medium text-gray-900">#{order.id}</span>
-                      <span className="text-gray-900 font-medium">{formatPrice(order.totalAmount)}</span>
+            {orders.map((order) => {
+              const customerName = order.user?.firstName && order.user?.lastName 
+                ? `${order.user.firstName} ${order.user.lastName}`.trim()
+                : order.shippingAddress?.name || 'Guest Customer';
+              const customerCity = order.shippingAddress?.city && order.shippingAddress?.state 
+                ? `${order.shippingAddress.city}, ${order.shippingAddress.state}`
+                : '';
+              const itemCount = order.items?.length || 0;
+              
+              return (
+                <div 
+                  key={order.id} 
+                  className="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md hover:bg-gray-50 transition-all" 
+                  onClick={() => setSelectedOrder(order)}
+                  data-testid={`order-card-${order.id}`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 flex-wrap mb-1">
+                        <span className="font-bold text-gray-900">#{order.id}</span>
+                        <span className="text-lg font-semibold text-green-600">{formatPrice(order.totalAmount)}</span>
+                        <Badge className={statusColors[order.status] || "bg-gray-100"}>
+                          {order.status.replace("_", " ")}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                        <span className="flex items-center gap-1">
+                          <User className="h-3.5 w-3.5" />
+                          <span className="font-medium">{customerName}</span>
+                        </span>
+                        {customerCity && (
+                          <span className="flex items-center gap-1 text-gray-500">
+                            <MapPin className="h-3.5 w-3.5" />
+                            {customerCity}
+                          </span>
+                        )}
+                        {itemCount > 0 && (
+                          <span className="flex items-center gap-1 text-gray-500">
+                            <Package className="h-3.5 w-3.5" />
+                            {itemCount} item{itemCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">{formatDate(order.createdAt)}</p>
                     </div>
-                    <p className="text-xs text-gray-500">{formatDate(order.createdAt)}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <select
-                      value={order.status}
-                      onChange={(e) =>
-                        updateMutation.mutate({ id: order.id, data: { status: e.target.value as any } })
-                      }
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border-0 ${
-                        statusColors[order.status] || "bg-gray-100 text-gray-800"
-                      }`}
-                      data-testid={`select-status-${order.id}`}
-                    >
-                      {statusOptions.map((status) => (
-                        <option key={status} value={status}>
-                          {status.replace("_", " ")}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setSelectedOrder(order)}
-                      data-testid={`button-view-${order.id}`}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleDeleteOrder(order.id)}
-                      disabled={deleteMutation.isPending}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      data-testid={`button-delete-${order.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={order.status}
+                        onChange={(e) =>
+                          updateMutation.mutate({ id: order.id, data: { status: e.target.value as any } })
+                        }
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${
+                          statusColors[order.status] || "bg-gray-100 text-gray-800"
+                        }`}
+                        data-testid={`select-status-${order.id}`}
+                      >
+                        {statusOptions.map((status) => (
+                          <option key={status} value={status}>
+                            {status.replace("_", " ")}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDeleteOrder(order.id)}
+                        disabled={deleteMutation.isPending}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        data-testid={`button-delete-${order.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="bg-white rounded-xl p-12 text-center shadow-sm">

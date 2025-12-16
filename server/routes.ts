@@ -13,6 +13,7 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import OpenAI from "openai";
+import { v4 as uuidv4 } from "uuid";
 
 const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
@@ -363,11 +364,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/designs", isAuthenticated, async (req: any, res) => {
+  app.post("/api/designs", async (req: any, res) => {
     try {
-      const userId = (req.user as any).claims?.sub;
+      // Allow anonymous design creation with session tracking
+      const userId = req.user ? (req.user as any).claims?.sub : null;
+      
+      // Get or create a session ID for anonymous users
+      let sessionId = req.cookies?.guest_session_id;
+      if (!sessionId) {
+        sessionId = uuidv4();
+        res.cookie('guest_session_id', sessionId, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+          path: '/',
+        });
+      }
+      
       const design = await storage.createDesign({
         userId,
+        sessionId,
         ...req.body,
       });
       res.json(design);
@@ -377,7 +394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/designs/:id", isAuthenticated, async (req: any, res) => {
+  app.put("/api/designs/:id", async (req: any, res) => {
     try {
       const design = await storage.updateDesign(parseInt(req.params.id), req.body);
       if (!design) {
@@ -390,8 +407,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auto-save design
-  app.post("/api/designs/:id/autosave", isAuthenticated, async (req: any, res) => {
+  // Auto-save design (allow anonymous access for guest designers)
+  app.post("/api/designs/:id/autosave", async (req: any, res) => {
     try {
       const design = await storage.updateDesign(parseInt(req.params.id), {
         canvasJson: req.body.canvasJson,

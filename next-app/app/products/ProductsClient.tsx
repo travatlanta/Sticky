@@ -3,8 +3,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Package, Layers, Tag, ArrowUpDown } from 'lucide-react';
+import { Package, Layers, Tag, ArrowUpDown, Flame, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -27,6 +28,18 @@ interface Category {
   id: number;
   name: string;
   slug: string;
+}
+
+interface Deal {
+  id: number;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  originalPrice: string | null;
+  dealPrice: string;
+  badgeText: string | null;
+  ctaText: string | null;
+  ctaLink: string | null;
 }
 
 type SortOption = 'default' | 'price-low' | 'price-high' | 'name';
@@ -54,6 +67,15 @@ export default function ProductsClient() {
 
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+  });
+
+  const { data: deals } = useQuery<Deal[]>({
+    queryKey: ['/api/deals/homepage'],
+    queryFn: async () => {
+      const res = await fetch('/api/deals/homepage');
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   const filteredProducts = useMemo(() => {
@@ -98,6 +120,63 @@ export default function ProductsClient() {
           <h1 className="font-display text-4xl md:text-5xl text-gray-900 mb-2">PRODUCTS</h1>
           <p className="text-lg text-gray-600">Choose a product to customize</p>
         </div>
+
+        {/* Hot Deals Section */}
+        {deals && deals.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Flame className="h-5 w-5 text-orange-500" />
+              <h2 className="font-display text-2xl text-gray-900">HOT DEALS</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {deals.map((deal) => {
+                const originalPrice = deal.originalPrice ? parseFloat(deal.originalPrice) : null;
+                const dealPrice = parseFloat(deal.dealPrice);
+                const discount = originalPrice ? Math.round(((originalPrice - dealPrice) / originalPrice) * 100) : null;
+                
+                return (
+                  <div
+                    key={deal.id}
+                    className="bg-gradient-to-br from-orange-500 to-red-500 rounded-lg p-4 text-white relative overflow-hidden"
+                    data-testid={`deal-card-${deal.id}`}
+                  >
+                    {deal.badgeText && (
+                      <Badge className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 hover:bg-yellow-400">
+                        {deal.badgeText}
+                      </Badge>
+                    )}
+                    {deal.imageUrl && (
+                      <div className="w-full h-32 mb-3 rounded overflow-hidden">
+                        <img src={deal.imageUrl} alt={deal.title} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <h3 className="font-bold text-lg mb-1">{deal.title}</h3>
+                    {deal.description && (
+                      <p className="text-white/80 text-sm mb-3 line-clamp-2">{deal.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-2xl font-bold">${dealPrice.toFixed(2)}</span>
+                      {originalPrice && (
+                        <span className="text-white/60 line-through text-sm">${originalPrice.toFixed(2)}</span>
+                      )}
+                      {discount && (
+                        <Badge className="bg-white/20 text-white hover:bg-white/30">{discount}% OFF</Badge>
+                      )}
+                    </div>
+                    {deal.ctaLink && (
+                      <Link href={deal.ctaLink}>
+                        <Button size="sm" className="bg-white text-orange-600 hover:bg-white/90 w-full">
+                          {deal.ctaText || 'Shop Now'}
+                          <ExternalLink className="h-3 w-3 ml-2" />
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Category Filter */}
         {categories && categories.length > 0 && (

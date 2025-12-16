@@ -95,23 +95,24 @@ export default function Editor() {
   const initCanvas = useCallback(() => {
     if (!canvasRef.current || !window.fabric) return;
 
-    // Use templateWidth/Height directly (these are already in pixels at 300 DPI)
-    const templateWidth = (product as any)?.templateWidth || 300;
-    const templateHeight = (product as any)?.templateHeight || 300;
-    const dpi = 300; // Fixed DPI for all print products
+    // Get product print dimensions
+    const templateWidth = (product as any)?.templateWidth || 1200;
+    const templateHeight = (product as any)?.templateHeight || 1200;
+    const printDpi = (product as any)?.printDpi || 300;
     
     const containerWidth = canvasContainerRef.current?.clientWidth || 350;
     const containerHeight = canvasContainerRef.current?.clientHeight || 350;
     
-    // Scale canvas to fit container with good visibility
+    // Calculate scale to fit canvas in container
     const scaleX = (containerWidth - 48) / templateWidth;
     const scaleY = (containerHeight - 80) / templateHeight;
-    // Scale down to fit, minimum 0.15 for visibility
-    const initialScale = Math.max(Math.min(scaleX, scaleY, 1), 0.15);
+    const fitScale = Math.max(Math.min(scaleX, scaleY, 1), 0.05);
     
-    const displayWidth = templateWidth * initialScale;
-    const displayHeight = templateHeight * initialScale;
+    // Calculate display dimensions
+    const displayWidth = Math.round(templateWidth * fitScale);
+    const displayHeight = Math.round(templateHeight * fitScale);
 
+    // Create canvas at display dimensions
     const canvas = new window.fabric.Canvas(canvasRef.current, {
       width: displayWidth,
       height: displayHeight,
@@ -119,24 +120,26 @@ export default function Editor() {
       selection: true,
     });
 
-    canvas.setZoom(initialScale);
-    setZoom(initialScale);
+    // Store scale for export calculations
+    (canvas as any)._printScale = fitScale;
+    (canvas as any)._printWidth = templateWidth;
+    (canvas as any)._printHeight = templateHeight;
+    (canvas as any)._printDpi = printDpi;
+    
+    // Start at 100% view zoom
+    setZoom(1);
     fabricCanvasRef.current = canvas;
 
-    // Bleed and safe zone in inches
-    const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
-    const safeZoneInches = parseFloat((product as any)?.safeZoneSize) || 0.25;
+    // Calculate guide positions in display coordinates
+    const safeZoneInches = parseFloat((product as any)?.safeZoneSize) || 0.125;
+    const safeZonePixels = safeZoneInches * printDpi * fitScale;
     
-    // Convert to pixels at the product's DPI, then scale for display
-    const bleedPixels = bleedInches * dpi * initialScale;
-    const safeZonePixels = safeZoneInches * dpi * initialScale;
-    
-    // Bleed line (red dashed) - shows where the cut will happen
+    // Red TRIM LINE - at canvas edge where paper gets cut
     const bleedRect = new window.fabric.Rect({
-      left: bleedPixels,
-      top: bleedPixels,
-      width: displayWidth - bleedPixels * 2,
-      height: displayHeight - bleedPixels * 2,
+      left: 0,
+      top: 0,
+      width: displayWidth,
+      height: displayHeight,
       fill: "transparent",
       stroke: "#ef4444",
       strokeWidth: 2,
@@ -147,7 +150,7 @@ export default function Editor() {
       excludeFromExport: true,
     });
 
-    // Safe zone (green dashed) - important content should stay inside this
+    // Green SAFE ZONE - keep important content inside
     const safeRect = new window.fabric.Rect({
       left: safeZonePixels,
       top: safeZonePixels,
@@ -471,54 +474,15 @@ export default function Editor() {
   };
 
   const handleZoom = (delta: number) => {
-    const newZoom = Math.max(0.1, Math.min(2, zoom + delta));
+    const newZoom = Math.max(0.5, Math.min(3, zoom + delta));
     setZoom(newZoom);
-    if (fabricCanvasRef.current) {
-      const canvas = fabricCanvasRef.current;
-      
-      // Use templateWidth/Height directly (already in pixels at 300 DPI)
-      const templateWidth = (product as any)?.templateWidth || 300;
-      const templateHeight = (product as any)?.templateHeight || 300;
-      const dpi = 300; // Fixed DPI for all print products
-      
-      const newWidth = templateWidth * newZoom;
-      const newHeight = templateHeight * newZoom;
-      
-      canvas.setZoom(newZoom);
-      canvas.setWidth(newWidth);
-      canvas.setHeight(newHeight);
-      
-      // Update guide positions for new zoom level
-      const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125;
-      const safeZoneInches = parseFloat((product as any)?.safeZoneSize) || 0.25;
-      const bleedPixels = bleedInches * dpi * newZoom;
-      const safeZonePixels = safeZoneInches * dpi * newZoom;
-      
-      const objects = canvas.getObjects();
-      const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
-      const safeGuide = objects.find((o: any) => o.name === "safeGuide");
-      
-      if (bleedGuide) {
-        bleedGuide.set({
-          left: bleedPixels,
-          top: bleedPixels,
-          width: newWidth - bleedPixels * 2,
-          height: newHeight - bleedPixels * 2,
-        });
-        canvas.bringToFront(bleedGuide);
-      }
-      
-      if (safeGuide) {
-        safeGuide.set({
-          left: safeZonePixels,
-          top: safeZonePixels,
-          width: newWidth - safeZonePixels * 2,
-          height: newHeight - safeZonePixels * 2,
-        });
-        canvas.bringToFront(safeGuide);
-      }
-      
-      canvas.renderAll();
+    
+    // Apply CSS transform to the canvas wrapper for visual zoom
+    // This keeps Fabric canvas internals untouched - guides stay aligned
+    const canvasWrapper = canvasContainerRef.current?.querySelector('.canvas-container') as HTMLElement;
+    if (canvasWrapper) {
+      canvasWrapper.style.transform = `scale(${newZoom})`;
+      canvasWrapper.style.transformOrigin = 'center center';
     }
   };
 
@@ -550,8 +514,9 @@ export default function Editor() {
         if (safeGuide) canvas.remove(safeGuide);
         if (customShape) canvas.remove(customShape);
         
-        // Export at high resolution (300 DPI)
-        const multiplier = 300 / 72; // Convert from screen to print resolution
+        // Export at print resolution using stored print scale
+        const printScale = (canvas as any)._printScale || 1;
+        const multiplier = 1 / printScale; // Scale up to original print size
         const dataUrl = canvas.toDataURL({
           format: 'png',
           multiplier: multiplier,

@@ -1,7 +1,7 @@
 import type { Express, Request, Response, RequestHandler } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, isAdmin } from "./auth";
+import { setupAuth, isAuthenticated, isAdmin } from "./replitAuth";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { users, adminInvitations } from "@shared/schema";
@@ -193,6 +193,29 @@ const stripe = process.env.STRIPE_SECRET_KEY
 export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
+  // Get current user (for useAuth hook)
+  app.get("/api/auth/user", async (req, res) => {
+    const user = req.user as any;
+    if (user?.claims?.sub) {
+      try {
+        const dbUser = await storage.getUser(user.claims.sub);
+        if (dbUser) {
+          return res.json({
+            id: dbUser.id,
+            email: dbUser.email,
+            firstName: dbUser.firstName,
+            lastName: dbUser.lastName,
+            profileImageUrl: dbUser.profileImageUrl,
+            isAdmin: dbUser.isAdmin,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching user from database:", error);
+      }
+    }
+    return res.status(401).json({ message: "Not authenticated" });
+  });
+
   // Serve attached_assets statically for product images
   const attachedAssetsPath = path.join(process.cwd(), 'attached_assets');
   app.use('/attached_assets', express.static(attachedAssetsPath));
@@ -303,7 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Designs
   app.get("/api/designs", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.user as any).claims?.sub;
       const designs = await storage.getDesignsByUser(userId);
       res.json(designs);
     } catch (error) {
@@ -327,7 +350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/designs", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.user as any).claims?.sub;
       const design = await storage.createDesign({
         userId,
         ...req.body,
@@ -871,7 +894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Payment processing not configured" });
       }
 
-      const userId = req.user.id;
+      const userId = (req.user as any).claims?.sub;
       const { shippingAddress, billingAddress, promoCode } = req.body;
 
       const cart = await storage.getCartByUserId(userId);
@@ -933,7 +956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Orders
   app.get("/api/orders", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.user as any).claims?.sub;
       const orders = await storage.getOrdersByUser(userId);
       res.json(orders);
     } catch (error) {
@@ -984,7 +1007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/orders/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.user as any).claims?.sub;
       const message = await storage.createMessage({
         orderId: parseInt(req.params.id),
         userId,
@@ -1316,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat/Support messages
   app.get("/api/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.user as any).claims?.sub;
       const messages = await storage.getMessagesByUser(userId);
       res.json(messages);
     } catch (error) {
@@ -1327,7 +1350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/messages", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.user as any).claims?.sub;
       const { content, orderId } = req.body;
 
       if (!content || content.trim() === '') {
@@ -1497,7 +1520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const normalizedEmail = email.toLowerCase();
-      const inviterId = req.user.id;
+      const inviterId = (req.user as any).claims?.sub;
 
       // Check if user already exists as admin
       const [existingUser] = await db
@@ -1577,7 +1600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/admin/admins/:userId", isAdmin, async (req: any, res) => {
     try {
       const { userId } = req.params;
-      const currentUserId = req.user.id;
+      const currentUserId = (req.user as any).claims?.sub;
 
       if (userId === currentUserId) {
         return res.status(400).json({ message: "You cannot remove yourself as admin" });

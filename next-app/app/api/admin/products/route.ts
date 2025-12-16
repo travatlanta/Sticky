@@ -41,6 +41,13 @@ export async function POST(request: Request) {
       ? null
       : body.flatShippingPrice;
 
+    // Calculate template dimensions from print size (inches * DPI)
+    const printWidthInches = parseFloat(body.printWidthInches) || 4;
+    const printHeightInches = parseFloat(body.printHeightInches) || 4;
+    const printDpi = parseInt(body.printDpi) || 300;
+    const templateWidth = Math.round(printWidthInches * printDpi);
+    const templateHeight = Math.round(printHeightInches * printDpi);
+
     const [product] = await db
       .insert(products)
       .values({
@@ -53,10 +60,14 @@ export async function POST(request: Request) {
         minQuantity: body.minQuantity || 1,
         isActive: body.isActive ?? true,
         isFeatured: body.isFeatured ?? false,
-        templateWidth: body.templateWidth || 300,
-        templateHeight: body.templateHeight || 300,
+        // Print dimensions
+        printWidthInches: body.printWidthInches || '4',
+        printHeightInches: body.printHeightInches || '4',
+        printDpi: printDpi,
+        templateWidth: templateWidth,
+        templateHeight: templateHeight,
         bleedSize: body.bleedSize || '0.125',
-        safeZoneSize: body.safeZoneSize || '0.25',
+        safeZoneSize: body.safeZoneSize || '0.125',
         supportsCustomShape: body.supportsCustomShape || false,
         shippingType: shippingType,
         flatShippingPrice: flatShippingPrice,

@@ -112,10 +112,15 @@ export const products = pgTable("products", {
   minQuantity: integer("min_quantity").default(1),
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
+  // Print dimensions in inches and DPI for accurate canvas sizing
+  printWidthInches: decimal("print_width_inches", { precision: 6, scale: 3 }).default("4"),
+  printHeightInches: decimal("print_height_inches", { precision: 6, scale: 3 }).default("4"),
+  printDpi: integer("print_dpi").default(300),
+  // Legacy fields - kept for compatibility but computed from inches/DPI
   templateWidth: integer("template_width").default(300),
   templateHeight: integer("template_height").default(300),
   bleedSize: decimal("bleed_size", { precision: 4, scale: 3 }).default("0.125"),
-  safeZoneSize: decimal("safe_zone_size", { precision: 4, scale: 3 }).default("0.25"),
+  safeZoneSize: decimal("safe_zone_size", { precision: 4, scale: 3 }).default("0.125"),
   supportsCustomShape: boolean("supports_custom_shape").default(false),
 
   // Per‑product shipping configuration.  If shippingType is 'flat', a

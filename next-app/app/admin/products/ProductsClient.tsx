@@ -38,6 +38,13 @@ interface Product {
   isFeatured: boolean;
   categoryId: number | null;
 
+  // Print dimensions for editor canvas
+  printWidthInches?: string;
+  printHeightInches?: string;
+  printDpi?: number;
+  bleedSize?: string;
+  safeZoneSize?: string;
+
   // Per-product shipping settings.  These are returned from the API and
   // optionally edited in the admin form.  shippingType can be 'free',
   // 'flat', or 'calculated'.  flatShippingPrice should be a string
@@ -71,6 +78,12 @@ export default function AdminProducts() {
     thumbnailUrl: "",
     shippingType: "calculated" as string,
     flatShippingPrice: "" as string | null,
+    // Print dimensions
+    printWidthInches: "4",
+    printHeightInches: "4",
+    printDpi: 300,
+    bleedSize: "0.125",
+    safeZoneSize: "0.125",
   });
   const createFileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingCreate, setIsUploadingCreate] = useState(false);
@@ -219,7 +232,7 @@ export default function AdminProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       setShowCreateForm(false);
-      // Reset form data including shipping fields
+      // Reset form data including shipping and print dimension fields
       setFormData({
         name: "",
         slug: "",
@@ -230,6 +243,11 @@ export default function AdminProducts() {
         thumbnailUrl: "",
         shippingType: "calculated",
         flatShippingPrice: "",
+        printWidthInches: "4",
+        printHeightInches: "4",
+        printDpi: 300,
+        bleedSize: "0.125",
+        safeZoneSize: "0.125",
       });
       toast({ title: "Product created successfully" });
     },
@@ -555,6 +573,85 @@ export default function AdminProducts() {
                   </div>
                 )}
               </div>
+              
+              {/* Print Dimensions Section */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Layout className="h-4 w-4" />
+                  Print Dimensions (for Design Editor)
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Width (inches)</label>
+                    <input
+                      type="number"
+                      step="0.125"
+                      min="0.5"
+                      max="48"
+                      value={formData.printWidthInches}
+                      onChange={(e) => setFormData({ ...formData, printWidthInches: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      data-testid="input-print-width"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Height (inches)</label>
+                    <input
+                      type="number"
+                      step="0.125"
+                      min="0.5"
+                      max="48"
+                      value={formData.printHeightInches}
+                      onChange={(e) => setFormData({ ...formData, printHeightInches: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      data-testid="input-print-height"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">DPI</label>
+                    <select
+                      value={formData.printDpi}
+                      onChange={(e) => setFormData({ ...formData, printDpi: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      data-testid="select-print-dpi"
+                    >
+                      <option value={150}>150 (Web)</option>
+                      <option value={300}>300 (Print)</option>
+                      <option value={600}>600 (High Res)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Bleed (inches)</label>
+                    <input
+                      type="number"
+                      step="0.0625"
+                      min="0"
+                      max="1"
+                      value={formData.bleedSize}
+                      onChange={(e) => setFormData({ ...formData, bleedSize: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      data-testid="input-bleed-size"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Safe Zone (inches)</label>
+                    <input
+                      type="number"
+                      step="0.0625"
+                      min="0"
+                      max="1"
+                      value={formData.safeZoneSize}
+                      onChange={(e) => setFormData({ ...formData, safeZoneSize: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      data-testid="input-safe-zone"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Canvas size: {Math.round(parseFloat(formData.printWidthInches) * formData.printDpi)} x {Math.round(parseFloat(formData.printHeightInches) * formData.printDpi)} pixels
+                </p>
+              </div>
+              
               <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input

@@ -198,9 +198,11 @@ export const designs = pgTable("designs", {
   canvasJson: jsonb("canvas_json"),
   previewUrl: varchar("preview_url"),
   customShapeUrl: varchar("custom_shape_url"),
+  contourPath: text("contour_path"), // SVG path for die-cut contour
   highResExportUrl: varchar("high_res_export_url"),
   status: designStatusEnum("status").default("draft"),
   selectedOptions: jsonb("selected_options"),
+  bleedColor: varchar("bleed_color", { length: 20 }).default("#ffffff"),
   lastAutoSave: timestamp("last_auto_save"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

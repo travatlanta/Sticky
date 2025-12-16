@@ -95,18 +95,7 @@ export default function AdminOrders() {
         const imgWidth = img.width;
         const imgHeight = img.height;
         
-        // Create PDF with image dimensions (in mm, assuming 72 DPI)
-        const pxToMm = 0.264583;
-        const pdfWidth = imgWidth * pxToMm;
-        const pdfHeight = imgHeight * pxToMm;
-        
-        const pdf = new jsPDF({
-          orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
-          unit: 'mm',
-          format: [pdfWidth, pdfHeight],
-        });
-        
-        // Draw image on canvas to get data URL
+        // Draw image on canvas to get data URL first
         const canvas = document.createElement('canvas');
         canvas.width = imgWidth;
         canvas.height = imgHeight;
@@ -114,9 +103,17 @@ export default function AdminOrders() {
         if (ctx) {
           ctx.drawImage(img, 0, 0);
         }
-        const imgData = canvas.toDataURL('image/png');
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
         
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        // Create PDF - use standard page sizes and fit image
+        const pdf = new jsPDF({
+          orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+          unit: 'px',
+          format: [imgWidth, imgHeight],
+        });
+        
+        // Add image to PDF at full size
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
         pdf.save(`${fileName}.pdf`);
         
       } else if (format === 'jpg') {

@@ -412,7 +412,7 @@ export default function CheckoutClient() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{item.product.name}</p>
                     <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                    <p className="text-sm font-medium">${(parseFloat(item.unitPrice) * item.quantity).toFixed(2)}</p>
+                    <p className="text-sm font-medium">${((parseFloat(item.unitPrice || '0') || 0) * item.quantity).toFixed(2)}</p>
                   </div>
                 </div>
               ))}

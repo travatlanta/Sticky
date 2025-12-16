@@ -54,7 +54,19 @@ export async function GET() {
       .leftJoin(designs, eq(cartItems.designId, designs.id))
       .where(eq(cartItems.cartId, cart.id));
 
-    return noCache(NextResponse.json({ items }));
+    // Calculate subtotal from items
+    const subtotal = items.reduce((sum, item) => {
+      const price = parseFloat(item.unitPrice || '0') || 0;
+      return sum + (price * (item.quantity || 1));
+    }, 0);
+
+    // Shipping is free for now (can be configured later)
+    const shipping = 0;
+    
+    // Total
+    const total = subtotal + shipping;
+
+    return noCache(NextResponse.json({ items, subtotal, shipping, total }));
   } catch (error) {
     console.error('Error fetching cart:', error);
     return noCache(NextResponse.json({ items: [] }));

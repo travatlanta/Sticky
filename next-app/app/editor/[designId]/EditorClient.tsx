@@ -472,7 +472,7 @@ export default function Editor() {
     });
 
     // Add measurement rulers based on product dimensions
-    addMeasurements(canvas, (product as any), initialScale);
+    addMeasurements(canvas, (product as any), initialScaleRef.current);
 
     setIsCanvasReady(true);
   }, [design, product]);

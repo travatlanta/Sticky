@@ -102,3 +102,29 @@ export async function PUT(
     return NextResponse.json({ message: 'Failed to update order' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const orderId = parseInt(id);
+
+    // First delete order items
+    await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
+
+    // Then delete the order
+    await db.delete(orders).where(eq(orders.id, orderId));
+
+    return NextResponse.json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    return NextResponse.json({ message: 'Failed to delete order' }, { status: 500 });
+  }
+}

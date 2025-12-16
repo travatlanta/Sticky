@@ -179,7 +179,7 @@ export default function ProductDetail() {
       return;
     }
 
-    if (!calculatedPrice?.pricePerUnit) {
+    if (calculatedPrice?.pricePerUnit === undefined || calculatedPrice?.pricePerUnit === null) {
       toast({
         title: "Calculating price...",
         description: "Please wait a moment for price calculation to complete.",
@@ -463,7 +463,7 @@ export default function ProductDetail() {
                       onClick={handleQuickOrder}
                       size="lg"
                       className="w-full"
-                      disabled={isQuickOrderLoading || !calculatedPrice?.pricePerUnit}
+                      disabled={isQuickOrderLoading || calculatedPrice?.pricePerUnit === undefined || calculatedPrice?.pricePerUnit === null}
                       data-testid="button-quick-order"
                     >
                       {isQuickOrderLoading ? (

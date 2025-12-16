@@ -1105,7 +1105,7 @@ export default function Editor() {
                 <div className="border-t pt-4">
                   <h3 className="text-sm font-medium mb-3">Product Options</h3>
                   
-                  {product?.options?.filter(o => o.optionType === "material").length > 0 && (
+                  {(product?.options?.filter(o => o.optionType === "material")?.length ?? 0) > 0 && (
                     <div className="mb-4">
                       <label className="text-sm text-muted-foreground mb-2 block">Material</label>
                       <div className="grid grid-cols-2 gap-2">
@@ -1127,7 +1127,7 @@ export default function Editor() {
                     </div>
                   )}
 
-                  {product?.options?.filter(o => o.optionType === "coating").length > 0 && (
+                  {(product?.options?.filter(o => o.optionType === "coating")?.length ?? 0) > 0 && (
                     <div className="mb-4">
                       <label className="text-sm text-muted-foreground mb-2 block">Finish</label>
                       <div className="grid grid-cols-2 gap-2">

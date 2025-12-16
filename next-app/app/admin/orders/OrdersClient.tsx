@@ -385,8 +385,7 @@ export default function AdminOrders() {
                           return typeof addr === "object" ? (
                             <>
                               {addr.name && <p className="font-medium">{addr.name}</p>}
-                              {addr.street && <p>{addr.street}</p>}
-                              {addr.address1 && <p>{addr.address1}</p>}
+                              {(addr.address1 || addr.street) && <p>{addr.address1 || addr.street}</p>}
                               {addr.address2 && <p>{addr.address2}</p>}
                               <p>
                                 {addr.city}, {addr.state} {addr.zip || addr.zipCode}
@@ -412,11 +411,8 @@ export default function AdminOrders() {
                             {selectedOrder.shippingAddress.name && (
                               <p className="font-medium">{selectedOrder.shippingAddress.name}</p>
                             )}
-                            {selectedOrder.shippingAddress.street && (
-                              <p>{selectedOrder.shippingAddress.street}</p>
-                            )}
-                            {selectedOrder.shippingAddress.address1 && (
-                              <p>{selectedOrder.shippingAddress.address1}</p>
+                            {(selectedOrder.shippingAddress.address1 || selectedOrder.shippingAddress.street) && (
+                              <p>{selectedOrder.shippingAddress.address1 || selectedOrder.shippingAddress.street}</p>
                             )}
                             {selectedOrder.shippingAddress.address2 && (
                               <p>{selectedOrder.shippingAddress.address2}</p>

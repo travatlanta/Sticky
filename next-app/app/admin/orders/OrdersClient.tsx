@@ -51,7 +51,7 @@ export default function AdminOrdersClient() {
               </p>
 
               <h3 className="font-semibold mt-4">Items</h3>
-              {selected.orderItems?.map((item: any) => (
+              {selected.items?.map((item: any) => (
                 <div key={item.id} className="border rounded p-3 mb-2">
                   <div>{item.product?.name}</div>
                   {item.design?.previewUrl && (

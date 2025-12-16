@@ -31,6 +31,8 @@ export default function ProductDetailClient() {
       return;
     }
 
+    if (!product?.id) { alert('Product not ready'); return; }
+
     await fetch("/api/cart/add", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -49,7 +51,7 @@ export default function ProductDetailClient() {
 
       <div>
         <h1 className="text-3xl font-bold mb-2">{product?.name}</h1>
-        <p className="text-xl font-semibold mb-4">${product?.price}</p>
+        <p className="text-xl font-semibold mb-4">${Number(product?.basePrice ?? 0).toFixed(2)}</p>
 
         {!file && (
           <label className="border-2 border-dashed rounded-xl p-6 flex flex-col items-center cursor-pointer">

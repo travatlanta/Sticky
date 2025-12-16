@@ -18,6 +18,8 @@ import {
   Sticker,
   CreditCard,
   FileImage,
+  Download,
+  Eye,
 } from "lucide-react";
 
 const statusConfig: Record<string, { icon: any; color: string; label: string; bgColor: string }> = {
@@ -134,37 +136,95 @@ export default function OrderDetail() {
                   {order.items?.map((item: any) => (
                     <div
                       key={item.id}
-                      className="flex gap-4 p-4 bg-gray-50 dark:bg-muted rounded-lg"
+                      className="p-4 bg-gray-50 dark:bg-muted rounded-lg"
                       data-testid={`order-item-${item.id}`}
                     >
-                      <div className="w-16 h-16 bg-white dark:bg-background rounded-lg flex items-center justify-center flex-shrink-0 border">
-                        {getProductIcon(item.product?.name || "")}
+                      <div className="flex gap-4">
+                        <div className="w-16 h-16 bg-white dark:bg-background rounded-lg flex items-center justify-center flex-shrink-0 border overflow-hidden">
+                          {item.design?.previewUrl ? (
+                            <img 
+                              src={item.design.previewUrl} 
+                              alt="Design preview" 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            getProductIcon(item.product?.name || "")
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 dark:text-foreground">
+                            {item.product?.name || "Product"}
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                            Quantity: {item.quantity}
+                          </p>
+                          {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {Object.entries(item.selectedOptions).map(([key, value]) => (
+                                <Badge key={key} variant="outline" className="text-xs">
+                                  {key}: {String(value)}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900 dark:text-foreground">
+                            {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                            {formatPrice(item.unitPrice)} each
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 dark:text-foreground">
-                          {item.product?.name || "Product"}
-                        </h4>
-                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                          Quantity: {item.quantity}
-                        </p>
-                        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {Object.entries(item.selectedOptions).map(([key, value]) => (
-                              <Badge key={key} variant="outline" className="text-xs">
-                                {key}: {String(value)}
-                              </Badge>
-                            ))}
+                      
+                      {item.design && (
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Your Design: {item.design.name || "Custom Design"}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {item.design.previewUrl && (
+                              <a 
+                                href={item.design.previewUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <Button variant="outline" size="sm" data-testid={`button-preview-design-${item.id}`}>
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Preview
+                                </Button>
+                              </a>
+                            )}
+                            {item.design.highResExportUrl && (
+                              <a 
+                                href={item.design.highResExportUrl} 
+                                download
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <Button variant="outline" size="sm" data-testid={`button-download-design-${item.id}`}>
+                                  <Download className="h-4 w-4 mr-1" />
+                                  Download Print File
+                                </Button>
+                              </a>
+                            )}
+                            {item.design.customShapeUrl && (
+                              <a 
+                                href={item.design.customShapeUrl} 
+                                download
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <Button variant="outline" size="sm" data-testid={`button-download-shape-${item.id}`}>
+                                  <Download className="h-4 w-4 mr-1" />
+                                  Die-Cut Shape
+                                </Button>
+                              </a>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900 dark:text-foreground">
-                          {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                          {formatPrice(item.unitPrice)} each
-                        </p>
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

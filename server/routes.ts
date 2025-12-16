@@ -949,7 +949,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Order not found" });
       }
       const items = await storage.getOrderItems(order.id);
-      res.json({ ...order, items });
+      
+      // Enrich items with design and product data for customer viewing
+      const enrichedItems = await Promise.all(items.map(async (item) => {
+        let design = null;
+        let product = null;
+        
+        if (item.designId) {
+          design = await storage.getDesignById(item.designId);
+        }
+        if (item.productId) {
+          product = await storage.getProductById(item.productId);
+        }
+        
+        return { ...item, design, product };
+      }));
+      
+      res.json({ ...order, items: enrichedItems });
     } catch (error) {
       console.error("Error fetching order:", error);
       res.status(500).json({ message: "Failed to fetch order" });

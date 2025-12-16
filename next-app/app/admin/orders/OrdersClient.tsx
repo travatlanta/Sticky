@@ -385,15 +385,15 @@ export default function AdminOrders() {
               </div>
 
               <div className="p-6 space-y-6">
-                {/* Customer Information */}
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <User className="h-5 w-5 text-blue-600" />
-                    Customer Information
-                  </h3>
-                  <div className="grid sm:grid-cols-3 gap-4">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-400" />
+                {/* Customer Information & Addresses - All in one row */}
+                <div className="grid md:grid-cols-3 gap-4">
+                  {/* Customer Info */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <User className="h-5 w-5 text-blue-600" />
+                      Customer
+                    </h3>
+                    <div className="space-y-2 text-sm">
                       <div>
                         <p className="text-xs text-gray-500">Name</p>
                         <p className="font-medium">
@@ -402,18 +402,12 @@ export default function AdminOrders() {
                             : selectedOrder.shippingAddress?.name || 'Guest Customer'}
                         </p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-400" />
                       <div>
                         <p className="text-xs text-gray-500">Email</p>
-                        <p className="font-medium text-sm">
+                        <p className="font-medium break-all">
                           {orderDetails?.user?.email || 'Not provided'}
                         </p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
                       <div>
                         <p className="text-xs text-gray-500">Phone</p>
                         <p className="font-medium">
@@ -422,70 +416,65 @@ export default function AdminOrders() {
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Billing & Shipping Addresses - Side by Side */}
-                {selectedOrder.shippingAddress && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {/* Billing Address */}
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-gray-600" />
-                        Billing Address
-                      </h3>
-                      <div className="text-sm">
-                        {(() => {
-                          const addr = selectedOrder.billingAddress || selectedOrder.shippingAddress;
-                          return typeof addr === "object" ? (
-                            <>
-                              {addr.name && <p className="font-medium">{addr.name}</p>}
-                              {(addr.address1 || addr.street) && <p>{addr.address1 || addr.street}</p>}
-                              {addr.address2 && <p>{addr.address2}</p>}
-                              <p>
-                                {addr.city}, {addr.state} {addr.zip || addr.zipCode}
-                              </p>
-                              {addr.country && <p>{addr.country}</p>}
-                            </>
-                          ) : (
-                            <p>{String(addr)}</p>
-                          );
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* Shipping Address */}
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <Truck className="h-5 w-5 text-gray-600" />
-                        Shipping Address
-                      </h3>
-                      <div className="text-sm">
-                        {typeof selectedOrder.shippingAddress === "object" ? (
+                  {/* Billing Address */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-gray-600" />
+                      Billing Address
+                    </h3>
+                    <div className="text-sm">
+                      {(() => {
+                        const addr = selectedOrder.billingAddress || selectedOrder.shippingAddress;
+                        return addr && typeof addr === "object" ? (
                           <>
-                            {selectedOrder.shippingAddress.name && (
-                              <p className="font-medium">{selectedOrder.shippingAddress.name}</p>
-                            )}
-                            {(selectedOrder.shippingAddress.address1 || selectedOrder.shippingAddress.street) && (
-                              <p>{selectedOrder.shippingAddress.address1 || selectedOrder.shippingAddress.street}</p>
-                            )}
-                            {selectedOrder.shippingAddress.address2 && (
-                              <p>{selectedOrder.shippingAddress.address2}</p>
-                            )}
+                            {addr.name && <p className="font-medium">{addr.name}</p>}
+                            {(addr.address1 || addr.street) && <p>{addr.address1 || addr.street}</p>}
+                            {addr.address2 && <p>{addr.address2}</p>}
                             <p>
-                              {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}{" "}
-                              {selectedOrder.shippingAddress.zip || selectedOrder.shippingAddress.zipCode}
+                              {addr.city}, {addr.state} {addr.zip || addr.zipCode}
                             </p>
-                            {selectedOrder.shippingAddress.country && (
-                              <p>{selectedOrder.shippingAddress.country}</p>
-                            )}
+                            {addr.country && <p>{addr.country}</p>}
                           </>
                         ) : (
-                          <p>{String(selectedOrder.shippingAddress)}</p>
-                        )}
-                      </div>
+                          <p className="text-gray-400">Not provided</p>
+                        );
+                      })()}
                     </div>
                   </div>
-                )}
+
+                  {/* Shipping Address */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Truck className="h-5 w-5 text-gray-600" />
+                      Shipping Address
+                    </h3>
+                    <div className="text-sm">
+                      {selectedOrder.shippingAddress && typeof selectedOrder.shippingAddress === "object" ? (
+                        <>
+                          {selectedOrder.shippingAddress.name && (
+                            <p className="font-medium">{selectedOrder.shippingAddress.name}</p>
+                          )}
+                          {(selectedOrder.shippingAddress.address1 || selectedOrder.shippingAddress.street) && (
+                            <p>{selectedOrder.shippingAddress.address1 || selectedOrder.shippingAddress.street}</p>
+                          )}
+                          {selectedOrder.shippingAddress.address2 && (
+                            <p>{selectedOrder.shippingAddress.address2}</p>
+                          )}
+                          <p>
+                            {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}{" "}
+                            {selectedOrder.shippingAddress.zip || selectedOrder.shippingAddress.zipCode}
+                          </p>
+                          {selectedOrder.shippingAddress.country && (
+                            <p>{selectedOrder.shippingAddress.country}</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-400">Not provided</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
                 {/* Order Items */}
                 <div className="bg-gray-50 rounded-xl p-4">

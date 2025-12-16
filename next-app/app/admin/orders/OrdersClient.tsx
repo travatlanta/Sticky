@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -88,6 +88,28 @@ export default function AdminOrders() {
     },
     onError: () => toast({ title: "Failed to update order", variant: "destructive" }),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete order");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      toast({ title: "Order deleted successfully" });
+    },
+    onError: () => toast({ title: "Failed to delete order", variant: "destructive" }),
+  });
+
+  const handleDeleteOrder = (orderId: number) => {
+    if (window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) {
+      deleteMutation.mutate(orderId);
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -178,6 +200,16 @@ export default function AdminOrders() {
                       data-testid={`button-view-${order.id}`}
                     >
                       <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDeleteOrder(order.id)}
+                      disabled={deleteMutation.isPending}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      data-testid={`button-delete-${order.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

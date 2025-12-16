@@ -40,7 +40,7 @@ export async function GET() {
       [cart] = await db.insert(carts).values({ sessionId }).returning();
     }
 
-    const items = await db
+    const rawItems = await db
       .select({
         id: cartItems.id,
         quantity: cartItems.quantity,
@@ -54,10 +54,17 @@ export async function GET() {
       .leftJoin(designs, eq(cartItems.designId, designs.id))
       .where(eq(cartItems.cartId, cart.id));
 
+    // Normalize items to ensure unitPrice is always a valid string (never null)
+    const items = rawItems.map(item => ({
+      ...item,
+      unitPrice: item.unitPrice ?? '0',
+      quantity: item.quantity ?? 1,
+    }));
+
     // Calculate subtotal from items
     const subtotal = items.reduce((sum, item) => {
-      const price = parseFloat(item.unitPrice || '0') || 0;
-      return sum + (price * (item.quantity || 1));
+      const price = parseFloat(item.unitPrice) || 0;
+      return sum + (price * item.quantity);
     }, 0);
 
     // Shipping is free for now (can be configured later)

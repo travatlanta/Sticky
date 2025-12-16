@@ -180,13 +180,15 @@ export default function CheckoutClient() {
     );
   }
 
-  // Calculate subtotal and totals on the client. The server returns these, but fallback if missing.
-  const subtotal =
-    (typeof cart.subtotal === 'number' && !isNaN(cart.subtotal) ? cart.subtotal : 0) ||
-    cart.items.reduce((sum, item) => {
-      const price = parseFloat(item.unitPrice || '0') || 0;
-      return sum + price * item.quantity;
-    }, 0);
+  // Calculate subtotal - prefer server value, fallback to client calculation
+  // Note: Use explicit check for undefined/null instead of || to handle 0 correctly
+  const subtotal = (typeof cart.subtotal === 'number' && !isNaN(cart.subtotal))
+    ? cart.subtotal
+    : cart.items.reduce((sum, item) => {
+        const price = parseFloat(String(item.unitPrice ?? '0')) || 0;
+        const qty = item.quantity ?? 1;
+        return sum + price * qty;
+      }, 0);
 
   // Shipping now comes ONLY from /api/cart. No settings query. No $15 fallback.
   const shipping = (typeof cart.shipping === 'number' && !isNaN(cart.shipping)) ? cart.shipping : 0;

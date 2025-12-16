@@ -50,7 +50,10 @@ export default function Cart() {
     0
   ) || 0;
   const shipping = 15;
-  const total = subtotal + shipping;
+  // Arizona sales tax rate (Phoenix: state 5.6% + county 0.7% + city 2.3% = 8.6%)
+  const TAX_RATE = 0.086;
+  const tax = subtotal * TAX_RATE;
+  const total = subtotal + shipping + tax;
 
   if (isLoading) {
     return (
@@ -131,6 +134,10 @@ export default function Cart() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span className="font-medium">{formatPrice(shipping)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Tax (8.6%)</span>
+                  <span className="font-medium">{formatPrice(tax)}</span>
                 </div>
                 <div className="border-t border-orange-100 pt-3 flex justify-between">
                   <span className="text-xl font-heading text-gray-900">Total</span>

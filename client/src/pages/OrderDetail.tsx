@@ -240,12 +240,10 @@ export default function OrderDetail() {
                       <span>-{formatPrice(order.discountAmount || "0")}</span>
                     </div>
                   )}
-                  {parseFloat(order.taxAmount || "0") > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-muted-foreground">Tax</span>
-                      <span className="font-medium">{formatPrice(order.taxAmount || "0")}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-muted-foreground">Tax (8.6%)</span>
+                    <span className="font-medium">{formatPrice(order.taxAmount || "0")}</span>
+                  </div>
                   <div className="border-t pt-3 flex justify-between">
                     <span className="text-lg font-bold">Total</span>
                     <span className="text-lg font-bold text-primary">

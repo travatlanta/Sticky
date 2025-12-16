@@ -28,6 +28,17 @@ export async function PUT(
       ? null
       : body.flatShippingPrice;
 
+    // Calculate template dimensions from print size if provided
+    let templateWidth = body.templateWidth;
+    let templateHeight = body.templateHeight;
+    if (body.printWidthInches && body.printHeightInches && body.printDpi) {
+      const printWidthInches = parseFloat(body.printWidthInches);
+      const printHeightInches = parseFloat(body.printHeightInches);
+      const printDpi = parseInt(body.printDpi);
+      templateWidth = Math.round(printWidthInches * printDpi);
+      templateHeight = Math.round(printHeightInches * printDpi);
+    }
+
     const [product] = await db
       .update(products)
       .set({
@@ -40,8 +51,12 @@ export async function PUT(
         minQuantity: body.minQuantity,
         isActive: body.isActive,
         isFeatured: body.isFeatured,
-        templateWidth: body.templateWidth,
-        templateHeight: body.templateHeight,
+        // Print dimensions
+        printWidthInches: body.printWidthInches,
+        printHeightInches: body.printHeightInches,
+        printDpi: body.printDpi,
+        templateWidth: templateWidth,
+        templateHeight: templateHeight,
         bleedSize: body.bleedSize,
         safeZoneSize: body.safeZoneSize,
         supportsCustomShape: body.supportsCustomShape,

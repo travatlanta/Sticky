@@ -89,6 +89,7 @@ export default function Editor() {
 
   // Keep track of measurement ruler objects so they can be removed and re-added on zoom
   const measurementObjectsRef = useRef<any[]>([]);
+  const templateDimensionsRef = useRef<{ width: number; height: number; dpi: number }>({ width: 1200, height: 1200, dpi: 300 });
 
   /**
    * Update the inline text edit menu position based on the currently
@@ -330,34 +331,33 @@ export default function Editor() {
   const initCanvas = useCallback(() => {
     if (!canvasRef.current || !window.fabric) return;
 
-    const templateWidth = (product as any)?.templateWidth || 300;
-    const templateHeight = (product as any)?.templateHeight || 300;
-    // Derive the pixel‑per‑inch ratio from the template dimensions.  In our
-    // product data 100 px corresponds to one inch (e.g. templateWidth 100 => 1"
-    // product).  Using a hardcoded DPI of 300 caused bleed/safe lines to be
-    // misaligned when zooming.  Compute pxPerInch dynamically from the
-    // template width; if undefined fallback to 100.
-    const pxPerInch = templateWidth && templateHeight
-      ? (templateWidth / (templateWidth / 100))
-      : 100;
+    // Get actual print dimensions in pixels from product (inches × DPI)
+    const printDpi = (product as any)?.printDpi || 300;
+    const templateWidth = (product as any)?.templateWidth || 1200;
+    const templateHeight = (product as any)?.templateHeight || 1200;
+    
+    // Store base dimensions for export
+    templateDimensionsRef.current = { width: templateWidth, height: templateHeight, dpi: printDpi };
     
     const containerWidth = canvasContainerRef.current?.clientWidth || 500;
     const containerHeight = canvasContainerRef.current?.clientHeight || 500;
     
-    // Calculate scale to fill about 80% of the available container
+    // Calculate scale to fit canvas in container with padding
     const padding = 40;
     const availableWidth = containerWidth - padding;
     const availableHeight = containerHeight - padding;
     
     const scaleX = availableWidth / templateWidth;
     const scaleY = availableHeight / templateHeight;
-    // Use the smaller scale to fit in container, but set reasonable min/max
-    const initialScale = Math.max(Math.min(scaleX, scaleY, 2), 0.3);
-    initialScaleRef.current = initialScale;
+    const fitScale = Math.max(Math.min(scaleX, scaleY, 2), 0.05);
+    initialScaleRef.current = fitScale;
     
-    const displayWidth = templateWidth * initialScale;
-    const displayHeight = templateHeight * initialScale;
+    // Calculate display size that fits in container
+    const displayWidth = Math.round(templateWidth * fitScale);
+    const displayHeight = Math.round(templateHeight * fitScale);
 
+    // Create canvas at DISPLAY dimensions for performance
+    // The canvas represents the scaled view - objects are positioned in display coordinates
     const canvas = new window.fabric.Canvas(canvasRef.current, {
       width: displayWidth,
       height: displayHeight,
@@ -365,25 +365,21 @@ export default function Editor() {
       selection: true,
     });
 
-    canvas.setZoom(initialScale);
-    setZoom(initialScale);
+    // Store scale factor on canvas for coordinate translation during export
+    (canvas as any)._printScale = fitScale;
+    (canvas as any)._printWidth = templateWidth;
+    (canvas as any)._printHeight = templateHeight;
+    (canvas as any)._printDpi = printDpi;
+    
+    // Start at 100% view zoom (the fitScale is already applied to dimensions)
+    setZoom(1);
     fabricCanvasRef.current = canvas;
 
-    // Print industry standard guide positions:
-    // - Canvas includes bleed area on all sides
-    // - TRIM LINE (red): where paper gets cut, at bleed distance from canvas edge
-    // - SAFE ZONE (green): where important content should stay, inside the trim line
-    const bleedInches = parseFloat((product as any)?.bleedSize) || 0.125; // outer bleed area
-    const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125; // margin inside trim line
+    // Print industry standard guide positions (in display coordinates)
+    const safeMarginInches = parseFloat((product as any)?.safeZoneSize) || 0.125;
+    const safeZonePixels = safeMarginInches * printDpi * fitScale;
     
-    // Trim line position: flush with the canvas perimeter.  We no longer
-    // offset the cut line by the bleed amount since the canvas itself
-    // represents the trimmed artwork area.
-    const trimLinePixels = 0;
-    // Safe zone position: inside cut line by the safe margin amount only (no bleed)
-    const safeZonePixels = safeMarginInches * pxPerInch * initialScale;
-    
-    // Red TRIM LINE - shows where paper will be cut
+    // Red TRIM LINE - shows where paper will be cut (at canvas edge)
     const trimRect = new window.fabric.Rect({
       left: 0,
       top: 0,
@@ -395,7 +391,7 @@ export default function Editor() {
       strokeDashArray: [8, 4],
       selectable: false,
       evented: false,
-      name: "bleedGuide", // Keep name for compatibility
+      name: "bleedGuide",
       excludeFromExport: true,
     });
 
@@ -1133,31 +1129,22 @@ export default function Editor() {
   };
 
   const handleZoom = (delta: number) => {
-    // Use a relative zoom approach: if the delta is less than one in magnitude
-    // treat it as a percentage change (e.g. delta 0.25 increases zoom by 25%).
+    // Use a relative zoom approach for percentage-based zooming
     let newZoom: number;
     if (Math.abs(delta) < 1) {
       newZoom = zoom * (1 + delta);
     } else {
       newZoom = zoom + delta;
     }
-    newZoom = Math.max(0.2, Math.min(3, newZoom));
+    newZoom = Math.max(0.5, Math.min(3, newZoom));
     setZoom(newZoom);
-    if (fabricCanvasRef.current) {
-      const canvas = fabricCanvasRef.current;
-      // Apply the zoom uniformly to the entire canvas.  We do not modify
-      // the CSS dimensions or reposition guides here.  Calling
-      // `setZoom()` scales all objects—including the trim and safe guides—
-      // so the guides remain tight to the canvas perimeter.
-      canvas.setZoom(newZoom);
-      canvas.renderAll();
-      // Redraw measurement ticks based on the new zoom level.  Remove any
-      // previously drawn tick marks before adding new ones.
-      if (measurementObjectsRef.current.length > 0) {
-        measurementObjectsRef.current.forEach((obj: any) => canvas.remove(obj));
-        measurementObjectsRef.current = [];
-      }
-      addMeasurements(canvas, product, newZoom);
+    
+    // Apply CSS transform to the canvas wrapper for visual zoom
+    // This keeps Fabric canvas internals untouched - guides stay aligned
+    const canvasWrapper = canvasContainerRef.current?.querySelector('.canvas-container') as HTMLElement;
+    if (canvasWrapper) {
+      canvasWrapper.style.transform = `scale(${newZoom})`;
+      canvasWrapper.style.transformOrigin = 'center center';
     }
   };
 
@@ -1228,11 +1215,10 @@ export default function Editor() {
         canvas.backgroundColor = null;
         canvas.renderAll();
         
-        // Export at 300 DPI (Fabric default is 72 DPI).  Adjust multiplier
-        // relative to the initial scale used to display the canvas.  This
-        // ensures consistent output regardless of zoom level during editing.
-        const baseDpiMultiplier = 300 / 72;
-        const multiplier = baseDpiMultiplier / (initialScaleRef.current || 1);
+        // Export at print resolution using stored template dimensions
+        // The canvas is displayed at fitScale, so we need to upscale to actual print dimensions
+        const printScale = (canvas as any)._printScale || initialScaleRef.current || 1;
+        const multiplier = 1 / printScale; // Scale up to original print size
         const dataUrl = canvas.toDataURL({ format: 'png', multiplier, quality: 1 });
         
         // Restore the original background for editing

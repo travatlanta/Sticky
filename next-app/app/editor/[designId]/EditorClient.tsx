@@ -1115,21 +1115,33 @@ export default function Editor() {
   const handleFitToScreen = () => {
     if (!fabricCanvasRef.current || !canvasContainerRef.current) return;
     
-    const templateWidth = (product as any)?.templateWidth || 300;
-    const templateHeight = (product as any)?.templateHeight || 300;
-    const containerWidth = canvasContainerRef.current.clientWidth;
-    const containerHeight = canvasContainerRef.current.clientHeight;
+    // Reset zoom to 1 (100%) which shows the canvas at its display size
+    // The canvas was created at display dimensions, so zoom=1 means fit to container
+    setZoomAbsolute(1);
+  };
+  
+  // Set zoom to an absolute value (not delta)
+  const setZoomAbsolute = (newZoom: number) => {
+    if (!fabricCanvasRef.current) return;
     
-    const padding = 40;
-    const scaleX = (containerWidth - padding) / templateWidth;
-    const scaleY = (containerHeight - padding) / templateHeight;
-    const fitScale = Math.min(scaleX, scaleY);
+    const canvas = fabricCanvasRef.current;
+    newZoom = Math.max(0.5, Math.min(3, newZoom));
+    setZoom(newZoom);
     
-    handleZoom(fitScale - zoom);
+    // Use Fabric.js native zoom - zoom to center point
+    const centerX = canvas.getWidth() / 2;
+    const centerY = canvas.getHeight() / 2;
+    
+    canvas.zoomToPoint(new window.fabric.Point(centerX, centerY), newZoom);
+    canvas.requestRenderAll();
   };
 
   const handleZoom = (delta: number) => {
-    // Use a relative zoom approach for percentage-based zooming
+    if (!fabricCanvasRef.current) return;
+    
+    const canvas = fabricCanvasRef.current;
+    
+    // Calculate new zoom level
     let newZoom: number;
     if (Math.abs(delta) < 1) {
       newZoom = zoom * (1 + delta);
@@ -1139,13 +1151,13 @@ export default function Editor() {
     newZoom = Math.max(0.5, Math.min(3, newZoom));
     setZoom(newZoom);
     
-    // Apply CSS transform to the canvas wrapper for visual zoom
-    // This keeps Fabric canvas internals untouched - guides stay aligned
-    const canvasWrapper = canvasContainerRef.current?.querySelector('.canvas-container') as HTMLElement;
-    if (canvasWrapper) {
-      canvasWrapper.style.transform = `scale(${newZoom})`;
-      canvasWrapper.style.transformOrigin = 'center center';
-    }
+    // Use Fabric.js native zoom - this properly scales ALL objects including guides
+    // Zoom to center point of canvas for consistent behavior
+    const centerX = canvas.getWidth() / 2;
+    const centerY = canvas.getHeight() / 2;
+    
+    canvas.zoomToPoint(new window.fabric.Point(centerX, centerY), newZoom);
+    canvas.requestRenderAll();
   };
 
   // Define handleSave as a function declaration instead of a constant arrow
@@ -1200,6 +1212,13 @@ export default function Editor() {
       // Step 1 & 2: export high‑resolution image and upload
       if (fabricCanvasRef.current && window.fabric) {
         const canvas = fabricCanvasRef.current;
+        
+        // Save current zoom and reset to 1 for export
+        const currentZoom = canvas.getZoom();
+        const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : null;
+        canvas.setZoom(1);
+        canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+        
         // Temporarily remove guides and custom shape
         const objects = canvas.getObjects();
         const bleedGuide = objects.find((o: any) => o.name === "bleedGuide");
@@ -1223,6 +1242,13 @@ export default function Editor() {
         
         // Restore the original background for editing
         canvas.backgroundColor = originalBackground;
+        
+        // Restore zoom level
+        if (currentVpt) {
+          canvas.setViewportTransform(currentVpt as any);
+        }
+        canvas.setZoom(currentZoom);
+        
         canvas.renderAll();
         // Restore guides, bleed line, and custom shape for editing
         if (bleedGuide) canvas.add(bleedGuide);

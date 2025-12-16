@@ -474,16 +474,19 @@ export default function Editor() {
   };
 
   const handleZoom = (delta: number) => {
+    if (!fabricCanvasRef.current) return;
+    
+    const canvas = fabricCanvasRef.current;
     const newZoom = Math.max(0.5, Math.min(3, zoom + delta));
     setZoom(newZoom);
     
-    // Apply CSS transform to the canvas wrapper for visual zoom
-    // This keeps Fabric canvas internals untouched - guides stay aligned
-    const canvasWrapper = canvasContainerRef.current?.querySelector('.canvas-container') as HTMLElement;
-    if (canvasWrapper) {
-      canvasWrapper.style.transform = `scale(${newZoom})`;
-      canvasWrapper.style.transformOrigin = 'center center';
-    }
+    // Use Fabric.js native zoom - this properly scales ALL objects including guides
+    // Zoom to center point of canvas for consistent behavior
+    const centerX = canvas.getWidth() / 2;
+    const centerY = canvas.getHeight() / 2;
+    
+    canvas.zoomToPoint(new window.fabric.Point(centerX, centerY), newZoom);
+    canvas.requestRenderAll();
   };
 
   const handleSave = async () => {
@@ -501,8 +504,12 @@ export default function Editor() {
       let highResExportUrl = null;
       if (fabricCanvasRef.current) {
         const canvas = fabricCanvasRef.current;
-        const templateWidth = (product as any)?.templateWidth || 400;
-        const templateHeight = (product as any)?.templateHeight || 400;
+        
+        // Save current zoom and reset to 1 for export
+        const currentZoom = canvas.getZoom();
+        const currentVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : null;
+        canvas.setZoom(1);
+        canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
         
         // Temporarily remove guides for export
         const objects = canvas.getObjects();
@@ -522,6 +529,12 @@ export default function Editor() {
           multiplier: multiplier,
           quality: 1,
         });
+        
+        // Restore zoom level
+        if (currentVpt) {
+          canvas.setViewportTransform(currentVpt as any);
+        }
+        canvas.setZoom(currentZoom);
         
         // Restore guides
         if (bleedGuide) canvas.add(bleedGuide);

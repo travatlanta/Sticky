@@ -6,11 +6,27 @@ import { useQuery } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { formatPrice } from "@/lib/utils";
 
+interface AdminOrder {
+  id: number;
+  status: string;
+  totalAmount: string;
+  createdAt: string;
+  shippingAddress?: {
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
 export default function AdminOrders() {
   const router = useRouter();
 
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [], isLoading } = useQuery<AdminOrder[]>({
     queryKey: ["/api/admin/orders"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/orders");
+      if (!res.ok) throw new Error("Failed to load orders");
+      return res.json();
+    },
   });
 
   return (
@@ -30,7 +46,7 @@ export default function AdminOrders() {
             <div className="p-4 text-gray-500">Loading orders…</div>
           )}
 
-          {orders.map((order: any) => (
+          {orders.map((order) => (
             <div
               key={order.id}
               onClick={() => router.push(`/admin/orders/${order.id}`)}

@@ -31,8 +31,7 @@ import {
 } from "lucide-react";
 import { getContourFromImage, expandContour, scaleContourPath, traceContour } from "@/lib/contour-tracer";
 
-type FabricModule = typeof import("fabric");
-let fabricModule: FabricModule | null = null;
+let fabricModule: any = null;
 
 interface ProductOption {
   id: number;
@@ -212,40 +211,62 @@ export default function Editor() {
   }, [product]);
 
   useEffect(() => {
-    if (!canvasRef.current || fabricCanvasRef.current) return;
-
-    const initCanvas = async () => {
-      if (!fabricModule) {
-        fabricModule = await import("fabric");
+    if (fabricCanvasRef.current) return;
+    
+    const checkAndInit = () => {
+      if (!canvasRef.current) {
+        setTimeout(checkAndInit, 100);
+        return;
       }
       
-      const canvas = new fabricModule.Canvas(canvasRef.current!, {
-        backgroundColor: "#ffffff",
-        selection: true,
-        preserveObjectStacking: true,
-      });
-
-      fabricCanvasRef.current = canvas;
-
-      canvas.on("object:modified", () => {
-        saveCanvasState();
-        updateContourFromCanvas();
-      });
-      canvas.on("object:added", () => {
-        saveCanvasState();
-        updateContourFromCanvas();
-      });
-      canvas.on("object:removed", () => {
-        saveCanvasState();
-        updateContourFromCanvas();
-      });
-      canvas.on("object:moving", updateContourFromCanvas);
-      canvas.on("object:scaling", updateContourFromCanvas);
-      
-      setFabricLoaded(true);
+      initCanvas();
     };
 
-    initCanvas();
+    const initCanvas = async () => {
+      try {
+        if (!fabricModule) {
+          console.log("Loading Fabric.js module...");
+          const fabricImport = await import("fabric");
+          fabricModule = fabricImport.fabric || fabricImport;
+          console.log("Fabric.js loaded successfully", Object.keys(fabricModule));
+        }
+        
+        if (!canvasRef.current) {
+          console.error("Canvas ref not available");
+          return;
+        }
+        
+        const canvas = new fabricModule.Canvas(canvasRef.current, {
+          backgroundColor: "#ffffff",
+          selection: true,
+          preserveObjectStacking: true,
+        });
+
+        fabricCanvasRef.current = canvas;
+        console.log("Canvas initialized successfully");
+
+        canvas.on("object:modified", () => {
+          saveCanvasState();
+          updateContourFromCanvas();
+        });
+        canvas.on("object:added", () => {
+          saveCanvasState();
+          updateContourFromCanvas();
+        });
+        canvas.on("object:removed", () => {
+          saveCanvasState();
+          updateContourFromCanvas();
+        });
+        canvas.on("object:moving", updateContourFromCanvas);
+        canvas.on("object:scaling", updateContourFromCanvas);
+        
+        setFabricLoaded(true);
+      } catch (error) {
+        console.error("Failed to initialize canvas:", error);
+      }
+    };
+
+    checkAndInit();
 
     return () => {
       if (fabricCanvasRef.current) {
@@ -257,13 +278,13 @@ export default function Editor() {
 
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !fabricLoaded) return;
 
     const updateCanvasSize = () => {
       const container = previewContainerRef.current;
       if (!container) return;
 
-      const padding = 60;
+      const padding = 80;
       const containerWidth = container.clientWidth - padding;
       const containerHeight = container.clientHeight - padding;
       
@@ -272,11 +293,13 @@ export default function Editor() {
       
       const scaleX = containerWidth / productWidth;
       const scaleY = containerHeight / productHeight;
-      const scale = Math.min(scaleX, scaleY, 2.5);
+      const scale = Math.min(scaleX, scaleY, 3);
       
       const displayWidth = Math.round(productWidth * scale);
       const displayHeight = Math.round(productHeight * scale);
 
+      console.log(`Updating canvas: product ${productWidth}x${productHeight}, display ${displayWidth}x${displayHeight}, scale ${scale}`);
+      
       canvas.setDimensions({ width: displayWidth, height: displayHeight });
       canvas.setZoom(scale);
       canvas.renderAll();
@@ -285,7 +308,7 @@ export default function Editor() {
     updateCanvasSize();
     window.addEventListener("resize", updateCanvasSize);
     return () => window.removeEventListener("resize", updateCanvasSize);
-  }, [designLoading, canvasDimensions]);
+  }, [fabricLoaded, canvasDimensions]);
 
   useEffect(() => {
     if (design?.previewUrl && !uploadedImage) {
@@ -435,7 +458,10 @@ export default function Editor() {
 
   const addText = useCallback(() => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas || !fabricModule) return;
+    if (!canvas || !fabricModule) {
+      toast({ title: "Editor not ready", description: "Please wait a moment and try again.", variant: "destructive" });
+      return;
+    }
     
     const text = new fabricModule.IText("Your Text", {
       left: canvas.width! / 2,
@@ -451,11 +477,15 @@ export default function Editor() {
     canvas.setActiveObject(text);
     canvas.renderAll();
     setActiveTool("select");
-  }, [fontFamily, fontSize, textColor]);
+    toast({ title: "Text added" });
+  }, [fontFamily, fontSize, textColor, toast]);
 
   const addShape = useCallback((shapeType: string) => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas || !fabricModule) return;
+    if (!canvas || !fabricModule) {
+      toast({ title: "Editor not ready", description: "Please wait a moment and try again.", variant: "destructive" });
+      return;
+    }
     
     const centerX = canvas.width! / 2;
     const centerY = canvas.height! / 2;
@@ -539,7 +569,8 @@ export default function Editor() {
     canvas.setActiveObject(shape);
     canvas.renderAll();
     setActiveTool("select");
-  }, [fillColor]);
+    toast({ title: "Shape added" });
+  }, [fillColor, toast]);
 
   const addEmoji = useCallback((emojiName: string) => {
     const canvas = fabricCanvasRef.current;
@@ -579,7 +610,10 @@ export default function Editor() {
 
   const addClipart = useCallback((clipartName: string) => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas || !fabricModule) return;
+    if (!canvas || !fabricModule) {
+      toast({ title: "Editor not ready", description: "Please wait a moment and try again.", variant: "destructive" });
+      return;
+    }
     
     const clipartPaths: Record<string, string> = {
       arrow: "M 50 0 L 100 50 L 75 50 L 75 100 L 25 100 L 25 50 L 0 50 Z",
@@ -609,7 +643,8 @@ export default function Editor() {
     canvas.setActiveObject(shape);
     canvas.renderAll();
     setActiveTool("select");
-  }, [fillColor]);
+    toast({ title: "Clipart added" });
+  }, [fillColor, toast]);
 
   const toggleDrawingMode = useCallback((enabled: boolean) => {
     const canvas = fabricCanvasRef.current;

@@ -1,2 +1,2 @@
 #!/bin/bash
-NODE_ENV=production node dist/index.js
+cd next-app && NODE_ENV=production npm run start

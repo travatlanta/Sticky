@@ -569,15 +569,36 @@ export default function Editor() {
         }
       }
       
+      // Calculate full unit price including option costs
+      const productId = (design as any)?.productId;
+      const selectedOpts = (design as any)?.selectedOptions;
+      let fullUnitPrice = parseFloat((product as any)?.basePrice || '0');
+      
+      // Call calculate-price API to get accurate price with option costs
+      try {
+        const priceRes = await fetch(`/api/products/${productId}/calculate-price`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: 100, selectedOptions: selectedOpts }),
+          credentials: 'include',
+        });
+        if (priceRes.ok) {
+          const priceData = await priceRes.json();
+          fullUnitPrice = parseFloat(priceData.pricePerUnit || 0) + parseFloat(priceData.optionsCost || 0);
+        }
+      } catch (e) {
+        console.warn('Could not calculate price with options, using base price');
+      }
+      
       const res = await fetch("/api/cart/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productId: (design as any)?.productId,
+          productId: productId,
           designId: parseInt(designId!),
           quantity: 100,
-          selectedOptions: (design as any)?.selectedOptions,
-          unitPrice: (product as any)?.basePrice,
+          selectedOptions: selectedOpts,
+          unitPrice: fullUnitPrice,
         }),
         credentials: "include",
       });

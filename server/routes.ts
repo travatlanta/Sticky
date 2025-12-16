@@ -299,23 +299,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Add option modifiers
+      // Add option modifiers and collect itemized add-ons
       let optionsCost = 0;
+      const addOns: { type: string; name: string; pricePerUnit: number; totalCost: number }[] = [];
+      
       if (selectedOptions) {
-        for (const optionId of Object.values(selectedOptions)) {
+        for (const [optionType, optionId] of Object.entries(selectedOptions)) {
           const option = options.find((o) => o.id === optionId);
           if (option && option.priceModifier) {
-            optionsCost += parseFloat(option.priceModifier);
+            const modifier = parseFloat(option.priceModifier);
+            if (modifier > 0) {
+              optionsCost += modifier;
+              addOns.push({
+                type: option.optionType,
+                name: option.name,
+                pricePerUnit: modifier,
+                totalCost: modifier * quantity,
+              });
+            }
           }
         }
       }
 
       const subtotal = (pricePerUnit + optionsCost) * quantity;
+      const baseSubtotal = pricePerUnit * quantity;
+      
       res.json({
         pricePerUnit,
         optionsCost,
         quantity,
         subtotal,
+        baseSubtotal,
+        addOns,
       });
     } catch (error) {
       console.error("Error calculating price:", error);

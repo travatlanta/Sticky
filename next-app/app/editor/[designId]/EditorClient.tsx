@@ -1282,23 +1282,37 @@ export default function Editor() {
           });
         }
       }
-      // Step 3: Add item to cart
+      // Step 3: Calculate full unit price including option costs
+      const productId = Number((product as any)?.id || (design as any)?.productId);
+      const selectedOpts = (design as any)?.selectedOptions || null;
+      let fullUnitPrice = parseFloat((product as any)?.basePrice || '0');
+      
+      // Call calculate-price API to get accurate price with option costs
+      try {
+        const priceRes = await fetch(`/api/products/${productId}/calculate-price`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: 1, selectedOptions: selectedOpts }),
+          credentials: 'include',
+        });
+        if (priceRes.ok) {
+          const priceData = await priceRes.json();
+          fullUnitPrice = parseFloat(priceData.pricePerUnit || 0) + parseFloat(priceData.optionsCost || 0);
+        }
+      } catch (e) {
+        console.warn('Could not calculate price with options, using base price');
+      }
+      
+      // Add item to cart with full unit price
       const addRes = await fetch('/api/cart/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Send a single quantity by default; large quantities can be selected in
-        // the cart page.  Passing 100 here previously caused the cart to
-        // reject the request on some environments.  Include selectedOptions
-        // and basePrice when available.  Use the numeric designId and productId.
         body: JSON.stringify({
-          // Always send the product ID from the loaded product.  Using
-          // `design?.productId` can result in undefined when the design is
-          // newly created, causing the cart API to reject the request.
-          productId: Number((product as any)?.id || (design as any)?.productId),
+          productId: productId,
           designId: Number(designId!),
           quantity: 1,
-          selectedOptions: (design as any)?.selectedOptions || null,
-          unitPrice: (product as any)?.basePrice || null,
+          selectedOptions: selectedOpts,
+          unitPrice: fullUnitPrice,
         }),
         credentials: 'include',
       });

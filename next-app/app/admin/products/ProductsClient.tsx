@@ -21,9 +21,11 @@ import {
   CheckCircle,
   Layers,
   Truck,
+  Flame,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DealsTab from "@/components/admin/DealsTab";
 
 interface Product {
   id: number;
@@ -56,6 +58,7 @@ interface ProductTemplate {
 }
 
 export default function AdminProducts() {
+  const [activeTab, setActiveTab] = useState("products");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -347,18 +350,46 @@ export default function AdminProducts() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Products</h1>
-            <p className="text-gray-600 text-sm md:text-base">Manage your product catalog</p>
-          </div>
-          <Button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full sm:w-auto" data-testid="button-add-product">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
-          </Button>
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Products & Deals</h1>
+          <p className="text-gray-600 text-sm md:text-base">Manage your product catalog and promotional deals</p>
         </div>
 
-        {/* Help Guide */}
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(v) => {
+            setActiveTab(v);
+            if (v === "deals") {
+              setShowCreateForm(false);
+              setEditingProduct(null);
+            }
+          }} 
+          className="w-full"
+        >
+          <TabsList className="mb-6">
+            <TabsTrigger value="products" className="gap-2" data-testid="tab-products">
+              <Package className="h-4 w-4" />
+              Products
+            </TabsTrigger>
+            <TabsTrigger value="deals" className="gap-2" data-testid="tab-deals">
+              <Flame className="h-4 w-4" />
+              Hot Deals
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="products">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Product Catalog</h2>
+                <p className="text-gray-600 text-sm">Manage your products</p>
+              </div>
+              <Button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full sm:w-auto" data-testid="button-add-product">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
+            </div>
+
+            {/* Help Guide */}
         <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4 mb-6">
           <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-base">
             <Package className="h-5 w-5 text-orange-600" />
@@ -1004,6 +1035,12 @@ export default function AdminProducts() {
             </div>
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="deals">
+            {activeTab === "deals" && <DealsTab />}
+          </TabsContent>
+        </Tabs>
       </div>
     </AdminLayout>
   );

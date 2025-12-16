@@ -131,7 +131,7 @@ export default function Editor() {
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const [toolDockOpen, setToolDockOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState("text");
+  const [activeTab, setActiveTab] = useState("");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
@@ -1308,6 +1308,93 @@ export default function Editor() {
                     <TooltipContent>{HELP_TIPS.adjust}</TooltipContent>
                   </Tooltip>
                 </TabsList>
+
+                {activeTab === "" && (
+                  <div className="p-4 space-y-4" data-testid="quickstart-guide">
+                    <div className="flex items-center gap-2 text-primary font-medium">
+                      <svg className="w-6 h-6 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 19V5M5 12l7-7 7 7" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span>Start designing here</span>
+                    </div>
+                    
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-3">
+                      <h3 className="font-semibold text-sm">Quick Start Guide</h3>
+                      
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <div className="flex items-start gap-2">
+                          <Type className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                          <div>
+                            <span className="font-medium text-foreground">Text</span>
+                            <p>Add custom text with different fonts, sizes, and colors</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-2">
+                          <Shapes className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                          <div>
+                            <span className="font-medium text-foreground">Graphics</span>
+                            <p>Add shapes and clipart to your design</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-2">
+                          <FolderOpen className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                          <div>
+                            <span className="font-medium text-foreground">Uploads</span>
+                            <p>Upload your own images and logos</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-2">
+                          <Brush className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                          <div>
+                            <span className="font-medium text-foreground">Draw</span>
+                            <p>Freehand drawing with brush tools</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-2">
+                          <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                          <div>
+                            <span className="font-medium text-foreground">Effects</span>
+                            <p>Add shadows, glow, and outlines</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-2">
+                          <Palette className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                          <div>
+                            <span className="font-medium text-foreground">Adjust</span>
+                            <p>Customize background and bleed colors</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                      <h3 className="font-semibold text-sm">Tips</h3>
+                      <ul className="text-sm text-muted-foreground space-y-1.5">
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                          <span>Click objects on canvas to select and edit them</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                          <span>Drag corners to resize, use handles to rotate</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                          <span>Use undo/redo buttons to fix mistakes</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                          <span>Save your design before adding to cart</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
 
                 <TabsContent value="text" className="p-3 space-y-3">
                   <Button className="w-full" onClick={addText} data-testid="button-add-text">

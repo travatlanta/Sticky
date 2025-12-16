@@ -221,6 +221,21 @@ Key data entities:
   - Print-ready file download buttons
   - Shipping address, tracking info, order summary
 
+### Checkout Price Handling (Fixed)
+- **Issue**: Cart items with null unitPrice caused $NaN display and 400 errors at checkout
+- **Fixes Applied**:
+  - `next-app/app/api/cart/add/route.ts`: Always stores valid unitPrice string, defaults to '0' for free products
+  - `next-app/app/checkout/CheckoutClient.tsx`: Properly handles null/NaN values in subtotal/shipping/total calculations
+  - `next-app/app/api/checkout/create-payment/route.ts`: Allows $0 orders (free products) to complete without payment processing
+
+## Dual Codebase Note
+
+**IMPORTANT**: This project has two codebases:
+1. **Production (stickybanditos.com)**: Uses Next.js app in `next-app/` directory
+2. **Development (Replit)**: Uses Vite+Express app in root `client/` and `server/` directories
+
+When fixing production bugs, modify files in `next-app/`. The root Vite+Express app is a parallel development version.
+
 ## Pending Configuration
 
 ### Stripe Payment Integration

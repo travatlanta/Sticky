@@ -182,14 +182,17 @@ export default function CheckoutClient() {
 
   // Calculate subtotal and totals on the client. The server returns these, but fallback if missing.
   const subtotal =
-    (typeof cart.subtotal === 'number' ? cart.subtotal : 0) ||
-    cart.items.reduce((sum, item) => sum + parseFloat(item.unitPrice) * item.quantity, 0);
+    (typeof cart.subtotal === 'number' && !isNaN(cart.subtotal) ? cart.subtotal : 0) ||
+    cart.items.reduce((sum, item) => {
+      const price = parseFloat(item.unitPrice || '0') || 0;
+      return sum + price * item.quantity;
+    }, 0);
 
   // Shipping now comes ONLY from /api/cart. No settings query. No $15 fallback.
-  const shipping = typeof cart.shipping === 'number' ? cart.shipping : 0;
+  const shipping = (typeof cart.shipping === 'number' && !isNaN(cart.shipping)) ? cart.shipping : 0;
 
   // Total from /api/cart when provided, otherwise subtotal + shipping.
-  const total = typeof cart.total === 'number' ? cart.total : subtotal + shipping;
+  const total = (typeof cart.total === 'number' && !isNaN(cart.total)) ? cart.total : subtotal + shipping;
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-6xl">

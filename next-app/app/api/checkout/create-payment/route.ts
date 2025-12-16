@@ -73,7 +73,55 @@ export async function POST(req: Request) {
     console.log('Checkout items:', items.map(i => ({ id: i.id, unitPrice: i.unitPrice, quantity: i.quantity })));
     console.log('Calculated subtotal:', subtotal);
 
-    if (subtotal <= 0) {
+    // Allow $0 orders (free products) - skip payment processing
+    if (subtotal === 0) {
+      // Create order directly without payment for free items
+      const formattedShippingAddress = shippingAddress ? {
+        name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
+        firstName: shippingAddress.firstName,
+        lastName: shippingAddress.lastName,
+        street: shippingAddress.address1,
+        address1: shippingAddress.address1,
+        address2: shippingAddress.address2,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        zip: shippingAddress.zip,
+        country: shippingAddress.country || 'US',
+        phone: shippingAddress.phone,
+      } : null;
+
+      const [order] = await db
+        .insert(orders)
+        .values({
+          userId: userId,
+          status: 'paid',
+          subtotal: '0',
+          shippingCost: '0',
+          taxAmount: '0',
+          discountAmount: '0',
+          totalAmount: '0',
+          shippingAddress: formattedShippingAddress,
+          stripePaymentIntentId: `free-order-${randomUUID()}`,
+        })
+        .returning();
+
+      for (const item of items) {
+        await db.insert(orderItems).values({
+          orderId: order.id,
+          productId: item.productId,
+          designId: item.designId,
+          quantity: item.quantity,
+          unitPrice: String(item.unitPrice ?? '0'),
+          selectedOptions: item.selectedOptions,
+        });
+      }
+
+      await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+
+      return noCache(NextResponse.json({ success: true, orderId: order.id }));
+    }
+
+    if (subtotal < 0 || isNaN(subtotal)) {
       return noCache(
         NextResponse.json({ 
           error: 'Invalid cart total. Please ensure all items have valid prices.',

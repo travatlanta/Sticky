@@ -403,10 +403,30 @@ export default function ProductDetail() {
             </div>
 
             <div className="pb-6 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button onClick={handleStartDesign} size="lg" className="flex-1 text-lg" data-testid="button-start-design">
+              <div className="flex flex-col gap-3">
+                <Button onClick={handleStartDesign} size="lg" className="w-full text-lg" data-testid="button-start-design">
                   <Paintbrush className="mr-2 h-5 w-5" />
                   Design Online
+                </Button>
+                <Button 
+                  onClick={handleQuickOrder} 
+                  size="lg" 
+                  variant="outline"
+                  className="w-full text-lg"
+                  disabled={isQuickOrderLoading || calculatedPrice?.pricePerUnit === undefined || calculatedPrice?.pricePerUnit === null}
+                  data-testid="button-skip-design"
+                >
+                  {isQuickOrderLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      Skip Design & Add to Cart
+                    </>
+                  )}
                 </Button>
               </div>
 

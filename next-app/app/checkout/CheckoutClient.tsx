@@ -1,11 +1,18 @@
 /*
- * Sticky Banditos Checkout Page (modified)
+ * Sticky Banditos Checkout Page
  *
- * This file defines the client‑side checkout experience. It uses the cart API to
- * retrieve items, subtotal and shipping. A 9.1% tax (Arizona + Phoenix
- * combined rate) is calculated client‑side and displayed in the order summary.
- * The total used for payment includes tax so the server and client remain
- * consistent. If Square credentials are missing, a friendly message is shown.
+ * This file defines the client-side checkout experience. It has been updated
+ * to improve spacing around the page, gracefully handle missing Square
+ * environment variables, and ensure the payment form only renders when
+ * properly configured. If Square credentials are missing, a friendly
+ * message is shown instead of throwing a client-side exception. The page
+ * also includes ample vertical padding so the content doesn’t feel
+ * cramped against the header or footer.
+ *
+ * FIX:
+ * - Removed ALL $15 shipping fallbacks and checkout-side shipping settings query.
+ * - Checkout now uses shipping returned by /api/cart (cart.shipping) only.
+ * - Also fixes React hook order error by removing the conditional shipping settings hook.
  */
 
 'use client';
@@ -68,6 +75,7 @@ export default function CheckoutClient() {
   });
 
   // Retrieve cart details. The query key matches the API route used for the cart.
+  // NOTE: /api/cart now returns shipping + total fields.
   const { data: cart, isLoading: cartLoading } = useQuery<{
     items: CartItem[];
     subtotal: number;
@@ -180,16 +188,8 @@ export default function CheckoutClient() {
   // Shipping now comes ONLY from /api/cart. No settings query. No $15 fallback.
   const shipping = typeof cart.shipping === 'number' ? cart.shipping : 0;
 
-  // Tax: use Arizona + Phoenix combined rate (9.1%). Compute from subtotal.  This will be
-  // displayed to the user and included in the total. If subtotal is 0 (free orders), tax will
-  // naturally be 0.
-  const TAX_RATE = 0.091;
-  const tax = subtotal * TAX_RATE;
-
-  // Total from /api/cart when provided; otherwise compute subtotal + shipping + tax.  If the
-  // backend already includes tax in cart.total, we want to avoid double‑adding tax.  We'll use
-  // cart.total when available and assume it already includes tax.  Otherwise compute.
-  const totalWithTax = typeof cart.total === 'number' ? cart.total : subtotal + shipping + tax;
+  // Total from /api/cart when provided, otherwise subtotal + shipping.
+  const total = typeof cart.total === 'number' ? cart.total : subtotal + shipping;
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-6xl">
@@ -307,20 +307,20 @@ export default function CheckoutClient() {
                   <p className="font-medium">
                     {shippingAddress.firstName} {shippingAddress.lastName}
                   </p>
-                    <p className="text-gray-600">{shippingAddress.address1}</p>
-                    {shippingAddress.address2 && <p className="text-gray-600">{shippingAddress.address2}</p>}
-                    <p className="text-gray-600">
-                      {shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}
-                    </p>
-                    {shippingAddress.phone && <p className="text-gray-600">{shippingAddress.phone}</p>}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setStep('shipping')}
-                      data-testid="button-edit-shipping"
-                    >
-                      Edit
-                    </Button>
+                  <p className="text-gray-600">{shippingAddress.address1}</p>
+                  {shippingAddress.address2 && <p className="text-gray-600">{shippingAddress.address2}</p>}
+                  <p className="text-gray-600">
+                    {shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}
+                  </p>
+                  {shippingAddress.phone && <p className="text-gray-600">{shippingAddress.phone}</p>}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStep('shipping')}
+                    data-testid="button-edit-shipping"
+                  >
+                    Edit
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -355,7 +355,7 @@ export default function CheckoutClient() {
                         countryCode: 'US',
                         currencyCode: 'USD',
                         total: {
-                          amount: totalWithTax.toFixed(2),
+                          amount: total.toFixed(2),
                           label: 'Total',
                         },
                       })}
@@ -426,14 +426,10 @@ export default function CheckoutClient() {
                   <span className="text-gray-600">Shipping</span>
                   <span>${shipping.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax</span>
-                  <span>${tax.toFixed(2)}</span>
-                </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span data-testid="text-checkout-total">${totalWithTax.toFixed(2)}</span>
+                  <span data-testid="text-checkout-total">${total.toFixed(2)}</span>
                 </div>
               </div>
             </CardContent>

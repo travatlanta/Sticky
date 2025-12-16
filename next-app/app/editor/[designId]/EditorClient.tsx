@@ -425,9 +425,15 @@ export default function Editor() {
     const prevState = undoStack[undoStack.length - 1];
     setUndoStack(prev => prev.slice(0, -1));
     
-    canvas.loadFromJSON(prevState).then(() => {
-      canvas.renderAll();
-    });
+    try {
+      canvas.loadFromJSON(JSON.parse(prevState), () => {
+        canvas.renderAll();
+      });
+    } catch (e) {
+      canvas.loadFromJSON(prevState).then(() => {
+        canvas.renderAll();
+      });
+    }
   }, [undoStack]);
 
   const redo = useCallback(() => {
@@ -440,9 +446,15 @@ export default function Editor() {
     const nextState = redoStack[redoStack.length - 1];
     setRedoStack(prev => prev.slice(0, -1));
     
-    canvas.loadFromJSON(nextState).then(() => {
-      canvas.renderAll();
-    });
+    try {
+      canvas.loadFromJSON(JSON.parse(nextState), () => {
+        canvas.renderAll();
+      });
+    } catch (e) {
+      canvas.loadFromJSON(nextState).then(() => {
+        canvas.renderAll();
+      });
+    }
   }, [redoStack]);
 
   const deleteSelected = useCallback(() => {
@@ -811,9 +823,9 @@ export default function Editor() {
           canvas.renderAll();
 
           if (product?.supportsCustomShape) {
-            const imgElement = fabricImg.getElement() as HTMLImageElement;
-            const newContour = getContourFromImage(imgElement, scale, 10, 2);
-            setContourPath(newContour);
+            setTimeout(() => {
+              updateContourFromCanvas();
+            }, 100);
           }
 
           const asset: UploadedAsset = {
@@ -1184,13 +1196,15 @@ export default function Editor() {
               >
                 {product?.supportsCustomShape && contourPath ? (
                   <svg 
-                    className="absolute pointer-events-none"
+                    className="absolute pointer-events-none z-0"
                     style={{
-                      left: -16,
-                      top: -16,
-                      width: `calc(100% + 32px)`,
-                      height: `calc(100% + 32px)`,
+                      left: -20,
+                      top: -20,
+                      width: `calc(100% + 40px)`,
+                      height: `calc(100% + 40px)`,
                     }}
+                    viewBox={`-20 -20 ${(fabricCanvasRef.current?.width || 400) + 40} ${(fabricCanvasRef.current?.height || 400) + 40}`}
+                    preserveAspectRatio="xMidYMid meet"
                   >
                     <defs>
                       <filter id="bleed-shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -1198,18 +1212,17 @@ export default function Editor() {
                       </filter>
                     </defs>
                     <path 
-                      d={expandContour(contourPath, 16)} 
+                      d={expandContour(contourPath, 20)} 
                       fill={bleedColor}
                       filter="url(#bleed-shadow)"
-                      transform="translate(16, 16)"
                     />
                   </svg>
-                ) : (
+                ) : !product?.supportsCustomShape ? (
                   <div 
-                    className="absolute inset-[-12px] rounded-lg shadow-2xl"
+                    className="absolute inset-[-12px] rounded-lg shadow-2xl z-0"
                     style={{ backgroundColor: bleedColor }}
                   />
-                )}
+                ) : null}
                 <canvas 
                   ref={canvasRef} 
                   className="relative z-10 rounded-lg shadow-lg"

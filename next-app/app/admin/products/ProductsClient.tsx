@@ -44,6 +44,7 @@ interface Product {
   printDpi?: number;
   bleedSize?: string;
   safeZoneSize?: string;
+  supportsCustomShape?: boolean;
 
   // Per-product shipping settings.  These are returned from the API and
   // optionally edited in the admin form.  shippingType can be 'free',
@@ -84,6 +85,7 @@ export default function AdminProducts() {
     printDpi: 300,
     bleedSize: "0.125",
     safeZoneSize: "0.125",
+    supportsCustomShape: false,
   });
   const createFileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingCreate, setIsUploadingCreate] = useState(false);
@@ -248,6 +250,7 @@ export default function AdminProducts() {
         printDpi: 300,
         bleedSize: "0.125",
         safeZoneSize: "0.125",
+        supportsCustomShape: false,
       });
       toast({ title: "Product created successfully" });
     },
@@ -669,6 +672,15 @@ export default function AdminProducts() {
                   />
                   <span>Featured</span>
                 </label>
+                <label className="flex items-center gap-2 text-sm" title="Enable for die-cut and kiss-cut stickers - follows image contour instead of rectangle">
+                  <input
+                    type="checkbox"
+                    checked={formData.supportsCustomShape}
+                    onChange={(e) => setFormData({ ...formData, supportsCustomShape: e.target.checked })}
+                    data-testid="checkbox-custom-shape"
+                  />
+                  <span>Die-Cut / Custom Shape</span>
+                </label>
               </div>
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
@@ -939,7 +951,7 @@ export default function AdminProducts() {
                     />
                   </div>
                 )}
-                    <div className="flex items-center space-x-4">
+                    <div className="flex flex-wrap items-center gap-4">
                       <label className="flex items-center space-x-2">
                         <input
                           type="checkbox"
@@ -961,6 +973,17 @@ export default function AdminProducts() {
                           data-testid="checkbox-edit-featured"
                         />
                         <span>Featured</span>
+                      </label>
+                      <label className="flex items-center space-x-2" title="Enable for die-cut and kiss-cut stickers - follows image contour instead of rectangle">
+                        <input
+                          type="checkbox"
+                          checked={editingProduct.supportsCustomShape || false}
+                          onChange={(e) =>
+                            setEditingProduct({ ...editingProduct, supportsCustomShape: e.target.checked })
+                          }
+                          data-testid="checkbox-edit-custom-shape"
+                        />
+                        <span>Die-Cut / Custom Shape</span>
                       </label>
                     </div>
                     <div className="flex justify-end space-x-2">

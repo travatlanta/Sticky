@@ -27,7 +27,7 @@ import {
   Square, Circle, Triangle, Star, Heart, Smile, Undo2, Redo2, Trash2,
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   PaintBucket, Eraser, Pipette, Move, X, Save, Download, HelpCircle,
-  FolderOpen, Layers, Sparkles, Sun, Moon, Droplets, Zap, CircleDot
+  FolderOpen, Layers, Sparkles, Sun, Moon, Droplets, Zap, CircleDot, Maximize2
 } from "lucide-react";
 import { getContourFromImage, expandContour, scaleContourPath, traceContour } from "@/lib/contour-tracer";
 
@@ -309,30 +309,47 @@ export default function Editor() {
       const container = previewContainerRef.current;
       if (!container) return;
 
-      const padding = 80;
+      // Larger padding to ensure bleed zone is visible
+      const padding = 120;
       const containerWidth = container.clientWidth - padding;
       const containerHeight = container.clientHeight - padding;
       
       const productWidth = canvasDimensions.width;
       const productHeight = canvasDimensions.height;
       
+      // Always scale to fit - never exceed container bounds
       const scaleX = containerWidth / productWidth;
       const scaleY = containerHeight / productHeight;
-      const scale = Math.min(scaleX, scaleY, 3);
+      // Use the smaller scale to ensure it fits, cap at 2x max zoom
+      const scale = Math.min(scaleX, scaleY, 2);
       
       const displayWidth = Math.round(productWidth * scale);
       const displayHeight = Math.round(productHeight * scale);
 
-      console.log(`Updating canvas: product ${productWidth}x${productHeight}, display ${displayWidth}x${displayHeight}, scale ${scale}`);
+      console.log(`Canvas scaling: product ${productWidth}x${productHeight}, container ${containerWidth}x${containerHeight}, display ${displayWidth}x${displayHeight}, scale ${scale.toFixed(2)}`);
       
       canvas.setDimensions({ width: displayWidth, height: displayHeight });
       canvas.setZoom(scale);
       canvas.renderAll();
     };
 
+    // Initial update
     updateCanvasSize();
+    
+    // Also update when container resizes
+    const resizeObserver = new ResizeObserver(() => {
+      updateCanvasSize();
+    });
+    
+    if (previewContainerRef.current) {
+      resizeObserver.observe(previewContainerRef.current);
+    }
+    
     window.addEventListener("resize", updateCanvasSize);
-    return () => window.removeEventListener("resize", updateCanvasSize);
+    return () => {
+      window.removeEventListener("resize", updateCanvasSize);
+      resizeObserver.disconnect();
+    };
   }, [fabricLoaded, canvasDimensions]);
 
   useEffect(() => {
@@ -370,21 +387,42 @@ export default function Editor() {
   // Update canvas background based on product type (checkerboard for die-cut/custom shape)
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas || !fabricLoaded || !product) return;
+    if (!canvas || !fabricLoaded || !product || !fabricModule) return;
+
+    console.log("Setting canvas background for product:", product.name, "supportsCustomShape:", product.supportsCustomShape);
 
     if (product.supportsCustomShape) {
-      const pattern = createCheckerboardPattern();
-      if (pattern) {
+      // Create checkerboard pattern inline to ensure fabricModule is available
+      const patternCanvas = document.createElement('canvas');
+      const size = 20;
+      patternCanvas.width = size * 2;
+      patternCanvas.height = size * 2;
+      const ctx = patternCanvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.fillStyle = '#e8e8e8';
+        ctx.fillRect(0, 0, size * 2, size * 2);
+        ctx.fillStyle = '#d0d0d0';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillRect(size, size, size, size);
+        
+        const pattern = new fabricModule.Pattern({
+          source: patternCanvas,
+          repeat: 'repeat',
+        });
+        
         canvas.setBackgroundColor(pattern as any, () => {
+          console.log("Checkerboard pattern applied");
           canvas.renderAll();
         });
       }
     } else {
       canvas.setBackgroundColor('#ffffff', () => {
+        console.log("White background applied");
         canvas.renderAll();
       });
     }
-  }, [product, fabricLoaded, createCheckerboardPattern]);
+  }, [product, fabricLoaded]);
 
   const priceCalculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
@@ -1897,10 +1935,27 @@ export default function Editor() {
                   </Button>
                 </TabsContent>
 
-                <TabsContent value="adjust" className="p-3 space-y-3">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Bleed Zone Size</label>
-                    <div className="flex items-center gap-2">
+                <TabsContent value="adjust" className="p-3 space-y-4">
+                  {/* Product Type Indicator */}
+                  {product?.supportsCustomShape && (
+                    <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-primary font-medium text-sm">
+                        <div className="w-4 h-4 bg-gradient-to-br from-gray-200 to-gray-300 rounded-sm border" />
+                        <span>Die-Cut / Custom Shape Mode</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Checkerboard pattern shows transparent areas that will be cut away
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Bleed Zone Size */}
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+                      <Maximize2 className="w-4 h-4" />
+                      Bleed Zone Size
+                    </label>
+                    <div className="flex items-center gap-3">
                       <Slider
                         value={[bleedSize]}
                         onValueChange={([val]) => setBleedSize(Math.max(MIN_BLEED_SIZE, val))}
@@ -1910,28 +1965,37 @@ export default function Editor() {
                         className="flex-1"
                         data-testid="slider-bleed-size"
                       />
-                      <span className="text-sm font-medium w-16 text-right">{bleedSize.toFixed(3)}"</span>
+                      <div className="bg-background border rounded-md px-3 py-1.5 text-sm font-mono font-medium min-w-[70px] text-center">
+                        {bleedSize.toFixed(3)}"
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                      <span>Min: {MIN_BLEED_SIZE}"</span>
+                      <span>Max: 0.5"</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Minimum: {MIN_BLEED_SIZE}" - extra area that may be trimmed
+                      Extra area around your design that may be trimmed during production
                     </p>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Bleed/Border Color</label>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start"
-                      onClick={() => openColorPicker("bleed")}
-                      data-testid="button-bleed-color"
-                    >
-                      <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: bleedColor }} />
-                      {bleedColor}
-                    </Button>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {product?.supportsCustomShape ? "Not used for die-cut stickers (transparent background)" : "Color around your design"}
-                    </p>
-                  </div>
+                  {/* Bleed Color - only for standard products */}
+                  {!product?.supportsCustomShape && (
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Bleed/Border Color</label>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => openColorPicker("bleed")}
+                        data-testid="button-bleed-color"
+                      >
+                        <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: bleedColor }} />
+                        {bleedColor}
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Color around your design
+                      </p>
+                    </div>
+                  )}
 
                   <div className="border-t pt-3">
                     <h3 className="text-sm font-medium mb-2">Product Options</h3>

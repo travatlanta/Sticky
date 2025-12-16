@@ -22,6 +22,7 @@ import {
   Layers,
   Truck,
   Flame,
+  Scissors,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,6 +87,7 @@ export default function AdminProducts() {
     bleedSize: "0.125",
     safeZoneSize: "0.125",
     supportsCustomShape: false,
+    stickerType: "standard" as "standard" | "die-cut" | "kiss-cut" | "custom-shape",
   });
   const createFileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingCreate, setIsUploadingCreate] = useState(false);
@@ -251,6 +253,7 @@ export default function AdminProducts() {
         bleedSize: "0.125",
         safeZoneSize: "0.125",
         supportsCustomShape: false,
+        stickerType: "standard",
       });
       toast({ title: "Product created successfully" });
     },
@@ -361,7 +364,12 @@ export default function AdminProducts() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+    // Set supportsCustomShape based on sticker type
+    const updatedFormData = {
+      ...formData,
+      supportsCustomShape: formData.stickerType !== "standard",
+    };
+    createMutation.mutate(updatedFormData);
   };
 
   const toggleActive = (product: Product) => {
@@ -655,6 +663,43 @@ export default function AdminProducts() {
                 </p>
               </div>
               
+              {/* Sticker Type Selection */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Scissors className="h-4 w-4" />
+                  Sticker Type (for Custom Shape Support)
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { value: "standard", label: "Standard", desc: "Rectangle/square shape" },
+                    { value: "die-cut", label: "Die-Cut", desc: "Custom contour cut" },
+                    { value: "kiss-cut", label: "Kiss-Cut", desc: "Cut through vinyl only" },
+                    { value: "custom-shape", label: "Custom Shape", desc: "User-defined shape" },
+                  ].map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, stickerType: type.value as any })}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        formData.stickerType === type.value
+                          ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                          : "border-gray-200 hover:border-primary/50"
+                      }`}
+                      data-testid={`button-sticker-type-${type.value}`}
+                    >
+                      <div className="font-medium text-sm">{type.label}</div>
+                      <div className="text-xs text-gray-500">{type.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                {formData.stickerType !== "standard" && (
+                  <p className="text-xs text-primary mt-2 flex items-center gap-1">
+                    <span className="inline-block w-3 h-3 bg-gradient-to-br from-gray-200 to-gray-300 rounded-sm"></span>
+                    Canvas will show checkerboard pattern (transparent areas)
+                  </p>
+                )}
+              </div>
+
               <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -671,15 +716,6 @@ export default function AdminProducts() {
                     onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
                   />
                   <span>Featured</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm" title="Enable for die-cut and kiss-cut stickers - follows image contour instead of rectangle">
-                  <input
-                    type="checkbox"
-                    checked={formData.supportsCustomShape}
-                    onChange={(e) => setFormData({ ...formData, supportsCustomShape: e.target.checked })}
-                    data-testid="checkbox-custom-shape"
-                  />
-                  <span>Die-Cut / Custom Shape</span>
                 </label>
               </div>
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
@@ -951,6 +987,48 @@ export default function AdminProducts() {
                     />
                   </div>
                 )}
+                {/* Sticker Type Selection for Edit */}
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Scissors className="h-4 w-4" />
+                    Sticker Type (for Custom Shape Support)
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingProduct({ ...editingProduct, supportsCustomShape: false })}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        !editingProduct.supportsCustomShape
+                          ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                          : "border-gray-200 hover:border-primary/50"
+                      }`}
+                      data-testid="button-edit-sticker-type-standard"
+                    >
+                      <div className="font-medium text-sm">Standard</div>
+                      <div className="text-xs text-gray-500">Rectangle/square shape</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingProduct({ ...editingProduct, supportsCustomShape: true })}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        editingProduct.supportsCustomShape
+                          ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                          : "border-gray-200 hover:border-primary/50"
+                      }`}
+                      data-testid="button-edit-sticker-type-custom"
+                    >
+                      <div className="font-medium text-sm">Die-Cut / Kiss-Cut / Custom</div>
+                      <div className="text-xs text-gray-500">Custom contour cut with transparent areas</div>
+                    </button>
+                  </div>
+                  {editingProduct.supportsCustomShape && (
+                    <p className="text-xs text-primary mt-2 flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 bg-gradient-to-br from-gray-200 to-gray-300 rounded-sm"></span>
+                      Canvas will show checkerboard pattern (transparent areas)
+                    </p>
+                  )}
+                </div>
+
                     <div className="flex flex-wrap items-center gap-4">
                       <label className="flex items-center space-x-2">
                         <input
@@ -973,17 +1051,6 @@ export default function AdminProducts() {
                           data-testid="checkbox-edit-featured"
                         />
                         <span>Featured</span>
-                      </label>
-                      <label className="flex items-center space-x-2" title="Enable for die-cut and kiss-cut stickers - follows image contour instead of rectangle">
-                        <input
-                          type="checkbox"
-                          checked={editingProduct.supportsCustomShape || false}
-                          onChange={(e) =>
-                            setEditingProduct({ ...editingProduct, supportsCustomShape: e.target.checked })
-                          }
-                          data-testid="checkbox-edit-custom-shape"
-                        />
-                        <span>Die-Cut / Custom Shape</span>
                       </label>
                     </div>
                     <div className="flex justify-end space-x-2">

@@ -66,6 +66,46 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+
+    // Build update object with only provided fields
+    const updateData: Record<string, any> = { updatedAt: new Date() };
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.canvasJson !== undefined) updateData.canvasJson = body.canvasJson;
+    if (body.previewUrl !== undefined) updateData.previewUrl = body.previewUrl;
+    if (body.customShapeUrl !== undefined) updateData.customShapeUrl = body.customShapeUrl;
+    if (body.highResExportUrl !== undefined) updateData.highResExportUrl = body.highResExportUrl;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.selectedOptions !== undefined) updateData.selectedOptions = body.selectedOptions;
+
+    const [design] = await db
+      .update(designs)
+      .set(updateData)
+      .where(eq(designs.id, parseInt(id)))
+      .returning();
+
+    if (!design) {
+      return NextResponse.json({ message: 'Design not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(design);
+  } catch (error) {
+    console.error('Error updating design:', error);
+    return NextResponse.json({ message: 'Failed to update design' }, { status: 500 });
+  }
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

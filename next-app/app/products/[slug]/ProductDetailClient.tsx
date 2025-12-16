@@ -66,9 +66,19 @@ export default function ProductDetail() {
     enabled: !!slug,
   });
 
+  // Price calculation uses the product ID whenever available instead of the slug.  If the slug is
+  // non‑numeric (e.g. "kiss‑cut‑stickers"), sending it to the backend will cause the price API to
+  // error because it expects a numeric ID.  To avoid this, fall back to the product.id once the
+  // product has been fetched.  This hook recalculates the price whenever quantity or selected
+  // options change.
   const calculatePriceMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/products/${slug}/calculate-price`, {
+      // Determine the correct identifier for the price calculation.  Use the product's numeric ID
+      // whenever it has been loaded; otherwise fall back to the slug which may still be valid for
+      // simple numeric slugs.  Note: the API expects a numeric path segment; passing a string
+      // slug like "kiss‑cut‑stickers" will result in a 500 error.
+      const idParam = product?.id ?? slug;
+      const res = await fetch(`/api/products/${idParam}/calculate-price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quantity, selectedOptions }),
@@ -261,7 +271,16 @@ export default function ProductDetail() {
               )}
               {product && calculatedPrice && (
                 <p className="text-3xl font-bold text-orange-500 mb-2">
-                  {formatPrice(calculatedPrice.total)}
+                  {
+                    // Display the total price if provided by the API; otherwise compute it client‑side from pricePerUnit and quantity.
+                    formatPrice(
+                      // If total is defined and not null/undefined, use it directly
+                      (calculatedPrice.total !== undefined && calculatedPrice.total !== null)
+                        ? calculatedPrice.total
+                        // Fallback: multiply pricePerUnit by quantity. Ensure numeric multiplication to avoid NaN.
+                        : ((parseFloat(calculatedPrice.pricePerUnit ?? '0') * quantity).toFixed(2))
+                    )
+                  }
                 </p>
               )}
               {/* Quantity selector */}
@@ -336,6 +355,7 @@ export default function ProductDetail() {
                   />
                   {uploadedFile ? (
                     <div className="flex flex-col gap-2">
+                      {/* Preview of the uploaded file when available */}
                       {uploadedPreview && (
                         <img
                           src={uploadedPreview}
@@ -343,6 +363,7 @@ export default function ProductDetail() {
                           className="w-full h-48 object-contain rounded-md border"
                         />
                       )}
+                      {/* File name and change button */}
                       <div className="flex items-center gap-2">
                         <p className="text-sm text-gray-700 flex-1 truncate">
                           {uploadedFile.name} ({(uploadedFile.size / 1024 / 1024).toFixed(1)} MB)
@@ -359,6 +380,7 @@ export default function ProductDetail() {
                           Change
                         </Button>
                       </div>
+                      {/* Quick order button: emphasise that this will skip the editor and add to cart */}
                       <Button
                         onClick={handleQuickOrder}
                         size="lg"
@@ -378,18 +400,19 @@ export default function ProductDetail() {
                         ) : (
                           <>
                             <ShoppingCart className="mr-2 h-5 w-5" />
-                            Add to Cart
+                            Skip Editor & Add to Cart
                           </>
                         )}
                       </Button>
                     </div>
                   ) : (
-                    <label htmlFor="quick-order-upload" className="flex flex-col items-center justify-center py-6 cursor-pointer">
+                    <div className="flex flex-col items-center justify-center py-6 cursor-pointer border-2 border-dashed border-gray-300 rounded-md" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                      <span className="font-medium text-gray-700">Upload Print-Ready File</span>
+                      <span className="font-medium text-gray-700">Upload Print‑Ready File</span>
                       <span className="text-sm text-gray-500 mt-1">PNG, JPG, PDF, SVG, AI, PSD, EPS</span>
                       <span className="text-xs text-gray-400 mt-1">Max 50MB</span>
-                    </label>
+                      <span className="text-xs text-gray-500 mt-2 text-center">Uploading your artwork lets you bypass the design editor and go straight to checkout.</span>
+                    </div>
                   )}
                 </div>
               </div>

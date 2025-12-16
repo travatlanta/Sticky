@@ -123,7 +123,7 @@ Key data entities:
 
 ### Deals Management System
 - **Database**: `deals` table with title, description, pricing, images, CTA links, badges, scheduling
-- **Admin Panel**: `/admin/deals` - full CRUD operations with live preview, publish controls, homepage visibility toggles
+- **Admin Panel**: Deals management is now integrated into `/admin/products` with a tabbed interface (Products | Hot Deals)
 - **Customer Pages**: 
   - Homepage Hot Deals section with dynamic cards from `/api/deals/homepage`
   - `/deals` page showing all active published deals

@@ -54,6 +54,7 @@ export default function ProductDetail() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
   const [isQuickOrderLoading, setIsQuickOrderLoading] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [showUploadSection, setShowUploadSection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -257,6 +258,55 @@ export default function ProductDetail() {
     }
   };
 
+  const handleAddToCartWithoutDesign = async () => {
+    if (!product) return;
+
+    if (calculatedPrice?.pricePerUnit === undefined || calculatedPrice?.pricePerUnit === null) {
+      toast({
+        title: "Calculating price...",
+        description: "Please wait a moment for price calculation to complete.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAddingToCart(true);
+
+    try {
+      const fullUnitPrice = parseFloat(calculatedPrice.pricePerUnit) + (parseFloat(calculatedPrice.optionsCost) || 0);
+      
+      const cartRes = await fetch("/api/cart/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          designId: null,
+          quantity,
+          selectedOptions,
+          unitPrice: fullUnitPrice,
+        }),
+        credentials: "include",
+      });
+
+      if (!cartRes.ok) throw new Error("Failed to add to cart");
+
+      toast({ 
+        title: "Added to cart!", 
+        description: "You can upload your artwork from the cart page."
+      });
+      router.push("/cart");
+    } catch (error) {
+      console.error("Add to cart error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add to cart. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
   const clearUploadedFile = () => {
     setUploadedFile(null);
     setUploadedPreview(null);
@@ -430,100 +480,119 @@ export default function ProductDetail() {
                   Design Online
                 </Button>
                 
+                <Button 
+                  onClick={handleAddToCartWithoutDesign}
+                  size="lg" 
+                  variant="outline"
+                  className="w-full text-lg"
+                  disabled={isAddingToCart || calculatedPrice?.pricePerUnit === undefined}
+                  data-testid="button-add-to-cart"
+                >
+                  {isAddingToCart ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      Add to Cart
+                    </>
+                  )}
+                </Button>
+
+                <div className="relative my-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="bg-white dark:bg-background px-4 text-gray-500">or upload your artwork now</span>
+                  </div>
+                </div>
+
                 {!showUploadSection ? (
                   <Button 
                     onClick={() => setShowUploadSection(true)} 
                     size="lg" 
-                    variant="outline"
-                    className="w-full text-lg"
-                    data-testid="button-skip-design"
+                    variant="ghost"
+                    className="w-full"
+                    data-testid="button-show-upload"
                   >
                     <Upload className="mr-2 h-5 w-5" />
-                    I Have My Own Design
+                    Upload Artwork Now
                   </Button>
                 ) : (
-                  <>
-                    <div className="relative my-2">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-gray-300" />
-                      </div>
-                      <div className="relative flex justify-center text-sm">
-                        <span className="bg-white px-4 text-gray-500">Upload your print-ready file</span>
-                      </div>
-                    </div>
+                  <div className="bg-gray-50 dark:bg-muted rounded-xl p-4 border-2 border-dashed border-gray-300 dark:border-border">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,.pdf,.svg,.ai,.psd,.eps"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="quick-order-upload"
+                      data-testid="input-quick-order-file"
+                    />
 
-                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,.pdf,.svg,.ai,.psd,.eps"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                        id="quick-order-upload"
-                        data-testid="input-quick-order-file"
-                      />
-
-                      {uploadedFile ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3">
-                            {uploadedPreview ? (
-                              <img
-                                src={uploadedPreview}
-                                alt="Preview"
-                                className="w-16 h-16 object-cover rounded-lg"
-                              />
-                            ) : (
-                              <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                                <FileImage className="h-8 w-8 text-gray-400" />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">{uploadedFile.name}</p>
-                              <p className="text-sm text-gray-500">
-                                {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
+                    {uploadedFile ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          {uploadedPreview ? (
+                            <img
+                              src={uploadedPreview}
+                              alt="Preview"
+                              className="w-16 h-16 object-cover rounded-lg"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <FileImage className="h-8 w-8 text-gray-400" />
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={clearUploadedFile}
-                              data-testid="button-clear-upload"
-                            >
-                              Change
-                            </Button>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground truncate">{uploadedFile.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
                           </div>
                           <Button
-                            onClick={handleQuickOrder}
-                            size="lg"
-                            className="w-full"
-                            disabled={isQuickOrderLoading || calculatedPrice?.pricePerUnit === undefined || calculatedPrice?.pricePerUnit === null}
-                            data-testid="button-quick-order"
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearUploadedFile}
+                            data-testid="button-clear-upload"
                           >
-                            {isQuickOrderLoading ? (
-                              <>
-                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Processing...
-                              </>
-                            ) : (
-                              <>
-                                <ShoppingCart className="mr-2 h-5 w-5" />
-                                Add to Cart
-                              </>
-                            )}
+                            Change
                           </Button>
                         </div>
-                      ) : (
-                        <label
-                          htmlFor="quick-order-upload"
-                          className="flex flex-col items-center justify-center py-6 cursor-pointer"
+                        <Button
+                          onClick={handleQuickOrder}
+                          size="lg"
+                          className="w-full"
+                          disabled={isQuickOrderLoading || calculatedPrice?.pricePerUnit === undefined || calculatedPrice?.pricePerUnit === null}
+                          data-testid="button-quick-order"
                         >
-                          <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                          <span className="font-medium text-gray-700">Upload Print-Ready File</span>
-                          <span className="text-sm text-gray-500 mt-1">PNG, JPG, PDF, SVG, AI, PSD, EPS</span>
-                          <span className="text-xs text-gray-400 mt-1">Max 50MB</span>
-                        </label>
-                      )}
-                    </div>
+                          {isQuickOrderLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="mr-2 h-5 w-5" />
+                              Add to Cart with Artwork
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor="quick-order-upload"
+                        className="flex flex-col items-center justify-center py-6 cursor-pointer"
+                      >
+                        <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                        <span className="font-medium text-foreground">Upload Print-Ready File</span>
+                        <span className="text-sm text-muted-foreground mt-1">PNG, JPG, PDF, SVG, AI, PSD, EPS</span>
+                        <span className="text-xs text-muted-foreground mt-1">Max 50MB</span>
+                      </label>
+                    )}
 
                     <Button 
                       onClick={() => {
@@ -532,12 +601,12 @@ export default function ProductDetail() {
                       }} 
                       variant="ghost"
                       size="sm"
-                      className="w-full text-gray-500"
+                      className="w-full mt-2 text-muted-foreground"
                       data-testid="button-cancel-upload"
                     >
                       Cancel
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>

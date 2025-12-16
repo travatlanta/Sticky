@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, ShoppingBag, ArrowRight, Sticker } from "lucide-react";
+import { Trash2, ShoppingBag, ArrowRight, Sticker, Upload, AlertTriangle, Loader2 } from "lucide-react";
 
 type CartItem = {
   id: number;
@@ -68,6 +68,8 @@ export default function CartClient() {
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
+  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   // Force a refetch whenever the cart page is opened.
   // This fixes "items only appear after refresh" when navigating here immediately after add-to-cart.
@@ -75,6 +77,68 @@ export default function CartClient() {
     queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
     queryClient.refetchQueries({ queryKey: ["/api/cart"] });
   }, [queryClient]);
+
+  const handleUploadArtwork = async (itemId: number, productId: number, file: File) => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    setUploadingItemId(itemId);
+
+    try {
+      // Upload the file
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch("/api/upload/artwork", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const uploadData = await uploadRes.json();
+
+      // Create a design with the uploaded artwork
+      const designRes = await fetch("/api/designs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: productId,
+          name: "Uploaded Artwork",
+          highResExportUrl: uploadData.url,
+          previewUrl: uploadData.url,
+        }),
+        credentials: "include",
+      });
+
+      if (!designRes.ok) throw new Error("Failed to create design");
+      const design = await designRes.json();
+
+      // Update the cart item with the design
+      const updateRes = await fetch(`/api/cart/items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ designId: design.id }),
+        credentials: "include",
+      });
+
+      if (!updateRes.ok) throw new Error("Failed to update cart item");
+
+      toast({ title: "Artwork uploaded successfully!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: "Could not upload artwork. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingItemId(null);
+    }
+  };
 
   const { data: cart, isLoading } = useQuery<CartResponse>({
     queryKey: ["/api/cart"],
@@ -109,15 +173,29 @@ export default function CartClient() {
     },
   });
 
+  const items = cart?.items ?? [];
+  
+  // Check if any items are missing artwork (no design attached at all)
+  const itemsNeedingArtwork = items.filter(item => !item.design);
+  const hasItemsNeedingArtwork = itemsNeedingArtwork.length > 0;
+
   const handleCheckout = () => {
     if (!isAuthenticated) {
       router.push("/login");
       return;
     }
+    
+    if (hasItemsNeedingArtwork) {
+      toast({
+        title: "Artwork Required",
+        description: `Please upload artwork for ${itemsNeedingArtwork.length} item(s) before checkout.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     router.push("/checkout");
   };
-
-  const items = cart?.items ?? [];
 
   // Prefer server-provided totals. If missing, compute safely.
   const computedSubtotal = items.reduce((sum, item) => {
@@ -163,66 +241,127 @@ export default function CartClient() {
                 const lineUnit = item.unitPrice ? Number(item.unitPrice) : 0;
                 const lineTotal = lineUnit * item.quantity;
 
+                const needsArtwork = !item.design;
+
                 return (
                   <div
                     key={item.id}
-                    className="bg-white rounded-2xl p-5 shadow-sm border border-orange-100 flex items-center gap-4"
+                    className={`bg-white rounded-2xl p-5 shadow-sm border ${
+                      needsArtwork ? "border-amber-300" : "border-orange-100"
+                    } flex flex-col gap-4`}
                   >
-                    <div className="w-20 h-20 bg-orange-50 rounded-xl flex items-center justify-center overflow-hidden border border-orange-100">
-                      {product.thumbnailUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={product.thumbnailUrl}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Sticker className="h-8 w-8 text-orange-300" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 truncate">{product.name}</p>
-                          <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
-                        </div>
-
-                        <div className="text-right">
-                          {lineUnit > 0 ? (
-                            <>
-                              <div className="text-sm text-gray-500">
-                                {formatPrice(lineUnit)} each
-                              </div>
-                              <div className="font-semibold text-gray-900">
-                                {formatPrice(lineTotal)}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="text-sm text-gray-500">—</div>
-                          )}
-                        </div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-20 h-20 bg-orange-50 rounded-xl flex items-center justify-center overflow-hidden border border-orange-100 flex-shrink-0">
+                        {item.design?.previewUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.design.previewUrl}
+                            alt="Your design"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : product.thumbnailUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={product.thumbnailUrl}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Sticker className="h-8 w-8 text-orange-300" />
+                        )}
                       </div>
 
-                      <div className="mt-3 flex items-center justify-between">
-                        <Link
-                          href={`/products/${product.slug}`}
-                          className="text-sm text-orange-700 hover:underline"
-                        >
-                          View product
-                        </Link>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">{product.name}</p>
+                            <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                          </div>
 
-                        <Button
-                          variant="ghost"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => removeItemMutation.mutate(item.id)}
-                          disabled={removeItemMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove
-                        </Button>
+                          <div className="text-right">
+                            {lineUnit > 0 ? (
+                              <>
+                                <div className="text-sm text-gray-500">
+                                  {formatPrice(lineUnit)} each
+                                </div>
+                                <div className="font-semibold text-gray-900">
+                                  {formatPrice(lineTotal)}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-sm text-gray-500">—</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between">
+                          <Link
+                            href={`/products/${product.slug}`}
+                            className="text-sm text-orange-700 hover:underline"
+                          >
+                            View product
+                          </Link>
+
+                          <Button
+                            variant="ghost"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeItemMutation.mutate(item.id)}
+                            disabled={removeItemMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                     </div>
+
+                    {needsArtwork && (
+                      <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-amber-800">
+                              Artwork Required
+                            </p>
+                            <p className="text-xs text-amber-700 mt-1">
+                              Please upload your print-ready artwork before checkout.
+                            </p>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf,.svg,.ai,.psd,.eps"
+                              className="hidden"
+                              ref={(el) => { fileInputRefs.current[item.id] = el; }}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file && product) {
+                                  handleUploadArtwork(item.id, product.id, file);
+                                }
+                              }}
+                              data-testid={`input-upload-artwork-${item.id}`}
+                            />
+                            <Button
+                              size="sm"
+                              className="mt-3 bg-amber-600 hover:bg-amber-700"
+                              onClick={() => fileInputRefs.current[item.id]?.click()}
+                              disabled={uploadingItemId === item.id}
+                              data-testid={`button-upload-artwork-${item.id}`}
+                            >
+                              {uploadingItemId === item.id ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Upload Artwork
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -249,11 +388,32 @@ export default function CartClient() {
                 </div>
               </div>
 
+              {hasItemsNeedingArtwork && (
+                <div className="bg-amber-50 rounded-lg p-3 mb-4 border border-amber-200">
+                  <div className="flex items-center gap-2 text-amber-800">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    <p className="text-xs font-medium">
+                      {itemsNeedingArtwork.length} item(s) need artwork before checkout
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <Button
-                className="w-full mt-6 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+                className={`w-full ${
+                  hasItemsNeedingArtwork 
+                    ? "bg-gray-400 hover:bg-gray-500" 
+                    : "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+                }`}
                 onClick={handleCheckout}
+                data-testid="button-checkout"
               >
-                {isAuthenticated ? "Checkout" : "Login to Checkout"}
+                {!isAuthenticated 
+                  ? "Login to Checkout" 
+                  : hasItemsNeedingArtwork 
+                    ? "Upload Artwork to Continue"
+                    : "Checkout"
+                }
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
 

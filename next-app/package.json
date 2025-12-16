@@ -29,6 +29,7 @@
     "clsx": "^2.1.0",
     "drizzle-orm": "^0.29.3",
     "fabric": "^5.3.0",
+    "jspdf": "^2.5.2",
     "lucide-react": "^0.303.0",
     "next": "14.1.0",
     "next-auth": "^4.24.5",

@@ -39,19 +39,21 @@ export async function PUT(
     
     // TODO: Verify user owns this design when NextAuth is integrated
 
+    const updateData: Record<string, any> = { updatedAt: new Date() };
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.canvasJson !== undefined) updateData.canvasJson = body.canvasJson;
+    if (body.previewUrl !== undefined) updateData.previewUrl = body.previewUrl;
+    if (body.customShapeUrl !== undefined) updateData.customShapeUrl = body.customShapeUrl;
+    if (body.highResExportUrl !== undefined) updateData.highResExportUrl = body.highResExportUrl;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.selectedOptions !== undefined) updateData.selectedOptions = body.selectedOptions;
+    if (body.bleedColor !== undefined) updateData.bleedColor = body.bleedColor;
+    if (body.contourPath !== undefined) updateData.contourPath = body.contourPath;
+    if (body.lastAutoSave !== undefined) updateData.lastAutoSave = body.lastAutoSave;
+
     const [design] = await db
       .update(designs)
-      .set({
-        name: body.name,
-        canvasJson: body.canvasJson,
-        previewUrl: body.previewUrl,
-        customShapeUrl: body.customShapeUrl,
-        highResExportUrl: body.highResExportUrl,
-        status: body.status,
-        selectedOptions: body.selectedOptions,
-        lastAutoSave: body.lastAutoSave,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(designs.id, parseInt(id)))
       .returning();
 
@@ -80,18 +82,20 @@ export async function PATCH(
     const body = await request.json();
 
     // Build update object with only provided fields
-    const updateData: Record<string, any> = { updatedAt: new Date() };
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.canvasJson !== undefined) updateData.canvasJson = body.canvasJson;
-    if (body.previewUrl !== undefined) updateData.previewUrl = body.previewUrl;
-    if (body.customShapeUrl !== undefined) updateData.customShapeUrl = body.customShapeUrl;
-    if (body.highResExportUrl !== undefined) updateData.highResExportUrl = body.highResExportUrl;
-    if (body.status !== undefined) updateData.status = body.status;
-    if (body.selectedOptions !== undefined) updateData.selectedOptions = body.selectedOptions;
+    const patchData: Record<string, any> = { updatedAt: new Date() };
+    if (body.name !== undefined) patchData.name = body.name;
+    if (body.canvasJson !== undefined) patchData.canvasJson = body.canvasJson;
+    if (body.previewUrl !== undefined) patchData.previewUrl = body.previewUrl;
+    if (body.customShapeUrl !== undefined) patchData.customShapeUrl = body.customShapeUrl;
+    if (body.highResExportUrl !== undefined) patchData.highResExportUrl = body.highResExportUrl;
+    if (body.status !== undefined) patchData.status = body.status;
+    if (body.selectedOptions !== undefined) patchData.selectedOptions = body.selectedOptions;
+    if (body.bleedColor !== undefined) patchData.bleedColor = body.bleedColor;
+    if (body.contourPath !== undefined) patchData.contourPath = body.contourPath;
 
     const [design] = await db
       .update(designs)
-      .set(updateData)
+      .set(patchData)
       .where(eq(designs.id, parseInt(id)))
       .returning();
 

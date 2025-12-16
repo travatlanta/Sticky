@@ -16,7 +16,7 @@ export default function OrderDetailClient() {
     },
   });
 
-  if (!order) return null;
+  if (!order || !order.items) return null;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -24,7 +24,7 @@ export default function OrderDetailClient() {
 
       <div className="bg-white rounded-xl p-4 mb-6">
         <h2 className="font-semibold mb-2">Order Items</h2>
-        {order.orderItems.map((item: any) => (
+        {order.items.map((item: any) => (
           <div key={item.id} className="border rounded-lg p-3 mb-3">
             <div className="font-medium">{item.product?.name}</div>
             <div className="text-sm text-gray-500">

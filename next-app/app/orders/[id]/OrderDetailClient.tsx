@@ -377,7 +377,7 @@ export default function OrderDetail() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle>Order Summary (Full Record)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -409,7 +409,19 @@ export default function OrderDetail() {
               </CardContent>
             </Card>
           </div>
-        </div>
+        
+<Card>
+  <CardHeader>
+    <CardTitle>Complete Order Record (All Fields)</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <pre className="text-xs bg-gray-100 p-3 rounded overflow-x-auto">
+{JSON.stringify(order, null, 2)}
+    </pre>
+  </CardContent>
+</Card>
+
+</div>
       </div>
     </div>
   );

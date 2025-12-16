@@ -65,14 +65,20 @@ export async function POST(req: Request) {
     }
 
     // Subtotal only (no shipping)
-    const subtotal = items.reduce(
-      (sum, i) => sum + Number(i.unitPrice ?? '0') * i.quantity,
-      0
-    );
+    const subtotal = items.reduce((sum, i) => {
+      const price = parseFloat(i.unitPrice || '0') || 0;
+      return sum + price * i.quantity;
+    }, 0);
+
+    console.log('Checkout items:', items.map(i => ({ id: i.id, unitPrice: i.unitPrice, quantity: i.quantity })));
+    console.log('Calculated subtotal:', subtotal);
 
     if (subtotal <= 0) {
       return noCache(
-        NextResponse.json({ error: 'Invalid cart total' }, { status: 400 })
+        NextResponse.json({ 
+          error: 'Invalid cart total. Please ensure all items have valid prices.',
+          debug: { itemCount: items.length, subtotal }
+        }, { status: 400 })
       );
     }
 

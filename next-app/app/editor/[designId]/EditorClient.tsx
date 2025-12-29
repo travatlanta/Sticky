@@ -27,9 +27,9 @@ import {
   Square, Circle, Triangle, Star, Heart, Smile, Undo2, Redo2, Trash2,
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   PaintBucket, Eraser, Pipette, Move, X, Save, Download, HelpCircle,
-  FolderOpen, Layers, Sparkles, Sun, Moon, Droplets, Zap, CircleDot, Maximize2
+  FolderOpen, Layers, Sparkles, Sun, Moon, Droplets, Zap, CircleDot
 } from "lucide-react";
-import { getContourFromImage, expandContour, scaleContourPath, traceContour } from "@/lib/contour-tracer";
+import { getContourFromImage, scaleContourPath, traceContour } from "@/lib/contour-tracer";
 
 let fabricModule: any = null;
 
@@ -111,10 +111,10 @@ const HELP_TIPS: Record<string, string> = {
   text: "Add text to your design. Click 'Add Text' then edit directly on the canvas.",
   graphics: "Add shapes, icons, or upload your own images to the design.",
   draw: "Draw freehand on your design using the brush tool.",
-  adjust: "Change the bleed color (border area) and product options like material and quantity.",
+  adjust: "Configure product options like material and quantity.",
   uploads: "Upload multiple images here to use as design elements. They'll appear in your gallery.",
   effects: "Add visual effects like shadows, glow, and outlines to selected elements.",
-  canvas: "This is your design area. The gray border shows the bleed zone that will be trimmed. Keep important content inside.",
+  canvas: "This is your design area. Add text, graphics, and images to create your custom product.",
 };
 
 export default function Editor() {
@@ -141,8 +141,6 @@ export default function Editor() {
   const [calculatedPrice, setCalculatedPrice] = useState<PriceCalculation | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
   const [contourPath, setContourPath] = useState<string>("");
-  const [bleedColor, setBleedColor] = useState("#ffffff");
-  const [bleedSize, setBleedSize] = useState(0.125); // in inches, minimum 0.125"
   const [isSaving, setIsSaving] = useState(false);
   const [brushColor, setBrushColor] = useState("#000000");
   const [brushWidth, setBrushWidth] = useState(5);
@@ -155,7 +153,7 @@ export default function Editor() {
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<string[]>([]);
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [colorPickerTarget, setColorPickerTarget] = useState<"brush" | "text" | "fill" | "bleed">("brush");
+  const [colorPickerTarget, setColorPickerTarget] = useState<"brush" | "text" | "fill">("brush");
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [fabricLoaded, setFabricLoaded] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -176,7 +174,6 @@ export default function Editor() {
   const animationFrameRef = useRef<number>();
 
   const PIXELS_PER_INCH = 100;
-  const MIN_BLEED_SIZE = 0.125; // Minimum bleed in inches
 
   // Create checkerboard pattern for transparent background indication
   const createCheckerboardPattern = useCallback(() => {
@@ -358,9 +355,6 @@ export default function Editor() {
     }
     if (design?.selectedOptions) {
       setSelectedOptions(design.selectedOptions as Record<string, number>);
-    }
-    if (design?.bleedColor) {
-      setBleedColor(design.bleedColor);
     }
     if (design?.contourPath) {
       setContourPath(design.contourPath);
@@ -1058,7 +1052,6 @@ export default function Editor() {
           canvasJson,
           previewUrl,
           contourPath,
-          bleedColor,
           selectedOptions,
         }),
       });
@@ -1129,7 +1122,7 @@ export default function Editor() {
     }).format(price);
   };
 
-  const openColorPicker = (target: "brush" | "text" | "fill" | "bleed") => {
+  const openColorPicker = (target: "brush" | "text" | "fill") => {
     setColorPickerTarget(target);
     setShowColorPicker(true);
   };
@@ -1150,9 +1143,6 @@ export default function Editor() {
         break;
       case "fill":
         setFillColor(color);
-        break;
-      case "bleed":
-        setBleedColor(color);
         break;
     }
     setShowColorPicker(false);
@@ -1276,35 +1266,6 @@ export default function Editor() {
                   transform: `perspective(1000px) rotateX(${-mousePosition.y}deg) rotateY(${mousePosition.x}deg)`,
                 }}
               >
-                {product?.supportsCustomShape && contourPath ? (
-                  <svg 
-                    className="absolute pointer-events-none z-0"
-                    style={{
-                      left: -20,
-                      top: -20,
-                      width: `calc(100% + 40px)`,
-                      height: `calc(100% + 40px)`,
-                    }}
-                    viewBox={`-20 -20 ${(fabricCanvasRef.current?.width || 400) + 40} ${(fabricCanvasRef.current?.height || 400) + 40}`}
-                    preserveAspectRatio="xMidYMid meet"
-                  >
-                    <defs>
-                      <filter id="bleed-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.25"/>
-                      </filter>
-                    </defs>
-                    <path 
-                      d={expandContour(contourPath, bleedSize * PIXELS_PER_INCH)} 
-                      fill={bleedColor}
-                      filter="url(#bleed-shadow)"
-                    />
-                  </svg>
-                ) : !product?.supportsCustomShape ? (
-                  <div 
-                    className="absolute inset-[-12px] rounded-lg shadow-2xl z-0"
-                    style={{ backgroundColor: bleedColor }}
-                  />
-                ) : null}
                 <canvas 
                   ref={canvasRef} 
                   className="relative z-10 rounded-lg shadow-lg"
@@ -1949,55 +1910,7 @@ export default function Editor() {
                     </div>
                   )}
 
-                  {/* Bleed Zone Size */}
-                  <div className="bg-muted/50 rounded-lg p-3">
-                    <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
-                      <Maximize2 className="w-4 h-4" />
-                      Bleed Zone Size
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <Slider
-                        value={[bleedSize]}
-                        onValueChange={([val]) => setBleedSize(Math.max(MIN_BLEED_SIZE, val))}
-                        min={0.125}
-                        max={0.5}
-                        step={0.0625}
-                        className="flex-1"
-                        data-testid="slider-bleed-size"
-                      />
-                      <div className="bg-background border rounded-md px-3 py-1.5 text-sm font-mono font-medium min-w-[70px] text-center">
-                        {bleedSize.toFixed(3)}"
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                      <span>Min: {MIN_BLEED_SIZE}"</span>
-                      <span>Max: 0.5"</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Extra area around your design that may be trimmed during production
-                    </p>
-                  </div>
-
-                  {/* Bleed Color - only for standard products */}
-                  {!product?.supportsCustomShape && (
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Bleed/Border Color</label>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start"
-                        onClick={() => openColorPicker("bleed")}
-                        data-testid="button-bleed-color"
-                      >
-                        <div className="w-5 h-5 rounded border mr-2" style={{ backgroundColor: bleedColor }} />
-                        {bleedColor}
-                      </Button>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Color around your design
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="border-t pt-3">
+                  <div>
                     <h3 className="text-sm font-medium mb-2">Product Options</h3>
                     
                     {(product?.options?.filter(o => o.optionType === "material")?.length ?? 0) > 0 && (

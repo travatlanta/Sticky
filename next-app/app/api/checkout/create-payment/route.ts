@@ -19,7 +19,8 @@ function noCache(res: NextResponse) {
 
 export async function POST(req: Request) {
   try {
-    const { sourceId, shippingAddress } = await req.json();
+    const { sourceId, shippingAddress, notes, expeditedShipping } = await req.json();
+    const EXPEDITED_SHIPPING_COST = 25; // Match the frontend constant
 
     if (!sourceId) {
       return noCache(
@@ -73,8 +74,12 @@ export async function POST(req: Request) {
     console.log('Checkout items:', items.map(i => ({ id: i.id, unitPrice: i.unitPrice, quantity: i.quantity })));
     console.log('Calculated subtotal:', subtotal);
 
-    // Allow $0 orders (free products) - skip payment processing
-    if (subtotal === 0) {
+    // Calculate full total including expedited shipping
+    const expeditedCost = expeditedShipping ? EXPEDITED_SHIPPING_COST : 0;
+    const fullTotal = subtotal + expeditedCost;
+
+    // Allow $0 orders (free products without expedited shipping) - skip payment processing
+    if (fullTotal === 0) {
       // Create order directly without payment for free items
       const formattedShippingAddress = shippingAddress ? {
         name: `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
@@ -102,6 +107,7 @@ export async function POST(req: Request) {
           totalAmount: '0',
           shippingAddress: formattedShippingAddress,
           stripePaymentIntentId: `free-order-${randomUUID()}`,
+          notes: notes || null,
         })
         .returning();
 
@@ -113,6 +119,8 @@ export async function POST(req: Request) {
           quantity: item.quantity,
           unitPrice: String(item.unitPrice ?? '0'),
           selectedOptions: item.selectedOptions,
+          mediaType: item.mediaType || null,
+          finishType: item.finishType || null,
         });
       }
 
@@ -130,8 +138,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Construct payload for Square API
-    const amountInCents = Math.round(subtotal * 100);
+    // Construct payload for Square API (fullTotal already includes expedited shipping)
+    const amountInCents = Math.round(fullTotal * 100);
     const paymentPayload = {
       source_id: sourceId,
       idempotency_key: randomUUID(),
@@ -191,19 +199,20 @@ export async function POST(req: Request) {
       phone: shippingAddress.phone,
     } : null;
 
-    // Create order with all data
+    // Create order with all data (expeditedCost and fullTotal already calculated at top)
     const [order] = await db
       .insert(orders)
       .values({
         userId: userId,
         status: 'paid',
         subtotal: subtotal.toString(),
-        shippingCost: '0',
+        shippingCost: expeditedCost.toString(),
         taxAmount: '0',
         discountAmount: '0',
-        totalAmount: subtotal.toString(),
+        totalAmount: fullTotal.toString(),
         shippingAddress: formattedShippingAddress,
         stripePaymentIntentId: payment.id,
+        notes: expeditedShipping ? `[EXPEDITED SHIPPING]${notes ? ' - ' + notes : ''}` : (notes || null),
       })
       .returning();
 
@@ -216,6 +225,8 @@ export async function POST(req: Request) {
         quantity: item.quantity,
         unitPrice: String(item.unitPrice ?? '0'),
         selectedOptions: item.selectedOptions,
+        mediaType: item.mediaType || null,
+        finishType: item.finishType || null,
       });
     }
 

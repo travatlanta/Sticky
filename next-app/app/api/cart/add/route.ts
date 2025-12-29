@@ -67,6 +67,8 @@ export async function POST(request: Request) {
         quantity: body.quantity || 1,
         selectedOptions: body.selectedOptions || null,
         unitPrice: unitPrice,
+        mediaType: body.mediaType || null,
+        finishType: body.finishType || null,
       })
       .returning();
 

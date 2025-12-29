@@ -17,7 +17,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { PaymentForm, CreditCard } from 'react-square-web-payments-sdk';
@@ -26,8 +26,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShoppingCart, CreditCard as CreditCardIcon, MapPin, ArrowLeft } from 'lucide-react';
+import { Loader2, ShoppingCart, CreditCard as CreditCardIcon, MapPin, ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -51,6 +52,7 @@ interface CartItem {
 interface ShippingAddress {
   firstName: string;
   lastName: string;
+  email: string;
   address1: string;
   address2: string;
   city: string;
@@ -63,9 +65,13 @@ export default function CheckoutClient() {
   const router = useRouter();
   const { toast } = useToast();
   const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
+  const [orderNotes, setOrderNotes] = useState('');
+  const [expeditedShipping, setExpeditedShipping] = useState(false);
+  const EXPEDITED_SHIPPING_COST = 25; // Additional cost for expedited shipping
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     firstName: '',
     lastName: '',
+    email: '',
     address1: '',
     address2: '',
     city: '',
@@ -73,6 +79,32 @@ export default function CheckoutClient() {
     zip: '',
     phone: '',
   });
+
+  // Fetch user info for pre-filling form
+  const { data: user } = useQuery<{
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    shippingAddress?: ShippingAddress;
+  }>({
+    queryKey: ['/api/auth/user'],
+  });
+
+  // Pre-fill shipping address when user data is available
+  useEffect(() => {
+    if (user) {
+      setShippingAddress((prev) => ({
+        ...prev,
+        email: user.email || prev.email,
+        firstName: user.firstName || prev.firstName,
+        lastName: user.lastName || prev.lastName,
+        phone: user.phone || prev.phone,
+        ...(user.shippingAddress || {}),
+      }));
+    }
+  }, [user]);
 
   // Retrieve cart details. The query key matches the API route used for the cart.
   // NOTE: /api/cart now returns shipping + total fields.
@@ -87,7 +119,12 @@ export default function CheckoutClient() {
 
   // Mutation to create a payment on the server. It posts to the create-payment API.
   const paymentMutation = useMutation({
-    mutationFn: async (paymentData: { sourceId: string; shippingAddress: ShippingAddress }) => {
+    mutationFn: async (paymentData: { 
+      sourceId: string; 
+      shippingAddress: ShippingAddress; 
+      notes?: string;
+      expeditedShipping?: boolean;
+    }) => {
       const response = await fetch('/api/checkout/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,6 +158,7 @@ export default function CheckoutClient() {
     if (
       !shippingAddress.firstName ||
       !shippingAddress.lastName ||
+      !shippingAddress.email ||
       !shippingAddress.address1 ||
       !shippingAddress.city ||
       !shippingAddress.state ||
@@ -142,6 +180,8 @@ export default function CheckoutClient() {
       paymentMutation.mutate({
         sourceId: tokenResult.token,
         shippingAddress,
+        notes: orderNotes || undefined,
+        expeditedShipping: expeditedShipping || undefined,
       });
     } else {
       toast({
@@ -191,10 +231,13 @@ export default function CheckoutClient() {
       }, 0);
 
   // Shipping now comes ONLY from /api/cart. No settings query. No $15 fallback.
-  const shipping = (typeof cart.shipping === 'number' && !isNaN(cart.shipping)) ? cart.shipping : 0;
+  const baseShipping = (typeof cart.shipping === 'number' && !isNaN(cart.shipping)) ? cart.shipping : 0;
+  const shipping = baseShipping + (expeditedShipping ? EXPEDITED_SHIPPING_COST : 0);
 
   // Total from /api/cart when provided, otherwise subtotal + shipping.
-  const total = (typeof cart.total === 'number' && !isNaN(cart.total)) ? cart.total : subtotal + shipping;
+  // Add expedited shipping if selected
+  const baseTotal = (typeof cart.total === 'number' && !isNaN(cart.total)) ? cart.total : subtotal + baseShipping;
+  const total = baseTotal + (expeditedShipping ? EXPEDITED_SHIPPING_COST : 0);
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-6xl">
@@ -292,16 +335,78 @@ export default function CheckoutClient() {
                       />
                     </div>
                   </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="email">Email Address *</Label>
+                      <Input
+                        id="email"
+                        data-testid="input-email"
+                        type="email"
+                        value={shippingAddress.email}
+                        onChange={(e) => setShippingAddress((prev) => ({ ...prev, email: e.target.value }))}
+                        placeholder="For order confirmation"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        data-testid="input-phone"
+                        type="tel"
+                        value={shippingAddress.phone}
+                        onChange={(e) => setShippingAddress((prev) => ({ ...prev, phone: e.target.value }))}
+                        placeholder="For delivery updates"
+                      />
+                    </div>
+                  </div>
+                  <Separator className="my-4" />
                   <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      data-testid="input-phone"
-                      type="tel"
-                      value={shippingAddress.phone}
-                      onChange={(e) => setShippingAddress((prev) => ({ ...prev, phone: e.target.value }))}
-                      placeholder="For delivery updates"
+                    <Label htmlFor="orderNotes" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Order Notes / Special Instructions
+                    </Label>
+                    <Textarea
+                      id="orderNotes"
+                      data-testid="input-order-notes"
+                      value={orderNotes}
+                      onChange={(e) => setOrderNotes(e.target.value)}
+                      placeholder="Any special instructions for your order (e.g., specific colors, placement preferences, rush delivery needs...)"
+                      className="mt-2"
+                      rows={3}
                     />
+                  </div>
+                  <Separator className="my-4" />
+                  <div className="p-4 bg-muted/50 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label htmlFor="expeditedShipping" className="text-base font-medium cursor-pointer">
+                          Expedited Shipping
+                        </Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Get your order faster! 2-3 business days instead of 5-7 days.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 ml-4">
+                        <span className="font-medium text-primary">+${EXPEDITED_SHIPPING_COST}</span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={expeditedShipping}
+                          onClick={() => setExpeditedShipping(!expeditedShipping)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            expeditedShipping ? 'bg-primary' : 'bg-muted-foreground/30'
+                          }`}
+                          data-testid="toggle-expedited-shipping"
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              expeditedShipping ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   <Button type="submit" className="w-full" data-testid="button-continue-payment">
                     Continue to Payment
@@ -312,12 +417,19 @@ export default function CheckoutClient() {
                   <p className="font-medium">
                     {shippingAddress.firstName} {shippingAddress.lastName}
                   </p>
+                  <p className="text-gray-600">{shippingAddress.email}</p>
                   <p className="text-gray-600">{shippingAddress.address1}</p>
                   {shippingAddress.address2 && <p className="text-gray-600">{shippingAddress.address2}</p>}
                   <p className="text-gray-600">
                     {shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}
                   </p>
                   {shippingAddress.phone && <p className="text-gray-600">{shippingAddress.phone}</p>}
+                  {orderNotes && (
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-sm font-medium text-gray-700">Order Notes:</p>
+                      <p className="text-sm text-gray-600">{orderNotes}</p>
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -428,7 +540,9 @@ export default function CheckoutClient() {
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Shipping</span>
+                  <span className="text-gray-600">
+                    Shipping{expeditedShipping && <span className="text-xs ml-1 text-primary">(Expedited)</span>}
+                  </span>
                   <span>${shipping.toFixed(2)}</span>
                 </div>
                 <Separator />

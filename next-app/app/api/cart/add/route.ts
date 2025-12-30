@@ -3,18 +3,79 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { carts, cartItems } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, or, gt, isNull } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-// POST handler to add an item to the cart.  This route ensures that a
-// session-based cart exists before inserting a new cart item.  If no
-// cart-session-id cookie is present, one is generated and persisted.
+const CART_EXPIRY_DAYS = 60;
+
+async function getOrCreateCart(sessionId: string, userId?: string) {
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + CART_EXPIRY_DAYS);
+  
+  let cart = null;
+  
+  // If user is logged in, try to find their user cart first
+  if (userId) {
+    const [userCart] = await db
+      .select()
+      .from(carts)
+      .where(and(
+        eq(carts.userId, userId),
+        or(gt(carts.expiresAt, new Date()), isNull(carts.expiresAt))
+      ));
+    
+    if (userCart) {
+      cart = userCart;
+    } else {
+      // Check if there's a session cart to convert to user cart
+      const [sessionCart] = await db
+        .select()
+        .from(carts)
+        .where(eq(carts.sessionId, sessionId));
+      
+      if (sessionCart) {
+        const [updatedCart] = await db
+          .update(carts)
+          .set({ userId, expiresAt, updatedAt: new Date() })
+          .where(eq(carts.id, sessionCart.id))
+          .returning();
+        cart = updatedCart;
+      }
+    }
+  }
+  
+  // If no cart found yet, look for session cart
+  if (!cart) {
+    const [sessionCart] = await db
+      .select()
+      .from(carts)
+      .where(eq(carts.sessionId, sessionId));
+    
+    if (sessionCart) {
+      cart = sessionCart;
+      await db.update(carts)
+        .set({ expiresAt, updatedAt: new Date() })
+        .where(eq(carts.id, cart.id));
+    }
+  }
+  
+  // Create new cart if none exists
+  if (!cart) {
+    [cart] = await db.insert(carts).values({ 
+      sessionId, 
+      userId: userId || null,
+      expiresAt 
+    }).returning();
+  }
+  
+  return cart;
+}
+
 export async function POST(request: Request) {
   try {
-    // Parse the request body.  Some fetch calls may omit the
-    // Content-Type header (e.g. to avoid CORS preflight).  In that
-    // case, attempt to parse the body as JSON via text fallback.
     let body;
     try {
       body = await request.json();
@@ -25,9 +86,13 @@ export async function POST(request: Request) {
 
     const cookieStore = await cookies();
     let sessionId = cookieStore.get('cart-session-id')?.value;
-    console.log('[Cart Add] Session ID from cookie:', sessionId || 'NONE');
     
-    // Generate and persist a new session ID if none exists
+    // Get user session
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id as string | undefined;
+    
+    console.log('[Cart Add] Session ID:', sessionId || 'NONE', '| User ID:', userId || 'GUEST');
+    
     if (!sessionId) {
       sessionId = randomUUID();
       console.log('[Cart Add] Generated new session ID:', sessionId);
@@ -40,18 +105,7 @@ export async function POST(request: Request) {
       });
     }
 
-    // Find or create cart associated with this session
-    let [cart] = await db
-      .select()
-      .from(carts)
-      .where(eq(carts.sessionId, sessionId));
-
-    if (!cart) {
-      [cart] = await db
-        .insert(carts)
-        .values({ sessionId })
-        .returning();
-    }
+    const cart = await getOrCreateCart(sessionId, userId);
 
     // Ensure unitPrice is always a valid string (default to '0' for free products)
     let unitPrice = '0';

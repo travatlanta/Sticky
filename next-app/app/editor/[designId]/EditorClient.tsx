@@ -2002,6 +2002,34 @@ export default function Editor() {
                         </button>
                       ))}
                     </div>
+
+                    {/* Bulk Pricing Tiers */}
+                    {product?.pricingTiers && product.pricingTiers.length > 0 && (
+                      <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
+                        <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-1">Bulk Discounts</p>
+                        <div className="space-y-1">
+                          {product.pricingTiers.slice(0, 3).map((tier, idx) => {
+                            const isActive = quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity);
+                            return (
+                              <div 
+                                key={tier.id}
+                                className={`flex justify-between text-xs px-2 py-1 rounded ${
+                                  isActive ? 'bg-green-100 dark:bg-green-800 font-medium' : ''
+                                }`}
+                                data-testid={`editor-pricing-tier-${idx}`}
+                              >
+                                <span className="text-green-600 dark:text-green-400">
+                                  {tier.minQuantity}{tier.maxQuantity ? `-${tier.maxQuantity}` : '+'}
+                                </span>
+                                <span className="text-green-700 dark:text-green-300">
+                                  {formatPrice(parseFloat(tier.pricePerUnit))}/ea
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>

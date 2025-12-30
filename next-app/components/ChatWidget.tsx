@@ -75,7 +75,7 @@ export default function ChatWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 z-[9999] h-14 w-14 rounded-full bg-orange-500 hover:bg-orange-600 shadow-lg flex items-center justify-center text-white"
+          className="fixed bottom-20 right-4 z-[9999] h-14 w-14 rounded-full bg-orange-500 hover:bg-orange-600 shadow-lg flex items-center justify-center text-white"
           data-testid="button-open-chat"
           aria-label="Open chat"
         >
@@ -84,7 +84,7 @@ export default function ChatWidget() {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-4 right-4 z-50 w-80 md:w-96 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border flex flex-col max-h-[500px]">
+        <div className="fixed bottom-20 right-4 z-50 w-80 md:w-96 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border flex flex-col max-h-[500px]">
           <div className="flex items-center justify-between p-4 border-b bg-orange-500 text-white rounded-t-xl">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5" />

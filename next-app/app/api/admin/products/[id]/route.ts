@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products } from '@shared/schema';
+import { products, productOptions, pricingTiers, productImages, productTemplates, designs, cartItems, orderItems } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -85,8 +85,41 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const productId = parseInt(id);
 
-    await db.delete(products).where(eq(products.id, parseInt(id)));
+    // Check if product has any order items - prevent deletion if so
+    const existingOrderItems = await db
+      .select({ id: orderItems.id })
+      .from(orderItems)
+      .where(eq(orderItems.productId, productId))
+      .limit(1);
+
+    if (existingOrderItems.length > 0) {
+      // Soft delete: deactivate the product instead of deleting
+      await db
+        .update(products)
+        .set({ isActive: false })
+        .where(eq(products.id, productId));
+
+      return NextResponse.json({ 
+        success: true, 
+        softDeleted: true,
+        message: 'Product has existing orders and was deactivated instead of deleted' 
+      });
+    }
+
+    // Delete related records first to avoid foreign key constraint violations
+    await db.delete(productOptions).where(eq(productOptions.productId, productId));
+    await db.delete(pricingTiers).where(eq(pricingTiers.productId, productId));
+    await db.delete(productImages).where(eq(productImages.productId, productId));
+    await db.delete(productTemplates).where(eq(productTemplates.productId, productId));
+    
+    // Set productId to null for designs and delete cart items
+    await db.update(designs).set({ productId: null }).where(eq(designs.productId, productId));
+    await db.delete(cartItems).where(eq(cartItems.productId, productId));
+
+    // Now delete the product
+    await db.delete(products).where(eq(products.id, productId));
 
     return NextResponse.json({ success: true });
   } catch (error) {

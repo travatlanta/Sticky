@@ -12,6 +12,15 @@ import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, ShoppingBag, ArrowRight, Sticker, Upload, AlertTriangle, Loader2 } from "lucide-react";
 
+type ProductOption = {
+  id: number;
+  name: string;
+  value?: string | null;
+  priceModifier?: string | null;
+  isDefault?: boolean;
+  displayOrder?: number;
+};
+
 type CartItem = {
   id: number;
   quantity: number;
@@ -19,6 +28,8 @@ type CartItem = {
   selectedOptions?: any;
   mediaType?: string | null;
   finishType?: string | null;
+  materialOptions?: ProductOption[];
+  coatingOptions?: ProductOption[];
   product: {
     id: number;
     name: string;
@@ -33,9 +44,6 @@ type CartItem = {
     previewUrl?: string | null;
   } | null;
 };
-
-const MEDIA_TYPES = ["Vinyl", "Foil", "Holographic"] as const;
-const FINISH_TYPES = ["None", "Varnish", "Emboss", "Both"] as const;
 
 type CartResponse = {
   items: CartItem[];
@@ -206,8 +214,15 @@ export default function CartClient() {
   const itemsNeedingArtwork = items.filter(item => !item.design);
   const hasItemsNeedingArtwork = itemsNeedingArtwork.length > 0;
 
-  // Check if any items are missing media/finish type selection
-  const itemsNeedingSelections = items.filter(item => !item.mediaType || !item.finishType);
+  // Check if any items are missing material/coating type selection
+  // Only require selection if the product actually has those options available
+  const itemsNeedingSelections = items.filter(item => {
+    const hasMaterialOptions = item.materialOptions && item.materialOptions.length > 0;
+    const hasCoatingOptions = item.coatingOptions && item.coatingOptions.length > 0;
+    const needsMaterial = hasMaterialOptions && !item.mediaType;
+    const needsCoating = hasCoatingOptions && !item.finishType;
+    return needsMaterial || needsCoating;
+  });
   const hasItemsNeedingSelections = itemsNeedingSelections.length > 0;
 
   // Overall: can checkout only if all requirements met
@@ -406,76 +421,97 @@ export default function CartClient() {
                       </div>
                     )}
 
-                    {/* Media Type & Finish Type Selection */}
-                    <div className={`rounded-xl p-4 border ${
-                      (!item.mediaType || !item.finishType) 
-                        ? "bg-amber-50 border-amber-200" 
-                        : "bg-gray-50 border-gray-200"
-                    }`}>
-                      <div className="space-y-4">
-                        {/* Media Type */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            {!item.mediaType && (
-                              <AlertTriangle className="h-4 w-4 text-amber-600" />
-                            )}
-                            <p className="text-sm font-medium text-gray-700">
-                              Material Type {!item.mediaType && <span className="text-red-500">*</span>}
-                            </p>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {MEDIA_TYPES.map((type) => (
-                              <Button
-                                key={type}
-                                size="sm"
-                                variant={item.mediaType === type ? "default" : "outline"}
-                                className={item.mediaType === type ? "bg-orange-500 hover:bg-orange-600" : ""}
-                                onClick={() => updateItemMutation.mutate({ 
-                                  itemId: item.id, 
-                                  mediaType: type, 
-                                  finishType: item.finishType || undefined 
+                    {/* Material & Coating Selection */}
+                    {((item.materialOptions && item.materialOptions.length > 0) || 
+                      (item.coatingOptions && item.coatingOptions.length > 0)) && (
+                      <div className={`rounded-xl p-4 border ${
+                        (!item.mediaType || !item.finishType) 
+                          ? "bg-amber-50 border-amber-200" 
+                          : "bg-gray-50 border-gray-200"
+                      }`}>
+                        <div className="space-y-4">
+                          {/* Material Options */}
+                          {item.materialOptions && item.materialOptions.length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                {!item.mediaType && (
+                                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                )}
+                                <p className="text-sm font-medium text-gray-700">
+                                  Material {!item.mediaType && <span className="text-red-500">*</span>}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {item.materialOptions.map((opt) => {
+                                  const priceModNum = parseFloat(opt.priceModifier || "0");
+                                  const isSelected = item.mediaType === opt.name;
+                                  return (
+                                    <Button
+                                      key={opt.id}
+                                      size="sm"
+                                      variant={isSelected ? "default" : "outline"}
+                                      className={isSelected ? "bg-orange-500 hover:bg-orange-600" : ""}
+                                      onClick={() => updateItemMutation.mutate({ 
+                                        itemId: item.id, 
+                                        mediaType: opt.name, 
+                                        finishType: item.finishType || undefined 
+                                      })}
+                                      disabled={updateItemMutation.isPending}
+                                      data-testid={`select-material-${opt.id}-${item.id}`}
+                                    >
+                                      {opt.name}
+                                      {priceModNum > 0 && (
+                                        <span className="ml-1 text-xs opacity-75">(+${priceModNum.toFixed(2)})</span>
+                                      )}
+                                    </Button>
+                                  );
                                 })}
-                                disabled={updateItemMutation.isPending}
-                                data-testid={`select-media-${type.toLowerCase()}-${item.id}`}
-                              >
-                                {type}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
+                              </div>
+                            </div>
+                          )}
 
-                        {/* Finish Type */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            {!item.finishType && (
-                              <AlertTriangle className="h-4 w-4 text-amber-600" />
-                            )}
-                            <p className="text-sm font-medium text-gray-700">
-                              Finish Type {!item.finishType && <span className="text-red-500">*</span>}
-                            </p>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {FINISH_TYPES.map((type) => (
-                              <Button
-                                key={type}
-                                size="sm"
-                                variant={item.finishType === type ? "default" : "outline"}
-                                className={item.finishType === type ? "bg-orange-500 hover:bg-orange-600" : ""}
-                                onClick={() => updateItemMutation.mutate({ 
-                                  itemId: item.id, 
-                                  mediaType: item.mediaType || undefined, 
-                                  finishType: type 
+                          {/* Coating Options */}
+                          {item.coatingOptions && item.coatingOptions.length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                {!item.finishType && (
+                                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                )}
+                                <p className="text-sm font-medium text-gray-700">
+                                  Coating {!item.finishType && <span className="text-red-500">*</span>}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {item.coatingOptions.map((opt) => {
+                                  const priceModNum = parseFloat(opt.priceModifier || "0");
+                                  const isSelected = item.finishType === opt.name;
+                                  return (
+                                    <Button
+                                      key={opt.id}
+                                      size="sm"
+                                      variant={isSelected ? "default" : "outline"}
+                                      className={isSelected ? "bg-orange-500 hover:bg-orange-600" : ""}
+                                      onClick={() => updateItemMutation.mutate({ 
+                                        itemId: item.id, 
+                                        mediaType: item.mediaType || undefined, 
+                                        finishType: opt.name 
+                                      })}
+                                      disabled={updateItemMutation.isPending}
+                                      data-testid={`select-coating-${opt.id}-${item.id}`}
+                                    >
+                                      {opt.name}
+                                      {priceModNum > 0 && (
+                                        <span className="ml-1 text-xs opacity-75">(+${priceModNum.toFixed(2)})</span>
+                                      )}
+                                    </Button>
+                                  );
                                 })}
-                                disabled={updateItemMutation.isPending}
-                                data-testid={`select-finish-${type.toLowerCase()}-${item.id}`}
-                              >
-                                {type}
-                              </Button>
-                            ))}
-                          </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}

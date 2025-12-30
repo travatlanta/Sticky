@@ -3,8 +3,8 @@ export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { carts, cartItems, products, designs } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { carts, cartItems, products, designs, productOptions } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
@@ -56,12 +56,61 @@ export async function GET() {
       .leftJoin(designs, eq(cartItems.designId, designs.id))
       .where(eq(cartItems.cartId, cart.id));
 
+    // Fetch product options for each unique product in the cart
+    const productIds = [...new Set(rawItems.map(item => item.product?.id).filter(Boolean))];
+    
+    const allOptions = productIds.length > 0 
+      ? await db
+          .select()
+          .from(productOptions)
+          .where(eq(productOptions.isActive, true))
+      : [];
+
+    // Group options by product and type
+    const optionsByProduct: Record<number, { material: any[]; coating: any[] }> = {};
+    for (const opt of allOptions) {
+      if (!optionsByProduct[opt.productId]) {
+        optionsByProduct[opt.productId] = { material: [], coating: [] };
+      }
+      if (opt.optionType === 'material') {
+        optionsByProduct[opt.productId].material.push({
+          id: opt.id,
+          name: opt.name,
+          value: opt.value,
+          priceModifier: opt.priceModifier,
+          isDefault: opt.isDefault,
+          displayOrder: opt.displayOrder,
+        });
+      } else if (opt.optionType === 'coating') {
+        optionsByProduct[opt.productId].coating.push({
+          id: opt.id,
+          name: opt.name,
+          value: opt.value,
+          priceModifier: opt.priceModifier,
+          isDefault: opt.isDefault,
+          displayOrder: opt.displayOrder,
+        });
+      }
+    }
+
+    // Sort options by displayOrder
+    for (const pid of Object.keys(optionsByProduct)) {
+      optionsByProduct[Number(pid)].material.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+      optionsByProduct[Number(pid)].coating.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    }
+
     // Normalize items to ensure unitPrice is always a valid string (never null)
-    const items = rawItems.map(item => ({
-      ...item,
-      unitPrice: item.unitPrice ?? '0',
-      quantity: item.quantity ?? 1,
-    }));
+    const items = rawItems.map(item => {
+      const productId = item.product?.id;
+      const options = productId ? optionsByProduct[productId] : { material: [], coating: [] };
+      return {
+        ...item,
+        unitPrice: item.unitPrice ?? '0',
+        quantity: item.quantity ?? 1,
+        materialOptions: options?.material || [],
+        coatingOptions: options?.coating || [],
+      };
+    });
 
     // Calculate subtotal from items
     const subtotal = items.reduce((sum, item) => {

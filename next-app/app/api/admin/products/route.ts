@@ -98,12 +98,24 @@ export async function POST(request: Request) {
     // Add default bulk pricing tiers at 1000, 5000, 10000 quantities
     // Prices are derived from basePrice with discounts (5%, 10%, 15% off)
     const basePrice = parseFloat(body.basePrice) || 1.00;
-    const defaultPricingTiers = [
-      { productId: product.id, minQuantity: 1000, maxQuantity: 4999, pricePerUnit: (basePrice * 0.95).toFixed(4) },
-      { productId: product.id, minQuantity: 5000, maxQuantity: 9999, pricePerUnit: (basePrice * 0.90).toFixed(4) },
-      { productId: product.id, minQuantity: 10000, maxQuantity: null, pricePerUnit: (basePrice * 0.85).toFixed(4) },
-    ];
-    await db.insert(pricingTiers).values(defaultPricingTiers);
+    // Insert tiers one at a time to handle null maxQuantity correctly
+    await db.insert(pricingTiers).values({
+      productId: product.id,
+      minQuantity: 1000,
+      maxQuantity: 4999,
+      pricePerUnit: (basePrice * 0.95).toFixed(4),
+    });
+    await db.insert(pricingTiers).values({
+      productId: product.id,
+      minQuantity: 5000,
+      maxQuantity: 9999,
+      pricePerUnit: (basePrice * 0.90).toFixed(4),
+    });
+    await db.insert(pricingTiers).values({
+      productId: product.id,
+      minQuantity: 10000,
+      pricePerUnit: (basePrice * 0.85).toFixed(4),
+    });
 
     return NextResponse.json(product);
   } catch (error) {

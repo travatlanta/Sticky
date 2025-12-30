@@ -76,20 +76,37 @@ export async function POST(request: Request) {
       }
 
       // Check and add default pricing tiers if none exist
-      const existingTiers = await db
-        .select()
-        .from(pricingTiers)
-        .where(eq(pricingTiers.productId, product.id));
+      try {
+        const existingTiers = await db
+          .select()
+          .from(pricingTiers)
+          .where(eq(pricingTiers.productId, product.id));
 
-      if (existingTiers.length === 0) {
-        const basePrice = parseFloat(product.basePrice) || 1.00;
-        const defaultTiers = [
-          { productId: product.id, minQuantity: 1000, maxQuantity: 4999, pricePerUnit: (basePrice * 0.95).toFixed(4) },
-          { productId: product.id, minQuantity: 5000, maxQuantity: 9999, pricePerUnit: (basePrice * 0.90).toFixed(4) },
-          { productId: product.id, minQuantity: 10000, maxQuantity: null, pricePerUnit: (basePrice * 0.85).toFixed(4) },
-        ];
-        await db.insert(pricingTiers).values(defaultTiers);
-        results.push(`Added bulk pricing tiers for: ${product.name}`);
+        if (existingTiers.length === 0) {
+          const basePrice = parseFloat(product.basePrice) || 1.00;
+          // Insert tiers one at a time to handle null maxQuantity correctly
+          await db.insert(pricingTiers).values({
+            productId: product.id,
+            minQuantity: 1000,
+            maxQuantity: 4999,
+            pricePerUnit: (basePrice * 0.95).toFixed(4),
+          });
+          await db.insert(pricingTiers).values({
+            productId: product.id,
+            minQuantity: 5000,
+            maxQuantity: 9999,
+            pricePerUnit: (basePrice * 0.90).toFixed(4),
+          });
+          await db.insert(pricingTiers).values({
+            productId: product.id,
+            minQuantity: 10000,
+            pricePerUnit: (basePrice * 0.85).toFixed(4),
+          });
+          results.push(`Added bulk pricing tiers for: ${product.name}`);
+        }
+      } catch (tierError) {
+        console.error(`Error adding tiers for ${product.name}:`, tierError);
+        results.push(`Failed to add tiers for: ${product.name}`);
       }
 
       updatedCount++;

@@ -1962,7 +1962,10 @@ export default function Editor() {
                               }`}
                               data-testid={`button-coating-${option.id}`}
                             >
-                              {option.name}
+                              <span>{option.name}</span>
+                              {option.priceModifier && parseFloat(option.priceModifier) > 0 && (
+                                <span className="text-muted-foreground ml-1">(+{formatPrice(parseFloat(option.priceModifier))})</span>
+                              )}
                             </button>
                           ))}
                         </div>

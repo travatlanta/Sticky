@@ -41,7 +41,11 @@ type CartItem = {
 };
 
 const MEDIA_TYPES = ["Vinyl", "Foil", "Holographic"] as const;
-const FINISH_TYPES = ["None", "Varnish", "Emboss", "Both"] as const;
+const FINISH_TYPES = [
+  { name: "None", price: 0 },
+  { name: "Gloss", price: 0.10 },
+  { name: "Foil", price: 0.20 },
+] as const;
 
 type CartResponse = {
   items: CartItem[];
@@ -285,17 +289,20 @@ export default function CartClient() {
                           Finish Type {!item.finishType && <span className="text-red-500">*</span>}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {FINISH_TYPES.map((type) => (
+                          {FINISH_TYPES.map((finish) => (
                             <Button
-                              key={type}
+                              key={finish.name}
                               size="sm"
-                              variant={item.finishType === type ? "default" : "outline"}
-                              className={item.finishType === type ? "bg-orange-500 hover:bg-orange-600" : ""}
-                              onClick={() => updateItemMutation.mutate({ itemId: item.id, mediaType: item.mediaType || undefined, finishType: type })}
+                              variant={item.finishType === finish.name ? "default" : "outline"}
+                              className={item.finishType === finish.name ? "bg-orange-500 hover:bg-orange-600" : ""}
+                              onClick={() => updateItemMutation.mutate({ itemId: item.id, mediaType: item.mediaType || undefined, finishType: finish.name })}
                               disabled={updateItemMutation.isPending}
-                              data-testid={`select-finish-${type.toLowerCase()}-${item.id}`}
+                              data-testid={`select-finish-${finish.name.toLowerCase()}-${item.id}`}
                             >
-                              {type}
+                              {finish.name}
+                              {finish.price > 0 && (
+                                <span className="ml-1 text-xs opacity-75">(+{formatPrice(finish.price)})</span>
+                              )}
                             </Button>
                           ))}
                         </div>

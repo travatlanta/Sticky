@@ -2018,28 +2018,32 @@ export default function Editor() {
                       ))}
                     </div>
 
-                    {/* Bulk Pricing Tiers */}
+                    {/* Bulk Pricing Tiers - Clickable to set quantity */}
                     {product?.pricingTiers && product.pricingTiers.length > 0 && (
                       <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
-                        <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-1">Bulk Discounts</p>
+                        <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-1">Bulk Discounts (click to select)</p>
                         <div className="space-y-1">
-                          {product.pricingTiers.slice(0, 3).map((tier, idx) => {
+                          {product.pricingTiers.slice(0, 4).map((tier, idx) => {
                             const isActive = quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity);
                             return (
-                              <div 
+                              <button 
                                 key={tier.id}
-                                className={`flex justify-between text-xs px-2 py-1 rounded ${
-                                  isActive ? 'bg-green-100 dark:bg-green-800 font-medium' : ''
+                                type="button"
+                                onClick={() => setQuantity(tier.minQuantity)}
+                                className={`w-full flex justify-between text-xs px-2 py-1.5 rounded cursor-pointer transition-all ${
+                                  isActive 
+                                    ? 'bg-green-200 dark:bg-green-800 font-medium border border-green-400 dark:border-green-600' 
+                                    : 'bg-white/50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-800/50'
                                 }`}
-                                data-testid={`editor-pricing-tier-${idx}`}
+                                data-testid={`button-pricing-tier-${idx}`}
                               >
-                                <span className="text-green-600 dark:text-green-400">
-                                  {tier.minQuantity}{tier.maxQuantity ? `-${tier.maxQuantity}` : '+'}
-                                </span>
                                 <span className="text-green-700 dark:text-green-300">
+                                  {tier.minQuantity.toLocaleString()}{tier.maxQuantity ? `-${tier.maxQuantity.toLocaleString()}` : '+'} units
+                                </span>
+                                <span className="text-green-800 dark:text-green-200 font-semibold">
                                   {formatPrice(parseFloat(tier.pricePerUnit))}/ea
                                 </span>
-                              </div>
+                              </button>
                             );
                           })}
                         </div>

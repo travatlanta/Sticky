@@ -74,8 +74,9 @@ export async function GET(req: Request) {
     if (format === 'pdf') {
       // For PDF, return a high-quality PNG with metadata
       // PDF generation is done client-side using jspdf for Vercel compatibility
-      // Return the image data as base64 for client-side PDF creation
+      // Ensure alpha channel is preserved for die-cut products
       const pngBuffer = await image
+        .ensureAlpha()
         .png({ compressionLevel: 0 })
         .toBuffer();
       

@@ -1,10 +1,9 @@
 import { Pool } from 'pg';
-import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '@shared/schema';
 
 const globalForDb = globalThis as unknown as {
   pool: Pool | undefined;
-  db: NodePgDatabase<typeof schema> | undefined;
 };
 
 function createPool(): Pool {
@@ -14,16 +13,9 @@ function createPool(): Pool {
   return new Pool({ connectionString: process.env.DATABASE_URL });
 }
 
-function createDb(): NodePgDatabase<typeof schema> {
-  const pool = globalForDb.pool ?? createPool();
-  if (!globalForDb.pool) {
-    globalForDb.pool = pool;
-  }
-  return drizzle(pool, { schema });
-}
-
-export const db = globalForDb.db ?? createDb();
-
+const pool = globalForDb.pool ?? createPool();
 if (process.env.NODE_ENV !== 'production') {
-  globalForDb.db = db;
+  globalForDb.pool = pool;
 }
+
+export const db = drizzle(pool, { schema });

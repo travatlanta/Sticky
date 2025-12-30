@@ -65,18 +65,33 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         // For Google sign-in, use dbId (database user ID), otherwise use user.id
         token.id = (user as any).dbId || user.id;
-        token.isAdmin = (user as any).isAdmin;
+        token.isAdmin = (user as any).isAdmin || false;
       }
+      
+      // Refresh isAdmin from database on each request to ensure it's current
+      if (token.id && typeof token.id === 'string') {
+        try {
+          const dbUser = await db.query.users.findFirst({
+            where: eq(users.id, token.id as string),
+          });
+          if (dbUser) {
+            token.isAdmin = dbUser.isAdmin || false;
+          }
+        } catch (e) {
+          // Silently fail - user might have old token format
+        }
+      }
+      
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
-        (session.user as any).isAdmin = token.isAdmin;
+        (session.user as any).isAdmin = token.isAdmin || false;
       }
       return session;
     },

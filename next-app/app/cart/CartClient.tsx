@@ -43,8 +43,9 @@ type CartItem = {
 const MEDIA_TYPES = ["Vinyl", "Foil", "Holographic"] as const;
 const FINISH_TYPES = [
   { name: "None", price: 0 },
-  { name: "Gloss", price: 0.10 },
-  { name: "Foil", price: 0.20 },
+  { name: "Varnish", price: 0.10 },
+  { name: "Emboss", price: 0 },
+  { name: "Both", price: 0.10 },
 ] as const;
 
 type CartResponse = {

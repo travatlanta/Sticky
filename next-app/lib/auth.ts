@@ -67,7 +67,8 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        // For Google sign-in, use dbId (database user ID), otherwise use user.id
+        token.id = (user as any).dbId || user.id;
         token.isAdmin = (user as any).isAdmin;
       }
       return token;
@@ -81,19 +82,24 @@ export const authOptions: NextAuthOptions = {
     },
     async signIn({ user, account }) {
       if (account?.provider === 'google') {
-        const existingUser = await db.query.users.findFirst({
+        let existingUser = await db.query.users.findFirst({
           where: eq(users.googleId, user.id),
         });
 
         if (!existingUser) {
-          await db.insert(users).values({
+          const [newUser] = await db.insert(users).values({
             googleId: user.id,
             email: user.email || '',
             firstName: user.name?.split(' ')[0] || '',
             lastName: user.name?.split(' ').slice(1).join(' ') || '',
             profileImageUrl: user.image || '',
-          });
+          }).returning();
+          existingUser = newUser;
         }
+        
+        // Set the database user ID on the user object so it flows to the JWT
+        (user as any).dbId = existingUser.id;
+        (user as any).isAdmin = existingUser.isAdmin || false;
       }
       return true;
     },

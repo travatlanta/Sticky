@@ -28,6 +28,11 @@ export async function GET(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching products:', error);
-    return NextResponse.json({ message: 'Failed to fetch products' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ 
+      message: 'Failed to fetch products', 
+      error: errorMessage,
+      hasDbUrl: !!process.env.DATABASE_URL 
+    }, { status: 500 });
   }
 }

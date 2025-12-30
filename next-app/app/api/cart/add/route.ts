@@ -142,7 +142,12 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error('Error adding to cart:', error);
-    return NextResponse.json({ message: 'Failed to add to cart' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ 
+      message: 'Failed to add to cart',
+      error: errorMessage,
+      hasDbUrl: !!process.env.DATABASE_URL
+    }, { status: 500 });
   }
 }
 

@@ -8,7 +8,11 @@ import { authOptions } from '@/lib/auth';
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.isAdmin) {
+    if (!session?.user) {
+      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    }
+    
+    if (!(session.user as any).isAdmin) {
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
@@ -23,7 +27,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.isAdmin) {
+    if (!session?.user) {
+      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    }
+    
+    if (!(session.user as any).isAdmin) {
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 

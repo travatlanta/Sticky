@@ -7,13 +7,7 @@ import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   try {
-    let session;
-    try {
-      session = await getServerSession(authOptions);
-    } catch (authError) {
-      console.error('Auth error in admin/stats:', authError);
-      return NextResponse.json({ message: 'Authentication error' }, { status: 500 });
-    }
+    const session = await getServerSession(authOptions);
     
     if (!session?.user) {
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });

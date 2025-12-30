@@ -237,16 +237,8 @@ export default function CheckoutClient() {
   const baseShipping = (typeof cart.shipping === 'number' && !isNaN(cart.shipping)) ? cart.shipping : 0;
   const shipping = baseShipping + (expeditedShipping ? EXPEDITED_SHIPPING_COST : 0);
 
-  // Calculate tax based on shipping state (Arizona destinations get taxed)
-  const calculateTax = () => {
-    const state = shippingAddress.state?.toUpperCase().trim();
-    if (state === 'AZ' || state === 'ARIZONA') {
-      return subtotal * ARIZONA_TAX_RATE;
-    }
-    return 0; // No tax for out-of-state shipments (unless nexus established)
-  };
-  
-  const tax = calculateTax();
+  // Calculate tax - 8.6% applied to all orders (business is located in Arizona)
+  const tax = subtotal * ARIZONA_TAX_RATE;
 
   // Total from /api/cart when provided, otherwise subtotal + shipping.
   // Add expedited shipping and tax if applicable
@@ -560,7 +552,7 @@ export default function CheckoutClient() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">
-                    Tax{tax > 0 && <span className="text-xs ml-1 text-gray-500">(AZ 8.6%)</span>}
+                    Tax <span className="text-xs ml-1 text-gray-500">(8.6%)</span>
                   </span>
                   <span data-testid="text-checkout-tax">${tax.toFixed(2)}</span>
                 </div>

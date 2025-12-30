@@ -26,6 +26,7 @@ import {
   DollarSign,
   AlertTriangle,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -176,6 +177,7 @@ export default function AdminProducts() {
   const [activeTab, setActiveTab] = useState("products");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -455,17 +457,25 @@ export default function AdminProducts() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
+      setDeletingProductId(id);
+      console.log(`Attempting to delete product ${id}...`);
       const res = await fetch(`/api/admin/products/${id}`, {
         method: "DELETE",
         credentials: "include",
       });
+      console.log(`Delete response status: ${res.status}`);
       const data = await res.json();
+      console.log(`Delete response data:`, data);
       if (!res.ok) {
-        throw new Error(data.error || data.message || "Failed to delete product");
+        const errorMsg = data.error || data.message || "Failed to delete product";
+        console.error(`Delete failed: ${errorMsg}`);
+        throw new Error(errorMsg);
       }
       return data;
     },
     onSuccess: (data) => {
+      console.log(`Delete success:`, data);
+      setDeletingProductId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       if (data.softDeleted) {
         toast({ title: "Product has orders - deactivated instead of deleted" });
@@ -473,11 +483,15 @@ export default function AdminProducts() {
         toast({ title: "Product deleted successfully" });
       }
     },
-    onError: (error: Error) => toast({ 
-      title: "Failed to delete product", 
-      description: error.message,
-      variant: "destructive" 
-    }),
+    onError: (error: Error) => {
+      console.error(`Delete mutation error:`, error);
+      setDeletingProductId(null);
+      toast({ 
+        title: "Failed to delete product", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
   });
 
   const createTemplateMutation = useMutation({
@@ -1038,6 +1052,7 @@ export default function AdminProducts() {
                     <Button
                       size="icon"
                       variant="ghost"
+                      disabled={deletingProductId === product.id}
                       onClick={() => {
                         if (confirm("Are you sure you want to delete this product?")) {
                           deleteMutation.mutate(product.id);
@@ -1045,7 +1060,11 @@ export default function AdminProducts() {
                       }}
                       data-testid={`button-delete-${product.id}`}
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      {deletingProductId === product.id ? (
+                        <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      )}
                     </Button>
                   </div>
                 </div>

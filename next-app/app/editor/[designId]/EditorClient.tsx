@@ -137,8 +137,6 @@ export default function Editor() {
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
   const [quantity, setQuantity] = useState(50);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
-  const [mediaType, setMediaType] = useState<string>("");
-  const [finishType, setFinishType] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [calculatedPrice, setCalculatedPrice] = useState<PriceCalculation | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -1080,24 +1078,6 @@ export default function Editor() {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
 
-    if (!mediaType) {
-      toast({
-        title: "Media type required",
-        description: "Please select a media type (Vinyl, Foil, or Holographic) before adding to cart.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!finishType) {
-      toast({
-        title: "Finish type required",
-        description: "Please select a finish type before adding to cart.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       await saveDesign();
 
@@ -1111,8 +1091,6 @@ export default function Editor() {
           quantity,
           selectedOptions,
           unitPrice: calculatedPrice?.pricePerUnit,
-          mediaType,
-          finishType,
         }),
       });
 
@@ -2137,47 +2115,7 @@ export default function Editor() {
 
         {/* Fixed Bottom Bar - Add to Cart */}
         <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-50" data-testid="fixed-cart-bar">
-          <div className="max-w-7xl mx-auto px-3 py-2">
-            {/* Media & Finish Type Selection Row */}
-            <div className="flex flex-wrap items-center gap-2 mb-2 pb-2 border-b border-border/50">
-              {/* Media Type */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground mr-1">Media:</span>
-                {["Vinyl", "Foil", "Holographic"].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setMediaType(type)}
-                    className={`px-2 py-1 text-xs rounded-md transition-all ${
-                      mediaType === type
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted hover:bg-muted/80"
-                    }`}
-                    data-testid={`button-media-${type.toLowerCase()}`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-              {/* Finish Type */}
-              <div className="flex items-center gap-1 ml-auto sm:ml-4">
-                <span className="text-xs text-muted-foreground mr-1">Finish:</span>
-                {["None", "Varnish", "Emboss", "Both"].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setFinishType(type)}
-                    className={`px-2 py-1 text-xs rounded-md transition-all ${
-                      finishType === type
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted hover:bg-muted/80"
-                    }`}
-                    data-testid={`button-finish-${type.toLowerCase()}`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </div>
-
+          <div className="max-w-7xl mx-auto px-3 py-3">
             {/* Quantity, Price & Add to Cart Row */}
             <div className="flex items-center justify-between gap-3">
               {/* Quantity Selector */}
@@ -2242,7 +2180,7 @@ export default function Editor() {
                 </div>
                 <Button
                   onClick={handleAddToCart}
-                  disabled={addedToCart || !mediaType || !finishType}
+                  disabled={addedToCart}
                   className="shrink-0"
                   data-testid="button-fixed-add-to-cart"
                 >
@@ -2262,7 +2200,7 @@ export default function Editor() {
         </div>
 
         {/* Spacer to prevent content from being hidden behind fixed bar */}
-        <div className="h-32" />
+        <div className="h-20" />
       </div>
     </TooltipProvider>
   );

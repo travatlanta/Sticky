@@ -46,6 +46,8 @@ export async function GET() {
         quantity: cartItems.quantity,
         unitPrice: cartItems.unitPrice,
         selectedOptions: cartItems.selectedOptions,
+        mediaType: cartItems.mediaType,
+        finishType: cartItems.finishType,
         product: products,
         design: designs,
       })

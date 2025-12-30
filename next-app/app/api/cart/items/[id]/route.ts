@@ -43,6 +43,8 @@ export async function PATCH(
     if (body.quantity !== undefined) updateData.quantity = body.quantity;
     if (body.selectedOptions !== undefined) updateData.selectedOptions = body.selectedOptions;
     if (body.unitPrice !== undefined) updateData.unitPrice = body.unitPrice;
+    if (body.mediaType !== undefined) updateData.mediaType = body.mediaType;
+    if (body.finishType !== undefined) updateData.finishType = body.finishType;
 
     const [item] = await db
       .update(cartItems)

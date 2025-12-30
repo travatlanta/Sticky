@@ -459,10 +459,11 @@ export default function AdminProducts() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async ({ id, force = false }: { id: number; force?: boolean }) => {
       setDeletingProductId(id);
-      console.log(`Attempting to delete product ${id}...`);
-      const res = await fetch(`/api/admin/products/${id}`, {
+      console.log(`Attempting to delete product ${id}${force ? ' (FORCE)' : ''}...`);
+      const url = force ? `/api/admin/products/${id}?force=true` : `/api/admin/products/${id}`;
+      const res = await fetch(url, {
         method: "DELETE",
         credentials: "include",
       });
@@ -474,14 +475,19 @@ export default function AdminProducts() {
         console.error(`Delete failed: ${errorMsg}`);
         throw new Error(errorMsg);
       }
-      return data;
+      return { ...data, productId: id };
     },
     onSuccess: (data) => {
       console.log(`Delete success:`, data);
       setDeletingProductId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
-      if (data.softDeleted) {
-        toast({ title: "Product has orders - deactivated instead of deleted" });
+      if (data.softDeleted && data.hasOrders) {
+        // Ask if they want to force delete
+        if (confirm("This product has existing orders and was deactivated. Do you want to PERMANENTLY delete it along with its order history? This cannot be undone.")) {
+          deleteMutation.mutate({ id: data.productId, force: true });
+        } else {
+          toast({ title: "Product deactivated (has order history)" });
+        }
       } else {
         toast({ title: "Product deleted successfully" });
       }
@@ -1090,7 +1096,7 @@ export default function AdminProducts() {
                       disabled={deletingProductId === product.id}
                       onClick={() => {
                         if (confirm("Are you sure you want to delete this product?")) {
-                          deleteMutation.mutate(product.id);
+                          deleteMutation.mutate({ id: product.id });
                         }
                       }}
                       data-testid={`button-delete-${product.id}`}

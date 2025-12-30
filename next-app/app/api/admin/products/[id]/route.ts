@@ -86,15 +86,19 @@ export async function DELETE(
 
     const { id } = await params;
     const productId = parseInt(id);
+    
+    // Check for force delete query param
+    const url = new URL(request.url);
+    const forceDelete = url.searchParams.get('force') === 'true';
 
-    // Check if product has any order items - prevent deletion if so
+    // Check if product has any order items
     const existingOrderItems = await db
       .select({ id: orderItems.id })
       .from(orderItems)
       .where(eq(orderItems.productId, productId))
       .limit(1);
 
-    if (existingOrderItems.length > 0) {
+    if (existingOrderItems.length > 0 && !forceDelete) {
       // Soft delete: deactivate the product instead of deleting
       await db
         .update(products)
@@ -104,8 +108,15 @@ export async function DELETE(
       return NextResponse.json({ 
         success: true, 
         softDeleted: true,
-        message: 'Product has existing orders and was deactivated instead of deleted' 
+        hasOrders: true,
+        message: 'Product has existing orders and was deactivated instead of deleted. Use force delete to permanently remove.' 
       });
+    }
+    
+    // If force delete with orders, delete order items first
+    if (existingOrderItems.length > 0 && forceDelete) {
+      console.log(`Force deleting product ${productId} - removing order items...`);
+      await db.delete(orderItems).where(eq(orderItems.productId, productId));
     }
 
     // Delete related records first to avoid foreign key constraint violations

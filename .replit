@@ -50,3 +50,9 @@ integrations = ["javascript_log_in_with_replit:1.0.0", "javascript_openai_ai_int
 [userenv.shared]
 ADMIN_EMAIL = "trav.mcmichael@gmail.com"
 ADMIN_PASSWORD_HASH = "$2b$10$g8qn7FuMEuMPF3j63qIaPeRnKfBao3EMSlrCxhf0MTIWXAS9fk69e"
+
+[userenv.production]
+NEXTAUTH_URL = "https://stickybanditos.com"
+
+[userenv.development]
+NEXTAUTH_URL = "http://localhost:3000"

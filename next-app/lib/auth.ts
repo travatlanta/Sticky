@@ -66,19 +66,29 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        // For Google sign-in, use dbId (database user ID), otherwise use user.id
-        token.id = (user as any).dbId || user.id;
-        token.isAdmin = (user as any).isAdmin || false;
+      try {
+        if (user) {
+          // For Google sign-in, use dbId (database user ID), otherwise use user.id
+          token.id = (user as any).dbId || user.id;
+          token.isAdmin = (user as any).isAdmin || false;
+        }
+        return token;
+      } catch (error) {
+        console.error('JWT callback error:', error);
+        return token;
       }
-      return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).isAdmin = token.isAdmin || false;
+      try {
+        if (session.user) {
+          (session.user as any).id = token.id;
+          (session.user as any).isAdmin = token.isAdmin || false;
+        }
+        return session;
+      } catch (error) {
+        console.error('Session callback error:', error);
+        return session;
       }
-      return session;
     },
     async signIn({ user, account }) {
       if (account?.provider === 'google') {
@@ -112,7 +122,9 @@ export const authOptions: NextAuthOptions = {
   },
   cookies: {
     sessionToken: {
-      name: '__Secure-next-auth.session-token-v2',
+      name: process.env.NODE_ENV === 'production' 
+        ? '__Secure-next-auth.session-token-v2' 
+        : 'next-auth.session-token-v2',
       options: {
         httpOnly: true,
         sameSite: 'lax' as const,

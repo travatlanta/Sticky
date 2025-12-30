@@ -17,11 +17,13 @@ function noCache(res: NextResponse) {
 
 export async function GET() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     let sessionId = cookieStore.get('cart-session-id')?.value;
+    console.log('[Cart GET] Session ID from cookie:', sessionId || 'NONE');
 
     if (!sessionId) {
       sessionId = randomUUID();
+      console.log('[Cart GET] Generated new session ID:', sessionId);
       cookieStore.set({
         name: 'cart-session-id',
         value: sessionId,
@@ -196,11 +198,13 @@ export async function POST(request: Request) {
       body = text ? JSON.parse(text) : {};
     }
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     let sessionId = cookieStore.get('cart-session-id')?.value;
+    console.log('[Cart POST] Session ID from cookie:', sessionId || 'NONE');
 
     if (!sessionId) {
       sessionId = randomUUID();
+      console.log('[Cart POST] Generated new session ID:', sessionId);
       cookieStore.set({
         name: 'cart-session-id',
         value: sessionId,

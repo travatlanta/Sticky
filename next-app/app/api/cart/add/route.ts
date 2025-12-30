@@ -23,11 +23,14 @@ export async function POST(request: Request) {
       body = text ? JSON.parse(text) : {};
     }
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     let sessionId = cookieStore.get('cart-session-id')?.value;
+    console.log('[Cart Add] Session ID from cookie:', sessionId || 'NONE');
+    
     // Generate and persist a new session ID if none exists
     if (!sessionId) {
       sessionId = randomUUID();
+      console.log('[Cart Add] Generated new session ID:', sessionId);
       cookieStore.set({
         name: 'cart-session-id',
         value: sessionId,

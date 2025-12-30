@@ -65,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         fixed top-0 left-0 h-full w-64 bg-gray-900 text-white flex flex-col z-50
         transform transition-transform duration-200 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:translate-x-0 md:static
+        md:translate-x-0
       `}>
         <div className="p-4 border-b border-gray-800">
           <div className="flex items-center justify-between">
@@ -136,7 +136,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <div className="flex-1 min-h-screen flex flex-col">
+      <div className="flex-1 min-h-screen flex flex-col md:ml-64">
         <header className="bg-white border-b px-4 py-3 flex items-center gap-3 md:hidden sticky top-0 z-30">
           <Button
             size="icon"

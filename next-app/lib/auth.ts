@@ -65,34 +65,12 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       if (user) {
         // For Google sign-in, use dbId (database user ID), otherwise use user.id
         token.id = (user as any).dbId || user.id;
         token.isAdmin = (user as any).isAdmin || false;
-        token.dbChecked = true;
       }
-      
-      // Only refresh isAdmin from database occasionally (not on every request)
-      // Check if token has valid UUID format before querying
-      if (token.id && typeof token.id === 'string' && !token.dbChecked) {
-        // Only query if the ID looks like a UUID (36 chars with dashes)
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token.id as string);
-        if (isUUID) {
-          try {
-            const dbUser = await db.query.users.findFirst({
-              where: eq(users.id, token.id as string),
-            });
-            if (dbUser) {
-              token.isAdmin = dbUser.isAdmin || false;
-            }
-          } catch (e) {
-            console.error('JWT db lookup error:', e);
-          }
-        }
-        token.dbChecked = true;
-      }
-      
       return token;
     },
     async session({ session, token }) {

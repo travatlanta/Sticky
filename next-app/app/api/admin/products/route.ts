@@ -54,9 +54,11 @@ export async function POST(request: Request) {
       ? null
       : body.flatShippingPrice;
 
-    // Parse canvas size from dropdown (e.g., "1200x1200")
-    const canvasSize = body.canvasSize || "1200x1200";
-    const [templateWidth, templateHeight] = canvasSize.split('x').map(Number);
+    // Calculate template dimensions from print size (inches * 300 DPI)
+    const printWidthInches = parseFloat(body.printWidthInches) || 4;
+    const printHeightInches = parseFloat(body.printHeightInches) || 4;
+    const templateWidth = Math.round(printWidthInches * 300);
+    const templateHeight = Math.round(printHeightInches * 300);
 
     const [product] = await db
       .insert(products)

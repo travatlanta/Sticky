@@ -188,8 +188,9 @@ export default function AdminProducts() {
     thumbnailUrl: "",
     shippingType: "calculated" as string,
     flatShippingPrice: "" as string | null,
-    // Canvas size (pixels)
-    canvasSize: "1200x1200",
+    // Print dimensions (inches) - determines canvas size for customers
+    printWidthInches: "4",
+    printHeightInches: "4",
     stickerType: "standard" as "standard" | "die-cut" | "kiss-cut" | "custom-shape",
     // Bulk pricing tiers
     pricingTiers: [
@@ -424,7 +425,8 @@ export default function AdminProducts() {
         thumbnailUrl: "",
         shippingType: "calculated",
         flatShippingPrice: "",
-        canvasSize: "1200x1200",
+        printWidthInches: "4",
+        printHeightInches: "4",
         stickerType: "standard",
         pricingTiers: [
           { minQuantity: "100", discountPercent: "5" },
@@ -831,24 +833,43 @@ export default function AdminProducts() {
                 )}
               </div>
               
-              {/* Canvas Size Section */}
+              {/* Print Dimensions Section */}
               <div className="border-t pt-4 mt-4">
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                   <Layout className="h-4 w-4" />
-                  Canvas Size (for Design Editor)
+                  Print Dimensions (for Design Editor)
                 </h3>
-                <div className="max-w-xs">
-                  <select
-                    value={formData.canvasSize}
-                    onChange={(e) => setFormData({ ...formData, canvasSize: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                    data-testid="select-canvas-size"
-                  >
-                    <option value="720x600">720 x 600</option>
-                    <option value="720x900">720 x 900</option>
-                    <option value="1200x1200">1200 x 1200</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-3 max-w-sm">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Width (inches)</label>
+                    <input
+                      type="number"
+                      step="0.125"
+                      min="0.5"
+                      max="48"
+                      value={formData.printWidthInches}
+                      onChange={(e) => setFormData({ ...formData, printWidthInches: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      data-testid="input-print-width"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Height (inches)</label>
+                    <input
+                      type="number"
+                      step="0.125"
+                      min="0.5"
+                      max="48"
+                      value={formData.printHeightInches}
+                      onChange={(e) => setFormData({ ...formData, printHeightInches: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      data-testid="input-print-height"
+                    />
+                  </div>
                 </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Canvas: {Math.round(parseFloat(formData.printWidthInches || '4') * 300)} x {Math.round(parseFloat(formData.printHeightInches || '4') * 300)} pixels at 300 DPI
+                </p>
               </div>
               
               {/* Sticker Type Selection */}

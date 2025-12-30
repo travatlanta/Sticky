@@ -552,8 +552,8 @@ export default function Editor() {
     }
     
     const text = new fabricModule.IText("Your Text", {
-      left: canvas.width! / 2,
-      top: canvas.height! / 2,
+      left: canvasDimensions.width / 2,
+      top: canvasDimensions.height / 2,
       fontFamily,
       fontSize,
       fill: textColor,
@@ -566,7 +566,7 @@ export default function Editor() {
     canvas.renderAll();
     setActiveTool("select");
     toast({ title: "Text added" });
-  }, [fontFamily, fontSize, textColor, toast]);
+  }, [fontFamily, fontSize, textColor, toast, canvasDimensions]);
 
   const addShape = useCallback((shapeType: string) => {
     const canvas = fabricCanvasRef.current;
@@ -575,8 +575,8 @@ export default function Editor() {
       return;
     }
     
-    const centerX = canvas.width! / 2;
-    const centerY = canvas.height! / 2;
+    const centerX = canvasDimensions.width / 2;
+    const centerY = canvasDimensions.height / 2;
     let shape: any;
     
     switch (shapeType) {
@@ -658,7 +658,7 @@ export default function Editor() {
     canvas.renderAll();
     setActiveTool("select");
     toast({ title: "Shape added" });
-  }, [fillColor, toast]);
+  }, [fillColor, toast, canvasDimensions]);
 
   const addEmoji = useCallback((emojiName: string) => {
     const canvas = fabricCanvasRef.current;
@@ -672,8 +672,8 @@ export default function Editor() {
     let shape: any;
     if (emojiPaths[emojiName]) {
       shape = new fabricModule.Path(emojiPaths[emojiName], {
-        left: canvas.width! / 2,
-        top: canvas.height! / 2,
+        left: canvasDimensions.width / 2,
+        top: canvasDimensions.height / 2,
         fill: fillColor,
         scaleX: 0.5,
         scaleY: 0.5,
@@ -682,8 +682,8 @@ export default function Editor() {
       });
     } else {
       shape = new fabricModule.Circle({
-        left: canvas.width! / 2,
-        top: canvas.height! / 2,
+        left: canvasDimensions.width / 2,
+        top: canvasDimensions.height / 2,
         radius: 30,
         fill: fillColor,
         originX: "center",
@@ -694,7 +694,7 @@ export default function Editor() {
     canvas.add(shape);
     canvas.setActiveObject(shape);
     canvas.renderAll();
-  }, [fillColor]);
+  }, [fillColor, canvasDimensions]);
 
   const addClipart = useCallback((clipartName: string) => {
     const canvas = fabricCanvasRef.current;
@@ -718,8 +718,8 @@ export default function Editor() {
     if (!pathData) return;
     
     const shape = new fabricModule.Path(pathData, {
-      left: canvas.width! / 2,
-      top: canvas.height! / 2,
+      left: canvasDimensions.width / 2,
+      top: canvasDimensions.height / 2,
       fill: fillColor,
       scaleX: 0.6,
       scaleY: 0.6,
@@ -732,7 +732,7 @@ export default function Editor() {
     canvas.renderAll();
     setActiveTool("select");
     toast({ title: "Clipart added" });
-  }, [fillColor, toast]);
+  }, [fillColor, toast, canvasDimensions]);
 
   const toggleDrawingMode = useCallback((enabled: boolean) => {
     const canvas = fabricCanvasRef.current;
@@ -884,13 +884,13 @@ export default function Editor() {
           }
           
           fabricImg.set({
-            left: canvas.width! / 2,
-            top: canvas.height! / 2,
+            left: canvasDimensions.width / 2,
+            top: canvasDimensions.height / 2,
             originX: "center",
             originY: "center",
           });
 
-          const maxSize = Math.min(canvas.width!, canvas.height!) * 0.8;
+          const maxSize = Math.min(canvasDimensions.width, canvasDimensions.height) * 0.8;
           const scale = Math.min(maxSize / fabricImg.width, maxSize / fabricImg.height);
           fabricImg.scale(scale);
 

@@ -3,8 +3,8 @@ export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { carts, cartItems, products, designs, productOptions } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { carts, cartItems, products, designs, productOptions, pricingTiers } from '@shared/schema';
+import { eq, and, asc, inArray } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
@@ -99,14 +99,49 @@ export async function GET() {
       optionsByProduct[Number(pid)].coating.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
     }
 
-    // Normalize items to ensure unitPrice is always a valid string (never null)
+    // Fetch pricing tiers for bulk discounts
+    const allTiers = productIds.length > 0
+      ? await db
+          .select()
+          .from(pricingTiers)
+          .where(inArray(pricingTiers.productId, productIds as number[]))
+          .orderBy(asc(pricingTiers.minQuantity))
+      : [];
+
+    // Group pricing tiers by product
+    const tiersByProduct: Record<number, typeof allTiers> = {};
+    for (const tier of allTiers) {
+      if (!tiersByProduct[tier.productId]) {
+        tiersByProduct[tier.productId] = [];
+      }
+      tiersByProduct[tier.productId].push(tier);
+    }
+
+    // Helper to get bulk pricing for a product/quantity
+    const getBulkPrice = (productId: number, quantity: number, basePrice: string): string => {
+      const tiers = tiersByProduct[productId] || [];
+      for (const tier of tiers) {
+        if (quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity)) {
+          return tier.pricePerUnit;
+        }
+      }
+      return basePrice;
+    };
+
+    // Normalize items and apply bulk pricing based on quantity
     const items = rawItems.map(item => {
       const productId = item.product?.id;
       const options = productId ? optionsByProduct[productId] : { material: [], coating: [] };
+      const quantity = item.quantity ?? 1;
+      
+      // Apply bulk pricing if available
+      const basePrice = item.product?.basePrice ?? '0';
+      const bulkPrice = productId ? getBulkPrice(productId, quantity, basePrice) : basePrice;
+      
       return {
         ...item,
-        unitPrice: item.unitPrice ?? '0',
-        quantity: item.quantity ?? 1,
+        unitPrice: bulkPrice,
+        quantity,
         materialOptions: options?.material || [],
         coatingOptions: options?.coating || [],
       };

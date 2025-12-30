@@ -429,7 +429,7 @@ export default function ProductDetail() {
               </div>
             ))}
 
-            {/* Bulk Pricing Tiers */}
+            {/* Bulk Pricing Tiers - Clickable to set quantity */}
             {product.pricingTiers && product.pricingTiers.length > 0 && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
                 <h3 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
@@ -438,26 +438,28 @@ export default function ProductDetail() {
                 </h3>
                 <div className="grid gap-2">
                   {product.pricingTiers.slice(0, 3).map((tier, idx) => (
-                    <div 
-                      key={tier.id} 
-                      className={`flex justify-between items-center text-sm p-2 rounded ${
+                    <button 
+                      key={tier.id}
+                      type="button"
+                      onClick={() => setQuantity(tier.minQuantity)}
+                      className={`flex justify-between items-center text-sm p-3 rounded-lg cursor-pointer transition-all ${
                         quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity)
-                          ? 'bg-green-100 border border-green-200'
-                          : 'bg-white/50'
+                          ? 'bg-green-200 border-2 border-green-400 shadow-sm'
+                          : 'bg-white/70 border border-green-100 hover:bg-green-100 hover:border-green-200'
                       }`}
-                      data-testid={`pricing-tier-${idx}`}
+                      data-testid={`button-pricing-tier-${idx}`}
                     >
-                      <span className="text-gray-700">
+                      <span className="text-gray-700 font-medium">
                         {tier.minQuantity.toLocaleString()}
                         {tier.maxQuantity ? ` - ${tier.maxQuantity.toLocaleString()}` : '+'} units
                       </span>
                       <span className="font-semibold text-green-700">
                         {formatPrice(tier.pricePerUnit)} each
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
-                <p className="text-xs text-green-600 mt-2">Order more to save more!</p>
+                <p className="text-xs text-green-600 mt-2">Click a tier to set quantity!</p>
               </div>
             )}
 

@@ -7,8 +7,19 @@ import { authOptions } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.isAdmin) {
+    let session;
+    try {
+      session = await getServerSession(authOptions);
+    } catch (authError) {
+      console.error('Auth error in admin/stats:', authError);
+      return NextResponse.json({ message: 'Authentication error' }, { status: 500 });
+    }
+    
+    if (!session?.user) {
+      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+    }
+    
+    if (!(session.user as any).isAdmin) {
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
@@ -35,6 +46,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching admin stats:', error);
-    return NextResponse.json({ message: 'Failed to fetch stats' }, { status: 500 });
+    return NextResponse.json({ message: 'Failed to fetch stats', error: String(error) }, { status: 500 });
   }
 }

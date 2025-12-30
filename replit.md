@@ -1,7 +1,7 @@
 # Sticky Banditos Printing Company
 
 ## Overview
-Sticky Banditos is an e-commerce platform for custom print products like stickers, business cards, and flyers. It features a customer-facing storefront with product browsing, an integrated design editor, shopping cart functionality, and an admin panel for product, order, and promotion management. The project aims to provide a comprehensive solution for custom printing needs.
+Sticky Banditos is an e-commerce platform specializing in custom stickers and labels. It features a customer-facing storefront with product browsing, an integrated design editor, shopping cart functionality, and an admin panel for product, order, promotion, and site customization management. The business is focused on sticker products only (not business cards or flyers).
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -63,6 +63,8 @@ Preferred communication style: Simple, everyday language.
 - **Order Tracking**: Detailed order views with timeline, shipping, items, and print-ready downloads.
 - **Hot Deals**: Dynamic display of promotional products on homepage and a dedicated deals page.
 - **Admin Dashboard**: Product, order, user, and promotion management.
+- **Site Customization**: Full homepage content editing via admin panel with tabbed interface for Hero, Features, Custom Stickers, Stickers That Stick, Labels, Popular Products, and CTA sections. Settings stored in database with defaults fallback.
+- **Analytics Dashboard**: Google Analytics integration info page showing tracking ID (G-EXT24JDCC7) and setup status. May take 24-48 hours for data to appear.
 - **Enhanced Order Management**: Comprehensive order details including customer info, shipping address, detailed items with selected options, design files, financial summary, tracking, and notes.
 - **Global Product Requirements**: All products automatically get:
   - **Material Options**: Vinyl, Foil, Holographic

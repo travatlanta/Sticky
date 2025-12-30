@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products, productOptions } from '@shared/schema';
+import { products, productOptions, pricingTiers } from '@shared/schema';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -13,8 +13,8 @@ const DEFAULT_MATERIAL_OPTIONS = [
 
 const DEFAULT_COATING_OPTIONS = [
   { optionType: 'coating' as const, name: 'None', value: 'none', priceModifier: '0.00', isDefault: true, displayOrder: 1 },
-  { optionType: 'coating' as const, name: 'Varnish', value: 'varnish', priceModifier: '0.00', isDefault: false, displayOrder: 2 },
-  { optionType: 'coating' as const, name: 'Emboss', value: 'emboss', priceModifier: '0.00', isDefault: false, displayOrder: 3 },
+  { optionType: 'coating' as const, name: 'Gloss', value: 'gloss', priceModifier: '0.10', isDefault: false, displayOrder: 2 },
+  { optionType: 'coating' as const, name: 'Foil', value: 'foil', priceModifier: '0.20', isDefault: false, displayOrder: 3 },
 ];
 
 export async function GET() {
@@ -94,6 +94,16 @@ export async function POST(request: Request) {
     }));
 
     await db.insert(productOptions).values(allDefaultOptions);
+
+    // Add default bulk pricing tiers at 1000, 5000, 10000 quantities
+    // Prices are derived from basePrice with discounts (5%, 10%, 15% off)
+    const basePrice = parseFloat(body.basePrice) || 1.00;
+    const defaultPricingTiers = [
+      { productId: product.id, minQuantity: 1000, maxQuantity: 4999, pricePerUnit: (basePrice * 0.95).toFixed(4) },
+      { productId: product.id, minQuantity: 5000, maxQuantity: 9999, pricePerUnit: (basePrice * 0.90).toFixed(4) },
+      { productId: product.id, minQuantity: 10000, maxQuantity: null, pricePerUnit: (basePrice * 0.85).toFixed(4) },
+    ];
+    await db.insert(pricingTiers).values(defaultPricingTiers);
 
     return NextResponse.json(product);
   } catch (error) {

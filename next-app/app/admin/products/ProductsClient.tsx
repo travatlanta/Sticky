@@ -109,9 +109,9 @@ export default function AdminProducts() {
   const [materialOptions, setMaterialOptions] = useState<Array<{id: number; name: string; priceModifier: string}>>([]);
   const [coatingOptions, setCoatingOptions] = useState<Array<{id: number; name: string; priceModifier: string}>>([]);
   const [pricingTiers, setPricingTiers] = useState<Array<{minQuantity: string; maxQuantity: string; pricePerUnit: string}>>([
-    { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
-    { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
-    { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
+    { minQuantity: "1000", maxQuantity: "4999", pricePerUnit: "" },
+    { minQuantity: "5000", maxQuantity: "9999", pricePerUnit: "" },
+    { minQuantity: "10000", maxQuantity: "", pricePerUnit: "" },
   ]);
 
   const queryClient = useQueryClient();
@@ -451,9 +451,9 @@ export default function AdminProducts() {
     setMaterialOptions([]);
     setCoatingOptions([]);
     setPricingTiers([
-      { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
-      { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
-      { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
+      { minQuantity: "1000", maxQuantity: "4999", pricePerUnit: "" },
+      { minQuantity: "5000", maxQuantity: "9999", pricePerUnit: "" },
+      { minQuantity: "10000", maxQuantity: "", pricePerUnit: "" },
     ]);
   };
 

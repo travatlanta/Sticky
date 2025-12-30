@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products, productOptions } from '@shared/schema';
+import { products, productOptions, pricingTiers } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 const standardMaterials = [
@@ -13,8 +13,8 @@ const standardMaterials = [
 
 const standardCoatings = [
   { name: "None", value: "none", priceModifier: "0.00", isDefault: true, displayOrder: 1 },
-  { name: "Varnish", value: "varnish", priceModifier: "0.00", isDefault: false, displayOrder: 2 },
-  { name: "Emboss", value: "emboss", priceModifier: "0.00", isDefault: false, displayOrder: 3 },
+  { name: "Gloss", value: "gloss", priceModifier: "0.10", isDefault: false, displayOrder: 2 },
+  { name: "Foil", value: "foil", priceModifier: "0.20", isDefault: false, displayOrder: 3 },
 ];
 
 export async function POST(request: Request) {
@@ -73,6 +73,23 @@ export async function POST(request: Request) {
           displayOrder: coat.displayOrder + 10,
           isActive: true,
         });
+      }
+
+      // Check and add default pricing tiers if none exist
+      const existingTiers = await db
+        .select()
+        .from(pricingTiers)
+        .where(eq(pricingTiers.productId, product.id));
+
+      if (existingTiers.length === 0) {
+        const basePrice = parseFloat(product.basePrice) || 1.00;
+        const defaultTiers = [
+          { productId: product.id, minQuantity: 1000, maxQuantity: 4999, pricePerUnit: (basePrice * 0.95).toFixed(4) },
+          { productId: product.id, minQuantity: 5000, maxQuantity: 9999, pricePerUnit: (basePrice * 0.90).toFixed(4) },
+          { productId: product.id, minQuantity: 10000, maxQuantity: null, pricePerUnit: (basePrice * 0.85).toFixed(4) },
+        ];
+        await db.insert(pricingTiers).values(defaultTiers);
+        results.push(`Added bulk pricing tiers for: ${product.name}`);
       }
 
       updatedCount++;

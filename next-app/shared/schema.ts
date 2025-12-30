@@ -130,6 +130,9 @@ export const products = pgTable("products", {
   // automatically calculated shipping rates.
   shippingType: shippingTypeEnum("shipping_type").default("calculated"),
   flatShippingPrice: decimal("flat_shipping_price", { precision: 10, scale: 2 }),
+  // SEO fields for product pages
+  metaTitle: varchar("meta_title", { length: 70 }), // Optimal 50-60 chars
+  metaDescription: varchar("meta_description", { length: 160 }), // Optimal 150-160 chars
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

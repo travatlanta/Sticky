@@ -18,6 +18,7 @@ import {
   Users,
   DollarSign,
   Inbox,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/admin/finances", label: "Finances", icon: DollarSign },
   { href: "/admin/deals", label: "Deals", icon: Flame },
   { href: "/admin/promotions", label: "Promotions", icon: Tag },
+  { href: "/admin/seo", label: "SEO", icon: Search },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

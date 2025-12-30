@@ -95,6 +95,29 @@ export async function GET() {
       results.push('Added tracking_number column');
     }
 
+    // Add SEO fields to products table
+    const checkMetaTitle = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'products' AND column_name = 'meta_title'
+    `;
+    
+    if (checkMetaTitle.length === 0) {
+      await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_title VARCHAR(70)`;
+      results.push('Added meta_title column to products');
+    }
+
+    const checkMetaDescription = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'products' AND column_name = 'meta_description'
+    `;
+    
+    if (checkMetaDescription.length === 0) {
+      await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS meta_description VARCHAR(160)`;
+      results.push('Added meta_description column to products');
+    }
+
     // List all columns in orders table
     const allColumns = await sql`
       SELECT column_name 

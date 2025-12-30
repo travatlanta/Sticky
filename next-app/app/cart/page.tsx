@@ -17,12 +17,13 @@ type CartItem = {
   quantity: number;
   unitPrice: string | null;
   selectedOptions?: any;
+  mediaType?: string | null;
+  finishType?: string | null;
   product: {
     id: number;
     name: string;
     slug: string;
     thumbnailUrl: string | null;
-    // shipping fields may exist but UI doesn't need them here
     shippingType?: string | null;
     flatShippingPrice?: string | null;
   } | null;
@@ -32,6 +33,9 @@ type CartItem = {
     previewUrl?: string | null;
   } | null;
 };
+
+const MEDIA_TYPES = ["Vinyl", "Foil", "Holographic"] as const;
+const FINISH_TYPES = ["None", "Varnish", "Emboss", "Both"] as const;
 
 type CartResponse = {
   items: CartItem[];
@@ -173,11 +177,41 @@ export default function CartClient() {
     },
   });
 
+  const updateItemMutation = useMutation({
+    mutationFn: async ({ itemId, mediaType, finishType }: { itemId: number; mediaType?: string; finishType?: string }) => {
+      const res = await fetch(`/api/cart/items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ mediaType, finishType }),
+      });
+      if (!res.ok) throw new Error("Failed to update item");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+    },
+    onError: () => {
+      toast({
+        title: "Update failed",
+        description: "Could not update the item. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const items = cart?.items ?? [];
   
   // Check if any items are missing artwork (no design attached at all)
   const itemsNeedingArtwork = items.filter(item => !item.design);
   const hasItemsNeedingArtwork = itemsNeedingArtwork.length > 0;
+
+  // Check if any items are missing media/finish type selection
+  const itemsNeedingSelections = items.filter(item => !item.mediaType || !item.finishType);
+  const hasItemsNeedingSelections = itemsNeedingSelections.length > 0;
+
+  // Overall: can checkout only if all requirements met
+  const canCheckout = !hasItemsNeedingArtwork && !hasItemsNeedingSelections && items.length > 0;
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
@@ -189,6 +223,15 @@ export default function CartClient() {
       toast({
         title: "Artwork Required",
         description: `Please upload artwork for ${itemsNeedingArtwork.length} item(s) before checkout.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (hasItemsNeedingSelections) {
+      toast({
+        title: "Selections Required",
+        description: `Please select media type and finish for all items before checkout.`,
         variant: "destructive",
       });
       return;
@@ -362,6 +405,77 @@ export default function CartClient() {
                         </div>
                       </div>
                     )}
+
+                    {/* Media Type & Finish Type Selection */}
+                    <div className={`rounded-xl p-4 border ${
+                      (!item.mediaType || !item.finishType) 
+                        ? "bg-amber-50 border-amber-200" 
+                        : "bg-gray-50 border-gray-200"
+                    }`}>
+                      <div className="space-y-4">
+                        {/* Media Type */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            {!item.mediaType && (
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            )}
+                            <p className="text-sm font-medium text-gray-700">
+                              Material Type {!item.mediaType && <span className="text-red-500">*</span>}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {MEDIA_TYPES.map((type) => (
+                              <Button
+                                key={type}
+                                size="sm"
+                                variant={item.mediaType === type ? "default" : "outline"}
+                                className={item.mediaType === type ? "bg-orange-500 hover:bg-orange-600" : ""}
+                                onClick={() => updateItemMutation.mutate({ 
+                                  itemId: item.id, 
+                                  mediaType: type, 
+                                  finishType: item.finishType || undefined 
+                                })}
+                                disabled={updateItemMutation.isPending}
+                                data-testid={`select-media-${type.toLowerCase()}-${item.id}`}
+                              >
+                                {type}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Finish Type */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            {!item.finishType && (
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            )}
+                            <p className="text-sm font-medium text-gray-700">
+                              Finish Type {!item.finishType && <span className="text-red-500">*</span>}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {FINISH_TYPES.map((type) => (
+                              <Button
+                                key={type}
+                                size="sm"
+                                variant={item.finishType === type ? "default" : "outline"}
+                                className={item.finishType === type ? "bg-orange-500 hover:bg-orange-600" : ""}
+                                onClick={() => updateItemMutation.mutate({ 
+                                  itemId: item.id, 
+                                  mediaType: item.mediaType || undefined, 
+                                  finishType: type 
+                                })}
+                                disabled={updateItemMutation.isPending}
+                                data-testid={`select-finish-${type.toLowerCase()}-${item.id}`}
+                              >
+                                {type}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -399,20 +513,34 @@ export default function CartClient() {
                 </div>
               )}
 
+              {hasItemsNeedingSelections && !hasItemsNeedingArtwork && (
+                <div className="bg-amber-50 rounded-lg p-3 mb-4 border border-amber-200">
+                  <div className="flex items-center gap-2 text-amber-800">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    <p className="text-xs font-medium">
+                      {itemsNeedingSelections.length} item(s) need material & finish selection
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <Button
                 className={`w-full ${
-                  hasItemsNeedingArtwork 
+                  !canCheckout 
                     ? "bg-gray-400 hover:bg-gray-500" 
                     : "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
                 }`}
                 onClick={handleCheckout}
+                disabled={!canCheckout && isAuthenticated}
                 data-testid="button-checkout"
               >
                 {!isAuthenticated 
                   ? "Login to Checkout" 
                   : hasItemsNeedingArtwork 
                     ? "Upload Artwork to Continue"
-                    : "Checkout"
+                    : hasItemsNeedingSelections
+                      ? "Complete Selections to Continue"
+                      : "Checkout"
                 }
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>

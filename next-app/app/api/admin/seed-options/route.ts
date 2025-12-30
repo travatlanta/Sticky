@@ -6,14 +6,14 @@ import { products, productOptions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 const standardMaterials = [
-  { name: "Gloss Vinyl", value: "gloss", priceModifier: "0", isDefault: true, displayOrder: 1 },
-  { name: "Matte Vinyl", value: "matte", priceModifier: "0", isDefault: false, displayOrder: 2 },
-  { name: "Clear Vinyl", value: "clear", priceModifier: "0.03", isDefault: false, displayOrder: 3 },
+  { name: "Gloss Vinyl", value: "gloss-vinyl", priceModifier: "0.00", isDefault: true, displayOrder: 1 },
+  { name: "Matte Vinyl", value: "matte-vinyl", priceModifier: "0.00", isDefault: false, displayOrder: 2 },
+  { name: "Clear Vinyl", value: "clear-vinyl", priceModifier: "0.03", isDefault: false, displayOrder: 3 },
 ];
 
 const standardCoatings = [
-  { name: "Standard", value: "standard", priceModifier: "0", isDefault: true, displayOrder: 1 },
-  { name: "UV Lamination", value: "uv", priceModifier: "0.02", isDefault: false, displayOrder: 2 },
+  { name: "Standard", value: "standard", priceModifier: "0.00", isDefault: true, displayOrder: 1 },
+  { name: "UV Lamination", value: "uv-lamination", priceModifier: "0.02", isDefault: false, displayOrder: 2 },
 ];
 
 export async function POST(request: Request) {

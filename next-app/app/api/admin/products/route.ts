@@ -1,9 +1,20 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products } from '@shared/schema';
+import { products, productOptions } from '@shared/schema';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+
+const DEFAULT_MATERIAL_OPTIONS = [
+  { optionType: 'material' as const, name: 'Gloss Vinyl', value: 'gloss-vinyl', priceModifier: '0.00', isDefault: true, displayOrder: 1 },
+  { optionType: 'material' as const, name: 'Matte Vinyl', value: 'matte-vinyl', priceModifier: '0.00', isDefault: false, displayOrder: 2 },
+  { optionType: 'material' as const, name: 'Clear Vinyl', value: 'clear-vinyl', priceModifier: '0.03', isDefault: false, displayOrder: 3 },
+];
+
+const DEFAULT_COATING_OPTIONS = [
+  { optionType: 'coating' as const, name: 'Standard', value: 'standard', priceModifier: '0.00', isDefault: true, displayOrder: 1 },
+  { optionType: 'coating' as const, name: 'UV Lamination', value: 'uv-lamination', priceModifier: '0.02', isDefault: false, displayOrder: 2 },
+];
 
 export async function GET() {
   try {
@@ -73,6 +84,15 @@ export async function POST(request: Request) {
         flatShippingPrice: flatShippingPrice,
       })
       .returning();
+
+    // Automatically add default material and coating options for all new products
+    const allDefaultOptions = [...DEFAULT_MATERIAL_OPTIONS, ...DEFAULT_COATING_OPTIONS].map(opt => ({
+      ...opt,
+      productId: product.id,
+      isActive: true,
+    }));
+
+    await db.insert(productOptions).values(allDefaultOptions);
 
     return NextResponse.json(product);
   } catch (error) {

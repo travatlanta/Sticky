@@ -5,7 +5,6 @@ import { db } from '@/lib/db';
 import { users } from '@/shared/schema';
 import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
-import PDFDocument from 'pdfkit';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,32 +72,20 @@ export async function GET(req: Request) {
     const sanitizedFilename = filename.replace(/[^a-z0-9_-]/gi, '_');
 
     if (format === 'pdf') {
-      const pngBuffer = await image.png().toBuffer();
+      // For PDF, return a high-quality PNG with metadata
+      // PDF generation is done client-side using jspdf for Vercel compatibility
+      // Return the image data as base64 for client-side PDF creation
+      const pngBuffer = await image
+        .png({ compressionLevel: 0 })
+        .toBuffer();
       
-      const widthPt = (metadata.width || 300) * 72 / 300;
-      const heightPt = (metadata.height || 300) * 72 / 300;
-
-      const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        const doc = new PDFDocument({
-          size: [widthPt, heightPt],
-          margin: 0,
-        });
-
-        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-        doc.on('end', () => resolve(Buffer.concat(chunks)));
-        doc.on('error', reject);
-
-        doc.image(pngBuffer, 0, 0, { width: widthPt, height: heightPt });
-        doc.end();
-      });
-
-      return new NextResponse(new Uint8Array(pdfBuffer), {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="${sanitizedFilename}.pdf"`,
-          'Cache-Control': 'no-store',
-        },
+      // Return JSON with image data for client-side PDF generation
+      return NextResponse.json({
+        type: 'pdf-data',
+        imageBase64: pngBuffer.toString('base64'),
+        width: metadata.width || 300,
+        height: metadata.height || 300,
+        filename: sanitizedFilename,
       });
     }
 

@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, orderItems, products, designs, users } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { orders, orderItems, products, designs, users, productOptions } from '@shared/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -53,6 +53,7 @@ export async function GET(
       items.map(async (item) => {
         let product = null;
         let design = null;
+        let resolvedOptions: Record<string, string> = {};
 
         if (item.productId) {
           const [p] = await db.select().from(products).where(eq(products.id, item.productId));
@@ -64,7 +65,38 @@ export async function GET(
           design = d || null;
         }
 
-        return { ...item, product, design };
+        // Resolve option IDs to names
+        if (item.selectedOptions && typeof item.selectedOptions === 'object') {
+          const optionIds: number[] = [];
+          for (const [key, value] of Object.entries(item.selectedOptions as Record<string, any>)) {
+            if (typeof value === 'number') {
+              optionIds.push(value);
+            }
+          }
+          
+          if (optionIds.length > 0) {
+            const options = await db
+              .select({ id: productOptions.id, name: productOptions.name, optionType: productOptions.optionType })
+              .from(productOptions)
+              .where(inArray(productOptions.id, optionIds));
+            
+            for (const [key, value] of Object.entries(item.selectedOptions as Record<string, any>)) {
+              if (typeof value === 'number') {
+                const option = options.find(o => o.id === value);
+                resolvedOptions[key] = option?.name || `Option #${value}`;
+              } else {
+                resolvedOptions[key] = String(value);
+              }
+            }
+          } else {
+            // No numeric IDs, just use the values as-is
+            for (const [key, value] of Object.entries(item.selectedOptions as Record<string, any>)) {
+              resolvedOptions[key] = String(value);
+            }
+          }
+        }
+
+        return { ...item, product, design, resolvedOptions };
       })
     );
 

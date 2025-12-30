@@ -21,6 +21,7 @@ import { formatPrice } from "@/lib/utils";
 import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { jsPDF } from "jspdf";
 
 interface OrderUser {
   id: string;
@@ -89,7 +90,36 @@ export default function AdminOrders() {
       if (!response.ok) {
         throw new Error('Download failed');
       }
+
+      const contentType = response.headers.get('content-type') || '';
       
+      // Handle PDF data (client-side PDF generation)
+      if (contentType.includes('application/json') && format === 'pdf') {
+        const data = await response.json();
+        if (data.type === 'pdf-data') {
+          // Generate PDF client-side using jspdf
+          const { imageBase64, width, height, filename } = data;
+          
+          // Calculate PDF dimensions at 300 DPI (points = pixels * 72 / 300)
+          const widthPt = width * 72 / 300;
+          const heightPt = height * 72 / 300;
+          
+          const pdf = new jsPDF({
+            orientation: width > height ? 'landscape' : 'portrait',
+            unit: 'pt',
+            format: [widthPt, heightPt],
+          });
+          
+          const imgData = `data:image/png;base64,${imageBase64}`;
+          pdf.addImage(imgData, 'PNG', 0, 0, widthPt, heightPt);
+          pdf.save(`${filename}.pdf`);
+          
+          toast({ title: 'Downloaded as PDF (300 DPI)' });
+          return;
+        }
+      }
+      
+      // Handle regular binary downloads
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       
@@ -433,10 +463,10 @@ export default function AdminOrders() {
                                 Subtotal: {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
                               </span>
                             </div>
-                            {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                            {(item.resolvedOptions || item.selectedOptions) && Object.keys(item.resolvedOptions || item.selectedOptions).length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
-                                {Object.entries(item.selectedOptions).map(([key, value]) => (
-                                  <Badge key={key} variant="outline" className="text-xs">
+                                {Object.entries(item.resolvedOptions || item.selectedOptions).map(([key, value]) => (
+                                  <Badge key={key} variant="outline" className="text-xs capitalize">
                                     {key}: {String(value)}
                                   </Badge>
                                 ))}

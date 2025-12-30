@@ -24,10 +24,115 @@ import {
   Flame,
   Scissors,
   DollarSign,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DealsTab from "@/components/admin/DealsTab";
+
+function FixOptionsButton() {
+  const [needsUpdate, setNeedsUpdate] = useState(false);
+  const [isFixing, setIsFixing] = useState(false);
+  const [isFixed, setIsFixed] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function checkOptions() {
+      try {
+        const res = await fetch('/api/admin/products');
+        const products = await res.json();
+        if (products.length > 0) {
+          const firstProduct = products[0];
+          const optionsRes = await fetch(`/api/admin/products/${firstProduct.id}/options`);
+          const optionsData = await optionsRes.json();
+          const materials = optionsData.materials || [];
+          const hasOldOptions = materials.some((m: any) => 
+            m.name.toLowerCase().includes('gloss vinyl') || 
+            m.name.toLowerCase().includes('matte vinyl') ||
+            m.name.toLowerCase().includes('clear vinyl')
+          );
+          const hasNewOptions = materials.some((m: any) => 
+            m.name === 'Vinyl' || m.name === 'Foil' || m.name === 'Holographic'
+          );
+          setNeedsUpdate(hasOldOptions || (!hasNewOptions && materials.length > 0));
+        }
+      } catch (e) {
+        console.error('Error checking options:', e);
+      }
+    }
+    checkOptions();
+  }, []);
+
+  const handleFix = async () => {
+    setIsFixing(true);
+    try {
+      const res = await fetch('/api/admin/seed-options', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        toast({ title: "Product options updated successfully!" });
+        setNeedsUpdate(false);
+        setIsFixed(true);
+      } else {
+        throw new Error('Failed to update');
+      }
+    } catch (e) {
+      toast({ title: "Failed to update options", variant: "destructive" });
+    } finally {
+      setIsFixing(false);
+    }
+  };
+
+  if (!needsUpdate && !isFixed) return null;
+
+  if (isFixed) {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+        <div className="flex items-center gap-3">
+          <CheckCircle className="h-5 w-5 text-green-600" />
+          <div>
+            <p className="font-semibold text-green-800">Product options updated!</p>
+            <p className="text-sm text-green-600">All products now have the correct material and finish options.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+          <div>
+            <p className="font-semibold text-red-800">Product options need updating</p>
+            <p className="text-sm text-red-600">Click the button to fix all product material and finish options.</p>
+          </div>
+        </div>
+        <Button 
+          onClick={handleFix} 
+          disabled={isFixing}
+          className="bg-red-600 hover:bg-red-700 text-white"
+          data-testid="button-fix-options"
+        >
+          {isFixing ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Updating...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Fix Product Options
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 interface Product {
   id: number;
@@ -529,6 +634,9 @@ export default function AdminProducts() {
                 Add Product
               </Button>
             </div>
+
+            {/* Fix Options Banner - Shows when options need updating */}
+        <FixOptionsButton />
 
             {/* Help Guide */}
         <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-4 mb-6">

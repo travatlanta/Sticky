@@ -54,12 +54,9 @@ export async function POST(request: Request) {
       ? null
       : body.flatShippingPrice;
 
-    // Calculate template dimensions from print size (inches * DPI)
-    const printWidthInches = parseFloat(body.printWidthInches) || 4;
-    const printHeightInches = parseFloat(body.printHeightInches) || 4;
-    const printDpi = parseInt(body.printDpi) || 300;
-    const templateWidth = Math.round(printWidthInches * printDpi);
-    const templateHeight = Math.round(printHeightInches * printDpi);
+    // Parse canvas size from dropdown (e.g., "1200x1200")
+    const canvasSize = body.canvasSize || "1200x1200";
+    const [templateWidth, templateHeight] = canvasSize.split('x').map(Number);
 
     const [product] = await db
       .insert(products)
@@ -73,15 +70,11 @@ export async function POST(request: Request) {
         minQuantity: body.minQuantity || 1,
         isActive: body.isActive ?? true,
         isFeatured: body.isFeatured ?? false,
-        // Print dimensions
-        printWidthInches: body.printWidthInches || '4',
-        printHeightInches: body.printHeightInches || '4',
-        printDpi: printDpi,
-        templateWidth: templateWidth,
-        templateHeight: templateHeight,
-        bleedSize: body.bleedSize || '0.125',
-        safeZoneSize: body.safeZoneSize || '0.125',
-        supportsCustomShape: body.supportsCustomShape || false,
+        // Canvas dimensions (pixels)
+        templateWidth: templateWidth || 1200,
+        templateHeight: templateHeight || 1200,
+        // Determine if custom shape is supported based on sticker type
+        supportsCustomShape: body.stickerType && body.stickerType !== 'standard',
         shippingType: shippingType,
         flatShippingPrice: flatShippingPrice,
       })

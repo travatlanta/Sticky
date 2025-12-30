@@ -188,13 +188,8 @@ export default function AdminProducts() {
     thumbnailUrl: "",
     shippingType: "calculated" as string,
     flatShippingPrice: "" as string | null,
-    // Print dimensions
-    printWidthInches: "4",
-    printHeightInches: "4",
-    printDpi: 300,
-    bleedSize: "0.125",
-    safeZoneSize: "0.125",
-    supportsCustomShape: false,
+    // Canvas size (pixels)
+    canvasSize: "1200x1200",
     stickerType: "standard" as "standard" | "die-cut" | "kiss-cut" | "custom-shape",
     // Bulk pricing tiers
     pricingTiers: [
@@ -429,12 +424,7 @@ export default function AdminProducts() {
         thumbnailUrl: "",
         shippingType: "calculated",
         flatShippingPrice: "",
-        printWidthInches: "4",
-        printHeightInches: "4",
-        printDpi: 300,
-        bleedSize: "0.125",
-        safeZoneSize: "0.125",
-        supportsCustomShape: false,
+        canvasSize: "1200x1200",
         stickerType: "standard",
         pricingTiers: [
           { minQuantity: "100", discountPercent: "5" },
@@ -841,90 +831,24 @@ export default function AdminProducts() {
                 )}
               </div>
               
-              {/* Print Dimensions Section */}
+              {/* Canvas Size Section */}
               <div className="border-t pt-4 mt-4">
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
                   <Layout className="h-4 w-4" />
-                  Print Dimensions (for Design Editor)
+                  Canvas Size (for Design Editor)
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium mb-1">Width (inches)</label>
-                    <input
-                      type="number"
-                      step="0.125"
-                      min="0.5"
-                      max="48"
-                      value={formData.printWidthInches}
-                      onChange={(e) => setFormData({ ...formData, printWidthInches: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg text-sm"
-                      data-testid="input-print-width"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1">Height (inches)</label>
-                    <input
-                      type="number"
-                      step="0.125"
-                      min="0.5"
-                      max="48"
-                      value={formData.printHeightInches}
-                      onChange={(e) => setFormData({ ...formData, printHeightInches: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg text-sm"
-                      data-testid="input-print-height"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1">Canvas Size</label>
-                    <select
-                      value={`${Math.round(parseFloat(formData.printWidthInches) * formData.printDpi)}x${Math.round(parseFloat(formData.printHeightInches) * formData.printDpi)}`}
-                      onChange={(e) => {
-                        const [w, h] = e.target.value.split('x').map(Number);
-                        setFormData({ 
-                          ...formData, 
-                          printWidthInches: String(w / 300),
-                          printHeightInches: String(h / 300),
-                          printDpi: 300
-                        });
-                      }}
-                      className="w-full px-3 py-2 border rounded-lg text-sm"
-                      data-testid="select-canvas-size"
-                    >
-                      <option value="720x600">720 x 600</option>
-                      <option value="720x900">720 x 900</option>
-                      <option value="1200x1200">1200 x 1200</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1">Bleed (inches)</label>
-                    <input
-                      type="number"
-                      step="0.0625"
-                      min="0"
-                      max="1"
-                      value={formData.bleedSize}
-                      onChange={(e) => setFormData({ ...formData, bleedSize: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg text-sm"
-                      data-testid="input-bleed-size"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1">Safe Zone (inches)</label>
-                    <input
-                      type="number"
-                      step="0.0625"
-                      min="0"
-                      max="1"
-                      value={formData.safeZoneSize}
-                      onChange={(e) => setFormData({ ...formData, safeZoneSize: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg text-sm"
-                      data-testid="input-safe-zone"
-                    />
-                  </div>
+                <div className="max-w-xs">
+                  <select
+                    value={formData.canvasSize}
+                    onChange={(e) => setFormData({ ...formData, canvasSize: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    data-testid="select-canvas-size"
+                  >
+                    <option value="720x600">720 x 600</option>
+                    <option value="720x900">720 x 900</option>
+                    <option value="1200x1200">1200 x 1200</option>
+                  </select>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Canvas size: {Math.round(parseFloat(formData.printWidthInches) * formData.printDpi)} x {Math.round(parseFloat(formData.printHeightInches) * formData.printDpi)} pixels
-                </p>
               </div>
               
               {/* Sticker Type Selection */}

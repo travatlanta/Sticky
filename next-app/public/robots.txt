@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /checkout
+Disallow: /cart
+Disallow: /my-orders
+Disallow: /admin
+
+Sitemap: https://stickybanditos.com/sitemap.xml

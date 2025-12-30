@@ -30,6 +30,14 @@ interface ProductOption {
   priceModifier?: string;
 }
 
+interface PricingTier {
+  id: number;
+  productId: number;
+  minQuantity: number;
+  maxQuantity?: number | null;
+  pricePerUnit: string;
+}
+
 interface Product {
   id: number;
   name: string;
@@ -38,6 +46,7 @@ interface Product {
   basePrice?: string;
   options?: ProductOption[];
   minQuantity?: number;
+  pricingTiers?: PricingTier[];
 }
 
 export default function ProductDetail() {
@@ -419,6 +428,38 @@ export default function ProductDetail() {
                 </div>
               </div>
             ))}
+
+            {/* Bulk Pricing Tiers */}
+            {product.pricingTiers && product.pricingTiers.length > 0 && (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                <h3 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Bulk Pricing Discounts
+                </h3>
+                <div className="grid gap-2">
+                  {product.pricingTiers.slice(0, 3).map((tier, idx) => (
+                    <div 
+                      key={tier.id} 
+                      className={`flex justify-between items-center text-sm p-2 rounded ${
+                        quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity)
+                          ? 'bg-green-100 border border-green-200'
+                          : 'bg-white/50'
+                      }`}
+                      data-testid={`pricing-tier-${idx}`}
+                    >
+                      <span className="text-gray-700">
+                        {tier.minQuantity.toLocaleString()}
+                        {tier.maxQuantity ? ` - ${tier.maxQuantity.toLocaleString()}` : '+'} units
+                      </span>
+                      <span className="font-semibold text-green-700">
+                        {formatPrice(tier.pricePerUnit)} each
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-green-600 mt-2">Order more to save more!</p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

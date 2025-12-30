@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
   Truck,
   Flame,
   Scissors,
+  DollarSign,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -103,6 +104,15 @@ export default function AdminProducts() {
     isActive: true,
   });
   const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
+  
+  // Pricing state for edit modal
+  const [materialOptions, setMaterialOptions] = useState<Array<{id: number; name: string; priceModifier: string}>>([]);
+  const [coatingOptions, setCoatingOptions] = useState<Array<{id: number; name: string; priceModifier: string}>>([]);
+  const [pricingTiers, setPricingTiers] = useState<Array<{minQuantity: string; maxQuantity: string; pricePerUnit: string}>>([
+    { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
+    { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
+    { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
+  ]);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -222,6 +232,65 @@ export default function AdminProducts() {
     },
   });
 
+  // Fetch product options when editing
+  const { data: productOptionsData } = useQuery<{materials: any[]; coatings: any[]}>({
+    queryKey: ["/api/admin/products", editingProduct?.id, "options"],
+    enabled: !!editingProduct,
+    queryFn: async () => {
+      if (!editingProduct) return { materials: [], coatings: [] };
+      const res = await fetch(`/api/admin/products/${editingProduct.id}/options`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch options");
+      return res.json();
+    },
+  });
+
+  // Fetch pricing tiers when editing
+  const { data: productPricingTiers } = useQuery<any[]>({
+    queryKey: ["/api/admin/products", editingProduct?.id, "pricing-tiers"],
+    enabled: !!editingProduct,
+    queryFn: async () => {
+      if (!editingProduct) return [];
+      const res = await fetch(`/api/admin/products/${editingProduct.id}/pricing-tiers`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch pricing tiers");
+      return res.json();
+    },
+  });
+
+  // Effect to update local state when product options data is fetched
+  useEffect(() => {
+    if (productOptionsData) {
+      setMaterialOptions(productOptionsData.materials.map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        priceModifier: m.priceModifier || "0.00",
+      })));
+      setCoatingOptions(productOptionsData.coatings.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        priceModifier: c.priceModifier || "0.00",
+      })));
+    }
+  }, [productOptionsData]);
+
+  // Effect to update local state when pricing tiers data is fetched
+  useEffect(() => {
+    if (productPricingTiers) {
+      const tiers = [...productPricingTiers];
+      while (tiers.length < 3) {
+        tiers.push({ minQuantity: "", maxQuantity: "", pricePerUnit: "" });
+      }
+      setPricingTiers(tiers.slice(0, 3).map((t: any) => ({
+        minQuantity: t.minQuantity?.toString() || "",
+        maxQuantity: t.maxQuantity?.toString() || "",
+        pricePerUnit: t.pricePerUnit?.toString() || "",
+      })));
+    }
+  }, [productPricingTiers]);
+
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const res = await fetch("/api/admin/products", {
@@ -335,6 +404,42 @@ export default function AdminProducts() {
     onError: () => toast({ title: "Failed to delete template", variant: "destructive" }),
   });
 
+  const updateOptionsMutation = useMutation({
+    mutationFn: async ({ productId, materials, coatings }: { productId: number; materials: any[]; coatings: any[] }) => {
+      const res = await fetch(`/api/admin/products/${productId}/options`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ materials, coatings }),
+      });
+      if (!res.ok) throw new Error("Failed to update options");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products", editingProduct?.id, "options"] });
+      toast({ title: "Option prices updated successfully" });
+    },
+    onError: () => toast({ title: "Failed to update option prices", variant: "destructive" }),
+  });
+
+  const updatePricingTiersMutation = useMutation({
+    mutationFn: async ({ productId, tiers }: { productId: number; tiers: any[] }) => {
+      const res = await fetch(`/api/admin/products/${productId}/pricing-tiers`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ tiers }),
+      });
+      if (!res.ok) throw new Error("Failed to update pricing tiers");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products", editingProduct?.id, "pricing-tiers"] });
+      toast({ title: "Bulk pricing tiers updated successfully" });
+    },
+    onError: () => toast({ title: "Failed to update pricing tiers", variant: "destructive" }),
+  });
+
   const resetTemplateForm = () => {
     setTemplateForm({ name: "", description: "", previewImageUrl: "", canvasJson: "", isActive: true });
     setShowAddTemplate(false);
@@ -343,6 +448,13 @@ export default function AdminProducts() {
   const handleCloseEditModal = () => {
     setEditingProduct(null);
     resetTemplateForm();
+    setMaterialOptions([]);
+    setCoatingOptions([]);
+    setPricingTiers([
+      { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
+      { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
+      { minQuantity: "", maxQuantity: "", pricePerUnit: "" },
+    ]);
   };
 
   const handleCreateTemplate = (e: React.FormEvent) => {
@@ -836,10 +948,14 @@ export default function AdminProducts() {
               </div>
               
               <Tabs defaultValue="details" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsList className="grid w-full grid-cols-3 mb-4">
                   <TabsTrigger value="details" data-testid="tab-product-details">
                     <FileImage className="h-4 w-4 mr-2" />
                     Details
+                  </TabsTrigger>
+                  <TabsTrigger value="pricing" data-testid="tab-product-pricing">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Pricing
                   </TabsTrigger>
                   <TabsTrigger value="templates" data-testid="tab-product-templates">
                     <Layout className="h-4 w-4 mr-2" />
@@ -1062,6 +1178,175 @@ export default function AdminProducts() {
                       </Button>
                     </div>
                   </form>
+                </TabsContent>
+
+                <TabsContent value="pricing">
+                  <div className="space-y-6">
+                    {/* Material Price Modifiers */}
+                    <div>
+                      <h3 className="text-sm font-semibold mb-3">Material Price Modifiers</h3>
+                      <p className="text-xs text-gray-500 mb-3">Set extra cost per unit for each material type</p>
+                      <div className="grid gap-3">
+                        {materialOptions.map((opt, idx) => (
+                          <div key={opt.id} className="flex items-center gap-3">
+                            <span className="w-32 text-sm font-medium">{opt.name}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">+$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={opt.priceModifier}
+                                onChange={(e) => {
+                                  const updated = [...materialOptions];
+                                  updated[idx] = { ...opt, priceModifier: e.target.value };
+                                  setMaterialOptions(updated);
+                                }}
+                                className="w-24 px-2 py-1 border rounded text-sm"
+                                data-testid={`input-material-price-${opt.name.toLowerCase()}`}
+                              />
+                              <span className="text-xs text-gray-400">per unit</span>
+                            </div>
+                          </div>
+                        ))}
+                        {materialOptions.length === 0 && (
+                          <p className="text-sm text-gray-400">No material options found for this product</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Spot Gloss Price Modifiers */}
+                    <div>
+                      <h3 className="text-sm font-semibold mb-3">Spot Gloss Price Modifiers</h3>
+                      <p className="text-xs text-gray-500 mb-3">Set extra cost per unit for each finish type</p>
+                      <div className="grid gap-3">
+                        {coatingOptions.map((opt, idx) => (
+                          <div key={opt.id} className="flex items-center gap-3">
+                            <span className="w-32 text-sm font-medium">{opt.name}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">+$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={opt.priceModifier}
+                                onChange={(e) => {
+                                  const updated = [...coatingOptions];
+                                  updated[idx] = { ...opt, priceModifier: e.target.value };
+                                  setCoatingOptions(updated);
+                                }}
+                                className="w-24 px-2 py-1 border rounded text-sm"
+                                data-testid={`input-coating-price-${opt.name.toLowerCase()}`}
+                              />
+                              <span className="text-xs text-gray-400">per unit</span>
+                            </div>
+                          </div>
+                        ))}
+                        {coatingOptions.length === 0 && (
+                          <p className="text-sm text-gray-400">No spot gloss options found for this product</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (editingProduct) {
+                            updateOptionsMutation.mutate({
+                              productId: editingProduct.id,
+                              materials: materialOptions,
+                              coatings: coatingOptions,
+                            });
+                          }
+                        }}
+                        disabled={updateOptionsMutation.isPending}
+                        data-testid="button-save-option-prices"
+                      >
+                        {updateOptionsMutation.isPending ? "Saving..." : "Save Option Prices"}
+                      </Button>
+                    </div>
+
+                    {/* Bulk Pricing Tiers */}
+                    <div className="border-t pt-6">
+                      <h3 className="text-sm font-semibold mb-3">Bulk Pricing Tiers</h3>
+                      <p className="text-xs text-gray-500 mb-3">Set up to 3 quantity-based discounts (customers see these on product pages)</p>
+                      <div className="space-y-3">
+                        {pricingTiers.map((tier, idx) => (
+                          <div key={idx} className="flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <span className="text-sm font-medium text-gray-600 w-16">Tier {idx + 1}:</span>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Min qty"
+                                value={tier.minQuantity}
+                                onChange={(e) => {
+                                  const updated = [...pricingTiers];
+                                  updated[idx] = { ...tier, minQuantity: e.target.value };
+                                  setPricingTiers(updated);
+                                }}
+                                className="w-20 px-2 py-1 border rounded text-sm"
+                                data-testid={`input-tier-${idx}-min`}
+                              />
+                              <span className="text-gray-400">-</span>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Max qty"
+                                value={tier.maxQuantity}
+                                onChange={(e) => {
+                                  const updated = [...pricingTiers];
+                                  updated[idx] = { ...tier, maxQuantity: e.target.value };
+                                  setPricingTiers(updated);
+                                }}
+                                className="w-20 px-2 py-1 border rounded text-sm"
+                                data-testid={`input-tier-${idx}-max`}
+                              />
+                              <span className="text-xs text-gray-500">units</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">$</span>
+                              <input
+                                type="number"
+                                step="0.0001"
+                                min="0"
+                                placeholder="Price/unit"
+                                value={tier.pricePerUnit}
+                                onChange={(e) => {
+                                  const updated = [...pricingTiers];
+                                  updated[idx] = { ...tier, pricePerUnit: e.target.value };
+                                  setPricingTiers(updated);
+                                }}
+                                className="w-24 px-2 py-1 border rounded text-sm"
+                                data-testid={`input-tier-${idx}-price`}
+                              />
+                              <span className="text-xs text-gray-400">each</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">Leave fields empty to disable a tier. Price per unit should be lower than base price for discounts.</p>
+
+                      <div className="flex justify-end mt-4">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (editingProduct) {
+                              updatePricingTiersMutation.mutate({
+                                productId: editingProduct.id,
+                                tiers: pricingTiers.filter(t => t.minQuantity && t.pricePerUnit),
+                              });
+                            }
+                          }}
+                          disabled={updatePricingTiersMutation.isPending}
+                          data-testid="button-save-pricing-tiers"
+                        >
+                          {updatePricingTiersMutation.isPending ? "Saving..." : "Save Bulk Pricing"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="templates">

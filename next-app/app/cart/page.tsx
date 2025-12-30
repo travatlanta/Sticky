@@ -255,10 +255,33 @@ export default function CartClient() {
     router.push("/checkout");
   };
 
+  // Helper function to calculate item price including modifiers
+  const getItemPriceWithModifiers = (item: CartItem) => {
+    const basePrice = item.unitPrice ? Number(item.unitPrice) : 0;
+    let materialModifier = 0;
+    let coatingModifier = 0;
+    
+    if (item.mediaType && item.materialOptions) {
+      const selectedMaterial = item.materialOptions.find(opt => opt.name === item.mediaType);
+      if (selectedMaterial?.priceModifier) {
+        materialModifier = parseFloat(selectedMaterial.priceModifier) || 0;
+      }
+    }
+    
+    if (item.finishType && item.coatingOptions) {
+      const selectedCoating = item.coatingOptions.find(opt => opt.name === item.finishType);
+      if (selectedCoating?.priceModifier) {
+        coatingModifier = parseFloat(selectedCoating.priceModifier) || 0;
+      }
+    }
+    
+    return basePrice + materialModifier + coatingModifier;
+  };
+
   // Prefer server-provided totals. If missing, compute safely.
   const computedSubtotal = items.reduce((sum, item) => {
-    const price = item.unitPrice ? Number(item.unitPrice) : 0;
-    return sum + price * (item.quantity || 0);
+    const priceWithModifiers = getItemPriceWithModifiers(item);
+    return sum + priceWithModifiers * (item.quantity || 0);
   }, 0);
 
   const subtotal = typeof cart?.subtotal === "number" ? cart.subtotal : computedSubtotal;
@@ -296,7 +319,7 @@ export default function CartClient() {
                 const product = item.product;
                 if (!product) return null;
 
-                const lineUnit = item.unitPrice ? Number(item.unitPrice) : 0;
+                const lineUnit = getItemPriceWithModifiers(item);
                 const lineTotal = lineUnit * item.quantity;
 
                 const needsArtwork = !item.design;

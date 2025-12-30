@@ -112,10 +112,30 @@ export async function GET() {
       };
     });
 
-    // Calculate subtotal from items
+    // Calculate subtotal from items (including material/coating price modifiers)
     const subtotal = items.reduce((sum, item) => {
-      const price = parseFloat(item.unitPrice) || 0;
-      return sum + (price * item.quantity);
+      const basePrice = parseFloat(item.unitPrice) || 0;
+      
+      // Find price modifiers for selected options
+      let materialModifier = 0;
+      let coatingModifier = 0;
+      
+      if (item.mediaType && item.materialOptions) {
+        const selectedMaterial = item.materialOptions.find((opt: any) => opt.name === item.mediaType);
+        if (selectedMaterial?.priceModifier) {
+          materialModifier = parseFloat(selectedMaterial.priceModifier) || 0;
+        }
+      }
+      
+      if (item.finishType && item.coatingOptions) {
+        const selectedCoating = item.coatingOptions.find((opt: any) => opt.name === item.finishType);
+        if (selectedCoating?.priceModifier) {
+          coatingModifier = parseFloat(selectedCoating.priceModifier) || 0;
+        }
+      }
+      
+      const totalPricePerUnit = basePrice + materialModifier + coatingModifier;
+      return sum + (totalPricePerUnit * item.quantity);
     }, 0);
 
     // Shipping is free for now (can be configured later)

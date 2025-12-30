@@ -8,12 +8,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { jsPDF } from "jspdf";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2 } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -69,106 +74,38 @@ export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [downloadFormats, setDownloadFormats] = useState<Record<number, string>>({});
   const [downloading, setDownloading] = useState<Record<number, boolean>>({});
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const handleDownload = async (url: string, itemId: number, designName: string) => {
-    const format = downloadFormats[itemId] || 'png';
+  const handleDownload = async (url: string, itemId: number, designName: string, formatOverride?: string) => {
+    const format = formatOverride || downloadFormats[itemId] || 'pdf';
     setDownloading(prev => ({ ...prev, [itemId]: true }));
-    const fileName = designName.replace(/[^a-z0-9]/gi, '_');
     
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
+      const downloadUrl = `/api/admin/design-download?url=${encodeURIComponent(url)}&format=${format}&filename=${encodeURIComponent(designName)}`;
       
-      // Load image for all conversions
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = reject;
-        img.src = URL.createObjectURL(blob);
-      });
-
-      if (format === 'pdf') {
-        // Convert to PDF using jsPDF
-        const imgWidth = img.width;
-        const imgHeight = img.height;
-        
-        // Draw image on canvas to get data URL first
-        const canvas = document.createElement('canvas');
-        canvas.width = imgWidth;
-        canvas.height = imgHeight;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-        }
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        
-        // Create PDF - use standard page sizes and fit image
-        const pdf = new jsPDF({
-          orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
-          unit: 'px',
-          format: [imgWidth, imgHeight],
-        });
-        
-        // Add image to PDF at full size
-        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-        pdf.save(`${fileName}.pdf`);
-        
-      } else if (format === 'jpg') {
-        // Convert to JPEG with white background
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
-        }
-        
-        canvas.toBlob((newBlob) => {
-          if (newBlob) {
-            const downloadUrl = URL.createObjectURL(newBlob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = `${fileName}.jpg`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(downloadUrl);
-          }
-        }, 'image/jpeg', 0.95);
-        
-      } else {
-        // PNG - download original or convert to PNG
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-        }
-        
-        canvas.toBlob((newBlob) => {
-          if (newBlob) {
-            const downloadUrl = URL.createObjectURL(newBlob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = `${fileName}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(downloadUrl);
-          }
-        }, 'image/png');
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error('Download failed');
       }
       
-      // Clean up
-      URL.revokeObjectURL(img.src);
-      toast({ title: `Downloaded as ${format.toUpperCase()}` });
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const contentDisposition = response.headers.get('content-disposition');
+      const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
+      const downloadFilename = filenameMatch?.[1] || `${designName.replace(/[^a-z0-9]/gi, '_')}.${format === 'original' ? 'png' : format}`;
+      
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = downloadFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      
+      toast({ title: format === 'original' ? 'Downloaded original file' : `Downloaded as ${format.toUpperCase()}` });
     } catch (error) {
       console.error('Download error:', error);
       toast({ title: 'Download failed', variant: 'destructive' });
@@ -514,64 +451,72 @@ export default function AdminOrders() {
                             <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                               <Palette className="h-4 w-4 text-orange-500" />
                               Customer Design: {item.design.name || 'Untitled'}
-                              {item.design.highResExportUrl && (
-                                <Badge variant="outline" className="ml-2 text-xs uppercase">
-                                  {item.design.highResExportUrl.split('.').pop()?.split('?')[0] || 'PNG'}
+                              {item.product?.name?.toLowerCase().includes('die') || item.product?.name?.toLowerCase().includes('kiss') ? (
+                                <Badge className="ml-2 text-xs bg-purple-100 text-purple-700">
+                                  Transparent BG
                                 </Badge>
-                              )}
+                              ) : null}
                             </p>
                             <div className="flex flex-wrap items-start gap-4">
-                              {/* Design Preview */}
+                              {/* Design Preview - Click to open modal */}
                               {(item.design.highResExportUrl || item.design.previewUrl) && (
-                                <a 
-                                  href={item.design.highResExportUrl || item.design.previewUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="block"
+                                <div 
+                                  className="relative cursor-pointer group"
+                                  onClick={() => setPreviewImage({
+                                    url: item.design.highResExportUrl || item.design.previewUrl,
+                                    name: item.design.name || 'Design Preview'
+                                  })}
                                 >
                                   <img 
-                                    src={item.design.highResExportUrl || item.design.previewUrl} 
+                                    src={item.design.previewUrl || item.design.highResExportUrl} 
                                     alt="Design preview" 
-                                    className="w-24 h-24 object-contain bg-gray-100 rounded-lg border-2 border-gray-200"
+                                    className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
                                   />
-                                </a>
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                    <ZoomIn className="h-6 w-6 text-white" />
+                                  </div>
+                                </div>
                               )}
                               
                               {/* Download with Format Selection */}
                               <div className="flex flex-col gap-2">
                                 {item.design.highResExportUrl && (
-                                  <div className="flex items-center gap-2">
-                                    <Select
-                                      value={downloadFormats[item.id] || 'png'}
-                                      onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, [item.id]: value }))}
-                                    >
-                                      <SelectTrigger className="w-28" data-testid={`select-format-${item.id}`}>
-                                        <SelectValue placeholder="Format" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="png">PNG</SelectItem>
-                                        <SelectItem value="jpg">JPG</SelectItem>
-                                        <SelectItem value="pdf">PDF</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <Button
-                                      onClick={() => handleDownload(
-                                        item.design.highResExportUrl,
-                                        item.id,
-                                        item.design.name || 'design'
-                                      )}
-                                      disabled={downloading[item.id]}
-                                      className="bg-orange-500 hover:bg-orange-600"
-                                      data-testid={`button-download-${item.id}`}
-                                    >
-                                      {downloading[item.id] ? (
-                                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                                      ) : (
-                                        <Download className="h-4 w-4 mr-2" />
-                                      )}
-                                      Download
-                                    </Button>
-                                  </div>
+                                  <>
+                                    <div className="flex items-center gap-2">
+                                      <Select
+                                        value={downloadFormats[item.id] || 'pdf'}
+                                        onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, [item.id]: value }))}
+                                      >
+                                        <SelectTrigger className="w-28" data-testid={`select-format-${item.id}`}>
+                                          <SelectValue placeholder="Format" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="pdf">PDF</SelectItem>
+                                          <SelectItem value="png">PNG</SelectItem>
+                                          <SelectItem value="tiff">TIFF</SelectItem>
+                                          <SelectItem value="jpg">JPG</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <Button
+                                        onClick={() => handleDownload(
+                                          item.design.highResExportUrl,
+                                          item.id,
+                                          item.design.name || 'design'
+                                        )}
+                                        disabled={downloading[item.id]}
+                                        className="bg-orange-500 hover:bg-orange-600"
+                                        data-testid={`button-download-${item.id}`}
+                                      >
+                                        {downloading[item.id] ? (
+                                          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                        ) : (
+                                          <Download className="h-4 w-4 mr-2" />
+                                        )}
+                                        Download
+                                      </Button>
+                                    </div>
+                                    <p className="text-xs text-gray-500">PNG/TIFF preserve transparency</p>
+                                  </>
                                 )}
                                 {item.design.customShapeUrl && (
                                   <Button
@@ -579,7 +524,8 @@ export default function AdminOrders() {
                                     onClick={() => handleDownload(
                                       item.design.customShapeUrl,
                                       item.id + 1000,
-                                      `${item.design.name || 'design'}_diecut`
+                                      `${item.design.name || 'design'}_diecut`,
+                                      'original'
                                     )}
                                     disabled={downloading[item.id + 1000]}
                                     className="text-blue-700 border-blue-300"
@@ -594,7 +540,8 @@ export default function AdminOrders() {
                                     onClick={() => handleDownload(
                                       item.printFileUrl,
                                       item.id + 2000,
-                                      `${item.design?.name || 'design'}_production`
+                                      `${item.design?.name || 'design'}_production`,
+                                      'original'
                                     )}
                                     disabled={downloading[item.id + 2000]}
                                     className="text-green-700 border-green-300"
@@ -699,6 +646,24 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+
+      {/* Image Preview Modal */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle>{previewImage?.name || 'Design Preview'}</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 flex items-center justify-center bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:20px_20px]">
+            {previewImage && (
+              <img 
+                src={previewImage.url} 
+                alt={previewImage.name} 
+                className="max-w-full max-h-[70vh] object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

@@ -143,7 +143,7 @@ export default function ProductDetail() {
       }
       const design = await res.json();
       console.log('Design created:', design.id, 'navigating to editor');
-      router.push(`/editor/${design.id}`);
+      router.push(`/editor/${design.id}?qty=${quantity}`);
     } catch (error) {
       console.error('Error in handleStartDesign:', error);
       toast({

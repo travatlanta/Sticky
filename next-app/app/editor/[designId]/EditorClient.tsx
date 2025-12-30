@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,10 +119,13 @@ const HELP_TIPS: Record<string, string> = {
 
 export default function Editor() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const designId = params.designId as string;
   const isNewDesign = designId === "new";
   const router = useRouter();
   const { toast } = useToast();
+  
+  const initialQuantityFromUrl = parseInt(searchParams.get("qty") || "0", 10);
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const multiFileInputRef = useRef<HTMLInputElement>(null);
@@ -135,7 +138,7 @@ export default function Editor() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
-  const [quantity, setQuantity] = useState(50);
+  const [quantity, setQuantity] = useState(initialQuantityFromUrl > 0 ? initialQuantityFromUrl : 50);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
   const [isUploading, setIsUploading] = useState(false);
   const [calculatedPrice, setCalculatedPrice] = useState<PriceCalculation | null>(null);

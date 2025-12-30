@@ -19,8 +19,9 @@ function noCache(res: NextResponse) {
 
 export async function POST(req: Request) {
   try {
-    const { sourceId, shippingAddress, notes, expeditedShipping } = await req.json();
+    const { sourceId, shippingAddress, notes, expeditedShipping, taxAmount = 0 } = await req.json();
     const EXPEDITED_SHIPPING_COST = 25; // Match the frontend constant
+    const ARIZONA_TAX_RATE = 0.086; // Arizona state + Phoenix local tax rate
 
     if (!sourceId) {
       return noCache(
@@ -74,9 +75,19 @@ export async function POST(req: Request) {
     console.log('Checkout items:', items.map(i => ({ id: i.id, unitPrice: i.unitPrice, quantity: i.quantity })));
     console.log('Calculated subtotal:', subtotal);
 
-    // Calculate full total including expedited shipping
+    // Calculate tax based on shipping state (Arizona destinations get taxed)
+    // We recalculate server-side to ensure accuracy and prevent manipulation
+    let calculatedTax = 0;
+    if (shippingAddress?.state) {
+      const state = shippingAddress.state.toUpperCase().trim();
+      if (state === 'AZ' || state === 'ARIZONA') {
+        calculatedTax = subtotal * ARIZONA_TAX_RATE;
+      }
+    }
+    
+    // Calculate full total including expedited shipping and tax
     const expeditedCost = expeditedShipping ? EXPEDITED_SHIPPING_COST : 0;
-    const fullTotal = subtotal + expeditedCost;
+    const fullTotal = subtotal + expeditedCost + calculatedTax;
 
     // Allow $0 orders (free products without expedited shipping) - skip payment processing
     if (fullTotal === 0) {
@@ -199,7 +210,7 @@ export async function POST(req: Request) {
       phone: shippingAddress.phone,
     } : null;
 
-    // Create order with all data (expeditedCost and fullTotal already calculated at top)
+    // Create order with all data (expeditedCost, calculatedTax, and fullTotal already calculated at top)
     const [order] = await db
       .insert(orders)
       .values({
@@ -207,7 +218,7 @@ export async function POST(req: Request) {
         status: 'paid',
         subtotal: subtotal.toString(),
         shippingCost: expeditedCost.toString(),
-        taxAmount: '0',
+        taxAmount: calculatedTax.toFixed(2),
         discountAmount: '0',
         totalAmount: fullTotal.toString(),
         shippingAddress: formattedShippingAddress,

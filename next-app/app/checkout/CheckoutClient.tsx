@@ -68,6 +68,7 @@ export default function CheckoutClient() {
   const [orderNotes, setOrderNotes] = useState('');
   const [expeditedShipping, setExpeditedShipping] = useState(false);
   const EXPEDITED_SHIPPING_COST = 25; // Additional cost for expedited shipping
+  const ARIZONA_TAX_RATE = 0.086; // Arizona state + Phoenix local tax rate (8.6%)
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     firstName: '',
     lastName: '',
@@ -124,6 +125,7 @@ export default function CheckoutClient() {
       shippingAddress: ShippingAddress; 
       notes?: string;
       expeditedShipping?: boolean;
+      taxAmount?: number;
     }) => {
       const response = await fetch('/api/checkout/create-payment', {
         method: 'POST',
@@ -182,6 +184,7 @@ export default function CheckoutClient() {
         shippingAddress,
         notes: orderNotes || undefined,
         expeditedShipping: expeditedShipping || undefined,
+        taxAmount: tax,
       });
     } else {
       toast({
@@ -234,10 +237,20 @@ export default function CheckoutClient() {
   const baseShipping = (typeof cart.shipping === 'number' && !isNaN(cart.shipping)) ? cart.shipping : 0;
   const shipping = baseShipping + (expeditedShipping ? EXPEDITED_SHIPPING_COST : 0);
 
+  // Calculate tax based on shipping state (Arizona destinations get taxed)
+  const calculateTax = () => {
+    const state = shippingAddress.state?.toUpperCase().trim();
+    if (state === 'AZ' || state === 'ARIZONA') {
+      return subtotal * ARIZONA_TAX_RATE;
+    }
+    return 0; // No tax for out-of-state shipments (unless nexus established)
+  };
+  
+  const tax = calculateTax();
+
   // Total from /api/cart when provided, otherwise subtotal + shipping.
-  // Add expedited shipping if selected
-  const baseTotal = (typeof cart.total === 'number' && !isNaN(cart.total)) ? cart.total : subtotal + baseShipping;
-  const total = baseTotal + (expeditedShipping ? EXPEDITED_SHIPPING_COST : 0);
+  // Add expedited shipping and tax if applicable
+  const total = subtotal + shipping + tax;
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-6xl">
@@ -544,6 +557,12 @@ export default function CheckoutClient() {
                     Shipping{expeditedShipping && <span className="text-xs ml-1 text-primary">(Expedited)</span>}
                   </span>
                   <span>${shipping.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">
+                    Tax{tax > 0 && <span className="text-xs ml-1 text-gray-500">(AZ 8.6%)</span>}
+                  </span>
+                  <span data-testid="text-checkout-tax">${tax.toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">

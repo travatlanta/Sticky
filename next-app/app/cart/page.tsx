@@ -555,10 +555,16 @@ export default function CartClient() {
                   <span className="font-medium text-gray-900">{formatPrice(shipping)}</span>
                 </div>
 
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Tax</span>
+                  <span className="font-medium text-gray-500 text-sm">Calculated at checkout</span>
+                </div>
+
                 <div className="border-t pt-3 flex items-center justify-between">
-                  <span className="text-gray-900 font-semibold">Total</span>
+                  <span className="text-gray-900 font-semibold">Estimated Total</span>
                   <span className="text-gray-900 font-semibold">{formatPrice(total)}</span>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Final total calculated at checkout</p>
               </div>
 
               {hasItemsNeedingArtwork && (

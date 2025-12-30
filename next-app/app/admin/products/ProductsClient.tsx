@@ -731,16 +731,24 @@ export default function AdminProducts() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1">DPI</label>
+                    <label className="block text-xs font-medium mb-1">Canvas Size</label>
                     <select
-                      value={formData.printDpi}
-                      onChange={(e) => setFormData({ ...formData, printDpi: parseInt(e.target.value) })}
+                      value={`${Math.round(parseFloat(formData.printWidthInches) * formData.printDpi)}x${Math.round(parseFloat(formData.printHeightInches) * formData.printDpi)}`}
+                      onChange={(e) => {
+                        const [w, h] = e.target.value.split('x').map(Number);
+                        setFormData({ 
+                          ...formData, 
+                          printWidthInches: String(w / 300),
+                          printHeightInches: String(h / 300),
+                          printDpi: 300
+                        });
+                      }}
                       className="w-full px-3 py-2 border rounded-lg text-sm"
-                      data-testid="select-print-dpi"
+                      data-testid="select-canvas-size"
                     >
-                      <option value={150}>150 (Web)</option>
-                      <option value={300}>300 (Print)</option>
-                      <option value={600}>600 (High Res)</option>
+                      <option value="720x600">720 x 600</option>
+                      <option value="720x900">720 x 900</option>
+                      <option value="1200x1200">1200 x 1200</option>
                     </select>
                   </div>
                   <div>

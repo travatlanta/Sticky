@@ -1,0 +1,12 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        { "type": "host", "value": "www.stickybanditos.com" }
+      ],
+      "destination": "https://stickybanditos.com/$1",
+      "permanent": true
+    }
+  ]
+}

@@ -347,8 +347,13 @@ export default function ProductDetail() {
     );
   }
 
+  // Only show size options on product page - material/coating are selected on cart page
   const groupedOptions: Record<string, ProductOption[]> = {};
   product.options?.forEach((option) => {
+    // Filter out material and coating - these are selected on the cart page
+    if (option.optionType === 'material' || option.optionType === 'coating') {
+      return;
+    }
     if (!groupedOptions[option.optionType]) {
       groupedOptions[option.optionType] = [];
     }

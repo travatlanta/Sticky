@@ -375,29 +375,29 @@ export default function HomeClient() {
             </p>
           </div>
 
-          <div className="relative h-80 md:h-96 mb-8">
-            <div className="absolute inset-0 flex items-center justify-center gap-4 md:gap-6">
+          <div className="mb-8">
+            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 px-2">
               <Link href="/products?category=labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
-                <div className="w-32 h-40 md:w-40 md:h-52 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 border-4 border-white/10">
-                  <Tag className="h-8 w-8 md:h-12 md:w-12 text-white/80 mb-2" />
-                  <span className="text-white font-bold text-sm">Product Labels</span>
+                <div className="w-24 h-32 sm:w-32 sm:h-40 md:w-40 md:h-52 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-2 sm:p-3 border-4 border-white/10">
+                  <Tag className="h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 text-white/80 mb-2" />
+                  <span className="text-white font-bold text-xs sm:text-sm text-center">Product Labels</span>
                   <span className="text-white/70 text-xs mt-1">Custom sizes</span>
                 </div>
               </Link>
               
               <Link href="/products?category=bottle-labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
-                <div className="w-44 h-56 md:w-56 md:h-72 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-4 border-4 border-white/20 relative">
-                  <Badge className="absolute -top-3 bg-yellow-400 text-yellow-900">Popular</Badge>
-                  <Wine className="h-12 w-12 md:h-16 md:w-16 text-white/80 mb-3" />
-                  <span className="text-white font-bold text-lg">Bottle Labels</span>
-                  <span className="text-white/70 text-sm mt-1">Wine, Beer, Candles</span>
+                <div className="w-28 h-40 sm:w-44 sm:h-56 md:w-56 md:h-72 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 sm:p-4 border-4 border-white/20 relative">
+                  <Badge className="absolute -top-3 bg-yellow-400 text-yellow-900 text-xs">Popular</Badge>
+                  <Wine className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 text-white/80 mb-2 sm:mb-3" />
+                  <span className="text-white font-bold text-sm sm:text-lg text-center">Bottle Labels</span>
+                  <span className="text-white/70 text-xs sm:text-sm mt-1">Wine, Beer, Candles</span>
                 </div>
               </Link>
               
               <Link href="/products?category=labels" className="transform hover:scale-105 transition-all duration-300 hover:z-10">
-                <div className="w-32 h-40 md:w-40 md:h-52 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-3 border-4 border-white/10">
-                  <Package className="h-8 w-8 md:h-12 md:w-12 text-white/80 mb-2" />
-                  <span className="text-white font-bold text-sm">Packaging</span>
+                <div className="w-24 h-32 sm:w-32 sm:h-40 md:w-40 md:h-52 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg shadow-2xl flex flex-col items-center justify-center p-2 sm:p-3 border-4 border-white/10">
+                  <Package className="h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 text-white/80 mb-2" />
+                  <span className="text-white font-bold text-xs sm:text-sm text-center">Packaging</span>
                   <span className="text-white/70 text-xs mt-1">Roll &amp; Sheet</span>
                 </div>
               </Link>

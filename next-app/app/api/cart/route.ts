@@ -23,127 +23,89 @@ async function getOrCreateCart(sessionId: string, userId?: string) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + CART_EXPIRY_DAYS);
   
-  let cart = null;
-  
-  // If user is logged in, try to find their user cart first
-  if (userId) {
-    const [userCart] = await db
+  try {
+    // First, try to find existing cart by session ID
+    const existingCarts = await db
       .select()
       .from(carts)
-      .where(and(
-        eq(carts.userId, userId),
-        or(gt(carts.expiresAt, new Date()), isNull(carts.expiresAt))
-      ));
+      .where(eq(carts.sessionId, sessionId))
+      .limit(1);
     
-    if (userCart) {
-      cart = userCart;
-      
-      // Check if there's a session cart that needs to be merged
-      const [sessionCart] = await db
-        .select()
-        .from(carts)
-        .where(and(
-          eq(carts.sessionId, sessionId),
-          isNull(carts.userId)
-        ));
-      
-      if (sessionCart && sessionCart.id !== cart.id) {
-        // Merge session cart items into user cart
-        const sessionItems = await db
-          .select()
-          .from(cartItems)
-          .where(eq(cartItems.cartId, sessionCart.id));
-        
-        for (const item of sessionItems) {
-          await db.insert(cartItems).values({
-            cartId: cart.id,
-            productId: item.productId,
-            designId: item.designId,
-            quantity: item.quantity,
-            selectedOptions: item.selectedOptions,
-            unitPrice: item.unitPrice,
-            mediaType: item.mediaType,
-            finishType: item.finishType,
-          });
-        }
-        
-        // Delete the old session cart items and cart
-        await db.delete(cartItems).where(eq(cartItems.cartId, sessionCart.id));
-        await db.delete(carts).where(eq(carts.id, sessionCart.id));
-        console.log('[Cart] Merged session cart into user cart');
-      }
-    } else {
-      // Check if there's a session cart to convert to user cart
-      const [sessionCart] = await db
-        .select()
-        .from(carts)
-        .where(eq(carts.sessionId, sessionId));
-      
-      if (sessionCart) {
-        // Convert session cart to user cart
-        const [updatedCart] = await db
-          .update(carts)
-          .set({ userId, expiresAt, updatedAt: new Date() })
-          .where(eq(carts.id, sessionCart.id))
-          .returning();
-        cart = updatedCart;
-        console.log('[Cart] Converted session cart to user cart');
-      }
-    }
-  }
-  
-  // If no cart found yet, look for session cart
-  if (!cart) {
-    const [sessionCart] = await db
-      .select()
-      .from(carts)
-      .where(eq(carts.sessionId, sessionId));
-    
-    if (sessionCart) {
-      cart = sessionCart;
+    if (existingCarts && existingCarts.length > 0) {
+      const cart = existingCarts[0];
       // Update expiry
       await db.update(carts)
         .set({ expiresAt, updatedAt: new Date() })
         .where(eq(carts.id, cart.id));
+      console.log('[Cart GET] Found existing cart by sessionId:', cart.id);
+      return cart;
     }
-  }
-  
-  // Create new cart if none exists
-  if (!cart) {
-    [cart] = await db.insert(carts).values({ 
+    
+    // If user is logged in, also check for user cart
+    if (userId) {
+      const userCarts = await db
+        .select()
+        .from(carts)
+        .where(eq(carts.userId, userId))
+        .limit(1);
+      
+      if (userCarts && userCarts.length > 0) {
+        const cart = userCarts[0];
+        // Update sessionId to match client's sessionId
+        await db.update(carts)
+          .set({ sessionId, expiresAt, updatedAt: new Date() })
+          .where(eq(carts.id, cart.id));
+        console.log('[Cart GET] Found user cart, updated sessionId:', cart.id);
+        return { ...cart, sessionId };
+      }
+    }
+    
+    // Create new cart
+    const newCarts = await db.insert(carts).values({ 
       sessionId, 
       userId: userId || null,
       expiresAt 
     }).returning();
+    
+    if (newCarts && newCarts.length > 0) {
+      console.log('[Cart GET] Created new cart:', newCarts[0].id);
+      return newCarts[0];
+    }
+    
+    throw new Error('Failed to create cart');
+  } catch (error) {
+    console.error('[Cart GET] Database error in getOrCreateCart:', error);
+    throw error;
   }
-  
-  return cart;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const cookieStore = await cookies();
-    let sessionId = cookieStore.get('cart-session-id')?.value;
+    
+    // Priority: header (case insensitive) > cookie > fallback cookie > generate new
+    // Note: Headers in fetch API are case-insensitive per HTTP spec
+    let sessionId = request.headers.get('x-cart-session-id') || request.headers.get('X-Cart-Session-Id') || '';
+    if (!sessionId) {
+      sessionId = cookieStore.get('cart-session-id')?.value || '';
+    }
+    if (!sessionId) {
+      sessionId = cookieStore.get('guest_session_id')?.value || '';
+    }
     
     // Get user session
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id as string | undefined;
     
-    console.log('[Cart GET] Session ID:', sessionId || 'NONE', '| User ID:', userId || 'GUEST');
+    console.log('[Cart GET] Header Session:', request.headers.get('X-Cart-Session-Id'), '| Cookie Session:', cookieStore.get('cart-session-id')?.value, '| User ID:', userId || 'GUEST');
 
     if (!sessionId) {
       sessionId = randomUUID();
       console.log('[Cart GET] Generated new session ID:', sessionId);
-      cookieStore.set({
-        name: 'cart-session-id',
-        value: sessionId,
-        httpOnly: true,
-        path: '/',
-        sameSite: 'lax',
-      });
     }
 
     const cart = await getOrCreateCart(sessionId, userId);
+    console.log('[Cart GET] Using cart ID:', cart.id, '| Cart userId:', cart.userId, '| Cart sessionId:', cart.sessionId);
 
     const rawItems = await db
       .select({
@@ -284,7 +246,17 @@ export async function GET() {
     // Total
     const total = subtotal + shipping;
 
-    return noCache(NextResponse.json({ items, subtotal, shipping, total }));
+    // Return response with explicit Set-Cookie header
+    const response = NextResponse.json({ items, subtotal, shipping, total });
+    response.cookies.set({
+      name: 'cart-session-id',
+      value: sessionId,
+      httpOnly: true,
+      path: '/',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 60, // 60 days
+    });
+    return noCache(response);
   } catch (error) {
     console.error('Error fetching cart:', error);
     return noCache(NextResponse.json({ items: [] }));

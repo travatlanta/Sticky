@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, ShoppingBag, ArrowRight, Sticker } from "lucide-react";
+import { getCartSessionId } from "@/lib/cartSession";
 
 type CartItem = {
   id: number;
@@ -56,9 +57,13 @@ type CartResponse = {
 };
 
 async function fetchCart(): Promise<CartResponse> {
+  const cartSessionId = getCartSessionId();
   const res = await fetch("/api/cart", {
     credentials: "include",
     cache: "no-store",
+    headers: {
+      'X-Cart-Session-Id': cartSessionId,
+    },
   });
 
   if (!res.ok) {
@@ -99,9 +104,13 @@ export default function CartClient() {
 
   const removeItemMutation = useMutation({
     mutationFn: async (itemId: number) => {
+      const cartSessionId = getCartSessionId();
       const res = await fetch(`/api/cart/items/${itemId}`, {
         method: "DELETE",
         credentials: "include",
+        headers: {
+          'X-Cart-Session-Id': cartSessionId,
+        },
       });
       if (!res.ok) throw new Error("Failed to remove item");
     },
@@ -116,9 +125,13 @@ export default function CartClient() {
 
   const updateItemMutation = useMutation({
     mutationFn: async ({ itemId, mediaType, finishType }: { itemId: number; mediaType?: string; finishType?: string }) => {
+      const cartSessionId = getCartSessionId();
       const res = await fetch(`/api/cart/items/${itemId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          'X-Cart-Session-Id': cartSessionId,
+        },
         credentials: "include",
         body: JSON.stringify({ mediaType, finishType }),
       });

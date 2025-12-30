@@ -859,78 +859,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Cart
-  app.get("/api/cart", async (req: any, res) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      const sessionId = req.sessionID;
-
-      let cart = userId
-        ? await storage.getCartByUserId(userId)
-        : await storage.getCartBySessionId(sessionId);
-
-      if (!cart) {
-        cart = await storage.createCart(userId, sessionId);
-      }
-
-      const items = await storage.getCartItems(cart.id);
-
-      // Enrich cart items with product info
-      const enrichedItems = await Promise.all(
-        items.map(async (item) => {
-          const product = await storage.getProductById(item.productId);
-          const design = item.designId ? await storage.getDesignById(item.designId) : null;
-          return { ...item, product, design };
-        })
-      );
-
-      res.json({ ...cart, items: enrichedItems });
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-      res.status(500).json({ message: "Failed to fetch cart" });
-    }
-  });
-
-  app.post("/api/cart/add", async (req: any, res) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      const sessionId = req.sessionID;
-
-      let cart = userId
-        ? await storage.getCartByUserId(userId)
-        : await storage.getCartBySessionId(sessionId);
-
-      if (!cart) {
-        cart = await storage.createCart(userId, sessionId);
-      }
-
-      const item = await storage.addCartItem(cart.id, req.body);
-      res.json(item);
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      res.status(500).json({ message: "Failed to add to cart" });
-    }
-  });
-
-  app.put("/api/cart/items/:id", async (req, res) => {
-    try {
-      const item = await storage.updateCartItem(parseInt(req.params.id), req.body);
-      res.json(item);
-    } catch (error) {
-      console.error("Error updating cart item:", error);
-      res.status(500).json({ message: "Failed to update cart item" });
-    }
-  });
-
-  app.delete("/api/cart/items/:id", async (req, res) => {
-    try {
-      await storage.removeCartItem(parseInt(req.params.id));
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error removing cart item:", error);
-      res.status(500).json({ message: "Failed to remove cart item" });
-    }
-  });
+  // Cart routes are now handled by Next.js API routes
+  // See next-app/app/api/cart/route.ts and next-app/app/api/cart/add/route.ts
+  // These routes use X-Cart-Session-Id header for session management
 
   // Promotions
   app.post("/api/promotions/validate", async (req, res) => {

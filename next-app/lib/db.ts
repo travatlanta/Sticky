@@ -1,18 +1,25 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle, NeonHttpDatabase } from 'drizzle-orm/neon-http';
+import { Pool } from 'pg';
+import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '@shared/schema';
 
-// Global reference to preserve connection across hot reloads
 const globalForDb = globalThis as unknown as {
-  db: NeonHttpDatabase<typeof schema> | undefined;
+  pool: Pool | undefined;
+  db: NodePgDatabase<typeof schema> | undefined;
 };
 
-function createDb(): NeonHttpDatabase<typeof schema> {
+function createPool(): Pool {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
-  const sql = neon(process.env.DATABASE_URL);
-  return drizzle(sql as any, { schema });
+  return new Pool({ connectionString: process.env.DATABASE_URL });
+}
+
+function createDb(): NodePgDatabase<typeof schema> {
+  const pool = globalForDb.pool ?? createPool();
+  if (!globalForDb.pool) {
+    globalForDb.pool = pool;
+  }
+  return drizzle(pool, { schema });
 }
 
 export const db = globalForDb.db ?? createDb();

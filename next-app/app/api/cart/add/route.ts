@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { carts, cartItems } from '@shared/schema';
-import { eq, and, or, gt, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { getServerSession } from 'next-auth';
@@ -15,63 +15,60 @@ async function getOrCreateCart(sessionId: string, userId?: string) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + CART_EXPIRY_DAYS);
   
-  let cart = null;
-  
-  // If user is logged in, try to find their user cart first
-  if (userId) {
-    const [userCart] = await db
+  try {
+    // First, try to find existing cart by session ID
+    const existingCarts = await db
       .select()
       .from(carts)
-      .where(and(
-        eq(carts.userId, userId),
-        or(gt(carts.expiresAt, new Date()), isNull(carts.expiresAt))
-      ));
+      .where(eq(carts.sessionId, sessionId))
+      .limit(1);
     
-    if (userCart) {
-      cart = userCart;
-    } else {
-      // Check if there's a session cart to convert to user cart
-      const [sessionCart] = await db
-        .select()
-        .from(carts)
-        .where(eq(carts.sessionId, sessionId));
-      
-      if (sessionCart) {
-        const [updatedCart] = await db
-          .update(carts)
-          .set({ userId, expiresAt, updatedAt: new Date() })
-          .where(eq(carts.id, sessionCart.id))
-          .returning();
-        cart = updatedCart;
-      }
-    }
-  }
-  
-  // If no cart found yet, look for session cart
-  if (!cart) {
-    const [sessionCart] = await db
-      .select()
-      .from(carts)
-      .where(eq(carts.sessionId, sessionId));
-    
-    if (sessionCart) {
-      cart = sessionCart;
+    if (existingCarts && existingCarts.length > 0) {
+      const cart = existingCarts[0];
+      // Update expiry
       await db.update(carts)
         .set({ expiresAt, updatedAt: new Date() })
         .where(eq(carts.id, cart.id));
+      console.log('[Cart Add] Found existing cart by sessionId:', cart.id);
+      return cart;
     }
-  }
-  
-  // Create new cart if none exists
-  if (!cart) {
-    [cart] = await db.insert(carts).values({ 
+    
+    // If user is logged in, also check for user cart
+    if (userId) {
+      const userCarts = await db
+        .select()
+        .from(carts)
+        .where(eq(carts.userId, userId))
+        .limit(1);
+      
+      if (userCarts && userCarts.length > 0) {
+        const cart = userCarts[0];
+        // Update sessionId to match client's sessionId
+        await db.update(carts)
+          .set({ sessionId, expiresAt, updatedAt: new Date() })
+          .where(eq(carts.id, cart.id));
+        console.log('[Cart Add] Found user cart, updated sessionId:', cart.id);
+        return { ...cart, sessionId };
+      }
+    }
+    
+    // Create new cart
+    const newCarts = await db.insert(carts).values({ 
       sessionId, 
       userId: userId || null,
       expiresAt 
     }).returning();
+    
+    if (newCarts && newCarts.length > 0) {
+      console.log('[Cart Add] Created new cart:', newCarts[0].id);
+      return newCarts[0];
+    }
+    
+    throw new Error('Failed to create cart');
+  } catch (error) {
+    console.error('[Cart Add] Database error in getOrCreateCart:', error);
+    throw error;
   }
-  
-  return cart;
 }
 
 export async function POST(request: Request) {
@@ -85,27 +82,30 @@ export async function POST(request: Request) {
     }
 
     const cookieStore = await cookies();
-    let sessionId = cookieStore.get('cart-session-id')?.value;
+    
+    // Priority: header (case insensitive) > cookie > fallback cookie > generate new
+    // Note: Headers in fetch API are case-insensitive per HTTP spec
+    let sessionId = request.headers.get('x-cart-session-id') || request.headers.get('X-Cart-Session-Id') || '';
+    if (!sessionId) {
+      sessionId = cookieStore.get('cart-session-id')?.value || '';
+    }
+    if (!sessionId) {
+      sessionId = cookieStore.get('guest_session_id')?.value || '';
+    }
     
     // Get user session
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id as string | undefined;
     
-    console.log('[Cart Add] Session ID:', sessionId || 'NONE', '| User ID:', userId || 'GUEST');
+    console.log('[Cart Add] Header Session:', request.headers.get('X-Cart-Session-Id'), '| Cookie Session:', cookieStore.get('cart-session-id')?.value, '| User ID:', userId || 'GUEST');
     
     if (!sessionId) {
       sessionId = randomUUID();
       console.log('[Cart Add] Generated new session ID:', sessionId);
-      cookieStore.set({
-        name: 'cart-session-id',
-        value: sessionId,
-        httpOnly: true,
-        path: '/',
-        sameSite: 'lax',
-      });
     }
 
     const cart = await getOrCreateCart(sessionId, userId);
+    console.log('[Cart Add] Using cart ID:', cart.id, '| Cart userId:', cart.userId, '| Cart sessionId:', cart.sessionId);
 
     // Ensure unitPrice is always a valid string (default to '0' for free products)
     let unitPrice = '0';
@@ -129,7 +129,17 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    return NextResponse.json(item);
+    // Return response with explicit Set-Cookie header
+    const response = NextResponse.json({ ...item, cartId: cart.id, sessionId });
+    response.cookies.set({
+      name: 'cart-session-id',
+      value: sessionId,
+      httpOnly: true,
+      path: '/',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 60, // 60 days
+    });
+    return response;
   } catch (error) {
     console.error('Error adding to cart:', error);
     return NextResponse.json({ message: 'Failed to add to cart' }, { status: 500 });

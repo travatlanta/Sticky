@@ -21,6 +21,7 @@ import {
   Paintbrush,
   Loader2,
 } from "lucide-react";
+import { getCartSessionId, setCartSessionId } from "@/lib/cartSession";
 
 interface ProductOption {
   id: number;
@@ -244,9 +245,13 @@ export default function ProductDetail() {
       // Include option costs in unit price for accurate cart total
       const fullUnitPrice = parseFloat(calculatedPrice.pricePerUnit) + (parseFloat(calculatedPrice.optionsCost) || 0);
       
+      const cartSessionId = getCartSessionId();
       const cartRes = await fetch("/api/cart/add", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-Cart-Session-Id": cartSessionId,
+        },
         body: JSON.stringify({
           productId: product.id,
           designId: design.id,
@@ -258,6 +263,11 @@ export default function ProductDetail() {
       });
 
       if (!cartRes.ok) throw new Error("Failed to add to cart");
+      
+      const cartData = await cartRes.json();
+      if (cartData.sessionId) {
+        setCartSessionId(cartData.sessionId);
+      }
 
       toast({ title: "Added to cart!" });
       router.push("/cart");
@@ -290,9 +300,13 @@ export default function ProductDetail() {
     try {
       const fullUnitPrice = parseFloat(calculatedPrice.pricePerUnit) + (parseFloat(calculatedPrice.optionsCost) || 0);
       
+      const cartSessionId = getCartSessionId();
       const cartRes = await fetch("/api/cart/add", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-Cart-Session-Id": cartSessionId,
+        },
         body: JSON.stringify({
           productId: product.id,
           designId: null,
@@ -304,6 +318,11 @@ export default function ProductDetail() {
       });
 
       if (!cartRes.ok) throw new Error("Failed to add to cart");
+      
+      const cartData = await cartRes.json();
+      if (cartData.sessionId) {
+        setCartSessionId(cartData.sessionId);
+      }
 
       toast({ 
         title: "Added to cart!", 

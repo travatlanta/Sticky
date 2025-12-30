@@ -30,6 +30,7 @@ import {
   FolderOpen, Layers, Sparkles, Sun, Moon, Droplets, Zap, CircleDot
 } from "lucide-react";
 import { getContourFromImage, scaleContourPath, traceContour } from "@/lib/contour-tracer";
+import { getCartSessionId, setCartSessionId } from "@/lib/cartSession";
 
 let fabricModule: any = null;
 
@@ -1084,9 +1085,13 @@ export default function Editor() {
     try {
       await saveDesign();
 
+      const cartSessionId = getCartSessionId();
       const res = await fetch('/api/cart/add', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Cart-Session-Id': cartSessionId,
+        },
         credentials: 'include',
         body: JSON.stringify({
           productId: product?.id,
@@ -1098,6 +1103,11 @@ export default function Editor() {
       });
 
       if (!res.ok) throw new Error('Failed to add to cart');
+      
+      const data = await res.json();
+      if (data.sessionId) {
+        setCartSessionId(data.sessionId);
+      }
 
       setAddedToCart(true);
       toast({

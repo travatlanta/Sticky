@@ -30,19 +30,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'No valid design IDs provided' }, { status: 400 });
     }
 
-    let deletedCount = 0;
+    let result;
 
     if (isAdmin) {
-      const result = await db.delete(designs).where(inArray(designs.id, ids));
-      deletedCount = ids.length;
+      result = await db.delete(designs).where(inArray(designs.id, ids)).returning({ id: designs.id });
     } else {
-      const result = await db.delete(designs).where(
+      result = await db.delete(designs).where(
         and(
           inArray(designs.id, ids),
           eq(designs.userId, userId)
         )
-      );
-      deletedCount = ids.length;
+      ).returning({ id: designs.id });
+    }
+
+    const deletedCount = result.length;
+
+    if (deletedCount === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'No designs were deleted. They may not exist or you may not have permission.',
+        deletedCount: 0 
+      }, { status: 404 });
+    }
+
+    if (deletedCount < ids.length) {
+      return NextResponse.json({ 
+        success: true, 
+        message: `Partially deleted: ${deletedCount} of ${ids.length} design(s). Some may not exist or you may not have permission.`,
+        deletedCount,
+        requestedCount: ids.length
+      });
     }
 
     return NextResponse.json({ 

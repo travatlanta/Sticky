@@ -192,12 +192,12 @@ export default function AdminProducts() {
     printWidthInches: "4",
     printHeightInches: "4",
     stickerType: "standard" as "standard" | "die-cut" | "kiss-cut" | "custom-shape",
-    // Bulk pricing tiers
+    // Bulk pricing tiers (min-max quantity range + price per unit)
     pricingTiers: [
-      { minQuantity: "100", discountPercent: "5" },
-      { minQuantity: "500", discountPercent: "10" },
-      { minQuantity: "1000", discountPercent: "15" },
-    ] as Array<{ minQuantity: string; discountPercent: string }>,
+      { minQuantity: "1000", maxQuantity: "4999", pricePerUnit: "" },
+      { minQuantity: "5000", maxQuantity: "9999", pricePerUnit: "" },
+      { minQuantity: "10000", maxQuantity: "", pricePerUnit: "" },
+    ] as Array<{ minQuantity: string; maxQuantity: string; pricePerUnit: string }>,
   });
   const createFileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingCreate, setIsUploadingCreate] = useState(false);
@@ -429,9 +429,9 @@ export default function AdminProducts() {
         printHeightInches: "4",
         stickerType: "standard",
         pricingTiers: [
-          { minQuantity: "100", discountPercent: "5" },
-          { minQuantity: "500", discountPercent: "10" },
-          { minQuantity: "1000", discountPercent: "15" },
+          { minQuantity: "1000", maxQuantity: "4999", pricePerUnit: "" },
+          { minQuantity: "5000", maxQuantity: "9999", pricePerUnit: "" },
+          { minQuantity: "10000", maxQuantity: "", pricePerUnit: "" },
         ],
       });
       toast({ title: "Product created successfully" });
@@ -922,76 +922,66 @@ export default function AdminProducts() {
                   Bulk Pricing Tiers
                 </h3>
                 <p className="text-xs text-gray-500 mb-3">
-                  Set quantity thresholds and discount percentages. Customers ordering at or above these quantities will get the discount.
+                  Set up to 3 quantity-based discounts (customers see these on product pages)
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {formData.pricingTiers.map((tier, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Min Quantity</label>
+                    <div key={index} className="flex flex-wrap items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <span className="text-sm font-medium text-gray-600 w-16">Tier {index + 1}:</span>
+                      <div className="flex items-center gap-1">
                         <input
                           type="number"
                           min="1"
+                          placeholder="Min"
                           value={tier.minQuantity}
                           onChange={(e) => {
                             const newTiers = [...formData.pricingTiers];
                             newTiers[index].minQuantity = e.target.value;
                             setFormData({ ...formData, pricingTiers: newTiers });
                           }}
-                          className="w-full px-3 py-2 border rounded-lg text-sm"
-                          placeholder="e.g., 100"
-                          data-testid={`input-tier-quantity-${index}`}
+                          className="w-20 px-2 py-1 border rounded text-sm"
+                          data-testid={`input-tier-${index}-min`}
                         />
-                      </div>
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium mb-1">Discount %</label>
+                        <span className="text-gray-400">-</span>
                         <input
                           type="number"
-                          min="0"
-                          max="100"
-                          value={tier.discountPercent}
+                          min="1"
+                          placeholder={index === formData.pricingTiers.length - 1 ? "Max qty" : "Max"}
+                          value={tier.maxQuantity}
                           onChange={(e) => {
                             const newTiers = [...formData.pricingTiers];
-                            newTiers[index].discountPercent = e.target.value;
+                            newTiers[index].maxQuantity = e.target.value;
                             setFormData({ ...formData, pricingTiers: newTiers });
                           }}
-                          className="w-full px-3 py-2 border rounded-lg text-sm"
-                          placeholder="e.g., 10"
-                          data-testid={`input-tier-discount-${index}`}
+                          className="w-20 px-2 py-1 border rounded text-sm"
+                          data-testid={`input-tier-${index}-max`}
                         />
+                        <span className="text-gray-500 text-sm">units</span>
                       </div>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          const newTiers = formData.pricingTiers.filter((_, i) => i !== index);
-                          setFormData({ ...formData, pricingTiers: newTiers });
-                        }}
-                        className="mt-5"
-                        data-testid={`button-remove-tier-${index}`}
-                      >
-                        <X className="h-4 w-4 text-red-500" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-500">$</span>
+                        <input
+                          type="number"
+                          step="0.0001"
+                          min="0"
+                          placeholder="0.0000"
+                          value={tier.pricePerUnit}
+                          onChange={(e) => {
+                            const newTiers = [...formData.pricingTiers];
+                            newTiers[index].pricePerUnit = e.target.value;
+                            setFormData({ ...formData, pricingTiers: newTiers });
+                          }}
+                          className="w-24 px-2 py-1 border rounded text-sm"
+                          data-testid={`input-tier-${index}-price`}
+                        />
+                        <span className="text-gray-500 text-sm">each</span>
+                      </div>
                     </div>
                   ))}
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setFormData({
-                      ...formData,
-                      pricingTiers: [...formData.pricingTiers, { minQuantity: "", discountPercent: "" }]
-                    });
-                  }}
-                  className="mt-2"
-                  data-testid="button-add-tier"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Tier
-                </Button>
+                <p className="text-xs text-gray-400 mt-2">
+                  Leave fields empty to disable a tier. Price per unit should be lower than base price for discounts.
+                </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-4">

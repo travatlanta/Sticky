@@ -96,27 +96,53 @@ export async function POST(request: Request) {
 
     await db.insert(productOptions).values(allDefaultOptions);
 
-    // Add default bulk pricing tiers at 1000, 5000, 10000 quantities
-    // Prices are derived from basePrice with discounts (5%, 10%, 15% off)
+    // Add bulk pricing tiers
     const basePrice = parseFloat(body.basePrice) || 1.00;
-    // Insert tiers one at a time to handle null maxQuantity correctly
-    await db.insert(pricingTiers).values({
-      productId: product.id,
-      minQuantity: 1000,
-      maxQuantity: 4999,
-      pricePerUnit: (basePrice * 0.95).toFixed(4),
-    });
-    await db.insert(pricingTiers).values({
-      productId: product.id,
-      minQuantity: 5000,
-      maxQuantity: 9999,
-      pricePerUnit: (basePrice * 0.90).toFixed(4),
-    });
-    await db.insert(pricingTiers).values({
-      productId: product.id,
-      minQuantity: 10000,
-      pricePerUnit: (basePrice * 0.85).toFixed(4),
-    });
+    
+    // Use custom pricing tiers if provided, otherwise use defaults
+    if (body.pricingTiers && Array.isArray(body.pricingTiers) && body.pricingTiers.length > 0) {
+      // Filter out empty tiers and sort by minQuantity
+      const customTiers = body.pricingTiers
+        .filter((t: any) => t.minQuantity && t.discountPercent)
+        .sort((a: any, b: any) => parseInt(a.minQuantity) - parseInt(b.minQuantity));
+      
+      for (let i = 0; i < customTiers.length; i++) {
+        const tier = customTiers[i];
+        const minQty = parseInt(tier.minQuantity);
+        const discountPercent = parseFloat(tier.discountPercent) / 100;
+        const pricePerUnit = basePrice * (1 - discountPercent);
+        
+        // Calculate maxQuantity as one less than next tier's minQuantity
+        const nextTier = customTiers[i + 1];
+        const maxQty = nextTier ? parseInt(nextTier.minQuantity) - 1 : null;
+        
+        await db.insert(pricingTiers).values({
+          productId: product.id,
+          minQuantity: minQty,
+          maxQuantity: maxQty,
+          pricePerUnit: pricePerUnit.toFixed(4),
+        });
+      }
+    } else {
+      // Fallback to default tiers: 1000 (5%), 5000 (10%), 10000 (15%)
+      await db.insert(pricingTiers).values({
+        productId: product.id,
+        minQuantity: 1000,
+        maxQuantity: 4999,
+        pricePerUnit: (basePrice * 0.95).toFixed(4),
+      });
+      await db.insert(pricingTiers).values({
+        productId: product.id,
+        minQuantity: 5000,
+        maxQuantity: 9999,
+        pricePerUnit: (basePrice * 0.90).toFixed(4),
+      });
+      await db.insert(pricingTiers).values({
+        productId: product.id,
+        minQuantity: 10000,
+        pricePerUnit: (basePrice * 0.85).toFixed(4),
+      });
+    }
 
     return NextResponse.json(product);
   } catch (error) {

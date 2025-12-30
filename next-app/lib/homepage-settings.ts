@@ -120,18 +120,18 @@ export const defaultHomepageSettings: HomepageSettings = {
     loggedIn: {
       welcomePrefix: 'Welcome back',
       headline: "Let's Create",
-      description: 'From stickers to business cards, create stunning custom prints with our easy-to-use design editor. Premium quality, fast delivery.',
+      description: 'Design stunning custom stickers and labels with our easy-to-use editor. Premium quality, weatherproof materials, fast delivery.',
       primaryButtonText: 'Browse Products',
       secondaryButtonText: 'My Account',
     },
     loggedOut: {
-      headlineTop: 'Custom Printing',
+      headlineTop: 'Custom Stickers',
       headlineBottom: 'Made Easy',
-      description: 'From stickers to business cards, create stunning custom prints with our easy-to-use design editor. Premium quality, fast delivery.',
+      description: 'Design stunning custom stickers and labels with our easy-to-use editor. Premium quality, weatherproof materials, fast delivery.',
       primaryButtonText: 'Browse Products',
       secondaryButtonText: 'Sign In to Start',
     },
-    badge: 'Premium Quality Printing',
+    badge: 'Premium Quality Stickers',
   },
   features: {
     cards: [

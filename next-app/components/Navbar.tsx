@@ -4,9 +4,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, User, Menu, X } from 'lucide-react';
 import { useState } from 'react';
+
+interface CartItem {
+  id: number;
+  quantity: number;
+}
+
+interface CartData {
+  items: CartItem[];
+}
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -14,6 +24,14 @@ export default function Navbar() {
   const isAuthenticated = !!session?.user;
   const user = session?.user;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { data: cartData } = useQuery<CartData>({
+    queryKey: ['/api/cart'],
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  const cartItemCount = cartData?.items?.length || 0;
 
   if (pathname?.startsWith('/admin')) {
     return null;
@@ -49,10 +67,15 @@ export default function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/cart">
+            <Link href="/cart" className="relative">
               <Button variant="ghost" size="icon" className="text-gray-600 hover:text-orange-500 hover:bg-orange-50" data-testid="button-cart">
                 <ShoppingCart className="h-5 w-5" />
               </Button>
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center" data-testid="cart-count">
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </span>
+              )}
             </Link>
             {isAuthenticated ? (
               <div className="flex items-center space-x-2">
@@ -133,10 +156,15 @@ export default function Navbar() {
               )}
               <Link
                 href="/cart"
-                className="text-gray-600 hover:text-orange-500 font-medium transition-colors"
+                className="text-gray-600 hover:text-orange-500 font-medium transition-colors flex items-center gap-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Cart
+                {cartItemCount > 0 && (
+                  <span className="bg-orange-500 text-white text-xs font-bold rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center">
+                    {cartItemCount > 99 ? '99+' : cartItemCount}
+                  </span>
+                )}
               </Link>
               {isAuthenticated ? (
                 <>

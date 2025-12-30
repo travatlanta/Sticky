@@ -109,21 +109,62 @@ export async function DELETE(
     }
 
     // Delete related records first to avoid foreign key constraint violations
-    await db.delete(productOptions).where(eq(productOptions.productId, productId));
-    await db.delete(pricingTiers).where(eq(pricingTiers.productId, productId));
-    await db.delete(productImages).where(eq(productImages.productId, productId));
-    await db.delete(productTemplates).where(eq(productTemplates.productId, productId));
+    console.log(`Deleting product ${productId} - removing related records...`);
+    
+    try {
+      await db.delete(productOptions).where(eq(productOptions.productId, productId));
+      console.log('Deleted product options');
+    } catch (e) {
+      console.error('Error deleting product options:', e);
+    }
+    
+    try {
+      await db.delete(pricingTiers).where(eq(pricingTiers.productId, productId));
+      console.log('Deleted pricing tiers');
+    } catch (e) {
+      console.error('Error deleting pricing tiers:', e);
+    }
+    
+    try {
+      await db.delete(productImages).where(eq(productImages.productId, productId));
+      console.log('Deleted product images');
+    } catch (e) {
+      console.error('Error deleting product images:', e);
+    }
+    
+    try {
+      await db.delete(productTemplates).where(eq(productTemplates.productId, productId));
+      console.log('Deleted product templates');
+    } catch (e) {
+      console.error('Error deleting product templates:', e);
+    }
     
     // Set productId to null for designs and delete cart items
-    await db.update(designs).set({ productId: null }).where(eq(designs.productId, productId));
-    await db.delete(cartItems).where(eq(cartItems.productId, productId));
+    try {
+      await db.update(designs).set({ productId: null }).where(eq(designs.productId, productId));
+      console.log('Updated designs');
+    } catch (e) {
+      console.error('Error updating designs:', e);
+    }
+    
+    try {
+      await db.delete(cartItems).where(eq(cartItems.productId, productId));
+      console.log('Deleted cart items');
+    } catch (e) {
+      console.error('Error deleting cart items:', e);
+    }
 
     // Now delete the product
     await db.delete(products).where(eq(products.id, productId));
+    console.log(`Product ${productId} deleted successfully`);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting product:', error);
-    return NextResponse.json({ message: 'Failed to delete product' }, { status: 500 });
+    return NextResponse.json({ 
+      message: 'Failed to delete product', 
+      error: error?.message || 'Unknown error',
+      detail: error?.detail || null
+    }, { status: 500 });
   }
 }

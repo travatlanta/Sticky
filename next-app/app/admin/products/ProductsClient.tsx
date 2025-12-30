@@ -459,14 +459,25 @@ export default function AdminProducts() {
         method: "DELETE",
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to delete product");
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Failed to delete product");
+      }
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
-      toast({ title: "Product deleted successfully" });
+      if (data.softDeleted) {
+        toast({ title: "Product has orders - deactivated instead of deleted" });
+      } else {
+        toast({ title: "Product deleted successfully" });
+      }
     },
-    onError: () => toast({ title: "Failed to delete product", variant: "destructive" }),
+    onError: (error: Error) => toast({ 
+      title: "Failed to delete product", 
+      description: error.message,
+      variant: "destructive" 
+    }),
   });
 
   const createTemplateMutation = useMutation({

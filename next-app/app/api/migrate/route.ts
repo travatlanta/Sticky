@@ -95,6 +95,29 @@ export async function GET() {
       results.push('Added tracking_number column');
     }
 
+    // Add missing cart_items columns
+    const checkMediaType = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'cart_items' AND column_name = 'media_type'
+    `;
+    
+    if (checkMediaType.length === 0) {
+      await sql`ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS media_type VARCHAR(50)`;
+      results.push('Added media_type column to cart_items');
+    }
+
+    const checkFinishType = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'cart_items' AND column_name = 'finish_type'
+    `;
+    
+    if (checkFinishType.length === 0) {
+      await sql`ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS finish_type VARCHAR(50)`;
+      results.push('Added finish_type column to cart_items');
+    }
+
     // Add SEO fields to products table
     const checkMetaTitle = await sql`
       SELECT column_name 

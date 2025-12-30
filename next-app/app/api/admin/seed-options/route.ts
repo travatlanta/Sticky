@@ -6,76 +6,82 @@ import { products, productOptions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 const standardMaterials = [
-  { name: "Gloss Vinyl", value: "gloss-vinyl", priceModifier: "0.00", isDefault: true, displayOrder: 1 },
-  { name: "Matte Vinyl", value: "matte-vinyl", priceModifier: "0.00", isDefault: false, displayOrder: 2 },
-  { name: "Clear Vinyl", value: "clear-vinyl", priceModifier: "0.03", isDefault: false, displayOrder: 3 },
+  { name: "Vinyl", value: "vinyl", priceModifier: "0.00", isDefault: true, displayOrder: 1 },
+  { name: "Foil", value: "foil", priceModifier: "0.00", isDefault: false, displayOrder: 2 },
+  { name: "Holographic", value: "holographic", priceModifier: "0.00", isDefault: false, displayOrder: 3 },
 ];
 
 const standardCoatings = [
-  { name: "Standard", value: "standard", priceModifier: "0.00", isDefault: true, displayOrder: 1 },
-  { name: "UV Lamination", value: "uv-lamination", priceModifier: "0.02", isDefault: false, displayOrder: 2 },
+  { name: "None", value: "none", priceModifier: "0.00", isDefault: true, displayOrder: 1 },
+  { name: "Varnish", value: "varnish", priceModifier: "0.00", isDefault: false, displayOrder: 2 },
+  { name: "Emboss", value: "emboss", priceModifier: "0.00", isDefault: false, displayOrder: 3 },
 ];
 
 export async function POST(request: Request) {
   try {
     const allProducts = await db.select().from(products);
     
-    let seededCount = 0;
-    let skippedCount = 0;
+    let updatedCount = 0;
     const results: string[] = [];
 
     for (const product of allProducts) {
+      // Delete existing material and coating options (to replace with correct ones)
       const existingOptions = await db
         .select()
         .from(productOptions)
         .where(eq(productOptions.productId, product.id));
 
-      const hasMaterial = existingOptions.some(o => o.optionType === 'material');
-      const hasCoating = existingOptions.some(o => o.optionType === 'coating');
+      const existingMaterialIds = existingOptions
+        .filter(o => o.optionType === 'material')
+        .map(o => o.id);
+      const existingCoatingIds = existingOptions
+        .filter(o => o.optionType === 'coating')
+        .map(o => o.id);
 
-      if (hasMaterial && hasCoating) {
-        skippedCount++;
-        continue;
+      // Delete old material options
+      for (const id of existingMaterialIds) {
+        await db.delete(productOptions).where(eq(productOptions.id, id));
+      }
+      // Delete old coating options
+      for (const id of existingCoatingIds) {
+        await db.delete(productOptions).where(eq(productOptions.id, id));
       }
 
-      if (!hasMaterial) {
-        for (const mat of standardMaterials) {
-          await db.insert(productOptions).values({
-            productId: product.id,
-            optionType: 'material',
-            name: mat.name,
-            value: mat.value,
-            priceModifier: mat.priceModifier,
-            isDefault: mat.isDefault,
-            displayOrder: mat.displayOrder,
-            isActive: true,
-          });
-        }
-        results.push(`Added materials to: ${product.name}`);
+      // Add new standard material options
+      for (const mat of standardMaterials) {
+        await db.insert(productOptions).values({
+          productId: product.id,
+          optionType: 'material',
+          name: mat.name,
+          value: mat.value,
+          priceModifier: mat.priceModifier,
+          isDefault: mat.isDefault,
+          displayOrder: mat.displayOrder,
+          isActive: true,
+        });
       }
 
-      if (!hasCoating) {
-        for (const coat of standardCoatings) {
-          await db.insert(productOptions).values({
-            productId: product.id,
-            optionType: 'coating',
-            name: coat.name,
-            value: coat.value,
-            priceModifier: coat.priceModifier,
-            isDefault: coat.isDefault,
-            displayOrder: coat.displayOrder + 10,
-            isActive: true,
-          });
-        }
-        results.push(`Added coatings to: ${product.name}`);
+      // Add new standard coating (spot gloss) options
+      for (const coat of standardCoatings) {
+        await db.insert(productOptions).values({
+          productId: product.id,
+          optionType: 'coating',
+          name: coat.name,
+          value: coat.value,
+          priceModifier: coat.priceModifier,
+          isDefault: coat.isDefault,
+          displayOrder: coat.displayOrder + 10,
+          isActive: true,
+        });
       }
 
-      seededCount++;
+      updatedCount++;
+      results.push(`Updated options for: ${product.name}`);
     }
 
     return NextResponse.json({
       success: true,
-      message: `Seeded options for ${seededCount} products, skipped ${skippedCount} (already had options)`,
+      message: `Updated options for ${updatedCount} products`,
       details: results,
     });
   } catch (error) {

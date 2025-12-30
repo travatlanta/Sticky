@@ -65,8 +65,8 @@ Preferred communication style: Simple, everyday language.
 - **Admin Dashboard**: Product, order, user, and promotion management.
 - **Enhanced Order Management**: Comprehensive order details including customer info, shipping address, detailed items with selected options, design files, financial summary, tracking, and notes.
 - **Global Product Requirements**: All products automatically get:
-  - **Material Options**: Gloss Vinyl ($0.00), Matte Vinyl ($0.00), Clear Vinyl (+$0.03)
-  - **Coating Options**: Standard ($0.00), UV Lamination (+$0.02)
+  - **Material Options**: Vinyl, Foil, Holographic
+  - **Spot Gloss Options**: None, Varnish, Emboss
   - **Artwork**: Required before checkout (upload or design)
   - These are added automatically when creating new products via admin panel.
   - For existing products without options, use POST `/api/admin/seed-options` to backfill.

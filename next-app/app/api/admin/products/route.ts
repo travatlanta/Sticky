@@ -6,14 +6,15 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 const DEFAULT_MATERIAL_OPTIONS = [
-  { optionType: 'material' as const, name: 'Gloss Vinyl', value: 'gloss-vinyl', priceModifier: '0.00', isDefault: true, displayOrder: 1 },
-  { optionType: 'material' as const, name: 'Matte Vinyl', value: 'matte-vinyl', priceModifier: '0.00', isDefault: false, displayOrder: 2 },
-  { optionType: 'material' as const, name: 'Clear Vinyl', value: 'clear-vinyl', priceModifier: '0.03', isDefault: false, displayOrder: 3 },
+  { optionType: 'material' as const, name: 'Vinyl', value: 'vinyl', priceModifier: '0.00', isDefault: true, displayOrder: 1 },
+  { optionType: 'material' as const, name: 'Foil', value: 'foil', priceModifier: '0.00', isDefault: false, displayOrder: 2 },
+  { optionType: 'material' as const, name: 'Holographic', value: 'holographic', priceModifier: '0.00', isDefault: false, displayOrder: 3 },
 ];
 
 const DEFAULT_COATING_OPTIONS = [
-  { optionType: 'coating' as const, name: 'Standard', value: 'standard', priceModifier: '0.00', isDefault: true, displayOrder: 1 },
-  { optionType: 'coating' as const, name: 'UV Lamination', value: 'uv-lamination', priceModifier: '0.02', isDefault: false, displayOrder: 2 },
+  { optionType: 'coating' as const, name: 'None', value: 'none', priceModifier: '0.00', isDefault: true, displayOrder: 1 },
+  { optionType: 'coating' as const, name: 'Varnish', value: 'varnish', priceModifier: '0.00', isDefault: false, displayOrder: 2 },
+  { optionType: 'coating' as const, name: 'Emboss', value: 'emboss', priceModifier: '0.00', isDefault: false, displayOrder: 3 },
 ];
 
 export async function GET() {

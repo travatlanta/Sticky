@@ -470,7 +470,7 @@ export default function CartClient() {
                             </div>
                           )}
 
-                          {/* Coating Options */}
+                          {/* Spot Gloss Options */}
                           {item.coatingOptions && item.coatingOptions.length > 0 && (
                             <div>
                               <div className="flex items-center gap-2 mb-2">
@@ -478,7 +478,7 @@ export default function CartClient() {
                                   <AlertTriangle className="h-4 w-4 text-amber-600" />
                                 )}
                                 <p className="text-sm font-medium text-gray-700">
-                                  Coating {!item.finishType && <span className="text-red-500">*</span>}
+                                  Spot Gloss {!item.finishType && <span className="text-red-500">*</span>}
                                 </p>
                               </div>
                               <div className="flex flex-wrap gap-2">

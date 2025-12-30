@@ -2,16 +2,22 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, User, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Navbar() {
+  const pathname = usePathname();
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user;
   const user = session?.user;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <nav className="bg-white/90 backdrop-blur-md shadow-sm fixed top-0 left-0 right-0 z-50 border-b border-orange-100">

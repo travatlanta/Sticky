@@ -1318,6 +1318,18 @@ export default function Editor() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <TabsTrigger 
+                        value="uploads" 
+                        data-testid="tab-uploads"
+                        className="data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 py-2.5"
+                      >
+                        <FolderOpen className="w-5 h-5" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>{HELP_TIPS.uploads}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger 
                         value="text" 
                         data-testid="tab-text"
                         className="data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 py-2.5"
@@ -1338,18 +1350,6 @@ export default function Editor() {
                       </TabsTrigger>
                     </TooltipTrigger>
                     <TooltipContent>{HELP_TIPS.graphics}</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TabsTrigger 
-                        value="uploads" 
-                        data-testid="tab-uploads"
-                        className="data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 py-2.5"
-                      >
-                        <FolderOpen className="w-5 h-5" />
-                      </TabsTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>{HELP_TIPS.uploads}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1397,6 +1397,18 @@ export default function Editor() {
                       </svg>
                       <span>Start designing here</span>
                     </div>
+                    
+                    <Button
+                      onClick={() => {
+                        setActiveTab("uploads");
+                        multiFileInputRef.current?.click();
+                      }}
+                      className="w-full"
+                      data-testid="button-quickstart-upload"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Your Image
+                    </Button>
                     
                     <div className="bg-muted/50 rounded-lg p-3 space-y-3">
                       <h3 className="font-semibold text-sm">Quick Start Guide</h3>

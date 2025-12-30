@@ -14,6 +14,7 @@ interface FinanceStats {
   averageOrderValue: number;
   recentOrders: Array<{
     id: number;
+    orderNumber?: string;
     total: number;
     status: string;
     createdAt: string;
@@ -189,7 +190,7 @@ export default function AdminFinances() {
                     {stats.recentOrders.slice(0, 5).map((order) => (
                       <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div>
-                          <p className="font-medium text-gray-900 text-sm">Order #{order.id}</p>
+                          <p className="font-medium text-gray-900 text-sm">Order #{order.orderNumber || order.id}</p>
                           <p className="text-xs text-gray-500">{order.customerEmail}</p>
                         </div>
                         <div className="text-right">

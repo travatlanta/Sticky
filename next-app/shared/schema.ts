@@ -239,6 +239,7 @@ export const cartItems = pgTable("cart_items", {
 // Orders
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
+  orderNumber: varchar("order_number", { length: 20 }).notNull().unique(),
   userId: varchar("user_id").references(() => users.id),
   status: orderStatusEnum("status").default("pending"),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),

@@ -45,6 +45,7 @@ interface OrderItem {
 
 interface Order {
   id: number;
+  orderNumber?: string;
   status: string;
   createdAt: string;
   subtotal: string;
@@ -144,7 +145,7 @@ export default function OrderDetail() {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">
-              Order #{order.id}
+              Order #{order.orderNumber || order.id}
             </h1>
             <p className="text-gray-500 dark:text-muted-foreground flex items-center mt-1">
               <Calendar className="h-4 w-4 mr-2" />

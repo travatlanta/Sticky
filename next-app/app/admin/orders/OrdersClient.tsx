@@ -27,6 +27,7 @@ interface OrderUser {
 
 interface Order {
   id: number;
+  orderNumber?: string;
   userId: string;
   status: string;
   subtotal: string;
@@ -299,7 +300,7 @@ export default function AdminOrders() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 flex-wrap mb-1">
-                        <span className="font-bold text-gray-900">#{order.id}</span>
+                        <span className="font-bold text-gray-900">#{order.orderNumber || order.id}</span>
                         <span className="text-lg font-semibold text-green-600">{formatPrice(order.totalAmount)}</span>
                         <Badge className={statusColors[order.status] || "bg-gray-100"}>
                           {order.status.replace("_", " ")}
@@ -371,7 +372,7 @@ export default function AdminOrders() {
             <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
               <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
                 <div>
-                  <h2 className="text-xl font-bold">Order #{selectedOrder.id}</h2>
+                  <h2 className="text-xl font-bold">Order #{selectedOrder.orderNumber || selectedOrder.id}</h2>
                   <p className="text-sm text-gray-500">{formatDate(selectedOrder.createdAt)}</p>
                 </div>
                 <div className="flex items-center gap-3">

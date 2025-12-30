@@ -33,6 +33,7 @@ interface UserData {
 
 interface Order {
   id: number;
+  orderNumber?: string;
   status: string;
   total: string;
   createdAt: string;
@@ -214,7 +215,7 @@ export default function Account() {
                           <ShoppingBag className="h-5 w-5 text-gray-600" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm text-gray-900">Order #{order.id}</p>
+                          <p className="font-medium text-sm text-gray-900">Order #{order.orderNumber || order.id}</p>
                           <p className="text-xs text-gray-500 flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {formatDate(order.createdAt)}

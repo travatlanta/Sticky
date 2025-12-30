@@ -9,6 +9,15 @@ import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+function generateOrderNumber(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = 'SB-';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 function noCache(res: NextResponse) {
   res.headers.set(
     'Cache-Control',
@@ -109,6 +118,7 @@ export async function POST(req: Request) {
       const [order] = await db
         .insert(orders)
         .values({
+          orderNumber: generateOrderNumber(),
           userId: userId,
           status: 'paid',
           subtotal: '0',
@@ -214,6 +224,7 @@ export async function POST(req: Request) {
     const [order] = await db
       .insert(orders)
       .values({
+        orderNumber: generateOrderNumber(),
         userId: userId,
         status: 'paid',
         subtotal: subtotal.toString(),

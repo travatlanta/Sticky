@@ -110,8 +110,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    let session;
+    try {
+      session = await getServerSession(authOptions);
+    } catch (authError) {
+      console.error('Auth error in DELETE design:', authError);
+      return NextResponse.json({ message: 'Authentication error' }, { status: 500 });
+    }
+    
+    const userId = (session?.user as any)?.id;
+    const isAdmin = (session?.user as any)?.isAdmin;
+    
+    if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
@@ -127,8 +137,18 @@ export async function DELETE(
       return NextResponse.json({ message: 'Design not found' }, { status: 404 });
     }
 
-    if (existingDesign.userId !== session.user.id) {
-      return NextResponse.json({ message: 'You can only delete your own designs' }, { status: 403 });
+    // Allow deletion if user owns the design OR if user is admin
+    const ownsDesign = existingDesign.userId === userId;
+    if (!ownsDesign && !isAdmin) {
+      console.log('Delete design permission denied:', { 
+        designUserId: existingDesign.userId, 
+        sessionUserId: userId,
+        isAdmin 
+      });
+      return NextResponse.json({ 
+        message: 'You can only delete your own designs',
+        debug: { designOwner: existingDesign.userId, currentUser: userId }
+      }, { status: 403 });
     }
 
     await db.delete(designs).where(eq(designs.id, designId));
@@ -136,6 +156,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Design deleted successfully' });
   } catch (error) {
     console.error('Error deleting design:', error);
-    return NextResponse.json({ message: 'Failed to delete design' }, { status: 500 });
+    return NextResponse.json({ message: 'Failed to delete design', error: String(error) }, { status: 500 });
   }
 }

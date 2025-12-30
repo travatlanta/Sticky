@@ -4,9 +4,13 @@ export const revalidate = 0;
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { carts, cartItems, products, designs, productOptions, pricingTiers } from '@shared/schema';
-import { eq, and, asc, inArray } from 'drizzle-orm';
+import { eq, and, asc, inArray, or, gt, isNull } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+const CART_EXPIRY_DAYS = 60;
 
 function noCache(res: NextResponse) {
   res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -15,11 +19,117 @@ function noCache(res: NextResponse) {
   return res;
 }
 
+async function getOrCreateCart(sessionId: string, userId?: string) {
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + CART_EXPIRY_DAYS);
+  
+  let cart = null;
+  
+  // If user is logged in, try to find their user cart first
+  if (userId) {
+    const [userCart] = await db
+      .select()
+      .from(carts)
+      .where(and(
+        eq(carts.userId, userId),
+        or(gt(carts.expiresAt, new Date()), isNull(carts.expiresAt))
+      ));
+    
+    if (userCart) {
+      cart = userCart;
+      
+      // Check if there's a session cart that needs to be merged
+      const [sessionCart] = await db
+        .select()
+        .from(carts)
+        .where(and(
+          eq(carts.sessionId, sessionId),
+          isNull(carts.userId)
+        ));
+      
+      if (sessionCart && sessionCart.id !== cart.id) {
+        // Merge session cart items into user cart
+        const sessionItems = await db
+          .select()
+          .from(cartItems)
+          .where(eq(cartItems.cartId, sessionCart.id));
+        
+        for (const item of sessionItems) {
+          await db.insert(cartItems).values({
+            cartId: cart.id,
+            productId: item.productId,
+            designId: item.designId,
+            quantity: item.quantity,
+            selectedOptions: item.selectedOptions,
+            unitPrice: item.unitPrice,
+            mediaType: item.mediaType,
+            finishType: item.finishType,
+          });
+        }
+        
+        // Delete the old session cart items and cart
+        await db.delete(cartItems).where(eq(cartItems.cartId, sessionCart.id));
+        await db.delete(carts).where(eq(carts.id, sessionCart.id));
+        console.log('[Cart] Merged session cart into user cart');
+      }
+    } else {
+      // Check if there's a session cart to convert to user cart
+      const [sessionCart] = await db
+        .select()
+        .from(carts)
+        .where(eq(carts.sessionId, sessionId));
+      
+      if (sessionCart) {
+        // Convert session cart to user cart
+        const [updatedCart] = await db
+          .update(carts)
+          .set({ userId, expiresAt, updatedAt: new Date() })
+          .where(eq(carts.id, sessionCart.id))
+          .returning();
+        cart = updatedCart;
+        console.log('[Cart] Converted session cart to user cart');
+      }
+    }
+  }
+  
+  // If no cart found yet, look for session cart
+  if (!cart) {
+    const [sessionCart] = await db
+      .select()
+      .from(carts)
+      .where(eq(carts.sessionId, sessionId));
+    
+    if (sessionCart) {
+      cart = sessionCart;
+      // Update expiry
+      await db.update(carts)
+        .set({ expiresAt, updatedAt: new Date() })
+        .where(eq(carts.id, cart.id));
+    }
+  }
+  
+  // Create new cart if none exists
+  if (!cart) {
+    [cart] = await db.insert(carts).values({ 
+      sessionId, 
+      userId: userId || null,
+      expiresAt 
+    }).returning();
+  }
+  
+  return cart;
+}
+
 export async function GET() {
   try {
     const cookieStore = await cookies();
     let sessionId = cookieStore.get('cart-session-id')?.value;
-    console.log('[Cart GET] Session ID from cookie:', sessionId || 'NONE');
+    
+    // Get user session
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id as string | undefined;
+    
+    console.log('[Cart GET] Session ID:', sessionId || 'NONE', '| User ID:', userId || 'GUEST');
 
     if (!sessionId) {
       sessionId = randomUUID();
@@ -33,14 +143,7 @@ export async function GET() {
       });
     }
 
-    let [cart] = await db
-      .select()
-      .from(carts)
-      .where(eq(carts.sessionId, sessionId));
-
-    if (!cart) {
-      [cart] = await db.insert(carts).values({ sessionId }).returning();
-    }
+    const cart = await getOrCreateCart(sessionId, userId);
 
     const rawItems = await db
       .select({
@@ -200,7 +303,12 @@ export async function POST(request: Request) {
 
     const cookieStore = await cookies();
     let sessionId = cookieStore.get('cart-session-id')?.value;
-    console.log('[Cart POST] Session ID from cookie:', sessionId || 'NONE');
+    
+    // Get user session
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id as string | undefined;
+    
+    console.log('[Cart POST] Session ID:', sessionId || 'NONE', '| User ID:', userId || 'GUEST');
 
     if (!sessionId) {
       sessionId = randomUUID();
@@ -214,14 +322,7 @@ export async function POST(request: Request) {
       });
     }
 
-    let [cart] = await db
-      .select()
-      .from(carts)
-      .where(eq(carts.sessionId, sessionId));
-
-    if (!cart) {
-      [cart] = await db.insert(carts).values({ sessionId }).returning();
-    }
+    const cart = await getOrCreateCart(sessionId, userId);
 
     const [item] = await db
       .insert(cartItems)

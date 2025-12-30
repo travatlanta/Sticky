@@ -216,6 +216,7 @@ export const carts = pgTable("carts", {
   sessionId: varchar("session_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
 });
 
 // Cart Items

@@ -134,6 +134,12 @@ export const products = pgTable("products", {
   // SEO fields for product pages
   metaTitle: varchar("meta_title", { length: 70 }), // Optimal 50-60 chars
   metaDescription: varchar("meta_description", { length: 160 }), // Optimal 150-160 chars
+  // Deal product fields - when a product is created from a deal
+  isDealProduct: boolean("is_deal_product").default(false),
+  dealId: integer("deal_id"), // Reference to the deal this product belongs to
+  fixedQuantity: integer("fixed_quantity"), // Locked quantity for deal products
+  fixedPrice: decimal("fixed_price", { precision: 10, scale: 2 }), // Locked total price for deal products
+  sourceProductId: integer("source_product_id"), // The template product this was duplicated from
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -333,6 +339,8 @@ export const deals = pgTable("deals", {
   badgeText: varchar("badge_text", { length: 50 }), // e.g., "HOT", "BEST VALUE"
   badgeColor: varchar("badge_color", { length: 50 }).default("yellow"), // yellow, green, red, purple
   ctaText: varchar("cta_text", { length: 50 }).default("Buy Now"), // Call to action button text
+  sourceProductId: integer("source_product_id").references(() => products.id), // Template product to duplicate
+  dealProductId: integer("deal_product_id").references(() => products.id), // The duplicated deal product
   displayOrder: integer("display_order").default(0),
   isActive: boolean("is_active").default(true),
   showOnHomepage: boolean("show_on_homepage").default(false), // Featured on home page

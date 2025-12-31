@@ -30,17 +30,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'No valid design IDs provided' }, { status: 400 });
     }
 
-    let result;
+    let result: any[];
 
     if (isAdmin) {
-      result = await db.delete(designs).where(inArray(designs.id, ids)).returning({ id: designs.id });
+      result = await db.delete(designs).where(inArray(designs.id, ids)).returning();
     } else {
       result = await db.delete(designs).where(
         and(
           inArray(designs.id, ids),
           eq(designs.userId, userId)
         )
-      ).returning({ id: designs.id });
+      ).returning();
     }
 
     const deletedCount = result.length;

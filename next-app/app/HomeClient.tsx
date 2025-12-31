@@ -59,7 +59,16 @@ export default function HomeClient() {
   });
 
   const settings = homepageSettings || defaultHomepageSettings;
-  const stickers = allProducts?.filter((p) => p.categoryId === 1)?.slice(0, 6) || [];
+  
+  // Use featured product IDs if set, otherwise fall back to first 6 stickers
+  const stickerCategory = allProducts?.filter((p) => p.categoryId === 1) || [];
+  const featuredIds = settings.customStickers.featuredProductIds;
+  const stickers = (featuredIds && featuredIds.length > 0)
+    ? featuredIds
+        .map(id => stickerCategory.find(p => p.id === id))
+        .filter((p): p is Product => p !== undefined)
+        .slice(0, 6)
+    : stickerCategory.slice(0, 6);
 
   const badgeColors: Record<string, string> = {
     yellow: "bg-yellow-500 text-black",

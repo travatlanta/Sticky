@@ -11,13 +11,21 @@ const iconMap: Record<string, any> = {
   Sticker, Tag, Wine, Package, Circle, Layers
 };
 
+interface Product {
+  id: number;
+  name: string;
+  basePrice: string;
+  thumbnailUrl?: string;
+}
+
 interface SectionPreviewProps {
   section: string;
   settings: HomepageSettings;
   heroView?: "loggedIn" | "loggedOut";
+  products?: Product[];
 }
 
-export default function SectionPreview({ section, settings, heroView = "loggedOut" }: SectionPreviewProps) {
+export default function SectionPreview({ section, settings, heroView = "loggedOut", products = [] }: SectionPreviewProps) {
   const renderHeroPreview = () => {
     const hero = heroView === "loggedIn" 
       ? settings?.hero?.loggedIn 
@@ -87,22 +95,67 @@ export default function SectionPreview({ section, settings, heroView = "loggedOu
 
   const renderStickersPreview = () => {
     const stickers = settings?.customStickers;
+    const featuredIds = stickers?.featuredProductIds || [];
+    const displayProducts = featuredIds.length > 0 
+      ? featuredIds.map(id => products.find(p => p.id === id)).filter((p): p is Product => p !== undefined).slice(0, 4)
+      : products.slice(0, 4);
     
     return (
-      <div className="bg-gradient-to-r from-orange-500 to-yellow-500 rounded-lg p-3 text-white">
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <h3 className="font-bold text-xs">{stickers?.title || "Custom Stickers"}</h3>
-            <p className="text-[8px] opacity-90">{stickers?.subtitle || ""}</p>
-            <div className="bg-white/20 rounded mt-2 p-2">
-              <p className="text-[7px] font-semibold">{stickers?.cardTitle || ""}</p>
-              <p className="text-[6px]">{stickers?.cardSubtitle || ""}</p>
-            </div>
-          </div>
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-            <Sticker className="w-6 h-6" />
+      <div className="bg-gradient-to-br from-orange-100 via-yellow-50 to-red-50 rounded-lg p-4 relative overflow-hidden" style={{ minHeight: '140px' }}>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h3 className="font-bold text-xs text-gray-900">{stickers?.title || "Custom Stickers"}</h3>
+            <p className="text-[8px] text-gray-600">{stickers?.subtitle || ""}</p>
           </div>
         </div>
+        
+        <div className="relative h-24">
+          {displayProducts.map((product, i) => {
+            const positions = [
+              { top: '0', left: '0', rotate: '-8deg' },
+              { top: '40%', left: '10%', rotate: '5deg' },
+              { top: '5%', right: '25%', rotate: '8deg' },
+              { top: '45%', right: '5%', rotate: '-5deg' },
+            ];
+            const pos = positions[i] || positions[0];
+            return (
+              <div
+                key={product.id}
+                className="absolute bg-white rounded-lg p-1.5 shadow-md border border-orange-100"
+                style={{
+                  top: pos.top,
+                  left: pos.left,
+                  right: (pos as any).right,
+                  transform: `rotate(${pos.rotate})`,
+                  width: '52px',
+                }}
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-100 to-yellow-50 rounded flex items-center justify-center mx-auto mb-1">
+                  {product.thumbnailUrl ? (
+                    <img src={product.thumbnailUrl} alt="" className="w-full h-full object-cover rounded" />
+                  ) : (
+                    <Layers className="h-4 w-4 text-orange-400" />
+                  )}
+                </div>
+                <p className="text-[6px] font-medium text-gray-800 text-center truncate">{product.name.split(' ').slice(0, 2).join(' ')}</p>
+              </div>
+            );
+          })}
+          
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg text-center">
+              <p className="text-[8px] font-bold text-gray-900">{stickers?.cardTitle || ""}</p>
+              <p className="text-[6px] text-gray-600">{stickers?.cardSubtitle || ""}</p>
+              <span className="inline-block bg-gradient-to-r from-orange-500 to-red-500 text-white text-[6px] px-2 py-0.5 rounded mt-1">
+                {stickers?.buttonText || "Design"}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        {featuredIds.length > 0 && (
+          <p className="text-[7px] text-blue-600 mt-2 text-center">{featuredIds.length} featured product{featuredIds.length !== 1 ? 's' : ''} selected</p>
+        )}
       </div>
     );
   };

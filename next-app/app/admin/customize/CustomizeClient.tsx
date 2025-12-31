@@ -14,8 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Save, RotateCcw, Sparkles, Home, Layers, Tag, 
   Package, Megaphone, Palette, Eye, EyeOff, User, UserX,
-  Star, Sticker, Circle
+  Star, Sticker, Circle, X, Plus
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { HomepageSettings, ThemeSettings } from "@/lib/homepage-settings";
 import { defaultHomepageSettings, defaultThemeSettings } from "@/lib/homepage-settings";
 import SectionPreview from "@/components/admin/SectionPreview";
@@ -33,6 +34,21 @@ export default function CustomizeClient() {
   const { data: themeSettings } = useQuery<ThemeSettings>({
     queryKey: ["/api/admin/settings/theme"],
   });
+
+  interface Product {
+    id: number;
+    name: string;
+    slug: string;
+    basePrice: string;
+    thumbnailUrl?: string;
+    categoryId: number;
+  }
+
+  const { data: products } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+  });
+
+  const stickerProducts = products?.filter(p => p.categoryId === 1) || [];
 
   const [formData, setFormData] = useState<HomepageSettings | null>(null);
   const [themeFormData, setThemeFormData] = useState<ThemeSettings | null>(null);
@@ -461,6 +477,59 @@ export default function CustomizeClient() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm font-medium text-blue-900 mb-3">Featured Products (Floating Cards)</p>
+                    <p className="text-xs text-blue-700 mb-3">Select up to 6 sticker products to display as floating cards in this section. Leave empty to show the first 6 stickers automatically.</p>
+                    
+                    <div className="space-y-2">
+                      {(currentSettings.customStickers.featuredProductIds || []).map((productId, idx) => {
+                        const product = stickerProducts.find(p => p.id === productId);
+                        return (
+                          <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded border">
+                            <span className="flex-1 text-sm truncate">{product?.name || `Product ID: ${productId}`}</span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                const newIds = (currentSettings.customStickers.featuredProductIds || []).filter((_, i) => i !== idx);
+                                updateField("customStickers.featuredProductIds", newIds);
+                              }}
+                              data-testid={`button-remove-featured-${idx}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                      
+                      {(currentSettings.customStickers.featuredProductIds || []).length < 6 && (
+                        <Select
+                          key={`featured-select-${(currentSettings.customStickers.featuredProductIds || []).join('-')}`}
+                          onValueChange={(value) => {
+                            const productId = parseInt(value);
+                            const currentIds = currentSettings.customStickers.featuredProductIds || [];
+                            if (!currentIds.includes(productId)) {
+                              updateField("customStickers.featuredProductIds", [...currentIds, productId]);
+                            }
+                          }}
+                        >
+                          <SelectTrigger data-testid="select-add-featured-product">
+                            <SelectValue placeholder="Add a product..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {stickerProducts
+                              .filter(p => !(currentSettings.customStickers.featuredProductIds || []).includes(p.id))
+                              .map(product => (
+                                <SelectItem key={product.id} value={product.id.toString()}>
+                                  {product.name} - ${parseFloat(product.basePrice).toFixed(2)}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -533,7 +602,7 @@ export default function CustomizeClient() {
                 </CardContent>
               </Card>
 
-              <SectionPreview section="stickers" settings={currentSettings} />
+              <SectionPreview section="stickers" settings={currentSettings} products={stickerProducts} />
             </div>
           </TabsContent>
 

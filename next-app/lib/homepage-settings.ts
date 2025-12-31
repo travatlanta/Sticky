@@ -39,6 +39,7 @@ export const customStickersSectionSchema = z.object({
   cardTitle: z.string(),
   cardSubtitle: z.string(),
   buttonText: z.string(),
+  featuredProductIds: z.array(z.number()).optional(),
 });
 
 export const stickersThatStickSectionSchema = z.object({
@@ -147,6 +148,7 @@ export const defaultHomepageSettings: HomepageSettings = {
     cardTitle: 'Die-Cut, Circles, Sheets & More',
     cardSubtitle: 'Starting at just $0.10/sticker',
     buttonText: 'Design Your Stickers',
+    featuredProductIds: [],
   },
   stickersThatStick: {
     badge: 'Premium Quality',

@@ -135,7 +135,7 @@ export default function Footer() {
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:info@stickybanditos.com" className="text-sm text-gray-400 hover:text-orange-400 transition-colors flex items-center justify-center gap-2">
+                  <a href="mailto:mhobbs.stickybanditos@gmail.com" className="text-sm text-gray-400 hover:text-orange-400 transition-colors flex items-center justify-center gap-2">
                     <Mail className="h-4 w-4 text-orange-500 flex-shrink-0" />
                     Email Us
                   </a>

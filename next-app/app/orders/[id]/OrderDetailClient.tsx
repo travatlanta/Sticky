@@ -384,7 +384,7 @@ export default function OrderDetail() {
                     variant="ghost" 
                     className="w-full text-muted-foreground" 
                     data-testid="button-email-support"
-                    onClick={() => window.location.href = 'mailto:info@stickybanditos.com'}
+                    onClick={() => window.location.href = 'mailto:mhobbs.stickybanditos@gmail.com'}
                   >
                     <Mail className="h-4 w-4 mr-2" />
                     Email Support

@@ -601,15 +601,10 @@ export default function AdminOrders() {
                                         })()}
                                       </Button>
                                     </div>
-                                    {(() => {
-                                      const url = item.design.highResExportUrl || item.design.previewUrl || '';
-                                      const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
-                                      const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
-                                      if (!isSpecialFormat) {
-                                        return <p className="text-xs text-gray-500">PNG/TIFF preserve transparency</p>;
-                                      }
-                                      return null;
-                                    })()}
+                                    <div className="text-xs text-gray-500 space-y-1">
+                                      <p>PNG/TIFF preserve transparency</p>
+                                      <p className="text-amber-600">EPS, CDR, AI, PSD, PDF files download as-is (no conversion available)</p>
+                                    </div>
                                   </>
                                 )}
                                 {item.design.customShapeUrl && (

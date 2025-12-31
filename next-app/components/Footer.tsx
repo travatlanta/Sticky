@@ -129,6 +129,12 @@ export default function Footer() {
                   2 North 35th Ave
                 </li>
                 <li>
+                  <a href="tel:602-554-5338" className="text-sm text-gray-400 hover:text-orange-400 transition-colors flex items-center justify-center gap-2">
+                    <Phone className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                    (602) 554-5338
+                  </a>
+                </li>
+                <li>
                   <a href="mailto:info@stickybanditos.com" className="text-sm text-gray-400 hover:text-orange-400 transition-colors flex items-center justify-center gap-2">
                     <Mail className="h-4 w-4 text-orange-500 flex-shrink-0" />
                     Email Us

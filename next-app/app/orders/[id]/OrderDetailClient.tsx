@@ -22,6 +22,8 @@ import {
   FileImage,
   Download,
   Image,
+  Phone,
+  Mail,
 } from "lucide-react";
 
 interface Design {
@@ -368,9 +370,26 @@ export default function OrderDetail() {
                 <p className="text-gray-600 dark:text-muted-foreground text-sm mb-4">
                   Have questions about your order? Our support team is here to help.
                 </p>
-                <Button variant="outline" className="w-full" data-testid="button-contact-support">
-                  Contact Support
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    data-testid="button-contact-support"
+                    onClick={() => window.location.href = 'tel:602-554-5338'}
+                  >
+                    <Phone className="h-4 w-4 mr-2" />
+                    Call (602) 554-5338
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full text-muted-foreground" 
+                    data-testid="button-email-support"
+                    onClick={() => window.location.href = 'mailto:info@stickybanditos.com'}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email Support
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

@@ -26,11 +26,6 @@ export default function ChatWidget() {
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
 
-  // Don't show chat widget on admin pages
-  if (pathname?.startsWith('/admin')) {
-    return null;
-  }
-
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
     queryFn: async () => {
@@ -76,6 +71,13 @@ export default function ChatWidget() {
   };
 
   const isLoggedIn = !!session?.user;
+  
+  // Don't show chat widget on admin pages - use mounted check to avoid hydration mismatch
+  const isAdminPage = mounted && pathname?.startsWith('/admin');
+  
+  if (!mounted || isAdminPage) {
+    return null;
+  }
 
   return (
     <>

@@ -17,19 +17,14 @@ export default function Footer() {
       <div className="container mx-auto px-4">
         <div className="py-12 md:py-16">
           <div className="flex flex-col items-center text-center mb-10">
-            <Link href="/" className="inline-flex items-center gap-3 mb-4 group">
-              <div className="relative">
-                <Image
-                  src="/logo.png"
-                  alt="Sticky Banditos"
-                  width={56}
-                  height={56}
-                  className="rounded-lg"
-                />
-              </div>
-              <span className="font-display font-bold text-xl text-white group-hover:text-orange-400 transition-colors">
-                Sticky Banditos
-              </span>
+            <Link href="/" className="mb-6 group">
+              <Image
+                src="/logo.png"
+                alt="Sticky Banditos"
+                width={180}
+                height={180}
+                className="rounded-xl group-hover:scale-105 transition-transform"
+              />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-md">
               Premium custom stickers and labels. High-quality materials, fast turnaround, exceptional service.

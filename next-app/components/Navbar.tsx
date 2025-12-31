@@ -41,15 +41,23 @@ export default function Navbar() {
     <nav className="bg-white/90 backdrop-blur-md shadow-sm fixed top-0 left-0 right-0 z-50 border-b border-orange-100">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center space-x-3 group">
+          <button
+            className="md:hidden p-2 text-gray-600 hover:text-orange-500"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            data-testid="button-mobile-menu-left"
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+          
+          <Link href="/" className="flex items-center space-x-2 group absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
             <Image
               src="/logo-icon.png"
               alt="Sticky Banditos"
-              width={48}
-              height={48}
+              width={44}
+              height={44}
               className="rounded-lg shadow-md group-hover:shadow-lg transition-shadow"
             />
-            <span className="font-display font-bold text-xl text-gray-900 hidden sm:block">Sticky Banditos</span>
+            <span className="font-display font-bold text-lg md:text-xl text-gray-900">Sticky Banditos</span>
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">
@@ -119,13 +127,7 @@ export default function Navbar() {
             )}
           </div>
 
-          <button
-            className="md:hidden p-2 text-gray-600 hover:text-orange-500"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            data-testid="button-mobile-menu"
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="md:hidden w-10"></div>
         </div>
 
         {mobileMenuOpen && (

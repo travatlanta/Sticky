@@ -2066,40 +2066,6 @@ export default function Editor() {
                 </TabsContent>
               </Tabs>
             </div>
-
-            <div className="border-t p-3 bg-card">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Total</span>
-                <span className="text-xl font-bold" data-testid="text-total-price">
-                  {priceLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    formatPrice(calculatedPrice?.subtotal || 0)
-                  )}
-                </span>
-              </div>
-              {calculatedPrice && (
-                <p className="text-xs text-muted-foreground mb-2">
-                  {formatPrice(calculatedPrice.pricePerUnit + (calculatedPrice.optionsCost || 0))} per unit
-                </p>
-              )}
-              <Button
-                className="w-full"
-                onClick={handleAddToCart}
-                disabled={addedToCart}
-                data-testid="button-add-to-cart"
-              >
-                {addedToCart ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" /> Added to Cart
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-4 h-4 mr-2" /> Add to Cart
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </div>
 
@@ -2175,7 +2141,32 @@ export default function Editor() {
 
         {/* Fixed Bottom Bar - Add to Cart */}
         <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-50" data-testid="fixed-cart-bar">
-          <div className="max-w-7xl mx-auto px-3 py-3">
+          <div className="max-w-7xl mx-auto px-3 py-2">
+            {/* Bulk Discount Tiers Row */}
+            {product?.pricingTiers && product.pricingTiers.length > 0 && (
+              <div className="flex items-center justify-center gap-1 mb-2 pb-2 border-b border-border/50 overflow-x-auto">
+                <span className="text-[10px] text-green-600 dark:text-green-400 font-medium whitespace-nowrap mr-1">Bulk Savings:</span>
+                {product.pricingTiers.slice(0, 5).map((tier, idx) => {
+                  const isActive = quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity);
+                  return (
+                    <button 
+                      key={tier.id}
+                      type="button"
+                      onClick={() => setQuantity(tier.minQuantity)}
+                      className={`px-2 py-0.5 text-[10px] rounded-full transition-all whitespace-nowrap ${
+                        isActive 
+                          ? 'bg-green-500 text-white font-medium' 
+                          : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/60'
+                      }`}
+                      data-testid={`button-bulk-tier-${idx}`}
+                    >
+                      {tier.minQuantity}+ @ {formatPrice(parseFloat(tier.pricePerUnit))}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            
             {/* Quantity, Price & Add to Cart Row */}
             <div className="flex items-center justify-between gap-3">
               {/* Quantity Selector */}

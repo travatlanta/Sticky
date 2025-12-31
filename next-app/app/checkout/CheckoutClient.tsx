@@ -67,6 +67,7 @@ export default function CheckoutClient() {
   const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
   const [orderNotes, setOrderNotes] = useState('');
   const [expeditedShipping, setExpeditedShipping] = useState(false);
+  const [isWholesaler, setIsWholesaler] = useState(false);
   const EXPEDITED_SHIPPING_COST = 25; // Additional cost for expedited shipping
   const ARIZONA_TAX_RATE = 0.086; // Arizona state + Phoenix local tax rate (8.6%)
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
@@ -126,6 +127,7 @@ export default function CheckoutClient() {
       notes?: string;
       expeditedShipping?: boolean;
       taxAmount?: number;
+      isWholesaler?: boolean;
     }) => {
       const response = await fetch('/api/checkout/create-payment', {
         method: 'POST',
@@ -186,6 +188,7 @@ export default function CheckoutClient() {
         notes: orderNotes || undefined,
         expeditedShipping: expeditedShipping || undefined,
         taxAmount: tax,
+        isWholesaler: isWholesaler || undefined,
       });
     } else {
       toast({
@@ -238,8 +241,9 @@ export default function CheckoutClient() {
   const baseShipping = (typeof cart.shipping === 'number' && !isNaN(cart.shipping)) ? cart.shipping : 0;
   const shipping = baseShipping + (expeditedShipping ? EXPEDITED_SHIPPING_COST : 0);
 
-  // Calculate tax - 8.6% applied to all orders (business is located in Arizona)
-  const tax = subtotal * ARIZONA_TAX_RATE;
+  // Calculate tax - 8.6% applied to orders (business is located in Arizona)
+  // Wholesalers are tax-exempt
+  const tax = isWholesaler ? 0 : subtotal * ARIZONA_TAX_RATE;
 
   // Total from /api/cart when provided, otherwise subtotal + shipping.
   // Add expedited shipping and tax if applicable
@@ -409,6 +413,36 @@ export default function CheckoutClient() {
                           <span
                             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                               expeditedShipping ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Label htmlFor="isWholesaler" className="text-base font-medium cursor-pointer">
+                          Wholesaler / Tax-Exempt
+                        </Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Check this box if you are a registered wholesaler (sales tax will not be applied).
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 ml-4">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isWholesaler}
+                          onClick={() => setIsWholesaler(!isWholesaler)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            isWholesaler ? 'bg-green-600' : 'bg-muted-foreground/30'
+                          }`}
+                          data-testid="toggle-wholesaler"
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              isWholesaler ? 'translate-x-6' : 'translate-x-1'
                             }`}
                           />
                         </button>

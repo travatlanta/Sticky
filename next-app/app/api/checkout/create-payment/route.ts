@@ -28,7 +28,7 @@ function noCache(res: NextResponse) {
 
 export async function POST(req: Request) {
   try {
-    const { sourceId, shippingAddress, notes, expeditedShipping, taxAmount = 0 } = await req.json();
+    const { sourceId, shippingAddress, notes, expeditedShipping, taxAmount = 0, isWholesaler = false } = await req.json();
     const EXPEDITED_SHIPPING_COST = 25; // Match the frontend constant
     const ARIZONA_TAX_RATE = 0.086; // Arizona state + Phoenix local tax rate
 
@@ -85,9 +85,10 @@ export async function POST(req: Request) {
     console.log('Calculated subtotal:', subtotal);
 
     // Calculate tax based on shipping state (Arizona destinations get taxed)
+    // Wholesalers are tax-exempt - skip tax calculation for them
     // We recalculate server-side to ensure accuracy and prevent manipulation
     let calculatedTax = 0;
-    if (shippingAddress?.state) {
+    if (!isWholesaler && shippingAddress?.state) {
       const state = shippingAddress.state.toUpperCase().trim();
       if (state === 'AZ' || state === 'ARIZONA') {
         calculatedTax = subtotal * ARIZONA_TAX_RATE;

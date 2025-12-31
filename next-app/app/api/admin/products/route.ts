@@ -18,6 +18,11 @@ const DEFAULT_COATING_OPTIONS = [
   { optionType: 'coating' as const, name: 'Both', value: 'both', priceModifier: '0.10', isDefault: false, displayOrder: 4 },
 ];
 
+const DEFAULT_CUT_OPTIONS = [
+  { optionType: 'cut' as const, name: 'Standard', value: 'Kiss cut - stickers are cut through the vinyl but not the backing paper. Easy to peel.', priceModifier: '0.00', isDefault: true, displayOrder: 1 },
+  { optionType: 'cut' as const, name: 'Die Cut', value: 'Stickers are cut completely through both vinyl and backing to your exact shape.', priceModifier: '0.00', isDefault: false, displayOrder: 2 },
+];
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -90,8 +95,8 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    // Automatically add default material and coating options for all new products
-    const allDefaultOptions = [...DEFAULT_MATERIAL_OPTIONS, ...DEFAULT_COATING_OPTIONS].map(opt => ({
+    // Automatically add default material, coating, and cut options for all new products
+    const allDefaultOptions = [...DEFAULT_MATERIAL_OPTIONS, ...DEFAULT_COATING_OPTIONS, ...DEFAULT_CUT_OPTIONS].map(opt => ({
       ...opt,
       productId: product.id,
       isActive: true,

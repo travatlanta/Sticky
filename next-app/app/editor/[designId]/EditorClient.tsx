@@ -127,6 +127,13 @@ export default function Editor() {
   const { toast } = useToast();
   
   const initialQuantityFromUrl = parseInt(searchParams.get("qty") || "0", 10);
+  
+  // Check if this is a deal with fixed quantity
+  const dealId = searchParams.get("dealId");
+  const dealPrice = searchParams.get("price");
+  const isDeal = !!dealId && initialQuantityFromUrl > 0;
+  const fixedDealPrice = isDeal && dealPrice ? parseFloat(dealPrice) : null;
+  
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const multiFileInputRef = useRef<HTMLInputElement>(null);
@@ -2140,10 +2147,18 @@ export default function Editor() {
         </Dialog>
 
         {/* Fixed Bottom Bar - Add to Cart */}
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-50" data-testid="fixed-cart-bar">
+        <div className={`fixed bottom-0 left-0 right-0 border-t shadow-lg z-50 ${isDeal ? 'bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20' : 'bg-card'}`} data-testid="fixed-cart-bar">
           <div className="max-w-7xl mx-auto px-3 py-2">
-            {/* Bulk Discount Tiers Row */}
-            {product?.pricingTiers && product.pricingTiers.length > 0 && (
+            {/* Deal Badge */}
+            {isDeal && (
+              <div className="flex items-center justify-center gap-2 mb-2 pb-2 border-b border-orange-200 dark:border-orange-800">
+                <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">SPECIAL DEAL</span>
+                <span className="text-[10px] text-orange-600 dark:text-orange-400">Fixed quantity - cannot be changed</span>
+              </div>
+            )}
+            
+            {/* Bulk Discount Tiers Row - hidden for deals */}
+            {!isDeal && product?.pricingTiers && product.pricingTiers.length > 0 && (
               <div className="flex items-center justify-center gap-1 mb-2 pb-2 border-b border-border/50 overflow-x-auto">
                 <span className="text-[10px] text-green-600 dark:text-green-400 font-medium whitespace-nowrap mr-1">Bulk Savings:</span>
                 {product.pricingTiers.slice(0, 5).map((tier, idx) => {
@@ -2175,55 +2190,65 @@ export default function Editor() {
                   variant="outline"
                   size="icon"
                   onClick={() => setQuantity(Math.max(product?.minQuantity || 1, quantity - 25))}
-                  className="h-9 w-9 shrink-0"
+                  className={`h-9 w-9 shrink-0 ${isDeal ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={isDeal}
                   data-testid="button-fixed-qty-decrease"
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
-                <div className="flex flex-col items-center min-w-[60px]">
-                  <span className="text-lg font-bold" data-testid="text-fixed-quantity">{quantity}</span>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">qty</span>
+                <div className={`flex flex-col items-center min-w-[60px] ${isDeal ? 'bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded-lg' : ''}`}>
+                  <span className={`text-lg font-bold ${isDeal ? 'text-orange-700 dark:text-orange-300' : ''}`} data-testid="text-fixed-quantity">{quantity}</span>
+                  <span className={`text-[10px] uppercase tracking-wide ${isDeal ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`}>{isDeal ? 'fixed' : 'qty'}</span>
                 </div>
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setQuantity(quantity + 25)}
-                  className="h-9 w-9 shrink-0"
+                  className={`h-9 w-9 shrink-0 ${isDeal ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={isDeal}
                   data-testid="button-fixed-qty-increase"
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
 
-              {/* Quick Quantity Presets - hidden on very small screens */}
-              <div className="hidden sm:flex items-center gap-1">
-                {DEFAULT_QUANTITY_OPTIONS.slice(0, 4).map((qty) => (
-                  <button
-                    key={qty}
-                    onClick={() => setQuantity(qty)}
-                    className={`px-2 py-1 text-xs rounded-full transition-all ${
-                      quantity === qty
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted hover:bg-muted/80"
-                    }`}
-                    data-testid={`button-fixed-qty-${qty}`}
-                  >
-                    {qty}
-                  </button>
-                ))}
-              </div>
+              {/* Quick Quantity Presets - hidden on very small screens and for deals */}
+              {!isDeal && (
+                <div className="hidden sm:flex items-center gap-1">
+                  {DEFAULT_QUANTITY_OPTIONS.slice(0, 4).map((qty) => (
+                    <button
+                      key={qty}
+                      onClick={() => setQuantity(qty)}
+                      className={`px-2 py-1 text-xs rounded-full transition-all ${
+                        quantity === qty
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80"
+                      }`}
+                      data-testid={`button-fixed-qty-${qty}`}
+                    >
+                      {qty}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Price & Add to Cart */}
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <div className="text-lg font-bold" data-testid="text-fixed-price">
+                  <div className={`text-lg font-bold ${isDeal ? 'text-orange-600 dark:text-orange-400' : ''}`} data-testid="text-fixed-price">
                     {priceLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin inline" />
+                    ) : isDeal && fixedDealPrice ? (
+                      formatPrice(fixedDealPrice)
                     ) : (
                       formatPrice(calculatedPrice?.subtotal || 0)
                     )}
                   </div>
-                  {calculatedPrice && (
+                  {isDeal && fixedDealPrice ? (
+                    <div className="text-[10px] text-orange-600 dark:text-orange-400">
+                      {formatPrice(fixedDealPrice / quantity)}/ea
+                    </div>
+                  ) : calculatedPrice && (
                     <div className="text-[10px] text-muted-foreground">
                       {formatPrice(calculatedPrice.pricePerUnit + (calculatedPrice.optionsCost || 0))}/ea
                     </div>
@@ -2232,7 +2257,7 @@ export default function Editor() {
                 <Button
                   onClick={handleAddToCart}
                   disabled={addedToCart}
-                  className="shrink-0"
+                  className={`shrink-0 ${isDeal ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
                   data-testid="button-fixed-add-to-cart"
                 >
                   {addedToCart ? (

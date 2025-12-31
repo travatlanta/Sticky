@@ -102,8 +102,15 @@ export default function Deals() {
                 </Badge>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {deals.map((deal) => (
-                  <Link key={deal.id} href={deal.linkUrl || "/products"} data-testid={`deal-card-${deal.id}`}>
+                {deals.map((deal) => {
+                  // Build URL with deal parameters for fixed quantity
+                  const baseUrl = deal.linkUrl || "/products";
+                  const separator = baseUrl.includes('?') ? '&' : '?';
+                  const dealUrl = deal.quantity 
+                    ? `${baseUrl}${separator}dealId=${deal.id}&qty=${deal.quantity}&price=${deal.dealPrice}`
+                    : baseUrl;
+                  return (
+                  <Link key={deal.id} href={dealUrl} data-testid={`deal-card-${deal.id}`}>
                     <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer border border-orange-100 hover:border-orange-200">
                       <div className="relative aspect-square">
                         {deal.imageUrl ? (
@@ -162,13 +169,14 @@ export default function Deals() {
                             </span>
                           </div>
                           <Button className="bg-orange-500 hover:bg-orange-600">
-                            {deal.ctaText || "Shop Now"}
+                            {deal.ctaText || "Buy Now"}
                           </Button>
                         </div>
                       </div>
                     </div>
                   </Link>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

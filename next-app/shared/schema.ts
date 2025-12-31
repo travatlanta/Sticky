@@ -332,7 +332,7 @@ export const deals = pgTable("deals", {
   linkUrl: varchar("link_url", { length: 500 }), // Link when clicked
   badgeText: varchar("badge_text", { length: 50 }), // e.g., "HOT", "BEST VALUE"
   badgeColor: varchar("badge_color", { length: 50 }).default("yellow"), // yellow, green, red, purple
-  ctaText: varchar("cta_text", { length: 50 }).default("Shop Now"), // Call to action button text
+  ctaText: varchar("cta_text", { length: 50 }).default("Buy Now"), // Call to action button text
   displayOrder: integer("display_order").default(0),
   isActive: boolean("is_active").default(true),
   showOnHomepage: boolean("show_on_homepage").default(false), // Featured on home page

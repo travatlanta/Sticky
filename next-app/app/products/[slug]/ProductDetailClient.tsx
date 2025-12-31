@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -52,13 +52,22 @@ interface Product {
 
 export default function ProductDetail() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params?.slug as string;
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const isAuthenticated = sessionStatus === "authenticated";
   const { toast } = useToast();
 
-  const [quantity, setQuantity] = useState(100);
+  // Check if this is a deal with fixed quantity
+  const dealId = searchParams.get("dealId");
+  const dealQty = searchParams.get("qty");
+  const dealPrice = searchParams.get("price");
+  const isDeal = !!dealId && !!dealQty;
+  const fixedDealQuantity = isDeal ? parseInt(dealQty, 10) : null;
+  const fixedDealPrice = isDeal && dealPrice ? parseFloat(dealPrice) : null;
+
+  const [quantity, setQuantity] = useState(fixedDealQuantity || 100);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
   const [calculatedPrice, setCalculatedPrice] = useState<any>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -144,7 +153,13 @@ export default function ProductDetail() {
       }
       const design = await res.json();
       console.log('Design created:', design.id, 'navigating to editor');
-      router.push(`/editor/${design.id}?qty=${quantity}`);
+      // Pass deal parameters to editor if this is a deal
+      const editorParams = new URLSearchParams({ qty: String(quantity) });
+      if (isDeal && dealId && fixedDealPrice) {
+        editorParams.set('dealId', dealId);
+        editorParams.set('price', String(fixedDealPrice));
+      }
+      router.push(`/editor/${design.id}?${editorParams.toString()}`);
     } catch (error) {
       console.error('Error in handleStartDesign:', error);
       toast({
@@ -448,8 +463,8 @@ export default function ProductDetail() {
               </div>
             ))}
 
-            {/* Bulk Pricing Tiers - Clickable to set quantity */}
-            {product.pricingTiers && product.pricingTiers.length > 0 && (
+            {/* Bulk Pricing Tiers - Clickable to set quantity (hidden for deals) */}
+            {!isDeal && product.pricingTiers && product.pricingTiers.length > 0 && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
                 <h3 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
                   <Package className="h-4 w-4" />
@@ -484,12 +499,17 @@ export default function ProductDetail() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quantity
+                Quantity {isDeal && <span className="text-orange-600 text-xs ml-1">(Deal - Fixed)</span>}
               </label>
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setQuantity(Math.max(product.minQuantity || 1, quantity - 50))}
-                  className="w-10 h-10 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:border-gray-300"
+                  className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center ${
+                    isDeal 
+                      ? "border-gray-100 text-gray-300 cursor-not-allowed" 
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  disabled={isDeal}
                 >
                   <Minus className="h-4 w-4" />
                 </button>
@@ -499,30 +519,51 @@ export default function ProductDetail() {
                   onChange={(e) =>
                     setQuantity(Math.max(product.minQuantity || 1, parseInt(e.target.value) || 0))
                   }
-                  className="w-24 text-center text-lg font-medium border-2 border-gray-200 rounded-lg py-2"
+                  className={`w-24 text-center text-lg font-medium border-2 rounded-lg py-2 ${
+                    isDeal 
+                      ? "border-orange-200 bg-orange-50 text-orange-700" 
+                      : "border-gray-200"
+                  }`}
+                  disabled={isDeal}
+                  readOnly={isDeal}
                 />
                 <button
                   onClick={() => setQuantity(quantity + 50)}
-                  className="w-10 h-10 rounded-lg border-2 border-gray-200 flex items-center justify-center hover:border-gray-300"
+                  className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center ${
+                    isDeal 
+                      ? "border-gray-100 text-gray-300 cursor-not-allowed" 
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  disabled={isDeal}
                 >
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
+              {isDeal && (
+                <p className="text-xs text-orange-600 mt-1">This is a special deal with a fixed quantity.</p>
+              )}
             </div>
 
-            <div className="bg-gray-100 rounded-xl p-6">
+            <div className={`rounded-xl p-6 ${isDeal ? 'bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200' : 'bg-gray-100'}`}>
+              {isDeal && (
+                <div className="bg-orange-500 text-white text-center py-1 px-3 rounded-full text-xs font-bold mb-4 inline-block">
+                  SPECIAL DEAL
+                </div>
+              )}
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Price per unit</span>
                 <span className="font-medium">
-                  {calculatedPrice ? formatPrice(calculatedPrice.pricePerUnit) : "..."}
+                  {isDeal && fixedDealPrice 
+                    ? formatPrice(fixedDealPrice / quantity) 
+                    : (calculatedPrice ? formatPrice(calculatedPrice.pricePerUnit) : "...")}
                 </span>
               </div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Quantity</span>
-                <span className="font-medium">{quantity}</span>
+                <span className={`font-medium ${isDeal ? 'text-orange-700' : ''}`}>{quantity}</span>
               </div>
               
-              {calculatedPrice?.addOns && calculatedPrice.addOns.length > 0 && (
+              {!isDeal && calculatedPrice?.addOns && calculatedPrice.addOns.length > 0 && (
                 <div className="border-t border-gray-200 pt-2 mt-2 space-y-1">
                   {calculatedPrice.addOns.map((addOn: { type: string; name: string; pricePerUnit: number; totalCost: number }, index: number) => (
                     <div key={index} className="flex justify-between items-center text-sm">
@@ -540,8 +581,10 @@ export default function ProductDetail() {
               
               <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
                 <span className="text-xl font-bold">Total</span>
-                <span className="text-2xl font-bold text-primary-500">
-                  {calculatedPrice ? formatPrice(calculatedPrice.subtotal) : "..."}
+                <span className={`text-2xl font-bold ${isDeal ? 'text-orange-600' : 'text-primary-500'}`}>
+                  {isDeal && fixedDealPrice 
+                    ? formatPrice(fixedDealPrice) 
+                    : (calculatedPrice ? formatPrice(calculatedPrice.subtotal) : "...")}
                 </span>
               </div>
             </div>

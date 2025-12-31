@@ -3,9 +3,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Package, Layers, Tag, ArrowUpDown } from 'lucide-react';
+import { Package, Layers, Tag, ArrowUpDown, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -81,114 +81,145 @@ export default function ProductsClient() {
 
   if (productsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-yellow-50">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="mb-8 text-center md:text-left">
-          <div className="inline-flex items-center gap-2 bg-white border border-orange-200 rounded-full px-4 py-2 mb-4">
-            <Layers className="h-4 w-4 text-orange-500" />
-            <span className="text-sm font-medium text-gray-700">Premium Print Products</span>
-          </div>
-          <h1 className="font-display text-4xl md:text-5xl text-gray-900 mb-2">PRODUCTS</h1>
-          <p className="text-lg text-gray-600">Choose a product to customize</p>
+        <div className="mb-8">
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
+            Our Products
+          </h1>
+          <p className="text-muted-foreground">
+            Choose a product to start customizing
+          </p>
         </div>
 
-        {/* Category Filter */}
-        {categories && categories.length > 0 && (
-          <div className="mb-6 flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant={selectedCategory === null ? 'default' : 'outline'}
-              onClick={() => setSelectedCategory(null)}
-              className={selectedCategory === null 
-                ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white' 
-                : 'border-orange-200 hover:bg-orange-50'}
-              data-testid="filter-all"
-            >
-              All
-            </Button>
-            {categories.map((category) => {
-              const Icon = getCategoryIcon(category.name);
-              return (
-                <Button
-                  key={category.id}
-                  size="sm"
-                  variant={selectedCategory === category.id ? 'default' : 'outline'}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={selectedCategory === category.id 
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white' 
-                    : 'border-orange-200 hover:bg-orange-50'}
-                  data-testid={`filter-${category.slug}`}
-                >
-                  <Icon className="h-3 w-3 mr-1" />
-                  {category.name}
-                </Button>
-              );
-            })}
+        {/* Filters Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          {/* Category Filter */}
+          {categories && categories.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={selectedCategory === null ? 'default' : 'outline'}
+                onClick={() => setSelectedCategory(null)}
+                data-testid="filter-all"
+              >
+                All
+              </Button>
+              {categories.map((category) => {
+                const Icon = getCategoryIcon(category.name);
+                return (
+                  <Button
+                    key={category.id}
+                    size="sm"
+                    variant={selectedCategory === category.id ? 'default' : 'outline'}
+                    onClick={() => setSelectedCategory(category.id)}
+                    data-testid={`filter-${category.slug}`}
+                  >
+                    <Icon className="h-3 w-3 mr-1.5" />
+                    {category.name}
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+          
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {filteredProducts.length} products
+            </span>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+              <SelectTrigger className="w-[160px]" data-testid="sort-dropdown">
+                <ArrowUpDown className="h-3 w-3 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default</SelectItem>
+                <SelectItem value="price-low">Price: Low to High</SelectItem>
+                <SelectItem value="price-high">Price: High to Low</SelectItem>
+                <SelectItem value="name">Name: A to Z</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
-
-        {/* Product count and sort */}
-        <div className="flex items-center justify-between mb-6 gap-4">
-          <p className="text-sm text-gray-500">
-            {filteredProducts.length} products
-          </p>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-            <SelectTrigger className="w-[160px] border-orange-200" data-testid="sort-dropdown">
-              <ArrowUpDown className="h-3 w-3 mr-2 text-gray-400" />
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">Default</SelectItem>
-              <SelectItem value="price-low">Price: Low to High</SelectItem>
-              <SelectItem value="price-high">Price: High to Low</SelectItem>
-              <SelectItem value="name">Name: A to Z</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Product Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => {
             const ProductIcon = getProductIcon(product.name);
+            const price = parseFloat(product.basePrice);
+            
             return (
               <Link
                 key={product.id}
                 href={`/products/${product.slug}`}
-                className="bg-white border border-orange-100 rounded-lg overflow-hidden hover:shadow-lg hover:border-orange-200 transition-all group"
+                className="group block"
                 data-testid={`product-card-${product.id}`}
               >
-                <div className="aspect-square bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center">
-                  {product.thumbnailUrl ? (
-                    <img
-                      src={product.thumbnailUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <ProductIcon className="h-16 w-16 text-orange-400 group-hover:scale-110 transition-transform" />
-                  )}
-                </div>
-                <div className="p-4 bg-gradient-to-r from-orange-500 to-orange-600">
-                  <h3 className="font-semibold text-lg mb-1 text-white">{product.name}</h3>
-                  <p className="text-orange-100 font-medium">
-                    From ${parseFloat(product.basePrice).toFixed(2)}
-                  </p>
-                  {product.description && (
-                    <p className="text-sm text-orange-200 mt-2 line-clamp-2">{product.description}</p>
-                  )}
-                </div>
+                <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-border">
+                  {/* Image Container */}
+                  <div className="aspect-square relative bg-muted overflow-hidden">
+                    {product.thumbnailUrl ? (
+                      <img
+                        src={product.thumbnailUrl}
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                        <ProductIcon className="h-20 w-20 text-muted-foreground/40" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="p-4 space-y-2">
+                    <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                      {product.name}
+                    </h3>
+                    
+                    {product.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {product.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center justify-between pt-2">
+                      <div>
+                        <span className="text-xs text-muted-foreground">From</span>
+                        <p className="text-lg font-bold text-foreground">
+                          ${price.toFixed(2)}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        Customize
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
               </Link>
             );
           })}
         </div>
+
+        {/* Empty State */}
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-16">
+            <Package className="h-16 w-16 mx-auto text-muted-foreground/40 mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No products found</h3>
+            <p className="text-muted-foreground">
+              Try adjusting your filters or check back later.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

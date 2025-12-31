@@ -1,0 +1,70 @@
+page-667e77e2b24a2a17.js:1  POST https://stickybanditos.com/api/cart/add 500 (Internal Server Error)
+$ @ page-667e77e2b24a2a17.js:1
+aS @ fd9d1056-ef57f03bd44baba2.js:1
+aN @ fd9d1056-ef57f03bd44baba2.js:1
+(anonymous) @ fd9d1056-ef57f03bd44baba2.js:1
+sw @ fd9d1056-ef57f03bd44baba2.js:1
+sS @ fd9d1056-ef57f03bd44baba2.js:1
+(anonymous) @ fd9d1056-ef57f03bd44baba2.js:1
+oK @ fd9d1056-ef57f03bd44baba2.js:1
+iL @ fd9d1056-ef57f03bd44baba2.js:1
+sN @ fd9d1056-ef57f03bd44baba2.js:1
+uE @ fd9d1056-ef57f03bd44baba2.js:1
+uS @ fd9d1056-ef57f03bd44baba2.js:1
+8069-c54dfa3cfcf976ff.js:1 Add to cart error: Error: Failed to add to cart
+    at $ (page-667e77e2b24a2a17.js:1:4599)
+push.70945.window.console.error @ 8069-c54dfa3cfcf976ff.js:1
+$ @ page-667e77e2b24a2a17.js:1
+await in $
+aS @ fd9d1056-ef57f03bd44baba2.js:1
+aN @ fd9d1056-ef57f03bd44baba2.js:1
+(anonymous) @ fd9d1056-ef57f03bd44baba2.js:1
+sw @ fd9d1056-ef57f03bd44baba2.js:1
+sS @ fd9d1056-ef57f03bd44baba2.js:1
+(anonymous) @ fd9d1056-ef57f03bd44baba2.js:1
+oK @ fd9d1056-ef57f03bd44baba2.js:1
+iL @ fd9d1056-ef57f03bd44baba2.js:1
+sN @ fd9d1056-ef57f03bd44baba2.js:1
+uE @ fd9d1056-ef57f03bd44baba2.js:1
+uS @ fd9d1056-ef57f03bd44baba2.js:1
+8069-c54dfa3cfcf976ff.js:1 Error: Minified React error #300; visit https://reactjs.org/docs/error-decoder.html?invariant=300 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at rw (fd9d1056-ef57f03bd44baba2.js:1:40520)
+    at rk (fd9d1056-ef57f03bd44baba2.js:1:40404)
+    at lI (fd9d1056-ef57f03bd44baba2.js:1:59178)
+    at iB (fd9d1056-ef57f03bd44baba2.js:1:117277)
+    at o4 (fd9d1056-ef57f03bd44baba2.js:1:94633)
+    at fd9d1056-ef57f03bd44baba2.js:1:94455
+    at o3 (fd9d1056-ef57f03bd44baba2.js:1:94462)
+    at oQ (fd9d1056-ef57f03bd44baba2.js:1:91949)
+    at oj (fd9d1056-ef57f03bd44baba2.js:1:91374)
+    at MessagePort.M (8069-c54dfa3cfcf976ff.js:1:98699)
+push.70945.window.console.error @ 8069-c54dfa3cfcf976ff.js:1
+lE @ fd9d1056-ef57f03bd44baba2.js:1
+n.callback @ fd9d1056-ef57f03bd44baba2.js:1
+ng @ fd9d1056-ef57f03bd44baba2.js:1
+ny @ fd9d1056-ef57f03bd44baba2.js:1
+a$ @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+a2 @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+a2 @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+a2 @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+a2 @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+a2 @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+a2 @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+a2 @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+a2 @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+a2 @ fd9d1056-ef57f03bd44baba2.js:1
+aV @ fd9d1056-ef57f03bd44baba2.js:1
+(anonymous) @ fd9d1056-ef57f03bd44baba2.js:1
+o7 @ fd9d1056-ef57f03bd44baba2.js:1
+oH @ fd9d1056-ef57f03bd44baba2.js:1
+oj @ fd9d1056-ef57f03bd44baba2.js:1
+M @ 8069-c54dfa3cfcf976ff.js:1

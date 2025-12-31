@@ -527,27 +527,63 @@ export default function AdminOrders() {
                               <div className="flex flex-col gap-2">
                                 {item.design.highResExportUrl && (
                                   <>
+                                    {/* Check if file is a special format that can't be converted */}
+                                    {(() => {
+                                      const url = item.design.highResExportUrl || '';
+                                      const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                                      const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd'].includes(ext);
+                                      
+                                      if (isSpecialFormat) {
+                                        return (
+                                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-1">
+                                            <p className="text-xs text-amber-700 font-medium">
+                                              {ext.toUpperCase()} files can only be downloaded in their original format (no conversion available)
+                                            </p>
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                     <div className="flex items-center gap-2">
-                                      <Select
-                                        value={downloadFormats[item.id] || 'pdf'}
-                                        onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, [item.id]: value }))}
-                                      >
-                                        <SelectTrigger className="w-28" data-testid={`select-format-${item.id}`}>
-                                          <SelectValue placeholder="Format" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="pdf">PDF</SelectItem>
-                                          <SelectItem value="png">PNG</SelectItem>
-                                          <SelectItem value="tiff">TIFF</SelectItem>
-                                          <SelectItem value="jpg">JPG</SelectItem>
-                                        </SelectContent>
-                                      </Select>
+                                      {/* Only show format selection for convertible files */}
+                                      {(() => {
+                                        const url = item.design.highResExportUrl || '';
+                                        const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                                        const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
+                                        
+                                        if (isSpecialFormat) {
+                                          return null; // Hide format selector for special formats
+                                        }
+                                        
+                                        return (
+                                          <Select
+                                            value={downloadFormats[item.id] || 'pdf'}
+                                            onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, [item.id]: value }))}
+                                          >
+                                            <SelectTrigger className="w-28" data-testid={`select-format-${item.id}`}>
+                                              <SelectValue placeholder="Format" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="pdf">PDF</SelectItem>
+                                              <SelectItem value="png">PNG</SelectItem>
+                                              <SelectItem value="tiff">TIFF</SelectItem>
+                                              <SelectItem value="jpg">JPG</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        );
+                                      })()}
                                       <Button
-                                        onClick={() => handleDownload(
-                                          item.design.highResExportUrl,
-                                          item.id,
-                                          item.design.name || 'design'
-                                        )}
+                                        onClick={() => {
+                                          const url = item.design.highResExportUrl || '';
+                                          const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                                          const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
+                                          handleDownload(
+                                            item.design.highResExportUrl,
+                                            item.id,
+                                            item.design.name || 'design',
+                                            isSpecialFormat ? 'original' : undefined
+                                          );
+                                        }}
                                         disabled={downloading[item.id]}
                                         className="bg-orange-500 hover:bg-orange-600"
                                         data-testid={`button-download-${item.id}`}
@@ -557,10 +593,23 @@ export default function AdminOrders() {
                                         ) : (
                                           <Download className="h-4 w-4 mr-2" />
                                         )}
-                                        Download
+                                        {(() => {
+                                          const url = item.design.highResExportUrl || '';
+                                          const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                                          const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
+                                          return isSpecialFormat ? `Download ${ext.toUpperCase()}` : 'Download';
+                                        })()}
                                       </Button>
                                     </div>
-                                    <p className="text-xs text-gray-500">PNG/TIFF preserve transparency</p>
+                                    {(() => {
+                                      const url = item.design.highResExportUrl || '';
+                                      const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                                      const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
+                                      if (!isSpecialFormat) {
+                                        return <p className="text-xs text-gray-500">PNG/TIFF preserve transparency</p>;
+                                      }
+                                      return null;
+                                    })()}
                                   </>
                                 )}
                                 {item.design.customShapeUrl && (

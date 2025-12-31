@@ -57,8 +57,8 @@ export default function ContactPage() {
               <h3 className="font-semibold mb-1">Mailing Address</h3>
               <address className="text-gray-700 not-italic">
                 Sticky Banditos LLC<br />
-                1607 W Friess Dr<br />
-                Phoenix, AZ
+                2 North 35th Ave<br />
+                Phoenix, AZ 85009
               </address>
             </div>
           </div>

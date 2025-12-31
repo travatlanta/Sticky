@@ -110,8 +110,8 @@ export default function TermsPage() {
           </p>
           <address className="text-gray-700 not-italic mt-4">
             <strong>Sticky Banditos LLC</strong><br />
-            1607 W Friess Dr<br />
-            Phoenix, AZ<br />
+            2 North 35th Ave<br />
+            Phoenix, AZ 85009
           </address>
         </section>
       </div>

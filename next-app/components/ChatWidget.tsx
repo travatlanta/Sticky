@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, X, Send, Bot, User, LogIn } from "lucide-react";
@@ -18,11 +19,17 @@ interface Message {
 
 export default function ChatWidget() {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
+
+  // Don't show chat widget on admin pages
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],

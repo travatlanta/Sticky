@@ -39,8 +39,8 @@ export default function Footer() {
               <div className="flex items-start gap-2.5 text-sm text-gray-400">
                 <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-orange-500" />
                 <span className="leading-relaxed">
-                  1607 W Friess Dr<br />
-                  Phoenix, AZ
+                  2 North 35th Ave<br />
+                  Phoenix, AZ 85009
                 </span>
               </div>
               

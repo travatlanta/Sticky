@@ -533,7 +533,7 @@ export default function SEOClient() {
                 <Input
                   value={siteForm.businessAddress}
                   onChange={(e) => setSiteForm({ ...siteForm, businessAddress: e.target.value })}
-                  placeholder="e.g., 1607 W Friess Dr, Phoenix, AZ"
+                  placeholder="e.g., 2 North 35th Ave, Phoenix, AZ 85009"
                   data-testid="input-business-address"
                 />
               </div>

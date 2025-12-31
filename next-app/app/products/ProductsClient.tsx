@@ -176,13 +176,13 @@ export default function ProductsClient() {
                     <ProductIcon className="h-16 w-16 text-orange-400 group-hover:scale-110 transition-transform" />
                   )}
                 </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-lg mb-1 text-gray-900">{product.name}</h3>
-                  <p className="text-orange-600 font-medium">
+                <div className="p-4 bg-gradient-to-r from-orange-500 to-orange-600">
+                  <h3 className="font-semibold text-lg mb-1 text-white">{product.name}</h3>
+                  <p className="text-orange-100 font-medium">
                     From ${parseFloat(product.basePrice).toFixed(2)}
                   </p>
                   {product.description && (
-                    <p className="text-sm text-gray-500 mt-2 line-clamp-2">{product.description}</p>
+                    <p className="text-sm text-orange-200 mt-2 line-clamp-2">{product.description}</p>
                   )}
                 </div>
               </Link>

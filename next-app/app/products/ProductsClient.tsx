@@ -22,6 +22,9 @@ interface Product {
   thumbnailUrl: string | null;
   basePrice: string;
   categoryId: number;
+  isDealProduct?: boolean;
+  fixedPrice?: string | null;
+  fixedQuantity?: number | null;
 }
 
 interface Category {
@@ -57,27 +60,44 @@ export default function ProductsClient() {
     queryKey: ['/api/categories'],
   });
 
-  const filteredProducts = useMemo(() => {
-    if (!products) return [];
+  // Separate regular products from deal products
+  const { regularProducts, dealProducts } = useMemo(() => {
+    if (!products) return { regularProducts: [], dealProducts: [] };
+    
+    // First filter by category
     let filtered = selectedCategory === null 
       ? [...products] 
       : products.filter((product) => product.categoryId === selectedCategory);
     
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => parseFloat(a.basePrice) - parseFloat(b.basePrice));
-        break;
-      case 'price-high':
-        filtered.sort((a, b) => parseFloat(b.basePrice) - parseFloat(a.basePrice));
-        break;
-      case 'name':
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      default:
-        break;
-    }
-    return filtered;
+    // Separate deals from regular products
+    const deals = filtered.filter(p => p.isDealProduct === true);
+    const regular = filtered.filter(p => !p.isDealProduct);
+    
+    // Apply sorting function
+    const sortProducts = (arr: Product[]) => {
+      switch (sortBy) {
+        case 'price-low':
+          arr.sort((a, b) => parseFloat(a.basePrice) - parseFloat(b.basePrice));
+          break;
+        case 'price-high':
+          arr.sort((a, b) => parseFloat(b.basePrice) - parseFloat(a.basePrice));
+          break;
+        case 'name':
+          arr.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+        default:
+          break;
+      }
+      return arr;
+    };
+    
+    return {
+      regularProducts: sortProducts(regular),
+      dealProducts: sortProducts(deals)
+    };
   }, [products, selectedCategory, sortBy]);
+  
+  const filteredProducts = [...regularProducts, ...dealProducts];
 
   if (productsLoading) {
     return (
@@ -151,64 +171,134 @@ export default function ProductsClient() {
           </div>
         </div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => {
-            const ProductIcon = getProductIcon(product.name);
-            const price = parseFloat(product.basePrice);
-            
-            return (
-              <Link
-                key={product.id}
-                href={`/products/${product.slug}`}
-                className="group block"
-                data-testid={`product-card-${product.id}`}
-              >
-                <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-border">
-                  {/* Image Container */}
-                  <div className="aspect-square relative bg-muted overflow-hidden">
-                    {product.thumbnailUrl ? (
-                      <img
-                        src={product.thumbnailUrl}
-                        alt={product.name}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-                        <ProductIcon className="h-20 w-20 text-muted-foreground/40" />
+        {/* Regular Products Section */}
+        {regularProducts.length > 0 && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {regularProducts.map((product) => {
+                const ProductIcon = getProductIcon(product.name);
+                const price = parseFloat(product.basePrice);
+                
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/products/${product.slug}`}
+                    className="group block"
+                    data-testid={`product-card-${product.id}`}
+                  >
+                    <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-border">
+                      <div className="aspect-square relative bg-muted overflow-hidden">
+                        {product.thumbnailUrl ? (
+                          <img
+                            src={product.thumbnailUrl}
+                            alt={product.name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                            <ProductIcon className="h-20 w-20 text-muted-foreground/40" />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="p-4 space-y-2">
-                    <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                      {product.name}
-                    </h3>
-                    
-                    {product.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {product.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center justify-between pt-2">
-                      <div>
-                        <span className="text-xs text-muted-foreground">From</span>
-                        <p className="text-lg font-bold text-foreground">
-                          ${price.toFixed(2)}
-                        </p>
+                      <div className="p-4 space-y-2">
+                        <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                          {product.name}
+                        </h3>
+                        {product.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {product.description}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between pt-2">
+                          <div>
+                            <span className="text-xs text-muted-foreground">From</span>
+                            <p className="text-lg font-bold text-foreground">
+                              ${price.toFixed(2)}
+                            </p>
+                          </div>
+                          <Button size="sm" variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            Customize
+                          </Button>
+                        </div>
                       </div>
-                      <Button size="sm" variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        Customize
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Hot Deals Section */}
+        {dealProducts.length > 0 && (
+          <div className="mt-12">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                <Star className="h-5 w-5 fill-current" />
+                <span className="font-bold text-lg">Hot Deals</span>
+              </div>
+              <div className="flex-1 h-px bg-gradient-to-r from-orange-200 to-transparent"></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {dealProducts.map((product) => {
+                const ProductIcon = getProductIcon(product.name);
+                const price = product.fixedPrice ? parseFloat(product.fixedPrice) : parseFloat(product.basePrice);
+                
+                return (
+                  <Link
+                    key={product.id}
+                    href={`/products/${product.slug}`}
+                    className="group block"
+                    data-testid={`deal-card-${product.id}`}
+                  >
+                    <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50">
+                      <div className="aspect-square relative bg-muted overflow-hidden">
+                        {product.thumbnailUrl ? (
+                          <img
+                            src={product.thumbnailUrl}
+                            alt={product.name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-yellow-100">
+                            <ProductIcon className="h-20 w-20 text-orange-400" />
+                          </div>
+                        )}
+                        {/* Deal Badge */}
+                        <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow">
+                          DEAL
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-2">
+                        <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-orange-600 transition-colors">
+                          {product.name}
+                        </h3>
+                        {product.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {product.description}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between pt-2">
+                          <div>
+                            <span className="text-xs text-muted-foreground">
+                              {product.fixedQuantity ? `${product.fixedQuantity} pcs for` : 'From'}
+                            </span>
+                            <p className="text-lg font-bold text-orange-600">
+                              ${price.toFixed(2)}
+                            </p>
+                          </div>
+                          <Button size="sm" variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity bg-orange-100 text-orange-700 hover:bg-orange-200">
+                            Customize
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Empty State */}
         {filteredProducts.length === 0 && (

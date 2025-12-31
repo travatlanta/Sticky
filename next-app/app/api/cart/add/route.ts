@@ -143,10 +143,17 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error adding to cart:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
     return NextResponse.json({ 
       message: 'Failed to add to cart',
       error: errorMessage,
-      hasDbUrl: !!process.env.DATABASE_URL
+      stack: errorStack,
+      env: {
+        hasDbUrl: !!process.env.DATABASE_URL,
+        dbUrlStart: process.env.DATABASE_URL?.substring(0, 30) + '...',
+        isVercel: process.env.VERCEL === '1',
+        nodeEnv: process.env.NODE_ENV
+      }
     }, { status: 500 });
   }
 }

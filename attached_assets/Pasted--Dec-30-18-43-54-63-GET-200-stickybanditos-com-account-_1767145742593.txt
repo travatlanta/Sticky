@@ -1,0 +1,495 @@
+
+Dec 30 18:43:54.63
+GET
+200
+stickybanditos.com
+/account
+Dec 30 18:43:54.48
+GET
+200
+stickybanditos.com
+/cart
+Dec 30 18:43:54.32
+GET
+200
+stickybanditos.com
+/orders
+Dec 30 18:43:50.59
+POST
+500
+stickybanditos.com
+/api/cart/add
+4
+Error adding to cart: NeonDbError: column "cut_type" of relation "cart_items" does not exist at execute (/var/task/next-app/.next/server/chunks/8515.js:11:7842) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) at async p.execute (/var/task/next-app/.next/server/chunks/8515.js:28:3583) at async q (/var/task/next-app/.next/server/app/api/cart/add/route.js:1:3170) at async /var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:42484 at async eI.execute (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:32486) at async eI.handle (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:43737) at async Y (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:16:24556) at async Q.responseCache.get.routeKind (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:1025) at async r3.renderToResponseWithComponentsImpl (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:507) { severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '146', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_target.c', line: '1065', routine: 'checkInsertTargets', sourceError: undefined }
+Dec 30 18:43:48.54
+POST
+200
+stickybanditos.com
+/api/products/2x2%20stickers/calculate-price
+Dec 30 18:43:48.54
+POST
+200
+stickybanditos.com
+/api/products/2x2%20stickers/calculate-price
+Dec 30 18:43:48.24
+GET
+200
+stickybanditos.com
+/shipping
+Dec 30 18:43:48.24
+GET
+200
+stickybanditos.com
+/terms
+Dec 30 18:43:48.24
+GET
+200
+stickybanditos.com
+/products
+Dec 30 18:43:48.24
+GET
+200
+stickybanditos.com
+/privacy
+Dec 30 18:43:48.24
+GET
+200
+stickybanditos.com
+/api/products/2x2%20stickers
+Dec 30 18:43:47.91
+GET
+200
+stickybanditos.com
+/products/2x2%20stickers
+Dec 30 18:43:43.51
+GET
+200
+stickybanditos.com
+/register
+Dec 30 18:43:43.51
+GET
+200
+stickybanditos.com
+/faq
+Dec 30 18:43:43.50
+GET
+200
+stickybanditos.com
+/contact
+Dec 30 18:43:43.29
+GET
+200
+stickybanditos.com
+/products
+Dec 30 18:43:43.27
+GET
+200
+stickybanditos.com
+/products/TEST
+Dec 30 18:43:43.27
+GET
+200
+stickybanditos.com
+/products/4x4%20stickers
+Dec 30 18:43:43.27
+GET
+200
+stickybanditos.com
+/products/3x3%20stickers
+Dec 30 18:43:43.26
+GET
+200
+stickybanditos.com
+/products/2x2%20stickers
+Dec 30 18:43:43.26
+GET
+200
+stickybanditos.com
+/api/categories
+Dec 30 18:43:42.86
+GET
+200
+stickybanditos.com
+/products
+Dec 30 18:43:41.85
+GET
+200
+stickybanditos.com
+/orders
+Dec 30 18:43:41.85
+GET
+200
+stickybanditos.com
+/admin
+Dec 30 18:43:41.85
+GET
+200
+stickybanditos.com
+/api/cart
+4
+Error fetching cart: NeonDbError: column cart_items.cut_type does not exist at execute (/var/task/next-app/.next/server/chunks/8515.js:11:7842) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) at async p.execute (/var/task/next-app/.next/server/chunks/8515.js:28:3583) at async x (/var/task/next-app/.next/server/app/api/cart/route.js:1:3168) at async /var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:42484 at async eI.execute (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:32486) at async eI.handle (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:43737) at async Y (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:16:24556) at async Q.responseCache.get.routeKind (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:1025) at async r3.renderToResponseWithComponentsImpl (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:507) { severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '167', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3716', routine: 'errorMissingColumn', sourceError: undefined }
+Dec 30 18:43:41.85
+GET
+200
+stickybanditos.com
+/account
+Dec 30 18:43:41.75
+GET
+200
+stickybanditos.com
+/api/products
+Dec 30 18:43:41.51
+GET
+200
+stickybanditos.com
+/products
+Dec 30 18:43:41.51
+GET
+304
+stickybanditos.com
+/cart
+Dec 30 18:43:41.51
+GET
+200
+stickybanditos.com
+/login
+Dec 30 18:43:41.51
+GET
+---
+stickybanditos.com
+/api/products
+Dec 30 18:43:41.51
+GET
+200
+stickybanditos.com
+/
+Dec 30 18:43:41.51
+GET
+---
+stickybanditos.com
+/deals
+Dec 30 18:43:41.51
+GET
+200
+stickybanditos.com
+/api/deals/homepage
+Dec 30 18:43:41.51
+GET
+200
+stickybanditos.com
+/api/settings/homepage
+Dec 30 18:43:41.51
+GET
+200
+stickybanditos.com
+/api/auth/session
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:41.51
+GET
+200
+stickybanditos.com
+/api/settings/theme
+Dec 30 18:43:40.96
+GET
+200
+stickybanditos.com
+/
+Dec 30 18:43:26.52
+GET
+200
+stickybanditos.com
+/admin
+Dec 30 18:43:25.42
+GET
+200
+stickybanditos.com
+/api/products
+Dec 30 18:43:24.95
+GET
+200
+stickybanditos.com
+/orders
+Dec 30 18:43:24.95
+GET
+200
+stickybanditos.com
+/admin
+Dec 30 18:43:24.94
+GET
+200
+stickybanditos.com
+/api/cart
+4
+Error fetching cart: NeonDbError: column cart_items.cut_type does not exist at execute (/var/task/next-app/.next/server/chunks/8515.js:11:7842) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) at async p.execute (/var/task/next-app/.next/server/chunks/8515.js:28:3583) at async x (/var/task/next-app/.next/server/app/api/cart/route.js:1:3168) at async /var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:42484 at async eI.execute (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:32486) at async eI.handle (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:43737) at async Y (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:16:24556) at async Q.responseCache.get.routeKind (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:1025) at async r3.renderToResponseWithComponentsImpl (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:507) { severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '167', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3716', routine: 'errorMissingColumn', sourceError: undefined }
+Dec 30 18:43:24.94
+GET
+200
+stickybanditos.com
+/account
+Dec 30 18:43:24.70
+GET
+200
+stickybanditos.com
+/cart
+Dec 30 18:43:24.70
+GET
+200
+stickybanditos.com
+/login
+Dec 30 18:43:24.70
+GET
+200
+stickybanditos.com
+/products
+Dec 30 18:43:24.70
+GET
+200
+stickybanditos.com
+/deals
+Dec 30 18:43:24.68
+GET
+200
+stickybanditos.com
+/api/settings/homepage
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:24.68
+GET
+200
+stickybanditos.com
+/api/products
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:24.68
+GET
+200
+stickybanditos.com
+/api/auth/session
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:24.68
+GET
+200
+stickybanditos.com
+/api/deals/homepage
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:24.68
+GET
+200
+stickybanditos.com
+/api/settings/theme
+Dec 30 18:43:24.03
+GET
+200
+stickybanditos.com
+/
+Dec 30 18:43:14.48
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/
+Dec 30 18:43:13.17
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/login
+Dec 30 18:43:13.17
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/products
+Dec 30 18:43:13.17
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/
+Dec 30 18:43:13.17
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/deals
+Dec 30 18:43:13.17
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/settings/homepage
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:13.16
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/products
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:13.16
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/auth/session
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:13.16
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/deals/homepage
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:13.16
+GET
+---
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/settings/theme
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:13.12
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/deals
+Dec 30 18:43:13.12
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/
+Dec 30 18:43:13.11
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/cart
+Dec 30 18:43:13.11
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/products
+Dec 30 18:43:13.11
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/login
+Dec 30 18:43:13.11
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/settings/homepage
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:13.11
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/deals/homepage
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:13.11
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/auth/session
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:13.11
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/settings/theme
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:13.11
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/api/products
+2
+The `fetchConnectionCache` option is deprecated (now always `true`)
+Dec 30 18:43:12.61
+GET
+---
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/
+Dec 30 18:43:12.51
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/
+Dec 30 18:43:11.88
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/
+Dec 30 18:43:11.87
+GET
+200
+sticky-dh181yxe3-travmcmichael-5435s-projects.vercel.app
+/
+Dec 30 18:41:59.95
+GET
+200
+stickybanditos.com
+/api/cart
+4
+Error fetching cart: NeonDbError: column cart_items.cut_type does not exist at execute (/var/task/next-app/.next/server/chunks/8515.js:11:7842) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) at async p.execute (/var/task/next-app/.next/server/chunks/8515.js:28:3583) at async x (/var/task/next-app/.next/server/app/api/cart/route.js:1:3168) at async /var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:42484 at async eI.execute (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:32486) at async eI.handle (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:43737) at async Y (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:16:24556) at async Q.responseCache.get.routeKind (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:1025) at async r3.renderToResponseWithComponentsImpl (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:507) { severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '167', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3716', routine: 'errorMissingColumn', sourceError: undefined }
+Dec 30 18:41:29.57
+GET
+200
+stickybanditos.com
+/api/cart
+4
+Error fetching cart: NeonDbError: column cart_items.cut_type does not exist at execute (/var/task/next-app/.next/server/chunks/8515.js:11:7842) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) at async p.execute (/var/task/next-app/.next/server/chunks/8515.js:28:3583) at async x (/var/task/next-app/.next/server/app/api/cart/route.js:1:3168) at async /var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:42484 at async eI.execute (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:32486) at async eI.handle (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:43737) at async Y (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:16:24556) at async Q.responseCache.get.routeKind (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:1025) at async r3.renderToResponseWithComponentsImpl (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:507) { severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '167', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3716', routine: 'errorMissingColumn', sourceError: undefined }
+Dec 30 18:40:59.32
+GET
+200
+stickybanditos.com
+/api/cart
+4
+Error fetching cart: NeonDbError: column cart_items.cut_type does not exist at execute (/var/task/next-app/.next/server/chunks/8515.js:11:7842) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) at async p.execute (/var/task/next-app/.next/server/chunks/8515.js:28:3583) at async x (/var/task/next-app/.next/server/app/api/cart/route.js:1:3168) at async /var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:42484 at async eI.execute (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:32486) at async eI.handle (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:43737) at async Y (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:16:24556) at async Q.responseCache.get.routeKind (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:1025) at async r3.renderToResponseWithComponentsImpl (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:507) { severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '167', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3716', routine: 'errorMissingColumn', sourceError: undefined }
+Dec 30 18:40:29.11
+GET
+200
+stickybanditos.com
+/api/cart
+4
+Error fetching cart: NeonDbError: column cart_items.cut_type does not exist at execute (/var/task/next-app/.next/server/chunks/8515.js:11:7842) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) at async p.execute (/var/task/next-app/.next/server/chunks/8515.js:28:3583) at async x (/var/task/next-app/.next/server/app/api/cart/route.js:1:3168) at async /var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:42484 at async eI.execute (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:32486) at async eI.handle (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:43737) at async Y (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:16:24556) at async Q.responseCache.get.routeKind (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:1025) at async r3.renderToResponseWithComponentsImpl (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:507) { severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '167', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3716', routine: 'errorMissingColumn', sourceError: undefined }
+Dec 30 18:40:24.88
+GET
+200
+stickybanditos.com
+/
+Dec 30 18:40:21.58
+GET
+200
+stickybanditos.com
+/
+Dec 30 18:40:20.23
+GET
+200
+stickybanditos.com
+/
+Dec 30 18:40:10.17
+GET
+200
+stickybanditos.com
+/contact
+Dec 30 18:40:05.43
+GET
+304
+stickybanditos.com
+/contact
+Dec 30 18:40:05.34
+GET
+304
+stickybanditos.com
+/faq
+Dec 30 18:40:04.74
+GET
+200
+stickybanditos.com
+/deals
+Dec 30 18:40:04.43
+GET
+200
+stickybanditos.com
+/produ

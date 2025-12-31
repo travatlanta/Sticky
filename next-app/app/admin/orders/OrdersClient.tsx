@@ -525,11 +525,11 @@ export default function AdminOrders() {
                               
                               {/* Download with Format Selection */}
                               <div className="flex flex-col gap-2">
-                                {item.design.highResExportUrl && (
+                                {(item.design.highResExportUrl || item.design.previewUrl) && (
                                   <>
                                     {/* Check if file is a special format that can't be converted */}
                                     {(() => {
-                                      const url = item.design.highResExportUrl || '';
+                                      const url = item.design.highResExportUrl || item.design.previewUrl || '';
                                       const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
                                       const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd'].includes(ext);
                                       
@@ -547,7 +547,7 @@ export default function AdminOrders() {
                                     <div className="flex items-center gap-2">
                                       {/* Only show format selection for convertible files */}
                                       {(() => {
-                                        const url = item.design.highResExportUrl || '';
+                                        const url = item.design.highResExportUrl || item.design.previewUrl || '';
                                         const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
                                         const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
                                         
@@ -574,11 +574,11 @@ export default function AdminOrders() {
                                       })()}
                                       <Button
                                         onClick={() => {
-                                          const url = item.design.highResExportUrl || '';
+                                          const url = item.design.highResExportUrl || item.design.previewUrl || '';
                                           const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
                                           const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
                                           handleDownload(
-                                            item.design.highResExportUrl,
+                                            url,
                                             item.id,
                                             item.design.name || 'design',
                                             isSpecialFormat ? 'original' : undefined
@@ -594,7 +594,7 @@ export default function AdminOrders() {
                                           <Download className="h-4 w-4 mr-2" />
                                         )}
                                         {(() => {
-                                          const url = item.design.highResExportUrl || '';
+                                          const url = item.design.highResExportUrl || item.design.previewUrl || '';
                                           const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
                                           const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
                                           return isSpecialFormat ? `Download ${ext.toUpperCase()}` : 'Download';
@@ -602,7 +602,7 @@ export default function AdminOrders() {
                                       </Button>
                                     </div>
                                     {(() => {
-                                      const url = item.design.highResExportUrl || '';
+                                      const url = item.design.highResExportUrl || item.design.previewUrl || '';
                                       const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
                                       const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
                                       if (!isSpecialFormat) {

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { carts, cartItems } from '@shared/schema';
+import { carts, cartItems, products } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
@@ -107,11 +107,40 @@ export async function POST(request: Request) {
     const cart = await getOrCreateCart(sessionId, userId);
     console.log('[Cart Add] Using cart ID:', cart.id, '| Cart userId:', cart.userId, '| Cart sessionId:', cart.sessionId);
 
-    // Ensure unitPrice is always a valid string (default to '0' for free products)
-    let unitPrice = '0';
-    if (body.unitPrice !== undefined && body.unitPrice !== null && body.unitPrice !== '') {
-      const parsed = parseFloat(String(body.unitPrice));
-      unitPrice = isNaN(parsed) ? '0' : parsed.toString();
+    // DEAL PRODUCT ENFORCEMENT: Look up product to check if it's a deal product
+    let effectiveQuantity = body.quantity || 1;
+    let effectiveUnitPrice = '0';
+    
+    if (body.productId) {
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, body.productId));
+      
+      if (product?.isDealProduct) {
+        // For deal products, force the fixed quantity and price
+        if (product.fixedQuantity) {
+          effectiveQuantity = product.fixedQuantity;
+        }
+        if (product.fixedPrice) {
+          // Store unit price as the fixed price divided by quantity
+          const fixedPrice = parseFloat(product.fixedPrice);
+          effectiveUnitPrice = (fixedPrice / effectiveQuantity).toString();
+        }
+        console.log('[Cart Add] Deal product detected, enforcing fixed quantity:', effectiveQuantity, 'and price:', effectiveUnitPrice);
+      } else {
+        // Not a deal product, use provided values
+        if (body.unitPrice !== undefined && body.unitPrice !== null && body.unitPrice !== '') {
+          const parsed = parseFloat(String(body.unitPrice));
+          effectiveUnitPrice = isNaN(parsed) ? '0' : parsed.toString();
+        }
+      }
+    } else {
+      // No productId, use provided unit price
+      if (body.unitPrice !== undefined && body.unitPrice !== null && body.unitPrice !== '') {
+        const parsed = parseFloat(String(body.unitPrice));
+        effectiveUnitPrice = isNaN(parsed) ? '0' : parsed.toString();
+      }
     }
 
     // Insert new cart item
@@ -121,9 +150,9 @@ export async function POST(request: Request) {
         cartId: cart.id,
         productId: body.productId,
         designId: body.designId || null,
-        quantity: body.quantity || 1,
+        quantity: effectiveQuantity,
         selectedOptions: body.selectedOptions || null,
-        unitPrice: unitPrice,
+        unitPrice: effectiveUnitPrice,
         mediaType: body.mediaType || null,
         finishType: body.finishType || null,
         cutType: body.cutType || null,

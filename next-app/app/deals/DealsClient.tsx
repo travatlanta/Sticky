@@ -103,12 +103,8 @@ export default function Deals() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {deals.map((deal) => {
-                  // Build URL with deal parameters for fixed quantity
-                  const baseUrl = deal.linkUrl || "/products";
-                  const separator = baseUrl.includes('?') ? '&' : '?';
-                  const dealUrl = deal.quantity 
-                    ? `${baseUrl}${separator}dealId=${deal.id}&qty=${deal.quantity}&price=${deal.dealPrice}`
-                    : baseUrl;
+                  // Deal product URL is set by API when deal is created with sourceProductId
+                  const dealUrl = deal.linkUrl || "/products";
                   return (
                   <Link key={deal.id} href={dealUrl} data-testid={`deal-card-${deal.id}`}>
                     <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer border border-orange-100 hover:border-orange-200">

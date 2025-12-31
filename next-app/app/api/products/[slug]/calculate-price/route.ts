@@ -27,6 +27,30 @@ export async function POST(
     }
 
     const productId = product.id;
+    
+    // DEAL PRODUCT ENFORCEMENT: If this is a deal product, use fixed quantity and price
+    const isDealProduct = product.isDealProduct ?? false;
+    const fixedQuantity = product.fixedQuantity;
+    const fixedPrice = product.fixedPrice ? parseFloat(product.fixedPrice) : null;
+    
+    // For deal products, override quantity with fixed quantity
+    const effectiveQuantity = isDealProduct && fixedQuantity ? fixedQuantity : quantity;
+    
+    // For deal products with fixed price, return fixed pricing immediately
+    if (isDealProduct && fixedPrice !== null) {
+      const pricePerUnit = fixedPrice / effectiveQuantity;
+      return NextResponse.json({
+        pricePerUnit,
+        optionsCost: 0,
+        quantity: effectiveQuantity,
+        subtotal: fixedPrice,
+        baseSubtotal: fixedPrice,
+        addOns: [],
+        isDealProduct: true,
+        fixedQuantity: effectiveQuantity,
+        fixedPrice,
+      });
+    }
 
     // Get pricing tiers
     const tiers = await db
@@ -44,7 +68,7 @@ export async function POST(
     // Find applicable pricing tier
     let pricePerUnit = parseFloat(product.basePrice);
     for (const tier of tiers) {
-      if (quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity)) {
+      if (effectiveQuantity >= tier.minQuantity && (!tier.maxQuantity || effectiveQuantity <= tier.maxQuantity)) {
         pricePerUnit = parseFloat(tier.pricePerUnit);
         break;
       }
@@ -65,23 +89,26 @@ export async function POST(
               type: option.optionType,
               name: option.name,
               pricePerUnit: modifier,
-              totalCost: modifier * quantity,
+              totalCost: modifier * effectiveQuantity,
             });
           }
         }
       }
     }
 
-    const subtotal = (pricePerUnit + optionsCost) * quantity;
-    const baseSubtotal = pricePerUnit * quantity;
+    const subtotal = (pricePerUnit + optionsCost) * effectiveQuantity;
+    const baseSubtotal = pricePerUnit * effectiveQuantity;
 
     return NextResponse.json({
       pricePerUnit,
       optionsCost,
-      quantity,
+      quantity: effectiveQuantity,
       subtotal,
       baseSubtotal,
       addOns,
+      isDealProduct,
+      fixedQuantity: isDealProduct ? effectiveQuantity : null,
+      fixedPrice: isDealProduct ? fixedPrice : null,
     });
   } catch (error) {
     console.error('Error calculating price:', error);

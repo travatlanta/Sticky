@@ -7,6 +7,8 @@ import { eq, inArray, and } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+const BATCH_SIZE = 50; // Process in batches to avoid timeouts
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -30,22 +32,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'No valid design IDs provided' }, { status: 400 });
     }
 
-    let result: any[];
+    console.log(`Bulk deleting ${ids.length} designs for user ${userId} (isAdmin: ${isAdmin})`);
 
-    if (isAdmin) {
-      result = await db.delete(designs).where(inArray(designs.id, ids)).returning();
-    } else {
-      result = await db.delete(designs).where(
-        and(
-          inArray(designs.id, ids),
-          eq(designs.userId, userId)
-        )
-      ).returning();
+    let totalDeleted = 0;
+
+    // Process in batches to avoid database timeouts
+    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+      const batch = ids.slice(i, i + BATCH_SIZE);
+      
+      try {
+        let result: any[];
+
+        if (isAdmin) {
+          result = await db.delete(designs).where(inArray(designs.id, batch)).returning({ id: designs.id });
+        } else {
+          result = await db.delete(designs).where(
+            and(
+              inArray(designs.id, batch),
+              eq(designs.userId, userId)
+            )
+          ).returning({ id: designs.id });
+        }
+
+        totalDeleted += result.length;
+        console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: deleted ${result.length} designs`);
+      } catch (batchError) {
+        console.error(`Error in batch starting at index ${i}:`, batchError);
+        // Continue with next batch even if one fails
+      }
     }
 
-    const deletedCount = result.length;
-
-    if (deletedCount === 0) {
+    if (totalDeleted === 0) {
       return NextResponse.json({ 
         success: false, 
         message: 'No designs were deleted. They may not exist or you may not have permission.',
@@ -53,23 +70,25 @@ export async function POST(request: Request) {
       }, { status: 404 });
     }
 
-    if (deletedCount < ids.length) {
+    if (totalDeleted < ids.length) {
       return NextResponse.json({ 
         success: true, 
-        message: `Partially deleted: ${deletedCount} of ${ids.length} design(s). Some may not exist or you may not have permission.`,
-        deletedCount,
+        message: `Partially deleted: ${totalDeleted} of ${ids.length} design(s). Some may not exist or you may not have permission.`,
+        deletedCount: totalDeleted,
         requestedCount: ids.length
       });
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: `Successfully deleted ${deletedCount} design(s)`,
-      deletedCount 
+      message: `Successfully deleted ${totalDeleted} design(s)`,
+      deletedCount: totalDeleted 
     });
   } catch (error) {
     console.error('Error bulk deleting designs:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('Stack trace:', errorStack);
     return NextResponse.json({ 
       message: 'Failed to delete designs',
       error: errorMessage 

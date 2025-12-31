@@ -36,10 +36,8 @@ type CartItem = {
   selectedOptions?: any;
   mediaType?: string | null;
   finishType?: string | null;
-  cutType?: string | null;
   materialOptions?: ProductOption[];
   coatingOptions?: ProductOption[];
-  cutOptions?: ProductOption[];
   product: {
     id: number;
     name: string;
@@ -220,7 +218,7 @@ export default function CartClient() {
   });
 
   const updateItemMutation = useMutation({
-    mutationFn: async ({ itemId, mediaType, finishType, cutType }: { itemId: number; mediaType?: string; finishType?: string; cutType?: string }) => {
+    mutationFn: async ({ itemId, mediaType, finishType }: { itemId: number; mediaType?: string; finishType?: string }) => {
       const cartSessionId = getCartSessionId();
       const res = await fetch(`/api/cart/items/${itemId}`, {
         method: "PATCH",
@@ -229,7 +227,7 @@ export default function CartClient() {
           "X-Cart-Session-Id": cartSessionId,
         },
         credentials: "include",
-        body: JSON.stringify({ mediaType, finishType, cutType }),
+        body: JSON.stringify({ mediaType, finishType }),
       });
       if (!res.ok) throw new Error("Failed to update item");
       return res.json();
@@ -257,11 +255,9 @@ export default function CartClient() {
   const itemsNeedingSelections = items.filter(item => {
     const hasMaterialOptions = item.materialOptions && item.materialOptions.length > 0;
     const hasCoatingOptions = item.coatingOptions && item.coatingOptions.length > 0;
-    const hasCutOptions = item.cutOptions && item.cutOptions.length > 0;
     const needsMaterial = hasMaterialOptions && !item.mediaType;
     const needsCoating = hasCoatingOptions && !item.finishType;
-    const needsCut = hasCutOptions && !item.cutType;
-    return needsMaterial || needsCoating || needsCut;
+    return needsMaterial || needsCoating;
   });
   const hasItemsNeedingSelections = itemsNeedingSelections.length > 0;
 
@@ -300,7 +296,6 @@ export default function CartClient() {
     const basePrice = item.unitPrice ? Number(item.unitPrice) : 0;
     let materialModifier = 0;
     let coatingModifier = 0;
-    let cutModifier = 0;
     
     if (item.mediaType && item.materialOptions) {
       const selectedMaterial = item.materialOptions.find(opt => opt.name === item.mediaType);
@@ -316,14 +311,7 @@ export default function CartClient() {
       }
     }
     
-    if (item.cutType && item.cutOptions) {
-      const selectedCut = item.cutOptions.find(opt => opt.name === item.cutType);
-      if (selectedCut?.priceModifier) {
-        cutModifier = parseFloat(selectedCut.priceModifier) || 0;
-      }
-    }
-    
-    return basePrice + materialModifier + coatingModifier + cutModifier;
+    return basePrice + materialModifier + coatingModifier;
   };
 
   // Prefer server-provided totals. If missing, compute safely.
@@ -492,12 +480,11 @@ export default function CartClient() {
                       </div>
                     )}
 
-                    {/* Material, Coating & Cut Selection */}
+                    {/* Material & Coating Selection */}
                     {((item.materialOptions && item.materialOptions.length > 0) || 
-                      (item.coatingOptions && item.coatingOptions.length > 0) ||
-                      (item.cutOptions && item.cutOptions.length > 0)) && (
+                      (item.coatingOptions && item.coatingOptions.length > 0)) && (
                       <div className={`rounded-xl p-4 border ${
-                        (!item.mediaType || !item.finishType || !item.cutType) 
+                        (!item.mediaType || !item.finishType) 
                           ? "bg-amber-50 border-amber-200" 
                           : "bg-gray-50 border-gray-200"
                       }`}>
@@ -529,8 +516,7 @@ export default function CartClient() {
                                             onClick={() => updateItemMutation.mutate({ 
                                               itemId: item.id, 
                                               mediaType: opt.name, 
-                                              finishType: item.finishType || undefined,
-                                              cutType: item.cutType || undefined
+                                              finishType: item.finishType || undefined
                                             })}
                                             disabled={updateItemMutation.isPending}
                                             data-testid={`select-material-${opt.id}-${item.id}`}
@@ -579,8 +565,7 @@ export default function CartClient() {
                                             onClick={() => updateItemMutation.mutate({ 
                                               itemId: item.id, 
                                               mediaType: item.mediaType || undefined, 
-                                              finishType: opt.name,
-                                              cutType: item.cutType || undefined
+                                              finishType: opt.name
                                             })}
                                             disabled={updateItemMutation.isPending}
                                             data-testid={`select-coating-${opt.id}-${item.id}`}
@@ -603,55 +588,6 @@ export default function CartClient() {
                               </div>
                             )}
 
-                            {/* Cut Options */}
-                            {item.cutOptions && item.cutOptions.length > 0 && (
-                              <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                  {!item.cutType && (
-                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                                  )}
-                                  <p className="text-sm font-medium text-gray-700">
-                                    Cut Options {!item.cutType && <span className="text-red-500">*</span>}
-                                  </p>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {item.cutOptions.map((opt) => {
-                                    const priceModNum = parseFloat(opt.priceModifier || "0");
-                                    const isSelected = item.cutType === opt.name;
-                                    const description = OPTION_DESCRIPTIONS[opt.name] || opt.description || opt.value || "";
-                                    return (
-                                      <Tooltip key={opt.id}>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            size="sm"
-                                            variant={isSelected ? "default" : "outline"}
-                                            className={isSelected ? "bg-orange-500 hover:bg-orange-600" : ""}
-                                            onClick={() => updateItemMutation.mutate({ 
-                                              itemId: item.id, 
-                                              mediaType: item.mediaType || undefined, 
-                                              finishType: item.finishType || undefined,
-                                              cutType: opt.name
-                                            })}
-                                            disabled={updateItemMutation.isPending}
-                                            data-testid={`select-cut-${opt.id}-${item.id}`}
-                                          >
-                                            {opt.name}
-                                            {priceModNum > 0 && (
-                                              <span className="ml-1 text-xs opacity-75">(+${priceModNum.toFixed(2)})</span>
-                                            )}
-                                          </Button>
-                                        </TooltipTrigger>
-                                        {description && (
-                                          <TooltipContent side="top" className="max-w-xs">
-                                            <p className="text-sm">{description}</p>
-                                          </TooltipContent>
-                                        )}
-                                      </Tooltip>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </TooltipProvider>
                       </div>

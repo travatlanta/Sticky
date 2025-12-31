@@ -115,7 +115,6 @@ export async function GET(request: Request) {
         selectedOptions: cartItems.selectedOptions,
         mediaType: cartItems.mediaType,
         finishType: cartItems.finishType,
-        cutType: cartItems.cutType,
         product: products,
         design: designs,
       })
@@ -225,7 +224,6 @@ export async function GET(request: Request) {
         quantity,
         materialOptions: options?.material || [],
         coatingOptions: options?.coating || [],
-        cutOptions: options?.cut || [],
       };
     });
 
@@ -236,7 +234,6 @@ export async function GET(request: Request) {
       // Find price modifiers for selected options
       let materialModifier = 0;
       let coatingModifier = 0;
-      let cutModifier = 0;
       
       if (item.mediaType && item.materialOptions) {
         const selectedMaterial = item.materialOptions.find((opt: any) => opt.name === item.mediaType);
@@ -252,14 +249,7 @@ export async function GET(request: Request) {
         }
       }
       
-      if (item.cutType && item.cutOptions) {
-        const selectedCut = item.cutOptions.find((opt: any) => opt.name === item.cutType);
-        if (selectedCut?.priceModifier) {
-          cutModifier = parseFloat(selectedCut.priceModifier) || 0;
-        }
-      }
-      
-      const totalPricePerUnit = basePrice + materialModifier + coatingModifier + cutModifier;
+      const totalPricePerUnit = basePrice + materialModifier + coatingModifier;
       return sum + (totalPricePerUnit * item.quantity);
     }, 0);
 

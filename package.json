@@ -9,6 +9,7 @@
     "start": "NODE_ENV=production node dist/index.js"
   },
   "dependencies": {
+    "@google-analytics/data": "^5.2.1",
     "@hookform/resolvers": "^5.2.2",
     "@neondatabase/serverless": "^0.10.4",
     "@radix-ui/react-dialog": "^1.1.2",

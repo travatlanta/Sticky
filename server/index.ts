@@ -20,10 +20,10 @@ const cartProxy = createProxyMiddleware({
   logLevel: "silent",
 });
 
-// Route /api/cart paths to Next.js BEFORE body parsers
+// Route /api/cart and /api/settings paths to Next.js BEFORE body parsers
 // Use router to preserve the full URL path
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api/cart')) {
+  if (req.path.startsWith('/api/cart') || req.path.startsWith('/api/settings') || req.path.startsWith('/api/admin/settings')) {
     return cartProxy(req, res, next);
   }
   next();

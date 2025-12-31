@@ -12,7 +12,6 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     
-    // Use specific columns to avoid cutType column issue in production
     const [item] = await db
       .update(cartItems)
       .set({
@@ -21,18 +20,7 @@ export async function PUT(
         unitPrice: body.unitPrice,
       })
       .where(eq(cartItems.id, parseInt(id)))
-      .returning({
-        id: cartItems.id,
-        cartId: cartItems.cartId,
-        productId: cartItems.productId,
-        designId: cartItems.designId,
-        quantity: cartItems.quantity,
-        selectedOptions: cartItems.selectedOptions,
-        unitPrice: cartItems.unitPrice,
-        mediaType: cartItems.mediaType,
-        finishType: cartItems.finishType,
-        createdAt: cartItems.createdAt,
-      });
+      .returning();
 
     return NextResponse.json(item);
   } catch (error) {
@@ -50,7 +38,6 @@ export async function PATCH(
     const body = await request.json();
     
     // Build update object with only provided fields
-    // Note: cutType temporarily disabled until production DB is updated
     const updateData: Record<string, any> = {};
     if (body.designId !== undefined) updateData.designId = body.designId;
     if (body.quantity !== undefined) updateData.quantity = body.quantity;
@@ -58,24 +45,13 @@ export async function PATCH(
     if (body.unitPrice !== undefined) updateData.unitPrice = body.unitPrice;
     if (body.mediaType !== undefined) updateData.mediaType = body.mediaType;
     if (body.finishType !== undefined) updateData.finishType = body.finishType;
+    if (body.cutType !== undefined) updateData.cutType = body.cutType;
 
-    // Use specific columns to avoid cutType column issue in production
     const [item] = await db
       .update(cartItems)
       .set(updateData)
       .where(eq(cartItems.id, parseInt(id)))
-      .returning({
-        id: cartItems.id,
-        cartId: cartItems.cartId,
-        productId: cartItems.productId,
-        designId: cartItems.designId,
-        quantity: cartItems.quantity,
-        selectedOptions: cartItems.selectedOptions,
-        unitPrice: cartItems.unitPrice,
-        mediaType: cartItems.mediaType,
-        finishType: cartItems.finishType,
-        createdAt: cartItems.createdAt,
-      });
+      .returning();
 
     return NextResponse.json(item);
   } catch (error) {

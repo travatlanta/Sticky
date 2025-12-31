@@ -371,24 +371,18 @@ export default function OrderDetail() {
                   Have questions about your order? Our support team is here to help.
                 </p>
                 <div className="flex flex-col gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    data-testid="button-contact-support"
-                    onClick={() => window.location.href = 'tel:602-554-5338'}
-                  >
-                    <Phone className="h-4 w-4 mr-2" />
-                    Call (602) 554-5338
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full text-muted-foreground" 
-                    data-testid="button-email-support"
-                    onClick={() => window.location.href = 'mailto:mhobbs.stickybanditos@gmail.com'}
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Email Support
-                  </Button>
+                  <a href="tel:602-554-5338" data-testid="button-contact-support">
+                    <Button variant="outline" className="w-full">
+                      <Phone className="h-4 w-4 mr-2" />
+                      Call (602) 554-5338
+                    </Button>
+                  </a>
+                  <a href="mailto:mhobbs.stickybanditos@gmail.com" data-testid="button-email-support">
+                    <Button variant="ghost" className="w-full text-muted-foreground">
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email Support
+                    </Button>
+                  </a>
                 </div>
               </CardContent>
             </Card>

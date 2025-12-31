@@ -486,7 +486,7 @@ export default function AdminDeals() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Source Product (for duplication) *</label>
+                    <label className="block text-sm font-medium mb-1">Source Product *</label>
                     <select
                       value={formData.sourceProductId}
                       onChange={(e) => setFormData({ ...formData, sourceProductId: e.target.value })}
@@ -494,14 +494,14 @@ export default function AdminDeals() {
                       data-testid="select-deal-product"
                       required
                     >
-                      <option value="">Select a product to duplicate...</option>
+                      <option value="">Select a product...</option>
                       {products?.filter(p => !(p as any).isDealProduct).map((product) => (
                         <option key={product.id} value={product.id.toString()}>
                           {product.name}
                         </option>
                       ))}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">This product will be duplicated with fixed quantity and price for the deal</p>
+                    <p className="text-xs text-gray-500 mt-1">Select the base product for this deal</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Badge Text</label>

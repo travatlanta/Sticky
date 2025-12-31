@@ -32,48 +32,176 @@ export async function GET() {
       },
     });
 
-    const [response] = await analyticsDataClient.runReport({
-      property: `properties/${propertyId}`,
-      dateRanges: [
-        {
-          startDate: "30daysAgo",
-          endDate: "today",
-        },
-      ],
-      metrics: [
-        { name: "activeUsers" },
-        { name: "screenPageViews" },
-        { name: "averageSessionDuration" },
-        { name: "bounceRate" },
-        { name: "sessions" },
-        { name: "newUsers" },
-      ],
-    });
+    const propertyPath = `properties/${propertyId}`;
 
-    const row = response.rows?.[0];
-    const metricValues = row?.metricValues || [];
+    // Run all reports in parallel for efficiency
+    const [
+      overviewResponse,
+      dailyTrendResponse,
+      trafficSourcesResponse,
+      topPagesResponse,
+      devicesResponse,
+      countriesResponse,
+      userTypeResponse,
+    ] = await Promise.all([
+      // 1. Overview metrics
+      analyticsDataClient.runReport({
+        property: propertyPath,
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        metrics: [
+          { name: "activeUsers" },
+          { name: "screenPageViews" },
+          { name: "averageSessionDuration" },
+          { name: "bounceRate" },
+          { name: "sessions" },
+          { name: "newUsers" },
+          { name: "totalUsers" },
+          { name: "engagedSessions" },
+        ],
+      }),
 
-    const data = {
-      activeUsers: parseInt(metricValues[0]?.value || "0"),
-      pageViews: parseInt(metricValues[1]?.value || "0"),
-      avgSessionDuration: parseFloat(metricValues[2]?.value || "0"),
-      bounceRate: parseFloat(metricValues[3]?.value || "0"),
-      sessions: parseInt(metricValues[4]?.value || "0"),
-      newUsers: parseInt(metricValues[5]?.value || "0"),
+      // 2. Daily visitor trend (last 30 days)
+      analyticsDataClient.runReport({
+        property: propertyPath,
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dimensions: [{ name: "date" }],
+        metrics: [
+          { name: "activeUsers" },
+          { name: "screenPageViews" },
+          { name: "sessions" },
+        ],
+        orderBys: [{ dimension: { dimensionName: "date" } }],
+      }),
+
+      // 3. Traffic sources
+      analyticsDataClient.runReport({
+        property: propertyPath,
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dimensions: [{ name: "sessionDefaultChannelGroup" }],
+        metrics: [{ name: "sessions" }, { name: "activeUsers" }],
+        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+        limit: 10,
+      }),
+
+      // 4. Top pages
+      analyticsDataClient.runReport({
+        property: propertyPath,
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dimensions: [{ name: "pagePath" }],
+        metrics: [
+          { name: "screenPageViews" },
+          { name: "averageSessionDuration" },
+        ],
+        orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+        limit: 10,
+      }),
+
+      // 5. Devices
+      analyticsDataClient.runReport({
+        property: propertyPath,
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dimensions: [{ name: "deviceCategory" }],
+        metrics: [{ name: "activeUsers" }, { name: "sessions" }],
+        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+      }),
+
+      // 6. Countries
+      analyticsDataClient.runReport({
+        property: propertyPath,
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dimensions: [{ name: "country" }],
+        metrics: [{ name: "activeUsers" }, { name: "sessions" }],
+        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+        limit: 10,
+      }),
+
+      // 7. New vs Returning users
+      analyticsDataClient.runReport({
+        property: propertyPath,
+        dateRanges: [{ startDate: "30daysAgo", endDate: "today" }],
+        dimensions: [{ name: "newVsReturning" }],
+        metrics: [{ name: "activeUsers" }],
+      }),
+    ]);
+
+    // Parse overview metrics
+    const overviewRow = overviewResponse[0].rows?.[0];
+    const overviewMetrics = overviewRow?.metricValues || [];
+    const overview = {
+      activeUsers: parseInt(overviewMetrics[0]?.value || "0"),
+      pageViews: parseInt(overviewMetrics[1]?.value || "0"),
+      avgSessionDuration: formatDuration(parseFloat(overviewMetrics[2]?.value || "0")),
+      bounceRate: parseFloat(overviewMetrics[3]?.value || "0").toFixed(1) + "%",
+      sessions: parseInt(overviewMetrics[4]?.value || "0"),
+      newUsers: parseInt(overviewMetrics[5]?.value || "0"),
+      totalUsers: parseInt(overviewMetrics[6]?.value || "0"),
+      engagedSessions: parseInt(overviewMetrics[7]?.value || "0"),
     };
 
-    const formattedDuration = formatDuration(data.avgSessionDuration);
-    const formattedBounceRate = data.bounceRate.toFixed(1) + "%";
+    // Parse daily trend
+    const dailyTrend = (dailyTrendResponse[0].rows || []).map(row => ({
+      date: formatDate(row.dimensionValues?.[0]?.value || ""),
+      visitors: parseInt(row.metricValues?.[0]?.value || "0"),
+      pageViews: parseInt(row.metricValues?.[1]?.value || "0"),
+      sessions: parseInt(row.metricValues?.[2]?.value || "0"),
+    }));
+
+    // Parse traffic sources
+    const trafficSources = (trafficSourcesResponse[0].rows || []).map(row => ({
+      source: row.dimensionValues?.[0]?.value || "Unknown",
+      sessions: parseInt(row.metricValues?.[0]?.value || "0"),
+      users: parseInt(row.metricValues?.[1]?.value || "0"),
+    }));
+
+    // Parse top pages
+    const topPages = (topPagesResponse[0].rows || []).map(row => ({
+      page: row.dimensionValues?.[0]?.value || "/",
+      views: parseInt(row.metricValues?.[0]?.value || "0"),
+      avgDuration: formatDuration(parseFloat(row.metricValues?.[1]?.value || "0")),
+    }));
+
+    // Parse devices
+    const devices = (devicesResponse[0].rows || []).map(row => ({
+      device: capitalizeFirst(row.dimensionValues?.[0]?.value || "unknown"),
+      users: parseInt(row.metricValues?.[0]?.value || "0"),
+      sessions: parseInt(row.metricValues?.[1]?.value || "0"),
+    }));
+
+    // Parse countries
+    const countries = (countriesResponse[0].rows || []).map(row => ({
+      country: row.dimensionValues?.[0]?.value || "Unknown",
+      users: parseInt(row.metricValues?.[0]?.value || "0"),
+      sessions: parseInt(row.metricValues?.[1]?.value || "0"),
+    }));
+
+    // Parse user types
+    const userTypes = (userTypeResponse[0].rows || []).map(row => ({
+      type: row.dimensionValues?.[0]?.value === "new" ? "New Visitors" : "Returning Visitors",
+      users: parseInt(row.metricValues?.[0]?.value || "0"),
+    }));
 
     return NextResponse.json({
       success: true,
       data: {
-        totalVisitors: data.activeUsers,
-        pageViews: data.pageViews,
-        avgSessionDuration: formattedDuration,
-        bounceRate: formattedBounceRate,
-        sessions: data.sessions,
-        newUsers: data.newUsers,
+        overview: {
+          totalVisitors: overview.activeUsers,
+          pageViews: overview.pageViews,
+          avgSessionDuration: overview.avgSessionDuration,
+          bounceRate: overview.bounceRate,
+          sessions: overview.sessions,
+          newUsers: overview.newUsers,
+          totalUsers: overview.totalUsers,
+          engagedSessions: overview.engagedSessions,
+          engagementRate: overview.sessions > 0 
+            ? ((overview.engagedSessions / overview.sessions) * 100).toFixed(1) + "%"
+            : "0%",
+        },
+        dailyTrend,
+        trafficSources,
+        topPages,
+        devices,
+        countries,
+        userTypes,
         period: "Last 30 days",
       },
     });
@@ -118,4 +246,17 @@ function formatDuration(seconds: number): string {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return `${hours}h ${remainingMinutes}m`;
+}
+
+function formatDate(dateStr: string): string {
+  // Convert YYYYMMDD to readable format
+  if (dateStr.length !== 8) return dateStr;
+  const year = dateStr.substring(0, 4);
+  const month = dateStr.substring(4, 6);
+  const day = dateStr.substring(6, 8);
+  return `${month}/${day}`;
+}
+
+function capitalizeFirst(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }

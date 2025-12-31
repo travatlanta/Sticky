@@ -407,18 +407,6 @@ export default function HomeClient() {
             </div>
           </div>
 
-          <div className="text-center flex flex-wrap justify-center gap-4">
-            <Link href="/products?category=labels">
-              <Button size="lg" className="bg-gradient-to-r from-orange-500 to-red-500">
-                {settings.labels.primaryButtonText} <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/products?category=bottle-labels">
-              <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10">
-                {settings.labels.secondaryButtonText} <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
         </div>
       </section>
 

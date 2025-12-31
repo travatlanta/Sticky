@@ -493,12 +493,12 @@ export default function AdminOrders() {
                                 <div 
                                   className="relative cursor-pointer group"
                                   onClick={() => setPreviewImage({
-                                    url: item.design.highResExportUrl || item.design.previewUrl,
+                                    url: `/api/admin/design-download?url=${encodeURIComponent(item.design.highResExportUrl || item.design.previewUrl)}&format=preview`,
                                     name: item.design.name || 'Design Preview'
                                   })}
                                 >
                                   <img 
-                                    src={item.design.previewUrl || item.design.highResExportUrl} 
+                                    src={`/api/admin/design-download?url=${encodeURIComponent(item.design.previewUrl || item.design.highResExportUrl)}&format=preview`}
                                     alt="Design preview" 
                                     className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
                                   />

@@ -45,6 +45,27 @@ export async function GET(req: Request) {
 
     const imageBuffer = Buffer.from(await response.arrayBuffer());
 
+    // Preview mode - return resized PNG for inline display (not download)
+    if (format === 'preview') {
+      if (isPdfSource) {
+        // Can't preview PDFs, return a placeholder response
+        return NextResponse.json({ error: 'Cannot preview PDF files' }, { status: 400 });
+      }
+      
+      const image = sharp(imageBuffer);
+      const previewBuffer = await image
+        .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
+        .png({ compressionLevel: 6 })
+        .toBuffer();
+      
+      return new NextResponse(new Uint8Array(previewBuffer), {
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+    }
+
     if (format === 'original' || (isPdfSource && format === 'pdf')) {
       const ext = isPdfSource ? 'pdf' : sourceExtension || 'png';
       const mimeType = isPdfSource ? 'application/pdf' : contentType || 'application/octet-stream';

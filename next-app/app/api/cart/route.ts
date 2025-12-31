@@ -107,7 +107,6 @@ export async function GET(request: Request) {
     const cart = await getOrCreateCart(sessionId, userId);
     console.log('[Cart GET] Using cart ID:', cart.id, '| Cart userId:', cart.userId, '| Cart sessionId:', cart.sessionId);
 
-    // Note: cutType disabled until production DB is updated
     const rawItems = await db
       .select({
         id: cartItems.id,
@@ -116,6 +115,7 @@ export async function GET(request: Request) {
         selectedOptions: cartItems.selectedOptions,
         mediaType: cartItems.mediaType,
         finishType: cartItems.finishType,
+        cutType: cartItems.cutType,
         product: products,
         design: designs,
       })
@@ -232,14 +232,14 @@ export async function GET(request: Request) {
       };
     });
 
-    // Calculate subtotal from items (including material/coating price modifiers)
-    // Note: cutModifier disabled until production DB is updated
+    // Calculate subtotal from items (including material/coating/cut price modifiers)
     const subtotal = items.reduce((sum, item) => {
       const basePrice = parseFloat(item.unitPrice) || 0;
       
       // Find price modifiers for selected options
       let materialModifier = 0;
       let coatingModifier = 0;
+      let cutModifier = 0;
       
       if (item.mediaType && item.materialOptions) {
         const selectedMaterial = item.materialOptions.find((opt: any) => opt.name === item.mediaType);
@@ -255,7 +255,14 @@ export async function GET(request: Request) {
         }
       }
       
-      const totalPricePerUnit = basePrice + materialModifier + coatingModifier;
+      if (item.cutType && item.cutOptions) {
+        const selectedCut = item.cutOptions.find((opt: any) => opt.name === item.cutType);
+        if (selectedCut?.priceModifier) {
+          cutModifier = parseFloat(selectedCut.priceModifier) || 0;
+        }
+      }
+      
+      const totalPricePerUnit = basePrice + materialModifier + coatingModifier + cutModifier;
       return sum + (totalPricePerUnit * item.quantity);
     }, 0);
 

@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       unitPrice = isNaN(parsed) ? '0' : parsed.toString();
     }
 
-    // Insert new cart item (cutType disabled until production DB is updated)
+    // Insert new cart item
     const [item] = await db
       .insert(cartItems)
       .values({
@@ -126,19 +126,9 @@ export async function POST(request: Request) {
         unitPrice: unitPrice,
         mediaType: body.mediaType || null,
         finishType: body.finishType || null,
+        cutType: body.cutType || null,
       })
-      .returning({
-        id: cartItems.id,
-        cartId: cartItems.cartId,
-        productId: cartItems.productId,
-        designId: cartItems.designId,
-        quantity: cartItems.quantity,
-        selectedOptions: cartItems.selectedOptions,
-        unitPrice: cartItems.unitPrice,
-        mediaType: cartItems.mediaType,
-        finishType: cartItems.finishType,
-        createdAt: cartItems.createdAt,
-      });
+      .returning();
 
     // Return response with explicit Set-Cookie header
     const response = NextResponse.json({ ...item, sessionId });

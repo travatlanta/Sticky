@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { HomepageSettings, ThemeSettings } from "@/lib/homepage-settings";
 import { defaultHomepageSettings, defaultThemeSettings } from "@/lib/homepage-settings";
+import SectionPreview from "@/components/admin/SectionPreview";
 
 export default function CustomizeClient() {
   const { toast } = useToast();
@@ -340,6 +341,8 @@ export default function CustomizeClient() {
                     </div>
                   </>
                 )}
+
+                <SectionPreview section="hero" settings={currentSettings} heroView={heroView} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -389,6 +392,8 @@ export default function CustomizeClient() {
                     </div>
                   ))}
                 </div>
+
+                <SectionPreview section="features" settings={currentSettings} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -527,6 +532,8 @@ export default function CustomizeClient() {
                   </div>
                 </CardContent>
               </Card>
+
+              <SectionPreview section="stickers" settings={currentSettings} />
             </div>
           </TabsContent>
 
@@ -623,6 +630,8 @@ export default function CustomizeClient() {
                     />
                   </div>
                 </div>
+
+                <SectionPreview section="labels" settings={currentSettings} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -709,6 +718,8 @@ export default function CustomizeClient() {
                     </div>
                   ))}
                 </div>
+
+                <SectionPreview section="popular" settings={currentSettings} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -749,6 +760,8 @@ export default function CustomizeClient() {
                     placeholder="Start Designing"
                   />
                 </div>
+
+                <SectionPreview section="cta" settings={currentSettings} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -837,11 +850,10 @@ export default function CustomizeClient() {
                   </Button>
                 </div>
 
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Note:</strong> Color scheme changes are saved separately from content changes. 
-                    Theme customization is a work-in-progress feature - currently it stores your preferences 
-                    but full site-wide application is coming soon.
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Tip:</strong> Color changes are saved separately from content changes. 
+                    After saving, refresh the page to see your new colors applied across the site.
                   </p>
                 </div>
               </CardContent>

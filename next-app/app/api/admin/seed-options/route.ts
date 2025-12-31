@@ -18,6 +18,11 @@ const standardCoatings = [
   { name: "Both", value: "both", priceModifier: "0.10", isDefault: false, displayOrder: 4 },
 ];
 
+const standardCuts = [
+  { name: "Standard", value: "Kiss cut - stickers are cut through the vinyl but not the backing paper. Easy to peel.", priceModifier: "0.00", isDefault: true, displayOrder: 1 },
+  { name: "Die Cut", value: "Stickers are cut completely through both vinyl and backing to your exact shape.", priceModifier: "0.00", isDefault: false, displayOrder: 2 },
+];
+
 export async function POST(request: Request) {
   try {
     const allProducts = await db.select().from(products);
@@ -38,6 +43,9 @@ export async function POST(request: Request) {
       const existingCoatingIds = existingOptions
         .filter(o => o.optionType === 'coating')
         .map(o => o.id);
+      const existingCutIds = existingOptions
+        .filter(o => o.optionType === 'cut')
+        .map(o => o.id);
 
       // Delete old material options
       for (const id of existingMaterialIds) {
@@ -45,6 +53,10 @@ export async function POST(request: Request) {
       }
       // Delete old coating options
       for (const id of existingCoatingIds) {
+        await db.delete(productOptions).where(eq(productOptions.id, id));
+      }
+      // Delete old cut options
+      for (const id of existingCutIds) {
         await db.delete(productOptions).where(eq(productOptions.id, id));
       }
 
@@ -72,6 +84,20 @@ export async function POST(request: Request) {
           priceModifier: coat.priceModifier,
           isDefault: coat.isDefault,
           displayOrder: coat.displayOrder + 10,
+          isActive: true,
+        });
+      }
+
+      // Add new standard cut options
+      for (const cut of standardCuts) {
+        await db.insert(productOptions).values({
+          productId: product.id,
+          optionType: 'cut',
+          name: cut.name,
+          value: cut.value,
+          priceModifier: cut.priceModifier,
+          isDefault: cut.isDefault,
+          displayOrder: cut.displayOrder + 20,
           isActive: true,
         });
       }
@@ -137,7 +163,8 @@ export async function GET() {
       totalProducts: allProducts.length,
       productsWithMaterial: 0,
       productsWithCoating: 0,
-      productsWithBoth: 0,
+      productsWithCut: 0,
+      productsWithAll: 0,
       productsMissingOptions: [] as string[],
     };
 
@@ -145,11 +172,13 @@ export async function GET() {
       const productOpts = allOptions.filter(o => o.productId === product.id);
       const hasMaterial = productOpts.some(o => o.optionType === 'material');
       const hasCoating = productOpts.some(o => o.optionType === 'coating');
+      const hasCut = productOpts.some(o => o.optionType === 'cut');
 
       if (hasMaterial) stats.productsWithMaterial++;
       if (hasCoating) stats.productsWithCoating++;
-      if (hasMaterial && hasCoating) stats.productsWithBoth++;
-      if (!hasMaterial || !hasCoating) {
+      if (hasCut) stats.productsWithCut++;
+      if (hasMaterial && hasCoating && hasCut) stats.productsWithAll++;
+      if (!hasMaterial || !hasCoating || !hasCut) {
         stats.productsMissingOptions.push(product.name);
       }
     }

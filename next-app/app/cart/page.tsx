@@ -10,8 +10,14 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, ShoppingBag, ArrowRight, Sticker, Upload, AlertTriangle, Loader2 } from "lucide-react";
+import { Trash2, ShoppingBag, ArrowRight, Sticker, Upload, AlertTriangle, Loader2, Info } from "lucide-react";
 import { getCartSessionId } from "@/lib/cartSession";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ProductOption = {
   id: number;
@@ -20,6 +26,7 @@ type ProductOption = {
   priceModifier?: string | null;
   isDefault?: boolean;
   displayOrder?: number;
+  description?: string | null;
 };
 
 type CartItem = {
@@ -29,8 +36,10 @@ type CartItem = {
   selectedOptions?: any;
   mediaType?: string | null;
   finishType?: string | null;
+  cutType?: string | null;
   materialOptions?: ProductOption[];
   coatingOptions?: ProductOption[];
+  cutOptions?: ProductOption[];
   product: {
     id: number;
     name: string;
@@ -44,6 +53,18 @@ type CartItem = {
     name?: string | null;
     previewUrl?: string | null;
   } | null;
+};
+
+const OPTION_DESCRIPTIONS: Record<string, string> = {
+  Vinyl: "Durable, waterproof material perfect for outdoor use. Standard choice for most stickers.",
+  Foil: "Shiny metallic finish that catches the light. Great for premium branding.",
+  Holographic: "Rainbow-shifting effect that creates a unique, eye-catching look.",
+  None: "No spot gloss finish - flat, matte appearance.",
+  Varnish: "Clear, shiny coating applied to specific areas for subtle highlights.",
+  Emboss: "Raised texture effect for a tactile, 3D feel on your design.",
+  Both: "Combination of varnish and emboss for maximum visual impact.",
+  Standard: "Kiss cut - stickers are cut through the vinyl but not the backing paper. Easy to peel.",
+  "Die Cut": "Stickers are cut completely through both vinyl and backing to your exact shape.",
 };
 
 type CartResponse = {
@@ -199,7 +220,7 @@ export default function CartClient() {
   });
 
   const updateItemMutation = useMutation({
-    mutationFn: async ({ itemId, mediaType, finishType }: { itemId: number; mediaType?: string; finishType?: string }) => {
+    mutationFn: async ({ itemId, mediaType, finishType, cutType }: { itemId: number; mediaType?: string; finishType?: string; cutType?: string }) => {
       const cartSessionId = getCartSessionId();
       const res = await fetch(`/api/cart/items/${itemId}`, {
         method: "PATCH",
@@ -208,7 +229,7 @@ export default function CartClient() {
           "X-Cart-Session-Id": cartSessionId,
         },
         credentials: "include",
-        body: JSON.stringify({ mediaType, finishType }),
+        body: JSON.stringify({ mediaType, finishType, cutType }),
       });
       if (!res.ok) throw new Error("Failed to update item");
       return res.json();
@@ -231,14 +252,16 @@ export default function CartClient() {
   const itemsNeedingArtwork = items.filter(item => !item.design);
   const hasItemsNeedingArtwork = itemsNeedingArtwork.length > 0;
 
-  // Check if any items are missing material/coating type selection
+  // Check if any items are missing material/coating/cut type selection
   // Only require selection if the product actually has those options available
   const itemsNeedingSelections = items.filter(item => {
     const hasMaterialOptions = item.materialOptions && item.materialOptions.length > 0;
     const hasCoatingOptions = item.coatingOptions && item.coatingOptions.length > 0;
+    const hasCutOptions = item.cutOptions && item.cutOptions.length > 0;
     const needsMaterial = hasMaterialOptions && !item.mediaType;
     const needsCoating = hasCoatingOptions && !item.finishType;
-    return needsMaterial || needsCoating;
+    const needsCut = hasCutOptions && !item.cutType;
+    return needsMaterial || needsCoating || needsCut;
   });
   const hasItemsNeedingSelections = itemsNeedingSelections.length > 0;
 
@@ -277,6 +300,7 @@ export default function CartClient() {
     const basePrice = item.unitPrice ? Number(item.unitPrice) : 0;
     let materialModifier = 0;
     let coatingModifier = 0;
+    let cutModifier = 0;
     
     if (item.mediaType && item.materialOptions) {
       const selectedMaterial = item.materialOptions.find(opt => opt.name === item.mediaType);
@@ -292,7 +316,14 @@ export default function CartClient() {
       }
     }
     
-    return basePrice + materialModifier + coatingModifier;
+    if (item.cutType && item.cutOptions) {
+      const selectedCut = item.cutOptions.find(opt => opt.name === item.cutType);
+      if (selectedCut?.priceModifier) {
+        cutModifier = parseFloat(selectedCut.priceModifier) || 0;
+      }
+    }
+    
+    return basePrice + materialModifier + coatingModifier + cutModifier;
   };
 
   // Prefer server-provided totals. If missing, compute safely.
@@ -461,95 +492,168 @@ export default function CartClient() {
                       </div>
                     )}
 
-                    {/* Material & Coating Selection */}
+                    {/* Material, Coating & Cut Selection */}
                     {((item.materialOptions && item.materialOptions.length > 0) || 
-                      (item.coatingOptions && item.coatingOptions.length > 0)) && (
+                      (item.coatingOptions && item.coatingOptions.length > 0) ||
+                      (item.cutOptions && item.cutOptions.length > 0)) && (
                       <div className={`rounded-xl p-4 border ${
-                        (!item.mediaType || !item.finishType) 
+                        (!item.mediaType || !item.finishType || !item.cutType) 
                           ? "bg-amber-50 border-amber-200" 
                           : "bg-gray-50 border-gray-200"
                       }`}>
-                        <div className="space-y-4">
-                          {/* Material Options */}
-                          {item.materialOptions && item.materialOptions.length > 0 && (
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                {!item.mediaType && (
-                                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                                )}
-                                <p className="text-sm font-medium text-gray-700">
-                                  Material {!item.mediaType && <span className="text-red-500">*</span>}
-                                </p>
+                        <TooltipProvider>
+                          <div className="space-y-4">
+                            {/* Material Options */}
+                            {item.materialOptions && item.materialOptions.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  {!item.mediaType && (
+                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                  )}
+                                  <p className="text-sm font-medium text-gray-700">
+                                    Material {!item.mediaType && <span className="text-red-500">*</span>}
+                                  </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {item.materialOptions.map((opt) => {
+                                    const priceModNum = parseFloat(opt.priceModifier || "0");
+                                    const isSelected = item.mediaType === opt.name;
+                                    const description = OPTION_DESCRIPTIONS[opt.name] || opt.description || opt.value || "";
+                                    return (
+                                      <Tooltip key={opt.id}>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant={isSelected ? "default" : "outline"}
+                                            className={isSelected ? "bg-orange-500 hover:bg-orange-600" : ""}
+                                            onClick={() => updateItemMutation.mutate({ 
+                                              itemId: item.id, 
+                                              mediaType: opt.name, 
+                                              finishType: item.finishType || undefined,
+                                              cutType: item.cutType || undefined
+                                            })}
+                                            disabled={updateItemMutation.isPending}
+                                            data-testid={`select-material-${opt.id}-${item.id}`}
+                                          >
+                                            {opt.name}
+                                            {priceModNum > 0 && (
+                                              <span className="ml-1 text-xs opacity-75">(+${priceModNum.toFixed(2)})</span>
+                                            )}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        {description && (
+                                          <TooltipContent side="top" className="max-w-xs">
+                                            <p className="text-sm">{description}</p>
+                                          </TooltipContent>
+                                        )}
+                                      </Tooltip>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                {item.materialOptions.map((opt) => {
-                                  const priceModNum = parseFloat(opt.priceModifier || "0");
-                                  const isSelected = item.mediaType === opt.name;
-                                  return (
-                                    <Button
-                                      key={opt.id}
-                                      size="sm"
-                                      variant={isSelected ? "default" : "outline"}
-                                      className={isSelected ? "bg-orange-500 hover:bg-orange-600" : ""}
-                                      onClick={() => updateItemMutation.mutate({ 
-                                        itemId: item.id, 
-                                        mediaType: opt.name, 
-                                        finishType: item.finishType || undefined 
-                                      })}
-                                      disabled={updateItemMutation.isPending}
-                                      data-testid={`select-material-${opt.id}-${item.id}`}
-                                    >
-                                      {opt.name}
-                                      {priceModNum > 0 && (
-                                        <span className="ml-1 text-xs opacity-75">(+${priceModNum.toFixed(2)})</span>
-                                      )}
-                                    </Button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Spot Gloss Options */}
-                          {item.coatingOptions && item.coatingOptions.length > 0 && (
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                {!item.finishType && (
-                                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                                )}
-                                <p className="text-sm font-medium text-gray-700">
-                                  Spot Gloss {!item.finishType && <span className="text-red-500">*</span>}
-                                </p>
+                            {/* Spot Gloss Options */}
+                            {item.coatingOptions && item.coatingOptions.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  {!item.finishType && (
+                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                  )}
+                                  <p className="text-sm font-medium text-gray-700">
+                                    Spot Gloss {!item.finishType && <span className="text-red-500">*</span>}
+                                  </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {item.coatingOptions.map((opt) => {
+                                    const priceModNum = parseFloat(opt.priceModifier || "0");
+                                    const isSelected = item.finishType === opt.name;
+                                    const description = OPTION_DESCRIPTIONS[opt.name] || opt.description || opt.value || "";
+                                    return (
+                                      <Tooltip key={opt.id}>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant={isSelected ? "default" : "outline"}
+                                            className={isSelected ? "bg-orange-500 hover:bg-orange-600" : ""}
+                                            onClick={() => updateItemMutation.mutate({ 
+                                              itemId: item.id, 
+                                              mediaType: item.mediaType || undefined, 
+                                              finishType: opt.name,
+                                              cutType: item.cutType || undefined
+                                            })}
+                                            disabled={updateItemMutation.isPending}
+                                            data-testid={`select-coating-${opt.id}-${item.id}`}
+                                          >
+                                            {opt.name}
+                                            {priceModNum > 0 && (
+                                              <span className="ml-1 text-xs opacity-75">(+${priceModNum.toFixed(2)})</span>
+                                            )}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        {description && (
+                                          <TooltipContent side="top" className="max-w-xs">
+                                            <p className="text-sm">{description}</p>
+                                          </TooltipContent>
+                                        )}
+                                      </Tooltip>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                {item.coatingOptions.map((opt) => {
-                                  const priceModNum = parseFloat(opt.priceModifier || "0");
-                                  const isSelected = item.finishType === opt.name;
-                                  return (
-                                    <Button
-                                      key={opt.id}
-                                      size="sm"
-                                      variant={isSelected ? "default" : "outline"}
-                                      className={isSelected ? "bg-orange-500 hover:bg-orange-600" : ""}
-                                      onClick={() => updateItemMutation.mutate({ 
-                                        itemId: item.id, 
-                                        mediaType: item.mediaType || undefined, 
-                                        finishType: opt.name 
-                                      })}
-                                      disabled={updateItemMutation.isPending}
-                                      data-testid={`select-coating-${opt.id}-${item.id}`}
-                                    >
-                                      {opt.name}
-                                      {priceModNum > 0 && (
-                                        <span className="ml-1 text-xs opacity-75">(+${priceModNum.toFixed(2)})</span>
-                                      )}
-                                    </Button>
-                                  );
-                                })}
+                            )}
+
+                            {/* Cut Options */}
+                            {item.cutOptions && item.cutOptions.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  {!item.cutType && (
+                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                  )}
+                                  <p className="text-sm font-medium text-gray-700">
+                                    Cut Options {!item.cutType && <span className="text-red-500">*</span>}
+                                  </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {item.cutOptions.map((opt) => {
+                                    const priceModNum = parseFloat(opt.priceModifier || "0");
+                                    const isSelected = item.cutType === opt.name;
+                                    const description = OPTION_DESCRIPTIONS[opt.name] || opt.description || opt.value || "";
+                                    return (
+                                      <Tooltip key={opt.id}>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="sm"
+                                            variant={isSelected ? "default" : "outline"}
+                                            className={isSelected ? "bg-orange-500 hover:bg-orange-600" : ""}
+                                            onClick={() => updateItemMutation.mutate({ 
+                                              itemId: item.id, 
+                                              mediaType: item.mediaType || undefined, 
+                                              finishType: item.finishType || undefined,
+                                              cutType: opt.name
+                                            })}
+                                            disabled={updateItemMutation.isPending}
+                                            data-testid={`select-cut-${opt.id}-${item.id}`}
+                                          >
+                                            {opt.name}
+                                            {priceModNum > 0 && (
+                                              <span className="ml-1 text-xs opacity-75">(+${priceModNum.toFixed(2)})</span>
+                                            )}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        {description && (
+                                          <TooltipContent side="top" className="max-w-xs">
+                                            <p className="text-sm">{description}</p>
+                                          </TooltipContent>
+                                        )}
+                                      </Tooltip>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
+                            )}
+                          </div>
+                        </TooltipProvider>
                       </div>
                     )}
                   </div>
@@ -600,7 +704,7 @@ export default function CartClient() {
                   <div className="flex items-center gap-2 text-amber-800">
                     <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                     <p className="text-xs font-medium">
-                      {itemsNeedingSelections.length} item(s) need material & finish selection
+                      {itemsNeedingSelections.length} item(s) need options selection
                     </p>
                   </div>
                 </div>

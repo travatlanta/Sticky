@@ -115,6 +115,7 @@ export async function GET(request: Request) {
         selectedOptions: cartItems.selectedOptions,
         mediaType: cartItems.mediaType,
         finishType: cartItems.finishType,
+        cutType: cartItems.cutType,
         product: products,
         design: designs,
       })
@@ -134,10 +135,10 @@ export async function GET(request: Request) {
       : [];
 
     // Group options by product and type
-    const optionsByProduct: Record<number, { material: any[]; coating: any[] }> = {};
+    const optionsByProduct: Record<number, { material: any[]; coating: any[]; cut: any[] }> = {};
     for (const opt of allOptions) {
       if (!optionsByProduct[opt.productId]) {
-        optionsByProduct[opt.productId] = { material: [], coating: [] };
+        optionsByProduct[opt.productId] = { material: [], coating: [], cut: [] };
       }
       if (opt.optionType === 'material') {
         optionsByProduct[opt.productId].material.push({
@@ -147,6 +148,7 @@ export async function GET(request: Request) {
           priceModifier: opt.priceModifier,
           isDefault: opt.isDefault,
           displayOrder: opt.displayOrder,
+          description: opt.value,
         });
       } else if (opt.optionType === 'coating') {
         optionsByProduct[opt.productId].coating.push({
@@ -156,6 +158,17 @@ export async function GET(request: Request) {
           priceModifier: opt.priceModifier,
           isDefault: opt.isDefault,
           displayOrder: opt.displayOrder,
+          description: opt.value,
+        });
+      } else if (opt.optionType === 'cut') {
+        optionsByProduct[opt.productId].cut.push({
+          id: opt.id,
+          name: opt.name,
+          value: opt.value,
+          priceModifier: opt.priceModifier,
+          isDefault: opt.isDefault,
+          displayOrder: opt.displayOrder,
+          description: opt.value,
         });
       }
     }
@@ -164,6 +177,7 @@ export async function GET(request: Request) {
     for (const pid of Object.keys(optionsByProduct)) {
       optionsByProduct[Number(pid)].material.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
       optionsByProduct[Number(pid)].coating.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+      optionsByProduct[Number(pid)].cut.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
     }
 
     // Fetch pricing tiers for bulk discounts
@@ -198,7 +212,7 @@ export async function GET(request: Request) {
     // Normalize items and apply bulk pricing based on quantity
     const items = rawItems.map(item => {
       const productId = item.product?.id;
-      const options = productId ? optionsByProduct[productId] : { material: [], coating: [] };
+      const options = productId ? optionsByProduct[productId] : { material: [], coating: [], cut: [] };
       const quantity = item.quantity ?? 1;
       
       // Apply bulk pricing if available
@@ -211,16 +225,18 @@ export async function GET(request: Request) {
         quantity,
         materialOptions: options?.material || [],
         coatingOptions: options?.coating || [],
+        cutOptions: options?.cut || [],
       };
     });
 
-    // Calculate subtotal from items (including material/coating price modifiers)
+    // Calculate subtotal from items (including material/coating/cut price modifiers)
     const subtotal = items.reduce((sum, item) => {
       const basePrice = parseFloat(item.unitPrice) || 0;
       
       // Find price modifiers for selected options
       let materialModifier = 0;
       let coatingModifier = 0;
+      let cutModifier = 0;
       
       if (item.mediaType && item.materialOptions) {
         const selectedMaterial = item.materialOptions.find((opt: any) => opt.name === item.mediaType);
@@ -236,7 +252,14 @@ export async function GET(request: Request) {
         }
       }
       
-      const totalPricePerUnit = basePrice + materialModifier + coatingModifier;
+      if (item.cutType && item.cutOptions) {
+        const selectedCut = item.cutOptions.find((opt: any) => opt.name === item.cutType);
+        if (selectedCut?.priceModifier) {
+          cutModifier = parseFloat(selectedCut.priceModifier) || 0;
+        }
+      }
+      
+      const totalPricePerUnit = basePrice + materialModifier + coatingModifier + cutModifier;
       return sum + (totalPricePerUnit * item.quantity);
     }, 0);
 

@@ -45,6 +45,7 @@ export async function PATCH(
     if (body.unitPrice !== undefined) updateData.unitPrice = body.unitPrice;
     if (body.mediaType !== undefined) updateData.mediaType = body.mediaType;
     if (body.finishType !== undefined) updateData.finishType = body.finishType;
+    if (body.cutType !== undefined) updateData.cutType = body.cutType;
 
     const [item] = await db
       .update(cartItems)

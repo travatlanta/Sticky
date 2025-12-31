@@ -169,7 +169,7 @@ export default function Deals() {
                             </span>
                           </div>
                           <Button className="bg-orange-500 hover:bg-orange-600">
-                            {deal.ctaText || "Buy Now"}
+                            Buy Now
                           </Button>
                         </div>
                       </div>

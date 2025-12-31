@@ -238,6 +238,7 @@ export const cartItems = pgTable("cart_items", {
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
   mediaType: varchar("media_type", { length: 50 }),
   finishType: varchar("finish_type", { length: 50 }),
+  cutType: varchar("cut_type", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -283,6 +284,7 @@ export const orderItems = pgTable("order_items", {
   printFileUrl: varchar("print_file_url"),
   mediaType: varchar("media_type", { length: 50 }),
   finishType: varchar("finish_type", { length: 50 }),
+  cutType: varchar("cut_type", { length: 50 }),
 });
 
 // Promotions

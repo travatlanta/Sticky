@@ -20,6 +20,7 @@ import {
   ShoppingCart,
   Paintbrush,
   Loader2,
+  Phone,
 } from "lucide-react";
 import { getCartSessionId, setCartSessionId } from "@/lib/cartSession";
 
@@ -504,6 +505,13 @@ export default function ProductDetail() {
                   ))}
                 </div>
                 <p className="text-xs text-green-600 mt-2">Click a tier to set quantity!</p>
+                {/* Bulk order disclaimer */}
+                <div className="mt-3 pt-3 border-t border-green-200 flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                  <span className="text-gray-700">
+                    <strong className="text-orange-600">Orders over 10,000?</strong> Call us: <a href="tel:602-554-5338" className="font-semibold text-orange-600 hover:underline">602-554-5338</a>
+                  </span>
+                </div>
               </div>
             )}
 

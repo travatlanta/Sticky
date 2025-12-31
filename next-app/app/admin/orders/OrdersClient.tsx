@@ -18,7 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { jsPDF } from "jspdf";
@@ -489,24 +489,39 @@ export default function AdminOrders() {
                             </p>
                             <div className="flex flex-wrap items-start gap-4">
                               {/* Design Preview - Click to open modal */}
-                              {(item.design.highResExportUrl || item.design.previewUrl) && (
-                                <div 
-                                  className="relative cursor-pointer group"
-                                  onClick={() => setPreviewImage({
-                                    url: `/api/admin/design-download?url=${encodeURIComponent(item.design.highResExportUrl || item.design.previewUrl)}&format=preview`,
-                                    name: item.design.name || 'Design Preview'
-                                  })}
-                                >
-                                  <img 
-                                    src={`/api/admin/design-download?url=${encodeURIComponent(item.design.previewUrl || item.design.highResExportUrl)}&format=preview`}
-                                    alt="Design preview" 
-                                    className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
-                                  />
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                                    <ZoomIn className="h-6 w-6 text-white" />
+                              {(item.design.highResExportUrl || item.design.previewUrl) && (() => {
+                                const previewUrl = item.design.previewUrl || item.design.highResExportUrl;
+                                const isPdf = previewUrl?.toLowerCase().includes('.pdf');
+                                
+                                if (isPdf) {
+                                  // Show PDF placeholder for PDF files
+                                  return (
+                                    <div className="w-24 h-24 flex flex-col items-center justify-center bg-red-50 rounded-lg border-2 border-red-200">
+                                      <FileText className="h-10 w-10 text-red-500" />
+                                      <span className="text-xs text-red-600 mt-1 font-medium">PDF File</span>
+                                    </div>
+                                  );
+                                }
+                                
+                                return (
+                                  <div 
+                                    className="relative cursor-pointer group"
+                                    onClick={() => setPreviewImage({
+                                      url: `/api/admin/design-download?url=${encodeURIComponent(item.design.highResExportUrl || item.design.previewUrl)}&format=preview`,
+                                      name: item.design.name || 'Design Preview'
+                                    })}
+                                  >
+                                    <img 
+                                      src={`/api/admin/design-download?url=${encodeURIComponent(previewUrl)}&format=preview`}
+                                      alt="Design preview" 
+                                      className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                      <ZoomIn className="h-6 w-6 text-white" />
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                );
+                              })()}
                               
                               {/* Download with Format Selection */}
                               <div className="flex flex-col gap-2">

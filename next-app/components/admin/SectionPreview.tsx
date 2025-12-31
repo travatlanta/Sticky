@@ -34,7 +34,7 @@ export default function SectionPreview({ section, settings, heroView = "loggedOu
           <div className="font-bold text-sm text-gray-900">
             {heroView === "loggedIn" ? (
               <>
-                <span className="text-gray-600 text-[10px] block">{hero.welcomePrefix || ""}</span>
+                <span className="text-gray-600 text-[10px] block">{(hero as any).welcomePrefix || ""}</span>
                 {(hero as any).headline || "Headline"}
               </>
             ) : (

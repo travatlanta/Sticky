@@ -1302,7 +1302,7 @@ export default function Editor() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*,.pdf,.svg"
+              accept="image/*,.pdf,.svg,.eps,.cdr,.ai,.psd"
               onChange={handleFileUpload}
               className="hidden"
               data-testid="input-file-upload"
@@ -1310,7 +1310,7 @@ export default function Editor() {
             <input
               ref={multiFileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.pdf,.svg,.eps,.cdr,.ai,.psd"
               multiple
               onChange={handleMultiFileUpload}
               className="hidden"

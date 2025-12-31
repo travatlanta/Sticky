@@ -13,7 +13,7 @@ const faqs = [
     questions: [
       {
         q: 'What file formats do you accept for artwork?',
-        a: 'We accept PNG, JPG, PDF, and SVG files. For best results, we recommend high-resolution PNG or PDF files at 300 DPI or higher. Vector files (SVG, PDF with vector graphics) will produce the sharpest results.',
+        a: 'We accept PNG, JPG, PDF, SVG, EPS, CDR (CorelDRAW), AI (Adobe Illustrator), and PSD (Photoshop) files. For best results, we recommend high-resolution PNG or PDF files at 300 DPI or higher. Vector files (SVG, EPS, AI, PDF with vector graphics) will produce the sharpest results.',
       },
       {
         q: 'What is your minimum order quantity?',

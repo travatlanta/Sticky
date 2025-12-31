@@ -660,7 +660,7 @@ export default function ProductDetail() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*,.pdf,.svg,.ai,.psd,.eps"
+                      accept="image/*,.pdf,.svg,.ai,.psd,.eps,.cdr"
                       onChange={handleFileSelect}
                       className="hidden"
                       id="quick-order-upload"

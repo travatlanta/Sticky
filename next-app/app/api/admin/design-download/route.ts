@@ -42,14 +42,20 @@ export async function GET(req: Request) {
     const contentType = response.headers.get('content-type') || '';
     const sourceExtension = imageUrl.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
     const isPdfSource = contentType.includes('pdf') || sourceExtension === 'pdf';
+    
+    // Check for professional design formats that should be downloaded as original
+    const isVectorFormat = ['eps', 'cdr', 'ai'].includes(sourceExtension);
+    const isDesignFormat = ['psd'].includes(sourceExtension);
+    const isSpecialFormat = isVectorFormat || isDesignFormat;
 
     const imageBuffer = Buffer.from(await response.arrayBuffer());
 
     // Preview mode - return resized PNG for inline display (not download)
     if (format === 'preview') {
-      if (isPdfSource) {
-        // Can't preview PDFs, return a placeholder response
-        return NextResponse.json({ error: 'Cannot preview PDF files' }, { status: 400 });
+      if (isPdfSource || isSpecialFormat) {
+        // Can't preview PDFs, EPS, CDR, AI, PSD files - return a placeholder response
+        const formatName = isPdfSource ? 'PDF' : sourceExtension.toUpperCase();
+        return NextResponse.json({ error: `Cannot preview ${formatName} files` }, { status: 400 });
       }
       
       const image = sharp(imageBuffer);
@@ -66,9 +72,17 @@ export async function GET(req: Request) {
       });
     }
 
-    if (format === 'original' || (isPdfSource && format === 'pdf')) {
-      const ext = isPdfSource ? 'pdf' : sourceExtension || 'png';
-      const mimeType = isPdfSource ? 'application/pdf' : contentType || 'application/octet-stream';
+    if (format === 'original' || (isPdfSource && format === 'pdf') || isSpecialFormat) {
+      const ext = sourceExtension || 'png';
+      
+      // Determine correct MIME type for special formats
+      let mimeType = contentType || 'application/octet-stream';
+      if (sourceExtension === 'eps') mimeType = 'application/postscript';
+      if (sourceExtension === 'cdr') mimeType = 'application/vnd.corel-draw';
+      if (sourceExtension === 'ai') mimeType = 'application/illustrator';
+      if (sourceExtension === 'psd') mimeType = 'image/vnd.adobe.photoshop';
+      if (isPdfSource) mimeType = 'application/pdf';
+      
       const sanitizedFilename = filename.replace(/[^a-z0-9_-]/gi, '_');
       
       return new NextResponse(new Uint8Array(imageBuffer), {
@@ -80,9 +94,11 @@ export async function GET(req: Request) {
       });
     }
 
-    if (isPdfSource) {
+    // For PDFs and special formats, only allow original download
+    if (isPdfSource || isSpecialFormat) {
+      const formatName = isPdfSource ? 'PDF' : sourceExtension.toUpperCase();
       return NextResponse.json(
-        { error: 'Cannot convert PDF to other formats. Use original format.' },
+        { error: `Cannot convert ${formatName} to other formats. Use original format.` },
         { status: 400 }
       );
     }

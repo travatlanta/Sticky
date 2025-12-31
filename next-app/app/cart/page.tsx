@@ -449,7 +449,7 @@ export default function CartClient() {
                             </p>
                             <input
                               type="file"
-                              accept="image/*,.pdf,.svg,.ai,.psd,.eps"
+                              accept="image/*,.pdf,.svg,.ai,.psd,.eps,.cdr"
                               className="hidden"
                               ref={(el) => { fileInputRefs.current[item.id] = el; }}
                               onChange={(e) => {

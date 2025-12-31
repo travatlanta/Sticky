@@ -1,0 +1,120 @@
+PROJECT CONTEXT
+- Repo: Sticky Banditos (Next.js, deployed on Vercel)
+- Payments: Square Payments API (custom checkout)
+- Email provider: Resend (domain verified)
+- Goal: Automatically email the CUSTOMER an order confirmation after successful checkout.
+- Sender: Sticky Banditos <donotreply@stickybanditos.com>
+- We do NOT need to receive emails.
+- Do NOT break cart, pricing, or payment logic.
+
+IMPORTANT CONSTRAINTS
+- Preserve all existing behavior.
+- Do NOT rename or move existing files.
+- Add the smallest amount of code required.
+- Email failures must NOT fail checkout.
+
+ENV VARS (already set or must be read)
+- RESEND_API_KEY
+- ORDER_EMAIL_FROM="Sticky Banditos <donotreply@stickybanditos.com>"
+- SITE_URL="https://stickybanditos.com"
+
+────────────────────────────────────────────
+
+STEP 1 — ADD EMAIL HELPER (NEW FILE)
+
+Create file:
+next-app/lib/email/sendOrderConfirmationEmail.ts
+
+Implement a function:
+
+export async function sendOrderConfirmationEmail({
+  toEmail,
+  orderNumber,
+  items,
+  totals,
+  shippingAddress
+})
+
+Implementation requirements:
+- Use fetch (NOT an SDK) to call:
+  POST https://api.resend.com/emails
+- Headers:
+  Authorization: Bearer process.env.RESEND_API_KEY
+  Content-Type: application/json
+- from: process.env.ORDER_EMAIL_FROM
+- to: [toEmail]
+- subject: `Order Confirmation – ${orderNumber}`
+
+HTML BODY MUST INCLUDE:
+- Sticky Banditos logo at top:
+  <img src="${process.env.SITE_URL}/logo.png" height="60" />
+- Order number
+- Itemized list:
+  - product name
+  - quantity
+  - unit price
+  - line total
+- Subtotal
+- Expedited shipping (if any)
+- Tax (if any)
+- Grand total
+- Shipping name + address
+
+ERROR HANDLING:
+- If RESEND_API_KEY is missing → throw error
+- If fetch fails → catch internally and return { ok:false }
+- Never throw during checkout execution
+
+────────────────────────────────────────────
+
+STEP 2 — UPDATE CHECKOUT ROUTE
+
+Edit:
+next-app/app/api/checkout/create-payment/route.ts
+
+Changes required:
+
+1) IMPORT the email helper:
+import { sendOrderConfirmationEmail } from '@/lib/email/sendOrderConfirmationEmail';
+
+2) ENSURE product names are available:
+- Update the cart query to LEFT JOIN products
+- Select products.name as productName
+- Do NOT remove any existing selected fields
+
+3) AFTER successful order creation (paid path AND free-order path):
+- If shippingAddress?.email exists:
+  - Call sendOrderConfirmationEmail with:
+    - toEmail: shippingAddress.email
+    - orderNumber: order.orderNumber
+    - items: mapped order items (name, qty, unit price)
+    - totals: subtotal, shipping, tax, total
+    - shippingAddress
+
+4) WRAP email send in try/catch:
+- console.error on failure
+- Checkout response MUST still return success
+
+5) SAVE customer email on the order record if not already stored
+
+6) DO NOT modify:
+- Cart clearing logic
+- Square payment logic
+- Pricing logic
+- Tax rules
+
+────────────────────────────────────────────
+
+TEST REQUIREMENTS (MUST PASS)
+1) Place a real test order
+2) Payment succeeds
+3) Cart clears
+4) Customer receives confirmation email
+5) Email is itemized and branded
+6) Sender shows as:
+   Sticky Banditos <donotreply@stickybanditos.com>
+
+OUTPUT REQUIREMENTS
+- Return the FULL contents of every modified file
+- Include the new email helper file
+- Do not rename or move any existing files

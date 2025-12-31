@@ -3,9 +3,10 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '../../../../lib/db';
-import { carts, cartItems, orders, orderItems } from '../../../../shared/schema';
+import { carts, cartItems, orders, orderItems, products } from '../../../../shared/schema';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { sendOrderConfirmationEmail } from '@/lib/email/sendOrderConfirmationEmail';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,10 +113,22 @@ export async function POST(req: Request) {
       );
     }
 
-    // Fetch cart items
+    // Fetch cart items with product names
     const items = await db
-      .select()
+      .select({
+        id: cartItems.id,
+        cartId: cartItems.cartId,
+        productId: cartItems.productId,
+        designId: cartItems.designId,
+        quantity: cartItems.quantity,
+        unitPrice: cartItems.unitPrice,
+        selectedOptions: cartItems.selectedOptions,
+        mediaType: cartItems.mediaType,
+        finishType: cartItems.finishType,
+        productName: products.name,
+      })
       .from(cartItems)
+      .leftJoin(products, eq(cartItems.productId, products.id))
       .where(eq(cartItems.cartId, cart.id));
 
     if (!items.length) {
@@ -196,6 +209,38 @@ export async function POST(req: Request) {
       }
 
       await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+
+      // Send order confirmation email (free order path)
+      if (shippingAddress?.email) {
+        try {
+          await sendOrderConfirmationEmail({
+            toEmail: shippingAddress.email,
+            orderNumber: order.orderNumber,
+            items: items.map((item) => ({
+              name: item.productName || 'Custom Product',
+              quantity: item.quantity,
+              unitPrice: parseFloat(item.unitPrice || '0'),
+            })),
+            totals: {
+              subtotal: 0,
+              shipping: 0,
+              tax: 0,
+              total: 0,
+            },
+            shippingAddress: {
+              name: formattedShippingAddress?.name || '',
+              address1: formattedShippingAddress?.address1 || '',
+              address2: formattedShippingAddress?.address2 || undefined,
+              city: formattedShippingAddress?.city || '',
+              state: formattedShippingAddress?.state || '',
+              zip: formattedShippingAddress?.zip || '',
+              country: formattedShippingAddress?.country || 'USA',
+            },
+          });
+        } catch (emailError) {
+          console.error('Failed to send order confirmation email (free order):', emailError);
+        }
+      }
 
       return noCache(NextResponse.json({ success: true, orderId: order.id }));
     }
@@ -304,6 +349,38 @@ export async function POST(req: Request) {
 
     // Clear cart
     await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+
+    // Send order confirmation email (paid order path)
+    if (shippingAddress?.email) {
+      try {
+        await sendOrderConfirmationEmail({
+          toEmail: shippingAddress.email,
+          orderNumber: order.orderNumber,
+          items: items.map((item) => ({
+            name: item.productName || 'Custom Product',
+            quantity: item.quantity,
+            unitPrice: parseFloat(item.unitPrice || '0'),
+          })),
+          totals: {
+            subtotal: subtotal,
+            shipping: expeditedCost,
+            tax: calculatedTax,
+            total: fullTotal,
+          },
+          shippingAddress: {
+            name: formattedShippingAddress?.name || '',
+            address1: formattedShippingAddress?.address1 || '',
+            address2: formattedShippingAddress?.address2 || undefined,
+            city: formattedShippingAddress?.city || '',
+            state: formattedShippingAddress?.state || '',
+            zip: formattedShippingAddress?.zip || '',
+            country: formattedShippingAddress?.country || 'USA',
+          },
+        });
+      } catch (emailError) {
+        console.error('Failed to send order confirmation email:', emailError);
+      }
+    }
 
     return noCache(
       NextResponse.json({ success: true, orderId: order.id })

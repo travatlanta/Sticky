@@ -164,7 +164,8 @@ export default function CheckoutClient() {
       !shippingAddress.address1 ||
       !shippingAddress.city ||
       !shippingAddress.state ||
-      !shippingAddress.zip
+      !shippingAddress.zip ||
+      !shippingAddress.phone
     ) {
       toast({
         title: 'Missing Information',
@@ -354,7 +355,7 @@ export default function CheckoutClient() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="phone">Phone Number</Label>
+                      <Label htmlFor="phone">Phone Number *</Label>
                       <Input
                         id="phone"
                         data-testid="input-phone"
@@ -362,6 +363,7 @@ export default function CheckoutClient() {
                         value={shippingAddress.phone}
                         onChange={(e) => setShippingAddress((prev) => ({ ...prev, phone: e.target.value }))}
                         placeholder="For delivery updates"
+                        required
                       />
                     </div>
                   </div>

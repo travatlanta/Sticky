@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { siteSettings, users } from '@/shared/schema';
 import { eq } from 'drizzle-orm';
+import { revalidateTag } from 'next/cache';
 import { defaultHomepageSettings, homepageSettingsSchema, HomepageSettings } from '@/lib/homepage-settings';
 
 const HOMEPAGE_SETTINGS_KEY = 'homepage_content';
@@ -64,7 +65,13 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, settings: validated.data });
+    try {
+      revalidateTag('homepage-settings');
+    } catch (e) {
+      console.log('Revalidation skipped (development mode)');
+    }
+
+    return NextResponse.json({ success: true, settings: validated.data, revalidated: true });
   } catch (error) {
     console.error('Error saving homepage settings:', error);
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
@@ -80,7 +87,13 @@ export async function DELETE() {
 
     await db.delete(siteSettings).where(eq(siteSettings.key, HOMEPAGE_SETTINGS_KEY));
     
-    return NextResponse.json({ success: true, settings: defaultHomepageSettings });
+    try {
+      revalidateTag('homepage-settings');
+    } catch (e) {
+      console.log('Revalidation skipped (development mode)');
+    }
+
+    return NextResponse.json({ success: true, settings: defaultHomepageSettings, revalidated: true });
   } catch (error) {
     console.error('Error resetting homepage settings:', error);
     return NextResponse.json({ error: 'Failed to reset settings' }, { status: 500 });

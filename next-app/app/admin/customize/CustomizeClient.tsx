@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,6 +25,7 @@ import SectionPreview from "@/components/admin/SectionPreview";
 export default function CustomizeClient() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("hero");
   const [heroView, setHeroView] = useState<"loggedIn" | "loggedOut">("loggedOut");
 
@@ -69,7 +71,8 @@ export default function CustomizeClient() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/homepage"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/homepage"] });
-      toast({ title: "Saved!", description: "Homepage settings updated successfully." });
+      router.refresh();
+      toast({ title: "Saved!", description: "Homepage settings updated successfully. Changes are now live!" });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
@@ -86,7 +89,8 @@ export default function CustomizeClient() {
       setFormData(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/homepage"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/homepage"] });
-      toast({ title: "Reset!", description: "Homepage restored to default settings." });
+      router.refresh();
+      toast({ title: "Reset!", description: "Homepage restored to default settings. Changes are now live!" });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to reset settings.", variant: "destructive" });

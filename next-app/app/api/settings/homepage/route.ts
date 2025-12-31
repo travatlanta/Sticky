@@ -6,6 +6,9 @@ import { defaultHomepageSettings } from '@/lib/homepage-settings';
 
 const HOMEPAGE_SETTINGS_KEY = 'homepage_content';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const [setting] = await db
@@ -15,10 +18,22 @@ export async function GET() {
     
     if (setting?.value) {
       const merged = { ...defaultHomepageSettings, ...(setting.value as object) };
-      return NextResponse.json(merged);
+      return NextResponse.json(merged, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
     }
     
-    return NextResponse.json(defaultHomepageSettings);
+    return NextResponse.json(defaultHomepageSettings, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error) {
     console.error('Error fetching homepage settings:', error);
     return NextResponse.json(defaultHomepageSettings);

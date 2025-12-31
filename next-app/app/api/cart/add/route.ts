@@ -115,6 +115,7 @@ export async function POST(request: Request) {
     }
 
     // Insert new cart item
+    // Note: Using specific columns in returning() to avoid cutType column issue in production
     const [item] = await db
       .insert(cartItems)
       .values({
@@ -127,10 +128,21 @@ export async function POST(request: Request) {
         mediaType: body.mediaType || null,
         finishType: body.finishType || null,
       })
-      .returning();
+      .returning({
+        id: cartItems.id,
+        cartId: cartItems.cartId,
+        productId: cartItems.productId,
+        designId: cartItems.designId,
+        quantity: cartItems.quantity,
+        selectedOptions: cartItems.selectedOptions,
+        unitPrice: cartItems.unitPrice,
+        mediaType: cartItems.mediaType,
+        finishType: cartItems.finishType,
+        createdAt: cartItems.createdAt,
+      });
 
     // Return response with explicit Set-Cookie header
-    const response = NextResponse.json({ ...item, cartId: cart.id, sessionId });
+    const response = NextResponse.json({ ...item, sessionId });
     response.cookies.set({
       name: 'cart-session-id',
       value: sessionId,

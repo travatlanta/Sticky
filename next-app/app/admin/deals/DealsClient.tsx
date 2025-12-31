@@ -31,6 +31,8 @@ interface Deal {
   badgeText: string | null;
   badgeColor: string | null;
   ctaText: string | null;
+  sourceProductId: number | null;
+  dealProductId: number | null;
   displayOrder: number;
   isActive: boolean;
   showOnHomepage: boolean;
@@ -48,9 +50,10 @@ const defaultFormData = {
   productSize: "",
   productType: "",
   linkUrl: "",
+  sourceProductId: "",
   badgeText: "",
   badgeColor: "yellow",
-  ctaText: "Shop Now",
+  ctaText: "Buy Now",
   displayOrder: "0",
   isActive: true,
   showOnHomepage: false,
@@ -168,6 +171,7 @@ export default function AdminDeals() {
         ...data,
         originalPrice: data.originalPrice || null,
         quantity: data.quantity ? parseInt(data.quantity) : null,
+        sourceProductId: data.sourceProductId ? parseInt(data.sourceProductId) : null,
         displayOrder: parseInt(data.displayOrder) || 0,
         startsAt: data.startsAt || null,
         endsAt: data.endsAt || null,
@@ -238,9 +242,10 @@ export default function AdminDeals() {
       productSize: deal.productSize || "",
       productType: deal.productType || "",
       linkUrl: deal.linkUrl || "",
+      sourceProductId: deal.sourceProductId?.toString() || "",
       badgeText: deal.badgeText || "",
       badgeColor: deal.badgeColor || "yellow",
-      ctaText: deal.ctaText || "Shop Now",
+      ctaText: deal.ctaText || "Buy Now",
       displayOrder: deal.displayOrder?.toString() || "0",
       isActive: deal.isActive,
       showOnHomepage: deal.showOnHomepage,
@@ -257,6 +262,7 @@ export default function AdminDeals() {
         ...formData,
         originalPrice: formData.originalPrice || null,
         quantity: formData.quantity ? parseInt(formData.quantity) : null,
+        sourceProductId: formData.sourceProductId ? parseInt(formData.sourceProductId) : null,
         displayOrder: parseInt(formData.displayOrder) || 0,
         startsAt: formData.startsAt || null,
         endsAt: formData.endsAt || null,
@@ -480,20 +486,22 @@ export default function AdminDeals() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Link to Product</label>
+                    <label className="block text-sm font-medium mb-1">Source Product (for duplication) *</label>
                     <select
-                      value={formData.linkUrl}
-                      onChange={(e) => setFormData({ ...formData, linkUrl: e.target.value })}
+                      value={formData.sourceProductId}
+                      onChange={(e) => setFormData({ ...formData, sourceProductId: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
                       data-testid="select-deal-product"
+                      required
                     >
-                      <option value="">Select a product...</option>
-                      {products?.map((product) => (
-                        <option key={product.id} value={`/products/${product.slug}`}>
+                      <option value="">Select a product to duplicate...</option>
+                      {products?.filter(p => !(p as any).isDealProduct).map((product) => (
+                        <option key={product.id} value={product.id.toString()}>
                           {product.name}
                         </option>
                       ))}
                     </select>
+                    <p className="text-xs text-gray-500 mt-1">This product will be duplicated with fixed quantity and price for the deal</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Badge Text</label>

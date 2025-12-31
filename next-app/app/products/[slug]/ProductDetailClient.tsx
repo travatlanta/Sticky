@@ -48,6 +48,11 @@ interface Product {
   options?: ProductOption[];
   minQuantity?: number;
   pricingTiers?: PricingTier[];
+  isDealProduct?: boolean;
+  fixedQuantity?: number | null;
+  fixedPrice?: string | null;
+  dealId?: number | null;
+  sourceProductId?: number | null;
 }
 
 export default function ProductDetail() {
@@ -59,15 +64,7 @@ export default function ProductDetail() {
   const isAuthenticated = sessionStatus === "authenticated";
   const { toast } = useToast();
 
-  // Check if this is a deal with fixed quantity
-  const dealId = searchParams.get("dealId");
-  const dealQty = searchParams.get("qty");
-  const dealPrice = searchParams.get("price");
-  const isDeal = !!dealId && !!dealQty;
-  const fixedDealQuantity = isDeal ? parseInt(dealQty, 10) : null;
-  const fixedDealPrice = isDeal && dealPrice ? parseFloat(dealPrice) : null;
-
-  const [quantity, setQuantity] = useState(fixedDealQuantity || 100);
+  const [quantity, setQuantity] = useState(100);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
   const [calculatedPrice, setCalculatedPrice] = useState<any>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -86,6 +83,19 @@ export default function ProductDetail() {
     },
     enabled: !!slug,
   });
+
+  // Detect deal products from database (isDealProduct flag) 
+  const isDeal = product?.isDealProduct ?? false;
+  const dealId = product?.dealId ?? null;
+  const fixedDealQuantity = product?.fixedQuantity ?? null;
+  const fixedDealPrice = product?.fixedPrice ? parseFloat(product.fixedPrice) : null;
+
+  // Set initial quantity from deal product if applicable
+  useEffect(() => {
+    if (isDeal && fixedDealQuantity) {
+      setQuantity(fixedDealQuantity);
+    }
+  }, [isDeal, fixedDealQuantity]);
 
   const calculatePriceMutation = useMutation({
     mutationFn: async () => {
@@ -156,7 +166,7 @@ export default function ProductDetail() {
       // Pass deal parameters to editor if this is a deal
       const editorParams = new URLSearchParams({ qty: String(quantity) });
       if (isDeal && dealId && fixedDealPrice) {
-        editorParams.set('dealId', dealId);
+        editorParams.set('dealId', String(dealId));
         editorParams.set('price', String(fixedDealPrice));
       }
       router.push(`/editor/${design.id}?${editorParams.toString()}`);

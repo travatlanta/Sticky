@@ -37,7 +37,31 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // Serve uploaded files
 app.use("/uploads", express.static(path.resolve(__dirname, "..", "uploads")));
 
+async function installNextDeps() {
+  return new Promise<void>((resolve, reject) => {
+    const nextDir = path.resolve(__dirname, "..", "next-app");
+    console.log("Installing Next.js dependencies...");
+    const installProcess = spawn("npm", ["install"], {
+      cwd: nextDir,
+      stdio: "inherit",
+      shell: true,
+    });
+    installProcess.on("close", (code) => {
+      if (code === 0) {
+        console.log("Next.js dependencies installed.");
+        resolve();
+      } else {
+        reject(new Error(`npm install exited with code ${code}`));
+      }
+    });
+    installProcess.on("error", reject);
+  });
+}
+
 async function startNextApp() {
+  // Install dependencies first
+  await installNextDeps();
+  
   return new Promise<void>((resolve, reject) => {
     const nextDir = path.resolve(__dirname, "..", "next-app");
     const nextProcess = spawn("npm", ["run", "dev", "--", "-p", String(NEXT_PORT)], {

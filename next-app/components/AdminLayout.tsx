@@ -21,6 +21,7 @@ import {
   Search,
   BarChart3,
   Paintbrush,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -37,6 +38,7 @@ const navItems = [
   { href: "/admin/customize", label: "Site Customization", icon: Paintbrush },
   { href: "/admin/seo", label: "SEO", icon: Search },
   { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/guide", label: "Help Guide", icon: HelpCircle },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

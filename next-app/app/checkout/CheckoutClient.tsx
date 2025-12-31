@@ -28,7 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShoppingCart, CreditCard as CreditCardIcon, MapPin, ArrowLeft, FileText } from 'lucide-react';
+import { Loader2, ShoppingCart, CreditCard as CreditCardIcon, MapPin, ArrowLeft, FileText, Upload, AlertTriangle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -68,6 +68,9 @@ export default function CheckoutClient() {
   const [orderNotes, setOrderNotes] = useState('');
   const [expeditedShipping, setExpeditedShipping] = useState(false);
   const [isWholesaler, setIsWholesaler] = useState(false);
+  const [wholesaleCertificate, setWholesaleCertificate] = useState<File | null>(null);
+  const [certificateUploading, setCertificateUploading] = useState(false);
+  const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
   const EXPEDITED_SHIPPING_COST = 25; // Additional cost for expedited shipping
   const ARIZONA_TAX_RATE = 0.086; // Arizona state + Phoenix local tax rate (8.6%)
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
@@ -128,6 +131,7 @@ export default function CheckoutClient() {
       expeditedShipping?: boolean;
       taxAmount?: number;
       isWholesaler?: boolean;
+      wholesaleCertificateUrl?: string;
     }) => {
       const response = await fetch('/api/checkout/create-payment', {
         method: 'POST',
@@ -156,6 +160,43 @@ export default function CheckoutClient() {
     },
   });
 
+  // Handle certificate file upload
+  const handleCertificateUpload = async (file: File) => {
+    setCertificateUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'wholesale-certificate');
+      
+      const response = await fetch('/api/upload/certificate', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload certificate');
+      }
+      
+      const data = await response.json();
+      setCertificateUrl(data.url);
+      setWholesaleCertificate(file);
+      toast({
+        title: 'Certificate Uploaded',
+        description: 'Your tax exemption certificate has been uploaded successfully.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Upload Failed',
+        description: 'Could not upload certificate. Please try again.',
+        variant: 'destructive',
+      });
+      setWholesaleCertificate(null);
+      setCertificateUrl(null);
+    } finally {
+      setCertificateUploading(false);
+    }
+  };
+
   // Handle submission of the shipping form. Validates required fields then moves to payment step.
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +217,17 @@ export default function CheckoutClient() {
       });
       return;
     }
+    
+    // Validate certificate if wholesaler is selected
+    if (isWholesaler && !certificateUrl) {
+      toast({
+        title: 'Certificate Required',
+        description: 'Please upload a valid resale or tax exemption certificate to proceed as a wholesaler.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setStep('payment');
   };
 
@@ -189,6 +241,7 @@ export default function CheckoutClient() {
         expeditedShipping: expeditedShipping || undefined,
         taxAmount: tax,
         isWholesaler: isWholesaler || undefined,
+        wholesaleCertificateUrl: certificateUrl || undefined,
       });
     } else {
       toast({
@@ -434,7 +487,13 @@ export default function CheckoutClient() {
                           type="button"
                           role="switch"
                           aria-checked={isWholesaler}
-                          onClick={() => setIsWholesaler(!isWholesaler)}
+                          onClick={() => {
+                            if (isWholesaler) {
+                              setWholesaleCertificate(null);
+                              setCertificateUrl(null);
+                            }
+                            setIsWholesaler(!isWholesaler);
+                          }}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                             isWholesaler ? 'bg-green-600' : 'bg-muted-foreground/30'
                           }`}
@@ -448,6 +507,96 @@ export default function CheckoutClient() {
                         </button>
                       </div>
                     </div>
+                    
+                    {/* Wholesaler certificate upload section */}
+                    {isWholesaler && (
+                      <div className="mt-4 pt-4 border-t border-muted-foreground/20">
+                        <div className="flex items-start gap-2 mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-200 dark:border-amber-800">
+                          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm text-amber-800 dark:text-amber-200">
+                            <p className="font-medium mb-1">Tax Exemption Certificate Required</p>
+                            <ul className="list-disc list-inside space-y-1 text-amber-700 dark:text-amber-300">
+                              <li>You must upload a valid resale or sales tax exemption certificate (e.g., state resale certificate or MTC Form 5000).</li>
+                              <li>This document must be current and match your business information.</li>
+                              <li>Wholesale pricing applies only to items purchased for resale.</li>
+                              <li>Orders without valid documentation may be delayed, adjusted, or canceled.</li>
+                            </ul>
+                          </div>
+                        </div>
+                        
+                        <Label className="text-sm font-medium">
+                          Upload Certificate *
+                        </Label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Accepted formats: PDF, JPG, PNG (max 10MB)
+                        </p>
+                        
+                        {certificateUrl ? (
+                          <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800">
+                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                                Certificate Uploaded
+                              </p>
+                              <p className="text-xs text-green-600 dark:text-green-400">
+                                {wholesaleCertificate?.name}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setWholesaleCertificate(null);
+                                setCertificateUrl(null);
+                              }}
+                              data-testid="button-remove-certificate"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  if (file.size > 10 * 1024 * 1024) {
+                                    toast({
+                                      title: 'File Too Large',
+                                      description: 'Please upload a file smaller than 10MB.',
+                                      variant: 'destructive',
+                                    });
+                                    return;
+                                  }
+                                  handleCertificateUpload(file);
+                                }
+                              }}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              disabled={certificateUploading}
+                              data-testid="input-certificate-upload"
+                            />
+                            <div className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-md transition-colors ${
+                              certificateUploading ? 'border-muted-foreground/30 bg-muted/30' : 'border-muted-foreground/50 hover:border-primary hover:bg-muted/50'
+                            }`}>
+                              {certificateUploading ? (
+                                <>
+                                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                  <span className="text-sm text-muted-foreground">Uploading...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-5 w-5 text-muted-foreground" />
+                                  <span className="text-sm text-muted-foreground">Click to upload certificate</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <Button type="submit" className="w-full" data-testid="button-continue-payment">
                     Continue to Payment

@@ -26,15 +26,64 @@ function noCache(res: NextResponse) {
   return res;
 }
 
+function buildOrderNotes({ 
+  expeditedShipping, 
+  isWholesaler, 
+  wholesaleCertificateUrl, 
+  notes 
+}: { 
+  expeditedShipping?: boolean; 
+  isWholesaler?: boolean; 
+  wholesaleCertificateUrl?: string; 
+  notes?: string; 
+}): string | null {
+  const parts: string[] = [];
+  
+  if (expeditedShipping) {
+    parts.push('[EXPEDITED SHIPPING]');
+  }
+  
+  if (isWholesaler) {
+    parts.push('[WHOLESALER - TAX EXEMPT]');
+    if (wholesaleCertificateUrl) {
+      parts.push(`Certificate: ${wholesaleCertificateUrl}`);
+    }
+  }
+  
+  if (notes) {
+    parts.push(notes);
+  }
+  
+  return parts.length > 0 ? parts.join(' - ') : null;
+}
+
 export async function POST(req: Request) {
   try {
-    const { sourceId, shippingAddress, notes, expeditedShipping, taxAmount = 0, isWholesaler = false } = await req.json();
+    const { sourceId, shippingAddress, notes, expeditedShipping, taxAmount = 0, isWholesaler = false, wholesaleCertificateUrl } = await req.json();
     const EXPEDITED_SHIPPING_COST = 25; // Match the frontend constant
     const ARIZONA_TAX_RATE = 0.086; // Arizona state + Phoenix local tax rate
 
     if (!sourceId) {
       return noCache(
         NextResponse.json({ error: 'Missing payment source' }, { status: 400 })
+      );
+    }
+
+    // Server-side validation: Wholesalers must provide a certificate URL
+    if (isWholesaler && !wholesaleCertificateUrl) {
+      return noCache(
+        NextResponse.json({ 
+          error: 'Tax exemption certificate required. Please upload a valid resale or sales tax exemption certificate to proceed as a wholesaler.' 
+        }, { status: 400 })
+      );
+    }
+
+    // Validate certificate URL format if provided (should be from Vercel Blob)
+    if (wholesaleCertificateUrl && !wholesaleCertificateUrl.includes('blob.vercel-storage.com')) {
+      return noCache(
+        NextResponse.json({ 
+          error: 'Invalid certificate URL. Please upload a valid certificate document.' 
+        }, { status: 400 })
       );
     }
 
@@ -129,7 +178,7 @@ export async function POST(req: Request) {
           totalAmount: '0',
           shippingAddress: formattedShippingAddress,
           stripePaymentIntentId: `free-order-${randomUUID()}`,
-          notes: notes || null,
+          notes: buildOrderNotes({ expeditedShipping, isWholesaler, wholesaleCertificateUrl, notes }),
         })
         .returning();
 
@@ -235,7 +284,7 @@ export async function POST(req: Request) {
         totalAmount: fullTotal.toString(),
         shippingAddress: formattedShippingAddress,
         stripePaymentIntentId: payment.id,
-        notes: expeditedShipping ? `[EXPEDITED SHIPPING]${notes ? ' - ' + notes : ''}` : (notes || null),
+        notes: buildOrderNotes({ expeditedShipping, isWholesaler, wholesaleCertificateUrl, notes }),
       })
       .returning();
 

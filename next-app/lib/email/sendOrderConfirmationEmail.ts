@@ -1,3 +1,7 @@
+import { db } from '@/lib/db';
+import { siteSettings } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+
 interface OrderItem {
   name: string;
   quantity: number;
@@ -29,6 +33,56 @@ interface SendEmailParams {
   shippingAddress: ShippingAddress;
 }
 
+interface ReceiptSettings {
+  headerColor: string;
+  logoUrl: string;
+  companyName: string;
+  supportEmail: string;
+  companyAddress: string;
+  companyPhone: string;
+  footerMessage: string;
+  thankYouMessage: string;
+}
+
+const defaultSettings: ReceiptSettings = {
+  headerColor: '#1a1a1a',
+  logoUrl: '',
+  companyName: 'Sticky Banditos Printing Company',
+  supportEmail: 'mhobbs.stickybanditos@gmail.com',
+  companyAddress: '2 North 35th Ave, Phoenix, AZ 85009',
+  companyPhone: '602-554-5338',
+  footerMessage: 'Questions about your order? Contact us at',
+  thankYouMessage: 'Thank you for your order!',
+};
+
+async function getReceiptSettings(): Promise<ReceiptSettings> {
+  try {
+    const [setting] = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'receipt_template'));
+    
+    if (!setting || !setting.value) {
+      return defaultSettings;
+    }
+    
+    const storedValue = setting.value as Record<string, unknown>;
+    return {
+      headerColor: typeof storedValue.headerColor === 'string' && storedValue.headerColor ? storedValue.headerColor : defaultSettings.headerColor,
+      logoUrl: typeof storedValue.logoUrl === 'string' ? storedValue.logoUrl : defaultSettings.logoUrl,
+      companyName: typeof storedValue.companyName === 'string' && storedValue.companyName ? storedValue.companyName : defaultSettings.companyName,
+      supportEmail: typeof storedValue.supportEmail === 'string' && storedValue.supportEmail ? storedValue.supportEmail : defaultSettings.supportEmail,
+      companyAddress: typeof storedValue.companyAddress === 'string' && storedValue.companyAddress ? storedValue.companyAddress : defaultSettings.companyAddress,
+      companyPhone: typeof storedValue.companyPhone === 'string' && storedValue.companyPhone ? storedValue.companyPhone : defaultSettings.companyPhone,
+      footerMessage: typeof storedValue.footerMessage === 'string' && storedValue.footerMessage ? storedValue.footerMessage : defaultSettings.footerMessage,
+      thankYouMessage: typeof storedValue.thankYouMessage === 'string' && storedValue.thankYouMessage ? storedValue.thankYouMessage : defaultSettings.thankYouMessage,
+    };
+  } catch (error) {
+    console.error('Error fetching receipt settings:', error);
+    return defaultSettings;
+  }
+}
+
 export async function sendOrderConfirmationEmail({
   toEmail,
   orderNumber,
@@ -45,6 +99,7 @@ export async function sendOrderConfirmationEmail({
     return { ok: false, error: 'Email service not configured' };
   }
 
+  const settings = await getReceiptSettings();
   const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
 
   const itemsHtml = items
@@ -76,6 +131,10 @@ export async function sendOrderConfirmationEmail({
     ${shippingAddress.country || 'USA'}
   `;
 
+  const logoHtml = settings.logoUrl 
+    ? `<img src="${settings.logoUrl}" alt="${settings.companyName}" height="60" style="max-height: 60px;">`
+    : `<img src="${siteUrl}/logo.png" alt="${settings.companyName}" height="60" style="max-height: 60px;">`;
+
   const htmlBody = `
 <!DOCTYPE html>
 <html>
@@ -90,8 +149,8 @@ export async function sendOrderConfirmationEmail({
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
           <!-- Header -->
           <tr>
-            <td style="background-color: #1a1a1a; padding: 24px; text-align: center;">
-              <img src="${siteUrl}/logo.png" alt="Sticky Banditos" height="60" style="max-height: 60px;">
+            <td style="background-color: ${settings.headerColor}; padding: 24px; text-align: center;">
+              ${logoHtml}
             </td>
           </tr>
           
@@ -99,7 +158,7 @@ export async function sendOrderConfirmationEmail({
           <tr>
             <td style="padding: 32px 32px 16px 32px; text-align: center;">
               <h1 style="margin: 0; color: #1a1a1a; font-size: 24px; font-weight: bold;">Order Confirmation</h1>
-              <p style="margin: 8px 0 0 0; color: #666; font-size: 16px;">Thank you for your order!</p>
+              <p style="margin: 8px 0 0 0; color: #666; font-size: 16px;">${settings.thankYouMessage}</p>
             </td>
           </tr>
           
@@ -179,13 +238,13 @@ export async function sendOrderConfirmationEmail({
           <tr>
             <td style="background-color: #f8f8f8; padding: 24px 32px; text-align: center; border-top: 1px solid #eee;">
               <p style="margin: 0 0 8px 0; color: #666; font-size: 14px; font-family: Arial, sans-serif;">
-                Questions about your order? Contact us at<br>
-                <a href="mailto:mhobbs.stickybanditos@gmail.com" style="color: #1a1a1a;">mhobbs.stickybanditos@gmail.com</a>
+                ${settings.footerMessage}<br>
+                <a href="mailto:${settings.supportEmail}" style="color: #1a1a1a;">${settings.supportEmail}</a>
               </p>
               <p style="margin: 16px 0 0 0; color: #999; font-size: 12px; font-family: Arial, sans-serif;">
-                Sticky Banditos Printing Company<br>
-                2 North 35th Ave, Phoenix, AZ 85009<br>
-                <a href="tel:602-554-5338" style="color: #999;">602-554-5338</a>
+                ${settings.companyName}<br>
+                ${settings.companyAddress}<br>
+                <a href="tel:${settings.companyPhone.replace(/[^0-9]/g, '')}" style="color: #999;">${settings.companyPhone}</a>
               </p>
             </td>
           </tr>

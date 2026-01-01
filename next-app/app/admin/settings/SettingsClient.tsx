@@ -5,7 +5,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Save, Trash2, Settings as SettingsIcon, Shield, UserPlus, UserMinus, Mail, Loader2, Database, Code } from "lucide-react";
+import { Plus, Save, Trash2, Settings as SettingsIcon, Shield, UserPlus, UserMinus, Mail, Loader2, Database, Code, FileText, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 
 interface SiteSetting {
@@ -137,6 +138,26 @@ export default function AdminSettings() {
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Settings</h1>
           <p className="text-gray-600 text-sm md:text-base">Manage site-wide configuration</p>
+        </div>
+
+        {/* Quick Links */}
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          <Link href="/admin/settings/receipt">
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Receipt Template</h3>
+                    <p className="text-sm text-gray-600">Customize order confirmation emails</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Help Guide */}

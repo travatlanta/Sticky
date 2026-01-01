@@ -1,11 +1,16 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, orderItems, products } from '@shared/schema';
+import { orders, orderItems, products, users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { sendOrderConfirmationEmail } from '@/lib/email/sendOrderConfirmationEmail';
+
+function isValidEmail(email: string): boolean {
+  // Simple sanity check. We don't need RFC-perfect validation here.
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 export async function POST(
   request: Request,
@@ -16,7 +21,7 @@ export async function POST(
     if (!session?.user) {
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
-    
+
     if (!(session.user as any).isAdmin) {
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
@@ -24,24 +29,54 @@ export async function POST(
     const { id } = await params;
     const orderId = parseInt(id);
 
-    // Get the order
-    const [order] = await db
-      .select()
+    const body = await request.json().catch(() => ({} as any));
+    const toEmailOverride =
+      typeof body?.toEmail === 'string' && body.toEmail.trim() ? body.toEmail.trim() : null;
+
+    if (toEmailOverride && !isValidEmail(toEmailOverride)) {
+      return NextResponse.json({ message: 'Invalid override email address' }, { status: 400 });
+    }
+
+    // Get the order + optional user email
+    const [row] = await db
+      .select({
+        order: orders,
+        userEmail: users.email,
+      })
       .from(orders)
+      .leftJoin(users, eq(orders.userId, users.id))
       .where(eq(orders.id, orderId));
 
+    const order = row?.order;
     if (!order) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
 
-    // Get customer email from shipping address
-    const shippingAddr = order.shippingAddress as any;
-    const customerEmail = shippingAddr?.email;
+    const userEmail =
+      typeof row?.userEmail === 'string' && row.userEmail.trim() ? row.userEmail.trim() : null;
 
-    if (!customerEmail) {
-      return NextResponse.json({ 
-        message: 'No email address found for this order. The customer did not provide an email during checkout.' 
-      }, { status: 400 });
+    const shippingAddr = (order.shippingAddress as any) || {};
+    const legacyEmail =
+      typeof shippingAddr?.email === 'string' && shippingAddr.email.trim()
+        ? shippingAddr.email.trim()
+        : null;
+
+    const resolvedEmail =
+      (toEmailOverride && toEmailOverride.trim()) ||
+      (typeof (order as any).customerEmail === 'string' && (order as any).customerEmail.trim()
+        ? (order as any).customerEmail.trim()
+        : null) ||
+      legacyEmail ||
+      userEmail;
+
+    if (!resolvedEmail) {
+      return NextResponse.json(
+        {
+          message:
+            'No email address found for this order. Provide an override email by POSTing JSON: { "toEmail": "customer@example.com" }',
+        },
+        { status: 400 }
+      );
     }
 
     // Get order items with product names
@@ -56,9 +91,11 @@ export async function POST(
       .leftJoin(products, eq(orderItems.productId, products.id))
       .where(eq(orderItems.orderId, orderId));
 
-    // Send the email
+    // Send the email (forceSend=true so admin resends always send)
     const result = await sendOrderConfirmationEmail({
-      toEmail: customerEmail,
+      orderId: order.id,
+      forceSend: true,
+      toEmail: resolvedEmail,
       orderNumber: order.orderNumber || `#${order.id}`,
       items: items.map((item) => ({
         name: item.productName || 'Custom Product',
@@ -83,14 +120,12 @@ export async function POST(
     });
 
     if (!result.ok) {
-      return NextResponse.json({ 
-        message: result.error || 'Failed to send email' 
-      }, { status: 500 });
+      return NextResponse.json({ message: result.error || 'Failed to send email' }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Receipt sent to ${customerEmail}` 
+    return NextResponse.json({
+      success: true,
+      message: `Receipt sent to ${resolvedEmail}`,
     });
   } catch (error) {
     console.error('Error resending receipt:', error);

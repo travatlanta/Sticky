@@ -92,6 +92,17 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id || null;
 
+    const sessionEmail =
+      typeof (session?.user as any)?.email === 'string' && (session?.user as any).email
+        ? String((session?.user as any).email).trim()
+        : null;
+
+    const checkoutEmail =
+      typeof shippingAddress?.email === 'string' && shippingAddress.email
+        ? String(shippingAddress.email).trim()
+        : null;
+
+
     const sessionId = (await cookies()).get('cart-session-id')?.value;
     if (!sessionId) {
       return noCache(
@@ -183,6 +194,7 @@ export async function POST(req: Request) {
         .values({
           orderNumber: generateOrderNumber(),
           userId: userId,
+          customerEmail: checkoutEmail || sessionEmail,
           status: 'paid',
           subtotal: '0',
           shippingCost: '0',
@@ -211,10 +223,12 @@ export async function POST(req: Request) {
       await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
 
       // Send order confirmation email (free order path)
-      if (shippingAddress?.email) {
+      const freeOrderEmail = checkoutEmail || sessionEmail;
+      if (freeOrderEmail) {
         try {
           await sendOrderConfirmationEmail({
-            toEmail: shippingAddress.email,
+            orderId: order.id,
+            toEmail: freeOrderEmail,
             orderNumber: order.orderNumber,
             items: items.map((item) => ({
               name: item.productName || 'Custom Product',
@@ -315,12 +329,23 @@ export async function POST(req: Request) {
       phone: shippingAddress.phone,
     } : null;
 
+    const squareEmail =
+      typeof (payment as any)?.buyer_email_address === 'string' && (payment as any).buyer_email_address
+        ? String((payment as any).buyer_email_address).trim()
+        : typeof (payment as any)?.customer_details?.email_address === 'string' &&
+          (payment as any).customer_details?.email_address
+          ? String((payment as any).customer_details.email_address).trim()
+          : null;
+
+    const resolvedCustomerEmail = checkoutEmail || sessionEmail || squareEmail;
+
     // Create order with all data (expeditedCost, calculatedTax, and fullTotal already calculated at top)
     const [order] = await db
       .insert(orders)
       .values({
         orderNumber: generateOrderNumber(),
         userId: userId,
+        customerEmail: resolvedCustomerEmail,
         status: 'paid',
         subtotal: subtotal.toString(),
         shippingCost: expeditedCost.toString(),
@@ -351,10 +376,12 @@ export async function POST(req: Request) {
     await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
 
     // Send order confirmation email (paid order path)
-    if (shippingAddress?.email) {
+    const paidOrderEmail = resolvedCustomerEmail;
+    if (paidOrderEmail) {
       try {
         await sendOrderConfirmationEmail({
-          toEmail: shippingAddress.email,
+          orderId: order.id,
+          toEmail: paidOrderEmail,
           orderNumber: order.orderNumber,
           items: items.map((item) => ({
             name: item.productName || 'Custom Product',

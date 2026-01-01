@@ -1,6 +1,7 @@
 import { sql, relations } from "drizzle-orm";
 import {
   index,
+  uniqueIndex,
   jsonb,
   pgTable,
   pgEnum,
@@ -253,6 +254,7 @@ export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   orderNumber: varchar("order_number", { length: 20 }).notNull().unique(),
   userId: varchar("user_id").references(() => users.id),
+  customerEmail: varchar("customer_email", { length: 255 }),
   status: orderStatusEnum("status").default("pending"),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default(
@@ -357,6 +359,41 @@ export const siteSettings = pgTable("site_settings", {
   value: jsonb("value"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Email delivery status enum and table for reliable email sending
+export const emailDeliveryStatusEnum = pgEnum("email_delivery_status", [
+  "pending",
+  "sent",
+  "failed",
+]);
+
+export const emailDeliveries = pgTable(
+  "email_deliveries",
+  {
+    id: serial("id").primaryKey(),
+    orderId: integer("order_id")
+      .references(() => orders.id)
+      .notNull(),
+    type: varchar("type", { length: 50 }).notNull(), // e.g. 'order_confirmation'
+    toEmail: varchar("to_email", { length: 255 }).notNull(),
+    status: emailDeliveryStatusEnum("status").default("pending").notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    lastError: text("last_error"),
+    lastAttemptAt: timestamp("last_attempt_at"),
+    sentAt: timestamp("sent_at"),
+    resendId: varchar("resend_id", { length: 100 }),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => ({
+    orderTypeUq: uniqueIndex("UQ_email_deliveries_order_type").on(
+      table.orderId,
+      table.type
+    ),
+    orderIdx: index("IDX_email_deliveries_order").on(table.orderId),
+  })
+);
+
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({

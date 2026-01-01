@@ -18,7 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { jsPDF } from "jspdf";
@@ -193,6 +193,22 @@ export default function AdminOrders() {
     }
   };
 
+  const resendReceiptMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const res = await fetch(`/api/admin/orders/${orderId}/resend-receipt`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to resend receipt");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({ title: data.message || "Receipt sent successfully" });
+    },
+    onError: (error: Error) => toast({ title: error.message || "Failed to resend receipt", variant: "destructive" }),
+  });
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",
@@ -342,10 +358,24 @@ export default function AdminOrders() {
                   <h2 className="text-xl font-bold">Order #{selectedOrder.orderNumber || selectedOrder.id}</h2>
                   <p className="text-sm text-gray-500">{formatDate(selectedOrder.createdAt)}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <Badge className={statusColors[selectedOrder.status] || "bg-gray-100"}>
                     {selectedOrder.status.replace("_", " ")}
                   </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => resendReceiptMutation.mutate(selectedOrder.id)}
+                    disabled={resendReceiptMutation.isPending}
+                    data-testid="button-resend-receipt"
+                  >
+                    {resendReceiptMutation.isPending ? (
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Resend Receipt
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)}>
                     <X className="h-5 w-5" />
                   </Button>

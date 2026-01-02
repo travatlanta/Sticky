@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import EmailDeliveriesClient from "./EmailDeliveriesClient";
+import { redirect } from "next/navigation";
 
 export default function EmailDeliveriesPage() {
-  return <EmailDeliveriesClient />;
+  redirect("/admin/orders");
 }

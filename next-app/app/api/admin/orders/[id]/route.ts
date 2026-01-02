@@ -13,11 +13,23 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+      const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
+    return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
     
     if (!(session.user as any).isAdmin) {
-      return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
+      const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
+    return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
     const { id } = await params;
@@ -28,7 +40,13 @@ export async function GET(
       .where(eq(orders.id, parseInt(id)));
 
     if (!order) {
-      return NextResponse.json({ message: 'Order not found' }, { status: 404 });
+      const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
+    return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
 
     // Get user info
@@ -100,9 +118,21 @@ export async function GET(
       })
     );
 
+    const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
     return NextResponse.json({ ...order, user, items: enrichedItems });
   } catch (error) {
     console.error('Error fetching order:', error);
+    const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
     return NextResponse.json({ message: 'Failed to fetch order' }, { status: 500 });
   }
 }
@@ -114,11 +144,23 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+      const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
+    return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
     
     if (!(session.user as any).isAdmin) {
-      return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
+      const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
+    return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
     const { id } = await params;
@@ -139,6 +181,12 @@ export async function PUT(
     return NextResponse.json(order);
   } catch (error) {
     console.error('Error updating order:', error);
+    const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
     return NextResponse.json({ message: 'Failed to update order' }, { status: 500 });
   }
 }
@@ -150,11 +198,23 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+      const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
+    return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
     
     if (!(session.user as any).isAdmin) {
-      return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
+      const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
+    return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
     const { id } = await params;
@@ -166,9 +226,21 @@ export async function DELETE(
     // Then delete the order
     await db.delete(orders).where(eq(orders.id, orderId));
 
+    const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
     return NextResponse.json({ message: 'Order deleted successfully' });
   } catch (error) {
     console.error('Error deleting order:', error);
+    const deliveries = await db
+      .select()
+      .from(emailDeliveries)
+      .where(eq(emailDeliveries.orderId, order.id))
+      .orderBy(desc(emailDeliveries.createdAt));
+
     return NextResponse.json({ message: 'Failed to delete order' }, { status: 500 });
   }
 }

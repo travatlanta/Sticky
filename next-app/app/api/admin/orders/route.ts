@@ -23,6 +23,29 @@ export async function GET() {
       .from(orders)
       .orderBy(desc(orders.createdAt));
 
+    const orderIds = allOrders.map((o) => o.id);
+
+    const latestEmailDeliveryByOrderId = new Map<number, any>();
+    if (orderIds.length > 0) {
+      const deliveries = await db
+        .select()
+        .from(emailDeliveries)
+        .where(
+          and(
+            inArray(emailDeliveries.orderId, orderIds),
+            eq(emailDeliveries.type, "order_confirmation")
+          )
+        )
+        .orderBy(desc(emailDeliveries.createdAt));
+
+      for (const d of deliveries) {
+        if (!latestEmailDeliveryByOrderId.has(d.orderId)) {
+          latestEmailDeliveryByOrderId.set(d.orderId, d);
+        }
+      }
+    }
+
+
     // Enrich each order with user info and items
     const enrichedOrders = await Promise.all(
       allOrders.map(async (order) => {
@@ -91,7 +114,7 @@ export async function GET() {
           })
         );
 
-        return { ...order, user, items: enrichedItems };
+        return { ...order, user, items: enrichedItems, emailDelivery: latestEmailDeliveryByOrderId.get(order.id) || null };
       })
     );
 

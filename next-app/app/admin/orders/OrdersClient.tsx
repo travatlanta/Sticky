@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -29,6 +29,23 @@ interface OrderUser {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
+}
+
+
+type EmailDeliveryStatus = "pending" | "sent" | "failed";
+
+interface EmailDelivery {
+  id: number;
+  orderId: number;
+  type: string;
+  toEmail: string;
+  status: EmailDeliveryStatus;
+  attempts: number;
+  lastError: string | null;
+  lastAttemptAt: string | null;
+  sentAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 interface Order {
@@ -71,65 +88,15 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800",
 };
 
+const emailStatusColors: Record<string, string> = {
+  sent: "bg-green-100 text-green-800",
+  pending: "bg-yellow-100 text-yellow-800",
+  failed: "bg-red-100 text-red-800",
+  unknown: "bg-gray-100 text-gray-800",
+};
+
 export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [emailDeliveries, setEmailDeliveries] = useState<any[]>([]);
-  const [emailDeliveriesLoading, setEmailDeliveriesLoading] = useState(false);
-  const [emailDeliveriesError, setEmailDeliveriesError] = useState<string | null>(null);
-  const [emailDeliveriesWarning, setEmailDeliveriesWarning] = useState<string | null>(null);
-
-  useEffect(() => {
-  const orderId = selectedOrder?.id;
-  
-  // Reset when closing the modal
-  if (!orderId) {
-    setEmailDeliveries([]);
-    setEmailDeliveriesWarning(null);
-    setEmailDeliveriesError(null);
-    setEmailDeliveriesLoading(false);
-    return;
-  }
-  
-  let cancelled = false;
-  
-  async function loadEmailDeliveries() {
-    try {
-      setEmailDeliveriesLoading(true);
-      setEmailDeliveriesError(null);
-      setEmailDeliveriesWarning(null);
-  
-      const res = await fetch(`/api/admin/email-deliveries?orderId=${orderId}`);
-      const data = await res.json();
-  
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to load email deliveries");
-      }
-  
-      if (!cancelled) {
-        if (data?.warning) {
-          setEmailDeliveriesWarning(data.warning);
-        }
-        setEmailDeliveries(Array.isArray(data?.deliveries) ? data.deliveries : []);
-      }
-    } catch (err: any) {
-      if (!cancelled) {
-        setEmailDeliveriesError(err?.message || "Failed to load email deliveries");
-        setEmailDeliveries([]);
-      }
-    } finally {
-      if (!cancelled) {
-        setEmailDeliveriesLoading(false);
-      }
-    }
-  }
-  
-  loadEmailDeliveries();
-  
-  return () => {
-    cancelled = true;
-  };
-  }, [selectedOrder?.id]);
-
   const [downloadFormats, setDownloadFormats] = useState<Record<number, string>>({});
   const [downloading, setDownloading] = useState<Record<number, boolean>>({});
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
@@ -266,6 +233,36 @@ export default function AdminOrders() {
     onError: (error: Error) => toast({ title: error.message || "Failed to resend receipt", variant: "destructive" }),
   });
 
+
+  const retryEmailDeliveryMutation = useMutation({
+    mutationFn: async (deliveryId: number) => {
+      const response = await fetch(`/api/admin/email-deliveries/${deliveryId}/retry`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to retry email delivery");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email retry queued",
+        description: "The email delivery has been queued for retry.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      if (selectedOrder?.id) {
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/orders", selectedOrder.id] });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Retry failed",
+        description: error.message || "Failed to retry email delivery",
+        variant: "destructive",
+      });
+    },
+  });
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",
@@ -345,6 +342,13 @@ export default function AdminOrders() {
                         <Badge className={statusColors[order.status] || "bg-gray-100"}>
                           {order.status.replace("_", " ")}
                         </Badge>
+                        {order.emailDelivery ? (
+                          <Badge
+                            className={`${emailStatusColors[order.emailDelivery.status] || emailStatusColors.unknown} text-xs font-medium whitespace-nowrap`}
+                          >
+                            Email: {order.emailDelivery.status}
+                          </Badge>
+                        ) : null}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                         <span className="flex items-center gap-1">
@@ -531,73 +535,7 @@ export default function AdminOrders() {
                   </div>
                 </div>
 
-                {/* Email Delivery */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold mb-4">Email Delivery</h3>
-
-                  {emailDeliveriesWarning && (
-                    <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-                      {emailDeliveriesWarning}
-                    </div>
-                  )}
-
-                  {emailDeliveriesLoading ? (
-                    <p className="text-sm text-gray-600">Loading email delivery status...</p>
-                  ) : emailDeliveriesError ? (
-                    <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                      {emailDeliveriesError}
-                    </div>
-                  ) : emailDeliveries.length === 0 ? (
-                    <p className="text-sm text-gray-600">
-                      No email delivery records for this order yet.
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto rounded-lg border border-gray-200">
-                      <table className="min-w-full text-sm">
-                        <thead className="bg-gray-50 text-gray-600">
-                          <tr>
-                            <th className="px-3 py-2 text-left font-medium">Type</th>
-                            <th className="px-3 py-2 text-left font-medium">To</th>
-                            <th className="px-3 py-2 text-left font-medium">Status</th>
-                            <th className="px-3 py-2 text-left font-medium">Attempts</th>
-                            <th className="px-3 py-2 text-left font-medium">Last Attempt</th>
-                            <th className="px-3 py-2 text-left font-medium">Sent</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {emailDeliveries.map((d: any) => (
-                            <tr key={d.id} className="border-t border-gray-100">
-                              <td className="px-3 py-2">{d.type}</td>
-                              <td className="px-3 py-2">{d.toEmail}</td>
-                              <td className="px-3 py-2">
-                <span
-                  className={
-                    d.status === "sent"
-                      ? "inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800"
-                      : d.status === "failed"
-                      ? "inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800"
-                      : "inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800"
-                  }
-                >
-                  {d.status}
-                </span>
-                              </td>
-                              <td className="px-3 py-2">{d.attempts}</td>
-                              <td className="px-3 py-2">
-                {d.lastAttemptAt ? formatDate(d.lastAttemptAt) : "—"}
-                              </td>
-                              <td className="px-3 py-2">
-                {d.sentAt ? formatDate(d.sentAt) : "—"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-{/* Order Items */}
+                {/* Order Items */}
                 <div className="bg-gray-50 rounded-xl p-4">
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <Package className="h-5 w-5 text-gray-600" />
@@ -876,6 +814,97 @@ export default function AdminOrders() {
                   </div>
                 </div>
 
+                {/* Email Delivery */}
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900">Email Delivery</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resendReceiptMutation.mutate(selectedOrder.id)}
+                      disabled={resendReceiptMutation.isPending}
+                    >
+                      {resendReceiptMutation.isPending ? "Resending..." : "Resend Receipt"}
+                    </Button>
+                  </div>
+                
+                  {orderDetails?.emailDeliveries && orderDetails.emailDeliveries.length > 0 ? (
+                    <div className="space-y-3">
+                      {orderDetails.emailDeliveries.map((delivery) => (
+                        <div
+                          key={delivery.id}
+                          className="bg-white border border-gray-200 rounded-lg p-3 flex items-start justify-between gap-4"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge
+                                className={`${emailStatusColors[delivery.status] || emailStatusColors.unknown} text-xs font-medium whitespace-nowrap`}
+                              >
+                                {delivery.status}
+                              </Badge>
+                              <span className="text-sm text-gray-700">{delivery.type}</span>
+                              <span className="text-sm text-gray-500 truncate">{delivery.toEmail}</span>
+                            </div>
+                
+                            <div className="mt-1 text-xs text-gray-500">
+                              Attempts: {delivery.attempts} • Last attempt:{" "}
+                              {delivery.lastAttemptAt ? formatDate(delivery.lastAttemptAt) : "—"} • Sent:{" "}
+                              {delivery.sentAt ? formatDate(delivery.sentAt) : "—"}
+                            </div>
+                
+                            {delivery.lastError && (
+                              <div className="mt-2 text-xs text-red-600 break-words">
+                                {delivery.lastError}
+                              </div>
+                            )}
+                          </div>
+                
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => retryEmailDeliveryMutation.mutate(delivery.id)}
+                              disabled={retryEmailDeliveryMutation.isPending || delivery.status === "sent"}
+                            >
+                              {delivery.status === "sent"
+                                ? "Sent"
+                                : retryEmailDeliveryMutation.isPending
+                                ? "Retrying..."
+                                : "Retry"}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : selectedOrder.emailDelivery ? (
+                    <div className="bg-white border border-gray-200 rounded-lg p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          className={`${emailStatusColors[selectedOrder.emailDelivery.status] || emailStatusColors.unknown} text-xs font-medium whitespace-nowrap`}
+                        >
+                          {selectedOrder.emailDelivery.status}
+                        </Badge>
+                        <span className="text-sm text-gray-700">{selectedOrder.emailDelivery.type}</span>
+                        <span className="text-sm text-gray-500 truncate">{selectedOrder.emailDelivery.toEmail}</span>
+                      </div>
+                
+                      <div className="mt-1 text-xs text-gray-500">
+                        Attempts: {selectedOrder.emailDelivery.attempts} • Last attempt:{" "}
+                        {selectedOrder.emailDelivery.lastAttemptAt ? formatDate(selectedOrder.emailDelivery.lastAttemptAt) : "—"} • Sent:{" "}
+                        {selectedOrder.emailDelivery.sentAt ? formatDate(selectedOrder.emailDelivery.sentAt) : "—"}
+                      </div>
+                
+                      {selectedOrder.emailDelivery.lastError && (
+                        <div className="mt-2 text-xs text-red-600 break-words">
+                          {selectedOrder.emailDelivery.lastError}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No email delivery records found for this order yet.</p>
+                  )}
+                </div>
+                
                 {/* Order Notes */}
                 {selectedOrder.notes && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">

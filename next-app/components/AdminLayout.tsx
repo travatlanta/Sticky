@@ -18,6 +18,7 @@ import {
   Users,
   DollarSign,
   Inbox,
+  Mail,
   Search,
   BarChart3,
   Paintbrush,
@@ -39,6 +40,12 @@ const navItems = [
   { href: "/admin/seo", label: "SEO", icon: Search },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/guide", label: "Help Guide", icon: HelpCircle },
+{
+  href: "/admin/email-deliveries",
+  label: "Email Deliveries",
+  icon: Mail,
+},
+
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

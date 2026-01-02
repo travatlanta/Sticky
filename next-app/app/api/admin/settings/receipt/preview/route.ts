@@ -48,7 +48,6 @@ export async function POST(req: Request) {
       subtotal: 18.99,
       shipping: 0,
       tax: 0,
-      discount: 0,
       total: 18.99,
     },
     shippingAddress: {

@@ -18,6 +18,7 @@ import {
   Users,
   DollarSign,
   Inbox,
+  Mail,
   Search,
   BarChart3,
   Paintbrush,

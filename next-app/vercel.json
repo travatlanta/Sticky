@@ -3,10 +3,19 @@
     {
       "source": "/(.*)",
       "has": [
-        { "type": "host", "value": "www.stickybanditos.com" }
+        {
+          "type": "host",
+          "value": "www.stickybanditos.com"
+        }
       ],
       "destination": "https://stickybanditos.com/$1",
       "permanent": true
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/retry-email-deliveries",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

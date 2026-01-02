@@ -6,17 +6,24 @@ import { emailDeliveries, orders, orderItems, products, users } from '@shared/sc
 import { and, eq, lt, or } from 'drizzle-orm';
 import { sendOrderConfirmationEmail } from '@/lib/email/sendOrderConfirmationEmail';
 
-function isAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
+function isAuthorized(req: Request): boolean {
+  // Vercel Cron Jobs (configured via vercel.json) include this header.
+  // Note: any client can technically spoof headers, so keep this route idempotent.
+  const xVercelCron = req.headers.get('x-vercel-cron');
+  const isVercelCron = xVercelCron === '1' || xVercelCron === 'true';
+  if (isVercelCron) return true;
 
-  const authHeader = request.headers.get('authorization');
-  const xSecret = request.headers.get('x-cron-secret');
+  const expected = process.env.CRON_SECRET;
+  // If no secret is configured, allow (useful for local/dev).
+  if (!expected) return true;
 
-  if (authHeader && authHeader === `Bearer ${secret}`) return true;
-  if (xSecret && xSecret === secret) return true;
+  const authHeader = req.headers.get('authorization') || '';
+  const cronSecret = req.headers.get('x-cron-secret') || '';
+  const bearerToken = authHeader.startsWith('Bearer ')
+    ? authHeader.slice('Bearer '.length)
+    : '';
 
-  return false;
+  return bearerToken === expected || cronSecret === expected;
 }
 
 function isQueueEnabled(): boolean {

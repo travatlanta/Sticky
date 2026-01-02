@@ -95,6 +95,60 @@ export async function GET() {
       results.push('Added tracking_number column');
     }
 
+    // Check if customer_email column exists
+    const checkCustomerEmail = await sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'orders' AND column_name = 'customer_email'
+    `;
+
+    if (checkCustomerEmail.length === 0) {
+      await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`;
+      results.push('Added customer_email column');
+
+      // Best-effort backfill from shipping_address JSON (if present)
+      await sql`
+        UPDATE orders
+        SET customer_email = shipping_address->>'email'
+        WHERE customer_email IS NULL
+          AND shipping_address IS NOT NULL
+          AND (shipping_address->>'email') IS NOT NULL
+      `;
+      results.push('Backfilled customer_email from shipping_address');
+    }
+
+    // Create email delivery tracking (enum + table) for reliable email sending
+    const checkEmailDeliveryEnum = await sql`
+      SELECT 1 FROM pg_type WHERE typname = 'email_delivery_status'
+    `;
+
+    if (checkEmailDeliveryEnum.length === 0) {
+      await sql`CREATE TYPE email_delivery_status AS ENUM ('pending', 'sent', 'failed')`;
+      results.push('Created email_delivery_status enum');
+    }
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS email_deliveries (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER NOT NULL REFERENCES orders(id),
+        type VARCHAR(50) NOT NULL,
+        to_email VARCHAR(255) NOT NULL,
+        status email_delivery_status NOT NULL DEFAULT 'pending',
+        attempts INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        last_attempt_at TIMESTAMP,
+        sent_at TIMESTAMP,
+        resend_id VARCHAR(100),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+    results.push('Ensured email_deliveries table exists');
+
+    await sql`CREATE UNIQUE INDEX IF NOT EXISTS "UQ_email_deliveries_order_type" ON email_deliveries(order_id, type)`;
+    await sql`CREATE INDEX IF NOT EXISTS "IDX_email_deliveries_order" ON email_deliveries(order_id)`;
+    results.push('Ensured email_deliveries indexes exist');
+
     // Add missing cart_items columns
     const checkMediaType = await sql`
       SELECT column_name 

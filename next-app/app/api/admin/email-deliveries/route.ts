@@ -22,8 +22,18 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const type = searchParams.get("type");
+  const orderId = searchParams.get("orderId");
 
   const whereParts: any[] = [];
+
+  if (orderId) {
+    const parsedOrderId = Number(orderId);
+    if (!Number.isFinite(parsedOrderId) || parsedOrderId <= 0) {
+      return NextResponse.json({ error: "Invalid orderId" }, { status: 400 });
+    }
+    whereParts.push(eq(emailDeliveries.orderId, parsedOrderId));
+  }
+
   if (status && ALLOWED_STATUSES.has(status)) {
     whereParts.push(eq(emailDeliveries.status as any, status as any));
   }

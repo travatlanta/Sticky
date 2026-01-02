@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, users, orderItems, products, designs, productOptions } from '@shared/schema';
+import { orders, users, orderItems, products, designs, productOptions, emailDeliveries } from '@shared/schema';
 import { desc, eq, inArray } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -23,26 +23,29 @@ export async function GET() {
       .from(orders)
       .orderBy(desc(orders.createdAt));
 
-    const orderIds = allOrders.map((o) => o.id);
+    // Prefetch email deliveries for these orders (best-effort: the table may not exist yet)
+    const deliveriesByOrderId = new Map<number, (typeof emailDeliveries.$inferSelect)[]>();
 
-    const latestEmailDeliveryByOrderId = new Map<number, any>();
-    if (orderIds.length > 0) {
-      const deliveries = await db
-        .select()
-        .from(emailDeliveries)
-        .where(
-          and(
-            inArray(emailDeliveries.orderId, orderIds),
-            eq(emailDeliveries.type, "order_confirmation")
-          )
-        )
-        .orderBy(desc(emailDeliveries.createdAt));
+    try {
+      const orderIds = allOrders.map((o) => o.id);
+      if (orderIds.length > 0) {
+        const deliveries = await db
+          .select()
+          .from(emailDeliveries)
+          .where(inArray(emailDeliveries.orderId, orderIds))
+          .orderBy(desc(emailDeliveries.createdAt));
 
-      for (const d of deliveries) {
-        if (!latestEmailDeliveryByOrderId.has(d.orderId)) {
-          latestEmailDeliveryByOrderId.set(d.orderId, d);
+        for (const d of deliveries) {
+          const existing = deliveriesByOrderId.get(d.orderId) ?? [];
+          existing.push(d);
+          deliveriesByOrderId.set(d.orderId, existing);
         }
       }
+    } catch (err) {
+      console.warn(
+        "[admin/orders] Skipping email deliveries lookup (table missing or query failed):",
+        err
+      );
     }
 
 
@@ -114,7 +117,9 @@ export async function GET() {
           })
         );
 
-        return { ...order, user, items: enrichedItems, emailDelivery: latestEmailDeliveryByOrderId.get(order.id) || null };
+        const deliveries = deliveriesByOrderId.get(order.id) ?? [];
+
+        return { ...order, user, items: enrichedItems, deliveries };
       })
     );
 

@@ -19,6 +19,9 @@ interface ReceiptSettings {
   thankYouMessage: string;
 }
 
+const RECEIPT_LOGO_ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"]);
+const RECEIPT_LOGO_MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
 const defaultSettings: ReceiptSettings = {
   headerColor: '#1a1a1a',
   logoUrl: '',
@@ -116,6 +119,25 @@ export default function ReceiptSettingsClient() {
     // Allow selecting the same file twice
     e.target.value = '';
     if (!file) return;
+
+    // Client-side validation to avoid unnecessary uploads
+    if (!RECEIPT_LOGO_ALLOWED_TYPES.has(file.type)) {
+      toast({
+        title: "Unsupported file type",
+        description: "Please upload a PNG, JPG, or WebP image.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > RECEIPT_LOGO_MAX_SIZE_BYTES) {
+      toast({
+        title: "File too large",
+        description: "Max size is 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const url = await uploadLogo(file);
     if (!url) return;

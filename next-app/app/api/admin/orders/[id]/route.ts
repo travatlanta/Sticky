@@ -175,6 +175,9 @@ export async function DELETE(
     // First delete order items
     await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
 
+    // Delete any related email delivery logs (FK to orders)
+    await db.delete(emailDeliveries).where(eq(emailDeliveries.orderId, orderId));
+
     // Then delete the order
     await db.delete(orders).where(eq(orders.id, orderId));
 

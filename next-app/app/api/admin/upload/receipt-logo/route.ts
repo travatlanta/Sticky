@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
+const MAX_LOGO_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = new Set([
   'image/png',
   'image/jpeg',
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     if (typeof (file as any).size === 'number' && file.size > MAX_LOGO_SIZE_BYTES) {
       return NextResponse.json(
-        { error: 'File too large. Max size is 2MB.' },
+        { error: 'File too large. Max size is 10MB.' },
         { status: 400 }
       );
     }

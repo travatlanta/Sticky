@@ -309,24 +309,37 @@ export async function sendOrderConfirmationEmail({
   `;
 
   const logoHtml = settings.logoUrl
-    ? `<img src="${settings.logoUrl}" alt="${settings.companyName}" height="60" style="max-height: 60px;">`
-    : `<img src="${siteUrl}/logo.png" alt="${settings.companyName}" height="60" style="max-height: 60px;">`;
+    ? `<img src="${settings.logoUrl}" alt="${settings.companyName}" height="60" style="max-height: 60px; height: 60px; display: block; border: 0; outline: none; text-decoration: none;">`
+    : `<img src="${siteUrl}/logo.png" alt="${settings.companyName}" height="60" style="max-height: 60px; height: 60px; display: block; border: 0; outline: none; text-decoration: none;">`;
 
-  const htmlBody = `
-<!DOCTYPE html>
+  const htmlBody = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: Arial, sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px 0;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          <!-- Header -->
+<body style="margin: 0; padding: 0; width: 100%; background-color: #f5f5f5; font-family: Arial, sans-serif;">
+  <center style="width: 100%; background-color: #f5f5f5;">
+    <!-- Preheader (hidden preview text) -->
+    <div style="display: none; font-size: 1px; color: #f5f5f5; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
+      Order Confirmation – ${orderNumber} – ${settings.companyName}
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f5f5f5"
+      style="width: 100%; background-color: #f5f5f5; border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+      <tr>
+        <td align="center" style="padding: 24px 12px;">
+          <!--[if (gte mso 9)|(IE)]>
+          <table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td>
+          <![endif]-->
+
+          <table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"
+            style="width: 600px; max-width: 600px; Margin: 0 auto; background-color: #ffffff; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+<!-- Header -->
           <tr>
-            <td style="background-color: ${settings.headerColor}; padding: 24px; text-align: center;">
+            <td bgcolor="${settings.headerColor}" style="background-color: ${settings.headerColor}; padding: 24px; text-align: center;">
               ${logoHtml}
             </td>
           </tr>
@@ -425,13 +438,20 @@ export async function sendOrderConfirmationEmail({
               </p>
             </td>
           </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+        
+          </table>
+
+          <!--[if (gte mso 9)|(IE)]>
+              </td>
+            </tr>
+          </table>
+          <![endif]-->
+        </td>
+      </tr>
+    </table>
+  </center>
 </body>
-</html>
-  `;
+</html>`;
 
   try {
     const response = await fetch('https://api.resend.com/emails', {

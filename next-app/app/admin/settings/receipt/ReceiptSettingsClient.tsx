@@ -442,7 +442,7 @@ export default function ReceiptSettingsClient() {
               <iframe
                 title="Order confirmation email preview"
                 className="h-[820px] w-full min-w-[620px] border-0 bg-white"
-                sandbox="allow-same-origin"
+                sandbox="allow-scripts"
                 srcDoc={previewHtml}
               />
             </div>

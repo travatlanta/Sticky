@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,9 @@ export default function ReceiptSettingsClient() {
   const [formData, setFormData] = useState<ReceiptSettings>(defaultSettings);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: settings, isLoading } = useQuery<ReceiptSettings>({
     queryKey: ["/api/admin/settings/receipt"],
@@ -70,6 +73,58 @@ export default function ReceiptSettingsClient() {
 
   const handleChange = (field: keyof ReceiptSettings, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+
+  const uploadLogo = async (file: File): Promise<string | null> => {
+    setIsUploadingLogo(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+
+      const res = await fetch('/api/admin/upload/receipt-logo', {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message =
+          (json as any)?.error || (json as any)?.message || 'Upload failed';
+        throw new Error(message);
+      }
+
+      return (json as any).url as string;
+    } catch (error) {
+      console.error('Failed to upload receipt logo:', error);
+      toast({
+        title: 'Logo upload failed',
+        description: error instanceof Error ? error.message : 'Upload failed',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleLogoFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    // Allow selecting the same file twice
+    e.target.value = '';
+    if (!file) return;
+
+    const url = await uploadLogo(file);
+    if (!url) return;
+
+    setFormData((prev) => ({ ...prev, logoUrl: url }));
+    toast({
+      title: 'Logo uploaded',
+      description: 'Click “Save Template” to apply it.',
+    });
   };
 
   const handleSave = () => {
@@ -134,16 +189,86 @@ export default function ReceiptSettingsClient() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Logo URL (optional)</label>
-                <input
-                  type="url"
-                  value={formData.logoUrl}
-                  onChange={(e) => handleChange('logoUrl', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                  placeholder="https://example.com/logo.png"
-                  data-testid="input-logo-url"
-                />
-                <p className="text-xs text-gray-500 mt-1">Leave empty to use default logo</p>
+                <label className="block text-sm font-medium mb-1">Logo (optional)</label>
+
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 border rounded bg-white flex items-center justify-center overflow-hidden">
+                    {formData.logoUrl ? (
+                      <img
+                        src={formData.logoUrl}
+                        alt="Logo preview"
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-xs text-gray-400">No logo</span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={logoFileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={handleLogoFileChange}
+                    />
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => logoFileInputRef.current?.click()}
+                        disabled={isUploadingLogo}
+                        data-testid="button-upload-logo"
+                      >
+                        {isUploadingLogo
+                          ? "Uploading..."
+                          : formData.logoUrl
+                            ? "Replace"
+                            : "Upload"}
+                      </Button>
+
+                      {formData.logoUrl && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleChange("logoUrl", "")}
+                          disabled={isUploadingLogo}
+                          data-testid="button-remove-logo"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-500 mt-1">
+                  Upload PNG/JPG/WebP. After uploading, click{" "}
+                  <span className="font-medium">Save Template</span>.
+                </p>
+
+                <details className="mt-2">
+                  <summary className="text-xs text-gray-600 cursor-pointer select-none">
+                    Advanced: set a logo URL
+                  </summary>
+                  <div className="mt-2">
+                    <input
+                      type="url"
+                      value={formData.logoUrl}
+                      onChange={(e) => handleChange("logoUrl", e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      placeholder="https://example.com/logo.png"
+                      data-testid="input-logo-url"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      If provided, this URL is used for the logo in receipts and
+                      emails.
+                    </p>
+                  </div>
+                </details>
               </div>
             </div>
           </Card>

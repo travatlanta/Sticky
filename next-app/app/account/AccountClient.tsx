@@ -17,6 +17,7 @@ import {
   Clock,
   ChevronRight,
   Mail,
+  Lock,
   LogOut,
   LayoutDashboard
 } from "lucide-react";
@@ -273,6 +274,19 @@ export default function Account() {
                   </p>
                 </div>
               </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                <Lock className="h-5 w-5 text-gray-500" />
+                <div className="flex-1 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Password</p>
+                    <p className="text-sm font-medium text-gray-900">••••••••</p>
+                  </div>
+                  <Link href="/account/password" className="text-sm text-orange-500 hover:underline">
+                    Change
+                  </Link>
+                </div>
+              </div>
+
             </div>
           </CardContent>
         </Card>

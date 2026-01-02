@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Mail, Save, RefreshCw, Palette, Building, Phone, MapPin, MessageSquare, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
+import { renderOrderConfirmationEmailHtml } from "@/lib/email/orderConfirmationEmailHtml";
 
 interface ReceiptSettings {
   headerColor: string;
@@ -32,6 +33,30 @@ const defaultSettings: ReceiptSettings = {
   footerMessage: 'Questions about your order? Contact us at',
   thankYouMessage: 'Thank you for your order!',
 };
+const PREVIEW_ORDER_NUMBER = "SB-123456";
+
+const PREVIEW_ITEMS = [
+  { name: "Custom Sticker Pack", quantity: 2, unitPrice: 12.5 },
+  { name: "Holographic Decal", quantity: 1, unitPrice: 8.0 },
+];
+
+const PREVIEW_TOTALS = {
+  subtotal: 33,
+  shipping: 15,
+  tax: 2.84,
+  total: 50.84,
+};
+
+const PREVIEW_SHIPPING_ADDRESS = {
+  name: "Jane Customer",
+  address1: "123 W Main St",
+  address2: "Apt 4",
+  city: "Phoenix",
+  state: "AZ",
+  zip: "85009",
+  country: "USA",
+};
+
 
 export default function ReceiptSettingsClient() {
   const [formData, setFormData] = useState<ReceiptSettings>(defaultSettings);
@@ -169,6 +194,20 @@ export default function ReceiptSettingsClient() {
       </AdminLayout>
     );
   }
+
+  const siteUrl =
+    typeof window !== "undefined" ? window.location.origin : "";
+
+  const previewHtml = useMemo(() => {
+    return renderOrderConfirmationEmailHtml({
+      siteUrl,
+      orderNumber: PREVIEW_ORDER_NUMBER,
+      shippingAddress: PREVIEW_SHIPPING_ADDRESS,
+      items: PREVIEW_ITEMS,
+      totals: PREVIEW_TOTALS,
+      receiptSettings: formData,
+    });
+  }, [formData, siteUrl]);
 
   return (
     <AdminLayout>
@@ -397,38 +436,16 @@ export default function ReceiptSettingsClient() {
 
           <Card className="p-6 bg-gray-50 border-dashed">
             <h2 className="text-lg font-semibold mb-4">Email Preview</h2>
-            <div className="bg-white rounded-lg border overflow-hidden max-w-md mx-auto">
-              <div 
-                className="p-4 text-center" 
-                style={{ backgroundColor: formData.headerColor }}
-              >
-                {formData.logoUrl ? (
-                  <img src={formData.logoUrl} alt="Logo" className="h-12 mx-auto" />
-                ) : (
-                  <span className="text-white font-bold text-lg">{formData.companyName}</span>
-                )}
-              </div>
-              <div className="p-4 text-center">
-                <h3 className="font-bold text-lg">Order Confirmation</h3>
-                <p className="text-gray-600 text-sm">{formData.thankYouMessage}</p>
-              </div>
-              <div className="px-4 pb-4 text-center">
-                <div className="bg-gray-100 rounded p-3 inline-block">
-                  <span className="text-gray-500 text-sm">Order Number</span><br/>
-                  <span className="font-bold">#SB-123456</span>
-                </div>
-              </div>
-              <div className="bg-gray-100 p-4 text-center text-sm">
-                <p className="text-gray-600 mb-2">
-                  {formData.footerMessage}<br/>
-                  <a href="#" className="text-blue-600">{formData.supportEmail}</a>
-                </p>
-                <p className="text-gray-500 text-xs">
-                  {formData.companyName}<br/>
-                  {formData.companyAddress}<br/>
-                  {formData.companyPhone}
-                </p>
-              </div>
+            <p className="text-sm text-gray-600 mb-4">
+              This is a live preview of the actual HTML email (using sample order data).
+            </p>
+            <div className="overflow-x-auto rounded-lg border bg-white">
+              <iframe
+                title="Order confirmation email preview"
+                className="h-[820px] w-full min-w-[620px] border-0 bg-white"
+                sandbox="allow-same-origin"
+                srcDoc={previewHtml}
+              />
             </div>
           </Card>
 

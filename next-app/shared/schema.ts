@@ -31,7 +31,21 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "order_updated",
   "payment_required",
   "order_shipped",
+  "artwork_submitted",
+  "artwork_pending_approval",
+  "artwork_approved",
+  "artwork_revision_requested",
   "general",
+]);
+
+export const artworkStatusEnum = pgEnum("artwork_status", [
+  "awaiting_artwork",
+  "customer_designing",
+  "artwork_uploaded",
+  "admin_designing",
+  "pending_approval",
+  "revision_requested",
+  "approved",
 ]);
 
 export const designStatusEnum = pgEnum("design_status", [
@@ -285,6 +299,11 @@ export const orders = pgTable("orders", {
   notes: text("notes"),
   createdByAdminId: varchar("created_by_admin_id").references(() => users.id),
   paymentLinkToken: varchar("payment_link_token", { length: 64 }),
+  artworkStatus: artworkStatusEnum("artwork_status").default("awaiting_artwork"),
+  customerArtworkUrl: varchar("customer_artwork_url"),
+  adminDesignId: integer("admin_design_id").references(() => designs.id),
+  artworkNotes: text("artwork_notes"),
+  artworkApprovedAt: timestamp("artwork_approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

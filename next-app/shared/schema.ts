@@ -16,6 +16,7 @@ import {
 
 // Enums
 export const orderStatusEnum = pgEnum("order_status", [
+  "pending_payment",
   "pending",
   "paid",
   "in_production",
@@ -23,6 +24,14 @@ export const orderStatusEnum = pgEnum("order_status", [
   "shipped",
   "delivered",
   "cancelled",
+]);
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "order_created",
+  "order_updated",
+  "payment_required",
+  "order_shipped",
+  "general",
 ]);
 
 export const designStatusEnum = pgEnum("design_status", [
@@ -255,6 +264,8 @@ export const orders = pgTable("orders", {
   orderNumber: varchar("order_number", { length: 20 }).notNull().unique(),
   userId: varchar("user_id").references(() => users.id),
   customerEmail: varchar("customer_email", { length: 255 }),
+  customerName: varchar("customer_name", { length: 255 }),
+  customerPhone: varchar("customer_phone", { length: 50 }),
   status: orderStatusEnum("status").default("pending"),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default(
@@ -272,6 +283,8 @@ export const orders = pgTable("orders", {
   trackingNumber: varchar("tracking_number"),
   trackingCarrier: varchar("tracking_carrier"),
   notes: text("notes"),
+  createdByAdminId: varchar("created_by_admin_id").references(() => users.id),
+  paymentLinkToken: varchar("payment_link_token", { length: 64 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -394,12 +407,36 @@ export const emailDeliveries = pgTable(
   })
 );
 
+// User Notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  type: notificationTypeEnum("type").default("general"),
+  title: varchar("title", { length: 200 }).notNull(),
+  message: text("message"),
+  orderId: integer("order_id").references(() => orders.id),
+  linkUrl: varchar("link_url", { length: 500 }),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   designs: many(designs),
   orders: many(orders),
   messages: many(messages),
+  notifications: many(notifications),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  order: one(orders, {
+    fields: [notifications.orderId],
+    references: [orders.id],
+  }),
 }));
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -511,3 +548,5 @@ export type AdminInvitation = typeof adminInvitations.$inferSelect;
 export type InsertAdminInvitation = typeof adminInvitations.$inferInsert;
 export type ProductTemplate = typeof productTemplates.$inferSelect;
 export type InsertProductTemplate = typeof productTemplates.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

@@ -56,11 +56,8 @@ export async function POST(
     const [design] = await db.insert(designs).values({
       userId: session.user.id,
       name: `Design for Order #${order.orderNumber}`,
-      thumbnailUrl: blob.url,
       previewUrl: blob.url,
       highResExportUrl: blob.url,
-      width: 300,
-      height: 300,
       status: "submitted",
     }).returning();
 

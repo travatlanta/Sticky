@@ -64,14 +64,13 @@ export async function GET(
         unitPrice: item.unitPrice,
         product: item.product ? {
           name: item.product.name,
-          imageUrl: item.product.imageUrl,
+          thumbnailUrl: item.product.thumbnailUrl,
         } : null,
       })),
       adminDesign: adminDesign ? {
         id: adminDesign.id,
         name: adminDesign.name,
-        thumbnailUrl: adminDesign.thumbnailUrl,
-        canvasDataUrl: adminDesign.canvasDataUrl,
+        previewUrl: adminDesign.previewUrl,
       } : null,
     });
   } catch (error) {

@@ -18,7 +18,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -45,11 +45,20 @@ interface Order {
   trackingNumber: string | null;
   trackingCarrier?: string | null;
   notes?: string | null;
+  artworkStatus?: string;
+  customerArtworkUrl?: string;
+  adminDesignId?: number;
+  artworkNotes?: string;
   createdAt: string;
   shippingAddress: any;
   billingAddress?: any;
   items?: any[];
   user?: OrderUser | null;
+  adminDesign?: {
+    id: number;
+    name: string;
+    thumbnailUrl?: string;
+  };
 }
 
 const statusOptions = [
@@ -72,6 +81,16 @@ const statusColors: Record<string, string> = {
   shipped: "bg-cyan-100 text-cyan-800",
   delivered: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
+};
+
+const artworkStatusColors: Record<string, string> = {
+  awaiting_artwork: "bg-yellow-100 text-yellow-800",
+  customer_designing: "bg-blue-100 text-blue-800",
+  artwork_uploaded: "bg-purple-100 text-purple-800",
+  admin_designing: "bg-indigo-100 text-indigo-800",
+  pending_approval: "bg-orange-100 text-orange-800",
+  revision_requested: "bg-red-100 text-red-800",
+  approved: "bg-green-100 text-green-800",
 };
 
 export default function AdminOrders() {
@@ -136,6 +155,8 @@ export default function AdminOrders() {
   const [downloadFormats, setDownloadFormats] = useState<Record<number, string>>({});
   const [downloading, setDownloading] = useState<Record<number, boolean>>({});
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
+  const [artworkUploading, setArtworkUploading] = useState(false);
+  const [artworkNotes, setArtworkNotes] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -268,6 +289,50 @@ export default function AdminOrders() {
     },
     onError: (error: Error) => toast({ title: error.message || "Failed to resend receipt", variant: "destructive" }),
   });
+
+  const updateArtworkStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status, notes, designId }: { orderId: number; status: string; notes?: string; designId?: number }) => {
+      const res = await fetch(`/api/admin/orders/${orderId}/artwork`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ artworkStatus: status, artworkNotes: notes, adminDesignId: designId }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to update artwork status");
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Artwork status updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+    },
+    onError: (error: Error) => toast({ title: error.message, variant: "destructive" }),
+  });
+
+  const handleArtworkUpload = async (orderId: number, file: File) => {
+    setArtworkUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("notes", artworkNotes);
+
+      const res = await fetch(`/api/admin/orders/${orderId}/artwork/upload`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Upload failed");
+      
+      toast({ title: "Design uploaded and sent for customer approval" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      setArtworkNotes("");
+    } catch (error: any) {
+      toast({ title: error.message || "Failed to upload design", variant: "destructive" });
+    } finally {
+      setArtworkUploading(false);
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -607,6 +672,132 @@ export default function AdminOrders() {
                     </div>
                   )}
                 </div>
+
+{/* Artwork Management */}
+                {(orderDetails?.artworkStatus || selectedOrder.artworkStatus) && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Palette className="h-5 w-5 text-orange-600" />
+                    Artwork Management
+                    <Badge className={artworkStatusColors[(orderDetails?.artworkStatus || selectedOrder.artworkStatus) || 'awaiting_artwork'] || 'bg-gray-100'}>
+                      {(orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork').replace(/_/g, ' ')}
+                    </Badge>
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    {/* Customer Uploaded Artwork */}
+                    {(orderDetails?.customerArtworkUrl || selectedOrder.customerArtworkUrl) && (
+                      <div className="bg-white rounded-lg p-3 border">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Customer Uploaded Artwork:</p>
+                        <a 
+                          href={orderDetails?.customerArtworkUrl || selectedOrder.customerArtworkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 text-sm"
+                          data-testid="link-customer-artwork"
+                        >
+                          <FileImage className="h-4 w-4" />
+                          View Customer Artwork
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Artwork Notes */}
+                    {(orderDetails?.artworkNotes || selectedOrder.artworkNotes) && (
+                      <div className="bg-white rounded-lg p-3 border">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Artwork Notes:</p>
+                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{orderDetails?.artworkNotes || selectedOrder.artworkNotes}</p>
+                      </div>
+                    )}
+
+                    {/* Admin Design Preview */}
+                    {(orderDetails?.adminDesign || selectedOrder.adminDesign) && (
+                      <div className="bg-white rounded-lg p-3 border">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Admin Design (Sent for Approval):</p>
+                        {(orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl) && (
+                          <img 
+                            src={orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl}
+                            alt="Admin design preview"
+                            className="w-32 h-32 object-contain bg-gray-100 rounded border"
+                            data-testid="img-admin-design"
+                          />
+                        )}
+                        <p className="text-xs text-gray-500 mt-2">{orderDetails?.adminDesign?.name || selectedOrder.adminDesign?.name}</p>
+                      </div>
+                    )}
+
+                    {/* Status Update Actions */}
+                    <div className="bg-white rounded-lg p-3 border space-y-3">
+                      <p className="text-sm font-medium text-gray-700">Update Artwork Status:</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Select
+                          value={orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork'}
+                          onValueChange={(value) => updateArtworkStatusMutation.mutate({ 
+                            orderId: selectedOrder.id, 
+                            status: value 
+                          })}
+                        >
+                          <SelectTrigger className="w-48" data-testid="select-artwork-status">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="awaiting_artwork">Awaiting Artwork</SelectItem>
+                            <SelectItem value="customer_designing">Customer Designing</SelectItem>
+                            <SelectItem value="artwork_uploaded">Artwork Uploaded</SelectItem>
+                            <SelectItem value="admin_designing">Admin Designing</SelectItem>
+                            <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                            <SelectItem value="revision_requested">Revision Requested</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Upload Design for Customer Approval */}
+                      {['artwork_uploaded', 'admin_designing', 'revision_requested'].includes(orderDetails?.artworkStatus || selectedOrder.artworkStatus || '') && (
+                        <div className="pt-3 border-t">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Upload Design for Customer Approval:</p>
+                          <div className="space-y-2">
+                            <textarea
+                              className="w-full text-sm border rounded-lg p-2"
+                              placeholder="Notes to customer about the design..."
+                              value={artworkNotes}
+                              onChange={(e) => setArtworkNotes(e.target.value)}
+                              rows={2}
+                              data-testid="input-artwork-notes"
+                            />
+                            <input
+                              type="file"
+                              id={`artwork-upload-${selectedOrder.id}`}
+                              className="hidden"
+                              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.eps,.ai,.psd,.cdr"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleArtworkUpload(selectedOrder.id, file);
+                                e.target.value = '';
+                              }}
+                              data-testid="input-upload-design"
+                            />
+                            <Button
+                              variant="outline"
+                              onClick={() => document.getElementById(`artwork-upload-${selectedOrder.id}`)?.click()}
+                              disabled={artworkUploading}
+                              className="w-full"
+                              data-testid="button-upload-design"
+                            >
+                              {artworkUploading ? (
+                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Upload className="h-4 w-4 mr-2" />
+                              )}
+                              Upload Design & Send for Approval
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                )}
 
 {/* Order Items */}
                 <div className="bg-gray-50 rounded-xl p-4">

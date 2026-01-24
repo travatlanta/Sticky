@@ -41,6 +41,7 @@ interface Order {
   total: string;
   totalAmount?: string;
   paymentLinkToken?: string;
+  artworkStatus?: string;
   createdAt: string;
 }
 
@@ -97,6 +98,9 @@ export default function Account() {
   };
 
   const pendingPaymentOrders = orders?.filter(o => o.status === 'pending_payment') || [];
+  const ordersNeedingArtwork = orders?.filter(o => 
+    o.artworkStatus && ['awaiting_artwork', 'pending_approval', 'revision_requested'].includes(o.artworkStatus)
+  ) || [];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -235,6 +239,47 @@ export default function Account() {
                         </Button>
                       </Link>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Orders Needing Artwork */}
+        {ordersNeedingArtwork.length > 0 && (
+          <Card className="shadow-lg mb-6 border-purple-200 bg-purple-50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Palette className="h-5 w-5 text-purple-600" />
+                <h2 className="font-heading text-lg text-purple-900">Artwork Required</h2>
+              </div>
+              <p className="text-sm text-purple-800 mb-4">
+                {ordersNeedingArtwork.length} order{ordersNeedingArtwork.length > 1 ? 's need' : ' needs'} your attention.
+              </p>
+              <div className="space-y-3">
+                {ordersNeedingArtwork.map((order) => (
+                  <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-white border border-purple-200" data-testid={`artwork-order-${order.id}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <Palette className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-gray-900">Order #{order.orderNumber || order.id}</p>
+                        <Badge className={`text-xs ${
+                          order.artworkStatus === 'awaiting_artwork' ? 'bg-yellow-100 text-yellow-800' :
+                          order.artworkStatus === 'pending_approval' ? 'bg-orange-100 text-orange-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {order.artworkStatus?.replace(/_/g, ' ')}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Link href={`/orders/${order.id}/artwork`}>
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700" data-testid={`button-artwork-order-${order.id}`}>
+                        {order.artworkStatus === 'pending_approval' ? 'Review Design' : 'Add Artwork'}
+                      </Button>
+                    </Link>
                   </div>
                 ))}
               </div>

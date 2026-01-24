@@ -53,7 +53,8 @@ export async function PATCH(
         type: "artwork_pending_approval",
         title: "Design Ready for Review",
         message: `Your design for order #${order.orderNumber} is ready for approval.`,
-        link: `/orders/${orderId}/artwork`,
+        orderId: orderId,
+        linkUrl: `/orders/${orderId}/artwork`,
       });
     }
 

@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -15,6 +18,9 @@ import {
   AlertCircle,
   ShoppingCart,
   MapPin,
+  User,
+  Lock,
+  Mail,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -36,6 +42,7 @@ interface Order {
   status: string;
   customerName: string | null;
   customerEmail: string | null;
+  hasAccount: boolean;
   subtotal: string;
   shippingCost: string;
   taxAmount: string;
@@ -57,6 +64,12 @@ export default function PaymentClient({ token }: { token: string }) {
   const { data: session, status: sessionStatus } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [loginPassword, setLoginPassword] = useState("");
+  const [accountCreated, setAccountCreated] = useState(false);
 
   const {
     data: order,
@@ -100,6 +113,62 @@ export default function PaymentClient({ token }: { token: string }) {
       });
     },
   });
+
+  const registerMutation = useMutation({
+    mutationFn: async () => {
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+      const res = await fetch(`/api/orders/by-token/${token}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Registration failed");
+      return json;
+    },
+    onSuccess: async (data) => {
+      toast({ title: "Account created!", description: "Please log in to continue." });
+      setAccountCreated(true);
+      setShowLoginForm(true);
+      setPassword("");
+      setConfirmPassword("");
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/by-token", token] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order?.customerEmail) return;
+    
+    const result = await signIn("credentials", {
+      email: order.customerEmail,
+      password: loginPassword,
+      redirect: false,
+    });
+    
+    if (result?.error) {
+      toast({
+        title: "Login failed",
+        description: "Invalid email or password",
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Logged in successfully!" });
+      router.refresh();
+    }
+  };
 
   if (isLoading) {
     return (
@@ -269,21 +338,142 @@ export default function PaymentClient({ token }: { token: string }) {
           </Card>
         )}
 
+        {sessionStatus === "unauthenticated" && !order.hasAccount && !accountCreated && (
+          <Card className="mb-6 border-orange-200 bg-orange-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5" />
+                Create Your Account
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                Create an account to track your order and manage future orders.
+                Your email is already set from your order.
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">Email</Label>
+                  <div className="flex items-center gap-2 mt-1 p-2 bg-gray-100 rounded border">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-700">{order.customerEmail}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create a password (min 6 characters)"
+                    className="mt-1"
+                    data-testid="input-register-password"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                    className="mt-1"
+                    data-testid="input-register-confirm-password"
+                  />
+                </div>
+                
+                <Button
+                  className="w-full"
+                  onClick={() => registerMutation.mutate()}
+                  disabled={registerMutation.isPending || password.length < 6 || password !== confirmPassword}
+                  data-testid="button-create-account"
+                >
+                  {registerMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    "Create Account & Continue"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {sessionStatus === "unauthenticated" && (order.hasAccount || showLoginForm) && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Lock className="h-5 w-5" />
+                Log In to Continue
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {accountCreated && (
+                <div className="bg-green-100 border border-green-200 rounded p-3 mb-4 text-sm text-green-800">
+                  <CheckCircle className="h-4 w-4 inline mr-2" />
+                  Account created! Please log in with your new password.
+                </div>
+              )}
+              
+              <p className="text-sm text-gray-600 mb-4">
+                {order.hasAccount 
+                  ? "You already have an account. Please log in to continue."
+                  : "Log in to continue with your payment."}
+              </p>
+              
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">Email</Label>
+                  <div className="flex items-center gap-2 mt-1 p-2 bg-gray-100 rounded border">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-700">{order.customerEmail}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="loginPassword" className="text-sm font-medium">Password</Label>
+                  <Input
+                    id="loginPassword"
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="mt-1"
+                    data-testid="input-login-password"
+                  />
+                </div>
+                
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={!loginPassword}
+                  data-testid="button-login"
+                >
+                  Log In & Continue
+                </Button>
+              </form>
+              
+              {order.hasAccount && (
+                <p className="text-xs text-gray-500 text-center mt-3">
+                  <Link href="/forgot-password" className="text-blue-600 hover:underline">
+                    Forgot your password?
+                  </Link>
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardContent className="pt-6">
-            {sessionStatus === "unauthenticated" && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-sm text-blue-800">
-                <strong>Note:</strong> Sign in or create an account to track your order and access it later.
-                <div className="mt-2">
-                  <Link href={`/api/auth/signin?callbackUrl=/pay/${token}`}>
-                    <Button variant="outline" size="sm">
-                      Sign In / Create Account
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
-
             <Button
               className="w-full bg-orange-500 hover:bg-orange-600"
               size="lg"

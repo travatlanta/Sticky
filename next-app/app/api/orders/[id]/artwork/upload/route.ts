@@ -80,7 +80,8 @@ export async function POST(
         type: "artwork_submitted",
         title: "New Artwork Uploaded",
         message: `Customer uploaded artwork for order #${order.orderNumber}`,
-        link: `/admin/orders/${orderId}`,
+        orderId: orderId,
+        linkUrl: `/admin/orders/${orderId}`,
       });
     }
 

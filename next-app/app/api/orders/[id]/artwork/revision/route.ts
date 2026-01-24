@@ -73,7 +73,8 @@ export async function POST(
         type: "artwork_revision_requested",
         title: "Revision Requested",
         message: `Customer requested changes for order #${order.orderNumber}: ${notes.substring(0, 100)}${notes.length > 100 ? '...' : ''}`,
-        link: `/admin/orders/${orderId}`,
+        orderId: orderId,
+        linkUrl: `/admin/orders/${orderId}`,
       });
     }
 

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { orders, orderItems, products } from "@shared/schema";
+import { orders, orderItems, products, users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(
@@ -51,12 +51,24 @@ export async function GET(
       },
     }));
 
+    // Check if customer email has an existing account or if order is already linked
+    let hasAccount = false;
+    if (order.userId) {
+      hasAccount = true;
+    } else if (order.customerEmail) {
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.email, order.customerEmail),
+      });
+      hasAccount = !!existingUser;
+    }
+
     return NextResponse.json({
       id: order.id,
       orderNumber: order.orderNumber,
       status: order.status,
       customerName: order.customerName,
       customerEmail: order.customerEmail,
+      hasAccount,
       subtotal: order.subtotal,
       shippingCost: order.shippingCost,
       taxAmount: order.taxAmount,

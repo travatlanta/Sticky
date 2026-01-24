@@ -82,7 +82,8 @@ export async function POST(
         type: "artwork_pending_approval",
         title: "Design Ready for Review",
         message: `Your design for order #${order.orderNumber} is ready. Please review and approve.`,
-        link: `/orders/${orderId}/artwork`,
+        orderId: orderId,
+        linkUrl: `/orders/${orderId}/artwork`,
       });
     }
 

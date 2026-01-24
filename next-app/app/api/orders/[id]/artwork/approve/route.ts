@@ -59,7 +59,8 @@ export async function POST(
         type: "artwork_approved",
         title: "Design Approved",
         message: `Customer approved design for order #${order.orderNumber}`,
-        link: `/admin/orders/${orderId}`,
+        orderId: orderId,
+        linkUrl: `/admin/orders/${orderId}`,
       });
     }
 

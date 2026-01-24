@@ -19,7 +19,9 @@ import {
   Mail,
   Lock,
   LogOut,
-  LayoutDashboard
+  LayoutDashboard,
+  CreditCard,
+  AlertCircle
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
@@ -37,6 +39,8 @@ interface Order {
   orderNumber?: string;
   status: string;
   total: string;
+  totalAmount?: string;
+  paymentLinkToken?: string;
   createdAt: string;
 }
 
@@ -85,10 +89,14 @@ export default function Account() {
         return 'bg-purple-100 text-purple-700';
       case 'pending':
         return 'bg-yellow-100 text-yellow-700';
+      case 'pending_payment':
+        return 'bg-orange-100 text-orange-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
   };
+
+  const pendingPaymentOrders = orders?.filter(o => o.status === 'pending_payment') || [];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -193,6 +201,47 @@ export default function Account() {
           </CardContent>
         </Card>
 
+        {/* Pending Payment Orders Alert */}
+        {pendingPaymentOrders.length > 0 && (
+          <Card className="shadow-lg mb-6 border-orange-200 bg-orange-50">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertCircle className="h-5 w-5 text-orange-600" />
+                <h2 className="font-heading text-lg text-orange-900">Payment Required</h2>
+              </div>
+              <p className="text-sm text-orange-800 mb-4">
+                You have {pendingPaymentOrders.length} order{pendingPaymentOrders.length > 1 ? 's' : ''} awaiting payment.
+              </p>
+              <div className="space-y-3">
+                {pendingPaymentOrders.map((order) => (
+                  <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-white border border-orange-200" data-testid={`pending-order-${order.id}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                        <CreditCard className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-gray-900">Order #{order.orderNumber || order.id}</p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(order.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm font-medium text-gray-900">{formatPrice(parseFloat(order.totalAmount || order.total))}</p>
+                      <Link href={order.paymentLinkToken ? `/pay/${order.paymentLinkToken}` : `/orders/${order.id}`}>
+                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600" data-testid={`button-pay-order-${order.id}`}>
+                          Pay Now
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Recent Orders */}
         <Card className="shadow-lg mb-6">
           <CardContent className="p-4 md:p-6">
@@ -227,7 +276,7 @@ export default function Account() {
                         <Badge className={`${getStatusColor(order.status)} text-xs mb-1`}>
                           {order.status.replace('_', ' ')}
                         </Badge>
-                        <p className="text-sm font-medium text-gray-900">{formatPrice(parseFloat(order.total))}</p>
+                        <p className="text-sm font-medium text-gray-900">{formatPrice(parseFloat(order.totalAmount || order.total))}</p>
                       </div>
                     </div>
                   </Link>

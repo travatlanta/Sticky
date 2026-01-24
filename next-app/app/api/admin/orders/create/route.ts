@@ -1,0 +1,209 @@
+export const dynamic = "force-dynamic";
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { orders, orderItems, users, notifications, products } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { randomBytes } from "crypto";
+import { z } from "zod";
+
+function generateOrderNumber(): string {
+  const prefix = "SB";
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `${prefix}${timestamp}${random}`;
+}
+
+function generatePaymentToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+const createOrderSchema = z.object({
+  customer: z.object({
+    userId: z.string().nullable(),
+    email: z.string().email(),
+    name: z.string().min(1),
+    phone: z.string().optional(),
+    isNewCustomer: z.boolean(),
+  }),
+  shippingAddress: z.object({
+    name: z.string(),
+    street: z.string(),
+    city: z.string(),
+    state: z.string(),
+    zipCode: z.string(),
+    country: z.string(),
+  }),
+  items: z.array(
+    z.object({
+      productId: z.number(),
+      quantity: z.number().min(1),
+      unitPrice: z.number().min(0),
+      selectedOptions: z.record(z.string()),
+    })
+  ).min(1),
+  subtotal: z.number().min(0),
+  shippingCost: z.number().min(0),
+  taxAmount: z.number().min(0),
+  discountAmount: z.number().min(0),
+  totalAmount: z.number().min(0),
+  notes: z.string().optional(),
+});
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+    }
+
+    if (!(session.user as any).isAdmin) {
+      return NextResponse.json({ message: "Admin access required" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const parseResult = createOrderSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      const errors = parseResult.error.errors
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join(", ");
+      return NextResponse.json({ message: `Validation failed: ${errors}` }, { status: 400 });
+    }
+
+    const data = parseResult.data;
+    const orderNumber = generateOrderNumber();
+    const paymentLinkToken = generatePaymentToken();
+
+    let customerId = data.customer.userId;
+
+    if (!customerId && data.customer.email) {
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, data.customer.email))
+        .limit(1);
+
+      if (existingUser) {
+        customerId = existingUser.id;
+      }
+    }
+
+    const [newOrder] = await db
+      .insert(orders)
+      .values({
+        orderNumber,
+        userId: customerId,
+        customerEmail: data.customer.email,
+        customerName: data.customer.name,
+        customerPhone: data.customer.phone || null,
+        status: "pending_payment",
+        subtotal: data.subtotal.toFixed(2),
+        shippingCost: data.shippingCost.toFixed(2),
+        taxAmount: data.taxAmount.toFixed(2),
+        discountAmount: data.discountAmount.toFixed(2),
+        totalAmount: data.totalAmount.toFixed(2),
+        shippingAddress: data.shippingAddress,
+        notes: data.notes || null,
+        createdByAdminId: (session.user as any).id,
+        paymentLinkToken,
+      })
+      .returning();
+
+    for (const item of data.items) {
+      await db.insert(orderItems).values({
+        orderId: newOrder.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toFixed(2),
+        selectedOptions: item.selectedOptions,
+      });
+    }
+
+    if (customerId) {
+      await db.insert(notifications).values({
+        userId: customerId,
+        type: "payment_required",
+        title: "New Order Awaiting Payment",
+        message: `Order ${orderNumber} has been created for you. Please complete payment to proceed.`,
+        orderId: newOrder.id,
+        linkUrl: `/pay/${paymentLinkToken}`,
+      });
+    }
+
+    const siteUrl = process.env.SITE_URL || "http://localhost:5000";
+    const paymentLink = `${siteUrl}/pay/${paymentLinkToken}`;
+
+    try {
+      const resendApiKey = process.env.RESEND_API_KEY;
+      const fromEmail = process.env.ORDER_EMAIL_FROM || "orders@stickybanditos.com";
+
+      if (resendApiKey) {
+        const emailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background-color: #1a1a1a; padding: 20px; text-align: center;">
+              <h1 style="color: white; margin: 0;">Sticky Banditos</h1>
+            </div>
+            <div style="padding: 30px 20px; background-color: #f9f9f9;">
+              <h2 style="color: #333;">Your Order is Ready for Payment</h2>
+              <p style="color: #666; font-size: 16px;">
+                Hi ${data.customer.name},
+              </p>
+              <p style="color: #666; font-size: 16px;">
+                An order has been created for you. Your order number is <strong>${orderNumber}</strong>.
+              </p>
+              <p style="color: #666; font-size: 16px;">
+                <strong>Order Total: $${data.totalAmount.toFixed(2)}</strong>
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${paymentLink}" style="background-color: #f97316; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                  Complete Payment
+                </a>
+              </div>
+              <p style="color: #999; font-size: 14px;">
+                If you have any questions, please contact us at mhobbs.stickybanditos@gmail.com or call 602-554-5338.
+              </p>
+            </div>
+            <div style="padding: 20px; text-align: center; color: #999; font-size: 12px;">
+              <p>Sticky Banditos Printing Company<br>2 North 35th Ave, Phoenix, AZ 85009</p>
+            </div>
+          </body>
+          </html>
+        `;
+
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: data.customer.email,
+            subject: `Order ${orderNumber} - Complete Your Payment`,
+            html: emailHtml,
+          }),
+        });
+      }
+    } catch (emailError) {
+      console.error("Failed to send payment email:", emailError);
+    }
+
+    return NextResponse.json({
+      id: newOrder.id,
+      orderNumber: newOrder.orderNumber,
+      paymentLink,
+      message: "Order created successfully",
+    });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    return NextResponse.json({ message: "Failed to create order" }, { status: 500 });
+  }
+}

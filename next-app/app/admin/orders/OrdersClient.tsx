@@ -18,7 +18,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus } from "lucide-react";
+import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { jsPDF } from "jspdf";
@@ -52,6 +53,7 @@ interface Order {
 }
 
 const statusOptions = [
+  "pending_payment",
   "pending",
   "paid",
   "in_production",
@@ -62,6 +64,7 @@ const statusOptions = [
 ];
 
 const statusColors: Record<string, string> = {
+  pending_payment: "bg-orange-100 text-orange-800",
   pending: "bg-yellow-100 text-yellow-800",
   paid: "bg-blue-100 text-blue-800",
   in_production: "bg-purple-100 text-purple-800",
@@ -279,9 +282,17 @@ export default function AdminOrders() {
   return (
     <AdminLayout>
       <div className="p-4 md:p-8">
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600 text-sm md:text-base">Manage customer orders</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Orders</h1>
+            <p className="text-gray-600 text-sm md:text-base">Manage customer orders</p>
+          </div>
+          <Link href="/admin/orders/create">
+            <Button className="bg-orange-500 hover:bg-orange-600" data-testid="button-create-manual-order">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Order
+            </Button>
+          </Link>
         </div>
 
         {/* Help Guide */}

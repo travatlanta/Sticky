@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, ShoppingBag, Shield, Mail, Calendar, Search, UserCheck } from "lucide-react";
+import { Users, ShoppingBag, Shield, Mail, Calendar, Search, UserCheck, Plus } from "lucide-react";
+import Link from "next/link";
 
 interface User {
   id: number;
@@ -236,6 +237,12 @@ export default function AdminUsers() {
                           <Calendar className="h-3 w-3" />
                           {formatDate(user.createdAt)}
                         </span>
+                        <Link href={`/admin/orders/create?userId=${user.id}`}>
+                          <Button size="sm" variant="outline" className="border-orange-200 text-orange-600 hover:bg-orange-50" data-testid={`button-create-order-${user.id}`}>
+                            <Plus className="h-3 w-3 mr-1" />
+                            Create Order
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </Card>

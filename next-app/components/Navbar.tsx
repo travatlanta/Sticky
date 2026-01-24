@@ -6,8 +6,13 @@ import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, User, Menu, X } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Bell } from 'lucide-react';
 import { useState } from 'react';
+
+interface NotificationData {
+  notifications: any[];
+  unreadCount: number;
+}
 
 interface CartItem {
   id: number;
@@ -31,7 +36,14 @@ export default function Navbar() {
     refetchInterval: 30000,
   });
 
+  const { data: notificationData } = useQuery<NotificationData>({
+    queryKey: ['/api/notifications'],
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
   const cartItemCount = cartData?.items?.length || 0;
+  const unreadNotifications = notificationData?.unreadCount || 0;
 
   if (pathname?.startsWith('/admin')) {
     return null;
@@ -75,6 +87,18 @@ export default function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
+            {isAuthenticated && (
+              <Link href="/account" className="relative">
+                <Button variant="ghost" size="icon" className="text-gray-600 hover:text-orange-500 hover:bg-orange-50" data-testid="button-notifications">
+                  <Bell className="h-5 w-5" />
+                </Button>
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center" data-testid="notification-count">
+                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                  </span>
+                )}
+              </Link>
+            )}
             <Link href="/cart" className="relative">
               <Button variant="ghost" size="icon" className="text-gray-600 hover:text-orange-500 hover:bg-orange-50" data-testid="button-cart">
                 <ShoppingCart className="h-5 w-5" />

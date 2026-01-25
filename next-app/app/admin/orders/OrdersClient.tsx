@@ -22,6 +22,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw, Image } from "lucide-react";
 import Link from "next/link";
@@ -614,6 +615,7 @@ export default function AdminOrders() {
 
   return (
     <AdminLayout>
+      <TooltipProvider>
       <div className="p-4 md:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
@@ -1816,6 +1818,7 @@ export default function AdminOrders() {
           </div>
         </DialogContent>
       </Dialog>
+      </TooltipProvider>
     </AdminLayout>
   );
 }

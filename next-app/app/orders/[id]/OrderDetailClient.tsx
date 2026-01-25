@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { PaymentForm, CreditCard as SquareCreditCard } from "react-square-web-payments-sdk";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ import {
   Loader2,
   Send,
   Edit,
+  Lock,
 } from "lucide-react";
 
 interface Design {
@@ -164,6 +166,11 @@ export default function OrderDetail() {
   const [approvalConfirmItemId, setApprovalConfirmItemId] = useState<number | null>(null);
   const [changeNotes, setChangeNotes] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Square payment configuration
+  const squareAppId = process.env.NEXT_PUBLIC_SQUARE_APP_ID || '';
+  const squareLocationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID || '';
+  const squareConfigured = Boolean(squareAppId && squareLocationId);
 
   const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -353,28 +360,39 @@ export default function OrderDetail() {
     }
   };
 
-  const handlePayment = async (paymentToken: string) => {
+  const handleSquarePayment = async (token: any, verifiedBuyer?: any) => {
+    if (!token?.token) {
+      toast({
+        title: "Payment Error",
+        description: "Could not process card information. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessingPayment(true);
     try {
-      const res = await fetch(`/api/orders/by-token/${paymentToken}/pay`, {
+      const res = await fetch(`/api/orders/${id}/pay`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({ sourceId: token.token }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Payment failed");
+      if (!res.ok) throw new Error(json.error || json.message || "Payment failed");
       
-      if (json.checkoutUrl) {
-        window.location.href = json.checkoutUrl;
-      } else {
-        toast({ title: "Payment initiated" });
-        queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
-      }
+      toast({ 
+        title: "Payment successful!", 
+        description: json.message || "Your order is now being processed.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
     } catch (error: any) {
       toast({
         title: "Payment failed",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
       setIsProcessingPayment(false);
     }
   };
@@ -477,9 +495,11 @@ export default function OrderDetail() {
             return hasArtwork && !isApproved && !isFlagged && !isAdminDesign && (isAdminCreatedOrder || isCustomerUpload);
           }) || [];
 
-          const needsPayment = order.status === 'pending' && order.notes?.includes('Payment Link:');
+          // Align with backend payable statuses
+          const payableStatuses = ['pending', 'pending_payment', 'awaiting_artwork'];
+          const needsPayment = payableStatuses.includes(order.status) && order.notes?.includes('Payment Link:');
           
-          // Extract payment token from notes
+          // Extract payment token from notes (kept for potential future use)
           let paymentToken: string | null = null;
           if (order.notes) {
             const tokenMatch = order.notes.match(/Payment Link:\s*([a-f0-9-]+)/i);
@@ -528,33 +548,15 @@ export default function OrderDetail() {
                 </div>
               )}
 
-              {needsPayment && paymentToken && (
+              {needsPayment && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4" data-testid="banner-needs-payment">
                   <div className="flex items-start gap-3">
                     <CreditCard className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="font-medium text-orange-800">Payment required</p>
-                      <p className="text-sm text-orange-700 mb-3">
-                        Complete your payment to start production.
+                      <p className="text-sm text-orange-700">
+                        Complete your payment below to start production.
                       </p>
-                      <Button 
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
-                        onClick={() => handlePayment(paymentToken)}
-                        disabled={isProcessingPayment}
-                        data-testid="button-pay-now"
-                      >
-                        {isProcessingPayment ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <CreditCard className="h-4 w-4 mr-2" />
-                            Pay {formatPrice(parseFloat(order.totalAmount || "0"))}
-                          </>
-                        )}
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1162,6 +1164,86 @@ export default function OrderDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Payment Section - Show if order needs payment */}
+            {(() => {
+              // Align with backend payable statuses: pending, pending_payment, awaiting_artwork
+              const payableStatuses = ['pending', 'pending_payment', 'awaiting_artwork'];
+              const needsPayment = payableStatuses.includes(order.status) && order.notes?.includes('Payment Link:');
+              const totalAmount = parseFloat(order.totalAmount || "0");
+              
+              if (!needsPayment) return null;
+              
+              return (
+                <Card className="border-orange-200 bg-orange-50/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-orange-600" />
+                      Complete Payment
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {!squareConfigured ? (
+                      <div className="text-center py-4">
+                        <p className="text-gray-600 mb-2">Payment processing is currently unavailable.</p>
+                        <p className="text-sm text-gray-500">Please contact support at (602) 554-5338.</p>
+                      </div>
+                    ) : isProcessingPayment ? (
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-orange-600 mb-4" />
+                        <p className="text-gray-600 font-medium">Processing your payment...</p>
+                        <p className="text-sm text-gray-500">Please do not close this page.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="bg-white border rounded-lg p-4">
+                          <div className="flex justify-between items-center mb-4">
+                            <span className="text-lg font-semibold">Amount Due</span>
+                            <span className="text-2xl font-bold text-orange-600">
+                              {formatPrice(totalAmount)}
+                            </span>
+                          </div>
+                          
+                          <div className="sq-payment-form">
+                            <PaymentForm
+                              applicationId={squareAppId}
+                              locationId={squareLocationId}
+                              cardTokenizeResponseReceived={handleSquarePayment}
+                              createPaymentRequest={() => ({
+                                countryCode: 'US',
+                                currencyCode: 'USD',
+                                total: {
+                                  amount: totalAmount.toFixed(2),
+                                  label: `Order ${order.orderNumber}`,
+                                },
+                              })}
+                            >
+                              <SquareCreditCard
+                                buttonProps={{
+                                  css: {
+                                    backgroundColor: '#ea580c',
+                                    fontSize: '16px',
+                                    color: '#fff',
+                                    '&:hover': {
+                                      backgroundColor: '#c2410c',
+                                    },
+                                  },
+                                }}
+                              />
+                            </PaymentForm>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                          <Lock className="h-4 w-4" />
+                          <span>Secure payment powered by Square</span>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {order.notes && (() => {
               // Clean notes: remove payment link tokens and clean up formatting

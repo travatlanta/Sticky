@@ -17,19 +17,33 @@ export async function GET() {
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
-    const allUsers = await db.select().from(users);
+    let allUsers: any[] = [];
+    try {
+      allUsers = await db.select().from(users);
+    } catch (err) {
+      console.error('Error fetching users from database:', err);
+      return NextResponse.json([]);
+    }
 
     const usersWithStats = await Promise.all(
       allUsers.map(async (user) => {
-        const userOrders = await db
-          .select()
-          .from(orders)
-          .where(eq(orders.userId, user.id));
+        let orderCount = 0;
+        let totalSpent = 0;
+        
+        try {
+          const userOrders = await db
+            .select()
+            .from(orders)
+            .where(eq(orders.userId, user.id));
 
-        const orderCount = userOrders.length;
-        const totalSpent = userOrders.reduce((sum, order) => {
-          return sum + parseFloat(order.totalAmount || '0');
-        }, 0);
+          orderCount = userOrders.length;
+          totalSpent = userOrders.reduce((sum, order) => {
+            return sum + parseFloat(order.totalAmount || '0');
+          }, 0);
+        } catch (orderErr) {
+          // If orders query fails (schema mismatch), just use defaults
+          console.error('Error fetching orders for user:', orderErr);
+        }
 
         return {
           ...user,

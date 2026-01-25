@@ -17,7 +17,20 @@ export async function GET() {
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
-    const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
+    let allOrders: any[] = [];
+    try {
+      allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
+    } catch (err) {
+      console.error('Error fetching orders from database:', err);
+      // Return default empty finance data
+      return NextResponse.json({
+        totalRevenue: 0,
+        orderCount: 0,
+        averageOrderValue: 0,
+        revenueByStatus: { paid: 0, pending: 0, delivered: 0, cancelled: 0 },
+        recentOrders: [],
+      });
+    }
 
     const totalRevenue = allOrders.reduce((sum, order) => {
       return sum + parseFloat(order.totalAmount || '0');

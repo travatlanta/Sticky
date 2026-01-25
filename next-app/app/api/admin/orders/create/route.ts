@@ -92,18 +92,22 @@ export async function POST(request: Request) {
 
     let newOrder;
     
-    // Try with all columns first, then fallback to minimal columns
-    // This handles production databases that may be missing new columns
+    // Use only core columns that definitely exist in all database versions
+    // Store customer info and payment token in the notes field as backup
+    const notesContent = [
+      `Customer: ${data.customer.name}`,
+      `Email: ${data.customer.email}`,
+      data.customer.phone ? `Phone: ${data.customer.phone}` : null,
+      `Payment Link: ${paymentLinkToken}`,
+      data.notes ? `Admin Notes: ${data.notes}` : null,
+    ].filter(Boolean).join('\n');
+    
     try {
-      // First attempt: Use all columns with pending status (most compatible)
       const [order] = await db
         .insert(orders)
         .values({
           orderNumber,
           userId: customerId,
-          customerEmail: data.customer.email,
-          customerName: data.customer.name,
-          customerPhone: data.customer.phone || null,
           status: "pending" as const,
           subtotal: data.subtotal.toFixed(2),
           shippingCost: data.shippingCost.toFixed(2),
@@ -111,39 +115,15 @@ export async function POST(request: Request) {
           discountAmount: data.discountAmount.toFixed(2),
           totalAmount: data.totalAmount.toFixed(2),
           shippingAddress: data.shippingAddress,
-          notes: `Payment Link Token: ${paymentLinkToken}${data.notes ? `\n\nAdmin Notes: ${data.notes}` : ''}`,
-          createdByAdminId: (session.user as any).id,
-          paymentLinkToken,
+          notes: notesContent,
         })
         .returning();
       newOrder = order;
-    } catch (dbError1: any) {
-      console.error("First attempt failed:", dbError1.message);
-      
-      try {
-        // Second attempt: Try without createdByAdminId and paymentLinkToken columns
-        const [order] = await db
-          .insert(orders)
-          .values({
-            orderNumber,
-            userId: customerId,
-            status: "pending" as const,
-            subtotal: data.subtotal.toFixed(2),
-            shippingCost: data.shippingCost.toFixed(2),
-            taxAmount: data.taxAmount.toFixed(2),
-            discountAmount: data.discountAmount.toFixed(2),
-            totalAmount: data.totalAmount.toFixed(2),
-            shippingAddress: data.shippingAddress,
-            notes: `Customer: ${data.customer.name} (${data.customer.email})${data.customer.phone ? `, Phone: ${data.customer.phone}` : ''}\nPayment Link Token: ${paymentLinkToken}${data.notes ? `\n\nAdmin Notes: ${data.notes}` : ''}`,
-          })
-          .returning();
-        newOrder = order;
-      } catch (dbError2: any) {
-        console.error("Second attempt failed:", dbError2.message);
-        return NextResponse.json({ 
-          message: `Failed to create order: ${dbError2.message || 'Database error'}. First error: ${dbError1.message}` 
-        }, { status: 500 });
-      }
+    } catch (dbError: any) {
+      console.error("Order creation failed:", dbError.message);
+      return NextResponse.json({ 
+        message: `Failed to create order: ${dbError.message || 'Database error'}` 
+      }, { status: 500 });
     }
 
     for (const item of data.items) {

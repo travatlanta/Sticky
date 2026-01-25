@@ -1,4 +1,7 @@
 import { Metadata } from 'next';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Terms of Service - Sticky Banditos',
@@ -7,13 +10,39 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <h1 className="text-4xl font-bold mb-8">Terms of Service</h1>
-      <p className="text-gray-600 mb-8">Last Updated: December 2024</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Link href="/">
+          <Button variant="ghost" className="mb-6" data-testid="button-back-home">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Button>
+        </Link>
 
-      <div className="prose prose-gray max-w-none space-y-8">
-        <section>
-          <h2 className="text-2xl font-semibold mb-4">1. Agreement to Terms</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 md:p-8">
+          <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-foreground">Terms of Service</h1>
+          <p className="text-gray-600 dark:text-muted-foreground mb-8">Last Updated: January 2026</p>
+
+          {/* Return Policy Highlight */}
+          <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-8">
+            <h2 className="text-xl font-semibold text-orange-800 dark:text-orange-200 mb-3">Important: Return & Refund Policy</h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-3">
+              Due to the custom nature of our products, we have a limited return policy:
+            </p>
+            <ul className="list-disc pl-6 text-gray-700 dark:text-gray-300 space-y-1">
+              <li><strong>No returns on approved custom orders</strong> - Once you approve your design proof, the order is final</li>
+              <li><strong>Defective products</strong> - We will replace or refund products with manufacturing defects. Contact us within 7 days with photos</li>
+              <li><strong>Shipping damage</strong> - Contact us within 7 days with photos. We will replace damaged items at no cost</li>
+              <li><strong>Incorrect orders</strong> - If we made an error, we will correct it at no cost to you</li>
+            </ul>
+            <p className="text-gray-700 dark:text-gray-300 mt-3 text-sm">
+              Refunds are processed within 5-10 business days and returned to the original payment method.
+            </p>
+          </div>
+
+          <div className="prose prose-gray dark:prose-invert max-w-none space-y-8">
+            <section>
+              <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-foreground">1. Agreement to Terms</h2>
           <p className="text-gray-700 leading-relaxed">
             By accessing or using the Sticky Banditos LLC website and services (located at stickybanditos.com), 
             you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not 
@@ -110,10 +139,12 @@ export default function TermsPage() {
           </p>
           <address className="text-gray-700 not-italic mt-4">
             <strong>Sticky Banditos LLC</strong><br />
-            2 North 35th Ave<br />
-            Phoenix, AZ 85009
+            Phone: (602) 554-5338<br />
+            Email: mhobbs.stickybanditos@gmail.com
           </address>
         </section>
+          </div>
+        </div>
       </div>
     </div>
   );

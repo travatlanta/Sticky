@@ -189,6 +189,7 @@ export default function OrderDetail() {
     country: "USA",
   });
   const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Square payment configuration
   const squareAppId = process.env.NEXT_PUBLIC_SQUARE_APP_ID || '';
@@ -433,6 +434,16 @@ export default function OrderDetail() {
       toast({
         title: "Payment Error",
         description: "Could not process card information. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate terms acceptance
+    if (!termsAccepted) {
+      toast({
+        title: "Terms Required",
+        description: "You must accept the Terms & Conditions to complete your order.",
         variant: "destructive",
       });
       return;
@@ -1544,6 +1555,37 @@ export default function OrderDetail() {
                                 </div>
                               </div>
                             </div>
+                          )}
+                        </div>
+
+                        {/* Terms and Conditions Acceptance */}
+                        <div className="bg-white dark:bg-gray-900 border rounded-lg p-4">
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={termsAccepted}
+                              onChange={(e) => setTermsAccepted(e.target.checked)}
+                              className="mt-1 w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                              data-testid="checkbox-terms"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              I have read and agree to the{" "}
+                              <a
+                                href="/terms"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-orange-600 hover:text-orange-700 underline font-medium"
+                                data-testid="link-terms"
+                              >
+                                Terms & Conditions
+                              </a>
+                              , including the return policy and refund guidelines.
+                            </span>
+                          </label>
+                          {!termsAccepted && (
+                            <p className="text-xs text-red-500 mt-2 ml-8">
+                              * You must accept the terms to complete your order
+                            </p>
                           )}
                         </div>
 

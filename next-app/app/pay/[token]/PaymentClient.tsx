@@ -200,7 +200,11 @@ export default function PaymentClient({ token }: { token: string }) {
     );
   }
 
-  if (order.status !== "pending_payment") {
+  // Orders with these statuses still need payment/action
+  const payableStatuses = ["pending", "pending_payment", "awaiting_artwork"];
+  const isPayable = payableStatuses.includes(order.status);
+  
+  if (!isPayable) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">

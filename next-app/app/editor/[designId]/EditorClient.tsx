@@ -1202,6 +1202,89 @@ export default function Editor() {
     }
   };
 
+  // Detect if we're in order context (editing artwork for an existing order)
+  const isOrderContext = !!(orderIdFromUrl && itemIdFromUrl && tokenFromUrl);
+
+  // Handle saving design for order context (link to existing order item)
+  const handleSaveToOrder = async () => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+
+    try {
+      setIsSaving(true);
+
+      // Export canvas
+      const previewDataUrl = canvas.toDataURL({ format: "png", multiplier: 1 });
+
+      // Create/update design
+      const designPayload: any = {
+        name: `[CUSTOMER_UPLOAD] Artwork for Order Item ${itemIdFromUrl}`,
+        productId: effectiveProductId,
+        canvasJson: JSON.stringify(canvas.toJSON()),
+        previewUrl: previewDataUrl,
+      };
+
+      let savedDesignId: number;
+
+      if (isNewDesign) {
+        // Create new design
+        const res = await fetch("/api/designs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(designPayload),
+        });
+
+        if (!res.ok) throw new Error("Failed to create design");
+        const data = await res.json();
+        savedDesignId = data.id;
+      } else {
+        // Update existing design
+        const res = await fetch(`/api/designs/${designId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(designPayload),
+        });
+
+        if (!res.ok) throw new Error("Failed to update design");
+        savedDesignId = parseInt(designId);
+      }
+
+      // Link design to order item
+      const linkRes = await fetch(`/api/orders/by-token/${tokenFromUrl}/artwork`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          orderItemId: parseInt(itemIdFromUrl),
+          designId: savedDesignId,
+        }),
+      });
+
+      if (!linkRes.ok) throw new Error("Failed to link design to order");
+
+      toast({
+        title: "Artwork saved!",
+        description: "Your design has been linked to this order.",
+      });
+
+      // Navigate back to payment page
+      setTimeout(() => {
+        router.push(`/pay/${tokenFromUrl}`);
+      }, 1000);
+    } catch (error) {
+      console.error("Save to order error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save artwork to order.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -2225,132 +2308,172 @@ export default function Editor() {
           </DialogContent>
         </Dialog>
 
-        {/* Fixed Bottom Bar - Add to Cart */}
-        <div className={`fixed bottom-0 left-0 right-0 border-t shadow-lg z-50 ${isDeal ? 'bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20' : 'bg-card'}`} data-testid="fixed-cart-bar">
+        {/* Fixed Bottom Bar */}
+        <div className={`fixed bottom-0 left-0 right-0 border-t shadow-lg z-50 ${isOrderContext ? 'bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20' : isDeal ? 'bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20' : 'bg-card'}`} data-testid="fixed-cart-bar">
           <div className="max-w-7xl mx-auto px-3 py-2">
-            {/* Deal Badge */}
-            {isDeal && (
-              <div className="flex items-center justify-center gap-2 mb-2 pb-2 border-b border-orange-200 dark:border-orange-800">
-                <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">SPECIAL DEAL</span>
-                <span className="text-[10px] text-orange-600 dark:text-orange-400">Fixed quantity - cannot be changed</span>
-              </div>
-            )}
             
-            {/* Bulk Discount Tiers Row - hidden for deals */}
-            {!isDeal && product?.pricingTiers && product.pricingTiers.length > 0 && (
-              <div className="flex items-center justify-center gap-1 mb-2 pb-2 border-b border-border/50 overflow-x-auto">
-                <span className="text-[10px] text-green-600 dark:text-green-400 font-medium whitespace-nowrap mr-1">Bulk Savings:</span>
-                {product.pricingTiers.slice(0, 5).map((tier, idx) => {
-                  const isActive = quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity);
-                  return (
-                    <button 
-                      key={tier.id}
-                      type="button"
-                      onClick={() => setQuantity(tier.minQuantity)}
-                      className={`px-2 py-0.5 text-[10px] rounded-full transition-all whitespace-nowrap ${
-                        isActive 
-                          ? 'bg-green-500 text-white font-medium' 
-                          : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/60'
-                      }`}
-                      data-testid={`button-bulk-tier-${idx}`}
-                    >
-                      {tier.minQuantity}+ @ {formatPrice(parseFloat(tier.pricePerUnit))}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            
-            {/* Quantity, Price & Add to Cart Row */}
-            <div className="flex items-center justify-between gap-3">
-              {/* Quantity Selector */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setQuantity(Math.max(product?.minQuantity || 1, quantity - 25))}
-                  className={`h-9 w-9 shrink-0 ${isDeal ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={isDeal}
-                  data-testid="button-fixed-qty-decrease"
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-                <div className={`flex flex-col items-center min-w-[60px] ${isDeal ? 'bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded-lg' : ''}`}>
-                  <span className={`text-lg font-bold ${isDeal ? 'text-orange-700 dark:text-orange-300' : ''}`} data-testid="text-fixed-quantity">{quantity}</span>
-                  <span className={`text-[10px] uppercase tracking-wide ${isDeal ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`}>{isDeal ? 'fixed' : 'qty'}</span>
+            {/* ORDER CONTEXT MODE - Simple save button */}
+            {isOrderContext ? (
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full">ORDER ARTWORK</span>
+                  <span className="text-sm text-blue-600 dark:text-blue-400 hidden sm:inline">
+                    Design artwork for your order
+                  </span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setQuantity(quantity + 25)}
-                  className={`h-9 w-9 shrink-0 ${isDeal ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={isDeal}
-                  data-testid="button-fixed-qty-increase"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* Quick Quantity Presets - hidden on very small screens and for deals */}
-              {!isDeal && (
-                <div className="hidden sm:flex items-center gap-1">
-                  {DEFAULT_QUANTITY_OPTIONS.slice(0, 4).map((qty) => (
-                    <button
-                      key={qty}
-                      onClick={() => setQuantity(qty)}
-                      className={`px-2 py-1 text-xs rounded-full transition-all ${
-                        quantity === qty
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted hover:bg-muted/80"
-                      }`}
-                      data-testid={`button-fixed-qty-${qty}`}
-                    >
-                      {qty}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Price & Add to Cart */}
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className={`text-lg font-bold ${isDeal ? 'text-orange-600 dark:text-orange-400' : ''}`} data-testid="text-fixed-price">
-                    {priceLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin inline" />
-                    ) : isDeal && fixedDealPrice ? (
-                      formatPrice(fixedDealPrice)
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/pay/${tokenFromUrl}`)}
+                    data-testid="button-back-to-order"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSaveToOrder}
+                    disabled={isSaving}
+                    className="bg-green-600 hover:bg-green-700"
+                    data-testid="button-save-to-order"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...
+                      </>
                     ) : (
-                      formatPrice(calculatedPrice?.subtotal || 0)
+                      <>
+                        <Save className="w-4 h-4 mr-1" /> Save Artwork
+                      </>
                     )}
-                  </div>
-                  {isDeal && fixedDealPrice ? (
-                    <div className="text-[10px] text-orange-600 dark:text-orange-400">
-                      {formatPrice(fixedDealPrice / quantity)}/ea
-                    </div>
-                  ) : calculatedPrice && (
-                    <div className="text-[10px] text-muted-foreground">
-                      {formatPrice(calculatedPrice.pricePerUnit + (calculatedPrice.optionsCost || 0))}/ea
-                    </div>
-                  )}
+                  </Button>
                 </div>
-                <Button
-                  onClick={handleAddToCart}
-                  disabled={addedToCart}
-                  className={`shrink-0 ${isDeal ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-                  data-testid="button-fixed-add-to-cart"
-                >
-                  {addedToCart ? (
-                    <>
-                      <Check className="w-4 h-4 mr-1" /> Added
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-4 h-4 mr-1" /> Add to Cart
-                    </>
-                  )}
-                </Button>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Deal Badge */}
+                {isDeal && (
+                  <div className="flex items-center justify-center gap-2 mb-2 pb-2 border-b border-orange-200 dark:border-orange-800">
+                    <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">SPECIAL DEAL</span>
+                    <span className="text-[10px] text-orange-600 dark:text-orange-400">Fixed quantity - cannot be changed</span>
+                  </div>
+                )}
+                
+                {/* Bulk Discount Tiers Row - hidden for deals */}
+                {!isDeal && product?.pricingTiers && product.pricingTiers.length > 0 && (
+                  <div className="flex items-center justify-center gap-1 mb-2 pb-2 border-b border-border/50 overflow-x-auto">
+                    <span className="text-[10px] text-green-600 dark:text-green-400 font-medium whitespace-nowrap mr-1">Bulk Savings:</span>
+                    {product.pricingTiers.slice(0, 5).map((tier, idx) => {
+                      const isActive = quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity);
+                      return (
+                        <button 
+                          key={tier.id}
+                          type="button"
+                          onClick={() => setQuantity(tier.minQuantity)}
+                          className={`px-2 py-0.5 text-[10px] rounded-full transition-all whitespace-nowrap ${
+                            isActive 
+                              ? 'bg-green-500 text-white font-medium' 
+                              : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800/60'
+                          }`}
+                          data-testid={`button-bulk-tier-${idx}`}
+                        >
+                          {tier.minQuantity}+ @ {formatPrice(parseFloat(tier.pricePerUnit))}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {/* Quantity, Price & Add to Cart Row */}
+                <div className="flex items-center justify-between gap-3">
+                  {/* Quantity Selector */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setQuantity(Math.max(product?.minQuantity || 1, quantity - 25))}
+                      className={`h-9 w-9 shrink-0 ${isDeal ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={isDeal}
+                      data-testid="button-fixed-qty-decrease"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                    <div className={`flex flex-col items-center min-w-[60px] ${isDeal ? 'bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded-lg' : ''}`}>
+                      <span className={`text-lg font-bold ${isDeal ? 'text-orange-700 dark:text-orange-300' : ''}`} data-testid="text-fixed-quantity">{quantity}</span>
+                      <span className={`text-[10px] uppercase tracking-wide ${isDeal ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`}>{isDeal ? 'fixed' : 'qty'}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setQuantity(quantity + 25)}
+                      className={`h-9 w-9 shrink-0 ${isDeal ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={isDeal}
+                      data-testid="button-fixed-qty-increase"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Quick Quantity Presets - hidden on very small screens and for deals */}
+                  {!isDeal && (
+                    <div className="hidden sm:flex items-center gap-1">
+                      {DEFAULT_QUANTITY_OPTIONS.slice(0, 4).map((qty) => (
+                        <button
+                          key={qty}
+                          onClick={() => setQuantity(qty)}
+                          className={`px-2 py-1 text-xs rounded-full transition-all ${
+                            quantity === qty
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted hover:bg-muted/80"
+                          }`}
+                          data-testid={`button-fixed-qty-${qty}`}
+                        >
+                          {qty}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Price & Add to Cart */}
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${isDeal ? 'text-orange-600 dark:text-orange-400' : ''}`} data-testid="text-fixed-price">
+                        {priceLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin inline" />
+                        ) : isDeal && fixedDealPrice ? (
+                          formatPrice(fixedDealPrice)
+                        ) : (
+                          formatPrice(calculatedPrice?.subtotal || 0)
+                        )}
+                      </div>
+                      {isDeal && fixedDealPrice ? (
+                        <div className="text-[10px] text-orange-600 dark:text-orange-400">
+                          {formatPrice(fixedDealPrice / quantity)}/ea
+                        </div>
+                      ) : calculatedPrice && (
+                        <div className="text-[10px] text-muted-foreground">
+                          {formatPrice(calculatedPrice.pricePerUnit + (calculatedPrice.optionsCost || 0))}/ea
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      onClick={handleAddToCart}
+                      disabled={addedToCart}
+                      className={`shrink-0 ${isDeal ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
+                      data-testid="button-fixed-add-to-cart"
+                    >
+                      {addedToCart ? (
+                        <>
+                          <Check className="w-4 h-4 mr-1" /> Added
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4 mr-1" /> Add to Cart
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

@@ -2,7 +2,24 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { orders, orderItems, products, users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+
+// Parse customer info from notes field (fallback for production)
+function parseNotesForCustomerInfo(notes: string | null): { name?: string; email?: string; phone?: string } {
+  if (!notes) return {};
+  const result: { name?: string; email?: string; phone?: string } = {};
+  
+  const nameMatch = notes.match(/Customer:\s*(.+?)(?:\n|$)/);
+  if (nameMatch) result.name = nameMatch[1].trim();
+  
+  const emailMatch = notes.match(/Email:\s*(.+?)(?:\n|$)/);
+  if (emailMatch) result.email = emailMatch[1].trim();
+  
+  const phoneMatch = notes.match(/Phone:\s*(.+?)(?:\n|$)/);
+  if (phoneMatch) result.phone = phoneMatch[1].trim();
+  
+  return result;
+}
 
 export async function GET(
   request: Request,
@@ -15,15 +32,37 @@ export async function GET(
       return NextResponse.json({ message: "Invalid token" }, { status: 400 });
     }
 
-    const [order] = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.paymentLinkToken, token))
-      .limit(1);
+    // Use raw SQL to search for token in notes field (production compatible)
+    // The token is stored in notes as "Payment Link: <token>"
+    const result = await db.execute(sql`
+      SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+             tax_amount, discount_amount, total_amount, shipping_address, notes
+      FROM orders 
+      WHERE notes LIKE ${'%Payment Link: ' + token + '%'}
+      LIMIT 1
+    `);
 
-    if (!order) {
+    if (!result.rows || result.rows.length === 0) {
       return NextResponse.json({ message: "Order not found" }, { status: 404 });
     }
+
+    const orderRow = result.rows[0] as any;
+    const order = {
+      id: orderRow.id,
+      orderNumber: orderRow.order_number,
+      userId: orderRow.user_id,
+      status: orderRow.status,
+      subtotal: orderRow.subtotal,
+      shippingCost: orderRow.shipping_cost,
+      taxAmount: orderRow.tax_amount,
+      discountAmount: orderRow.discount_amount,
+      totalAmount: orderRow.total_amount,
+      shippingAddress: orderRow.shipping_address,
+      notes: orderRow.notes,
+    };
+
+    // Parse customer info from notes
+    const customerInfo = parseNotesForCustomerInfo(order.notes);
 
     const items = await db
       .select({
@@ -51,13 +90,13 @@ export async function GET(
       },
     }));
 
-    // Check if customer email has an existing account or if order is already linked
+    // Check if customer email has an existing account
     let hasAccount = false;
     if (order.userId) {
       hasAccount = true;
-    } else if (order.customerEmail) {
+    } else if (customerInfo.email) {
       const existingUser = await db.query.users.findFirst({
-        where: eq(users.email, order.customerEmail),
+        where: eq(users.email, customerInfo.email),
       });
       hasAccount = !!existingUser;
     }
@@ -66,8 +105,8 @@ export async function GET(
       id: order.id,
       orderNumber: order.orderNumber,
       status: order.status,
-      customerName: order.customerName,
-      customerEmail: order.customerEmail,
+      customerName: customerInfo.name || null,
+      customerEmail: customerInfo.email || null,
       hasAccount,
       subtotal: order.subtotal,
       shippingCost: order.shippingCost,

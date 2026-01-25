@@ -2,9 +2,26 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { orders, users, orderItems, products, designs, productOptions, emailDeliveries } from '@shared/schema';
-import { desc, eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+
+// Parse customer info from notes field (for orders created without customerEmail/customerName columns)
+function parseNotesForCustomerInfo(notes: string | null): { name?: string; email?: string; phone?: string } {
+  if (!notes) return {};
+  const result: { name?: string; email?: string; phone?: string } = {};
+  
+  const nameMatch = notes.match(/Customer:\s*(.+?)(?:\n|$)/);
+  if (nameMatch) result.name = nameMatch[1].trim();
+  
+  const emailMatch = notes.match(/Email:\s*(.+?)(?:\n|$)/);
+  if (emailMatch) result.email = emailMatch[1].trim();
+  
+  const phoneMatch = notes.match(/Phone:\s*(.+?)(?:\n|$)/);
+  if (phoneMatch) result.phone = phoneMatch[1].trim();
+  
+  return result;
+}
 
 export async function GET() {
   try {
@@ -20,10 +37,32 @@ export async function GET() {
 
     let allOrders: any[] = [];
     try {
-      allOrders = await db
-        .select()
-        .from(orders)
-        .orderBy(desc(orders.createdAt));
+      // Use raw SQL to only select columns that exist in production
+      const result = await db.execute(sql`
+        SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+               tax_amount, discount_amount, total_amount, shipping_address, 
+               notes, tracking_number, created_at
+        FROM orders 
+        ORDER BY created_at DESC
+      `);
+      
+      allOrders = (result.rows || []).map((row: any) => ({
+        id: row.id,
+        orderNumber: row.order_number,
+        userId: row.user_id,
+        status: row.status,
+        subtotal: row.subtotal,
+        shippingCost: row.shipping_cost,
+        taxAmount: row.tax_amount,
+        discountAmount: row.discount_amount,
+        totalAmount: row.total_amount,
+        shippingAddress: row.shipping_address,
+        notes: row.notes,
+        trackingNumber: row.tracking_number,
+        createdAt: row.created_at,
+        // Parse customer info from notes for display
+        ...parseNotesForCustomerInfo(row.notes),
+      }));
     } catch (ordersErr) {
       console.error('Error fetching orders (schema mismatch?):', ordersErr);
       // Return empty array if orders table has schema issues

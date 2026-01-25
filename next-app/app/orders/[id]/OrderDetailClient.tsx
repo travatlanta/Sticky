@@ -8,6 +8,16 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -151,6 +161,7 @@ export default function OrderDetail() {
   const [newNote, setNewNote] = useState("");
   const [showNotes, setShowNotes] = useState(false);
   const [requestChangesItemId, setRequestChangesItemId] = useState<number | null>(null);
+  const [approvalConfirmItemId, setApprovalConfirmItemId] = useState<number | null>(null);
 
   const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -545,7 +556,7 @@ export default function OrderDetail() {
                                         <Button
                                           size="sm"
                                           variant="default"
-                                          onClick={() => approveArtworkMutation.mutate(item.id)}
+                                          onClick={() => setApprovalConfirmItemId(item.id)}
                                           disabled={approveArtworkMutation.isPending}
                                           className="bg-green-600"
                                           data-testid={`button-approve-artwork-${item.id}`}
@@ -1078,6 +1089,42 @@ export default function OrderDetail() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={approvalConfirmItemId !== null} onOpenChange={(open) => !open && setApprovalConfirmItemId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalize Your Artwork?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                By approving this design, you confirm that your artwork is ready for production.
+              </p>
+              <p className="font-medium text-orange-600 dark:text-orange-400">
+                Once approved, no further edits or changes can be made to this order.
+              </p>
+              <p>
+                Please make sure you've reviewed the design carefully before proceeding.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-approval">
+              Go Back
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (approvalConfirmItemId) {
+                  approveArtworkMutation.mutate(approvalConfirmItemId);
+                  setApprovalConfirmItemId(null);
+                }
+              }}
+              className="bg-green-600"
+              data-testid="button-confirm-approval"
+            >
+              Yes, Approve Design
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

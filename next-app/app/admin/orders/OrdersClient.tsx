@@ -18,6 +18,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -521,12 +526,19 @@ export default function AdminOrders() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Orders</h1>
             <p className="text-gray-600 text-sm md:text-base">Manage customer orders</p>
           </div>
-          <Link href="/admin/orders/create">
-            <Button className="bg-orange-500 hover:bg-orange-600" data-testid="button-create-manual-order">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Order
-            </Button>
-          </Link>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/admin/orders/create">
+                <Button className="bg-orange-500 hover:bg-orange-600" data-testid="button-create-manual-order">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Order
+                </Button>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Manually create an order for phone/email customers</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Help Guide */}
@@ -628,16 +640,23 @@ export default function AdminOrders() {
                           </option>
                         ))}
                       </select>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleDeleteOrder(order.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        data-testid={`button-delete-${order.id}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteOrder(order.id)}
+                            disabled={deleteMutation.isPending}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            data-testid={`button-delete-${order.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Permanently delete this order</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 </div>
@@ -664,23 +683,37 @@ export default function AdminOrders() {
                   <Badge className={statusColors[selectedOrder.status] || "bg-gray-100"}>
                     {selectedOrder.status.replace("_", " ")}
                   </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => resendReceiptMutation.mutate(selectedOrder.id)}
-                    disabled={resendReceiptMutation.isPending}
-                    data-testid="button-resend-receipt"
-                  >
-                    {resendReceiptMutation.isPending ? (
-                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
-                    Resend Receipt
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)}>
-                    <X className="h-5 w-5" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => resendReceiptMutation.mutate(selectedOrder.id)}
+                        disabled={resendReceiptMutation.isPending}
+                        data-testid="button-resend-receipt"
+                      >
+                        {resendReceiptMutation.isPending ? (
+                          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        Resend Receipt
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Email the order receipt to the customer again</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)}>
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Close order details</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
@@ -899,26 +932,35 @@ export default function AdminOrders() {
                     <div className="bg-white rounded-lg p-3 border space-y-3">
                       <p className="text-sm font-medium text-gray-700">Update Artwork Status:</p>
                       <div className="flex flex-wrap gap-2">
-                        <Select
-                          value={orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork'}
-                          onValueChange={(value) => updateArtworkStatusMutation.mutate({ 
-                            orderId: selectedOrder.id, 
-                            status: value 
-                          })}
-                        >
-                          <SelectTrigger className="w-48" data-testid="select-artwork-status">
-                            <SelectValue placeholder="Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="awaiting_artwork">Awaiting Artwork</SelectItem>
-                            <SelectItem value="customer_designing">Customer Designing</SelectItem>
-                            <SelectItem value="artwork_uploaded">Artwork Uploaded</SelectItem>
-                            <SelectItem value="admin_designing">Admin Designing</SelectItem>
-                            <SelectItem value="pending_approval">Pending Approval</SelectItem>
-                            <SelectItem value="revision_requested">Revision Requested</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Select
+                                value={orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork'}
+                                onValueChange={(value) => updateArtworkStatusMutation.mutate({ 
+                                  orderId: selectedOrder.id, 
+                                  status: value 
+                                })}
+                              >
+                                <SelectTrigger className="w-48" data-testid="select-artwork-status">
+                                  <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="awaiting_artwork">Awaiting Artwork</SelectItem>
+                                  <SelectItem value="customer_designing">Customer Designing</SelectItem>
+                                  <SelectItem value="artwork_uploaded">Artwork Uploaded</SelectItem>
+                                  <SelectItem value="admin_designing">Admin Designing</SelectItem>
+                                  <SelectItem value="pending_approval">Pending Approval</SelectItem>
+                                  <SelectItem value="revision_requested">Revision Requested</SelectItem>
+                                  <SelectItem value="approved">Approved</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p>Track artwork progress: Awaiting → Designing → Uploaded → Approved</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
 
                       {/* Upload Design for Customer Approval */}
@@ -946,20 +988,27 @@ export default function AdminOrders() {
                               }}
                               data-testid="input-upload-design"
                             />
-                            <Button
-                              variant="outline"
-                              onClick={() => document.getElementById(`artwork-upload-${selectedOrder.id}`)?.click()}
-                              disabled={artworkUploading}
-                              className="w-full"
-                              data-testid="button-upload-design"
-                            >
-                              {artworkUploading ? (
-                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                              ) : (
-                                <Upload className="h-4 w-4 mr-2" />
-                              )}
-                              Upload Design & Send for Approval
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => document.getElementById(`artwork-upload-${selectedOrder.id}`)?.click()}
+                                  disabled={artworkUploading}
+                                  className="w-full"
+                                  data-testid="button-upload-design"
+                                >
+                                  {artworkUploading ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                  ) : (
+                                    <Upload className="h-4 w-4 mr-2" />
+                                  )}
+                                  Upload Design & Send for Approval
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>Upload your design and automatically send it to the customer for approval before printing</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                       )}
@@ -1114,34 +1163,41 @@ export default function AdminOrders() {
                                           </Select>
                                         );
                                       })()}
-                                      <Button
-                                        onClick={() => {
-                                          const url = item.design.highResExportUrl || item.design.previewUrl || '';
-                                          const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
-                                          const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
-                                          handleDownload(
-                                            url,
-                                            item.id,
-                                            item.design.name || 'design',
-                                            isSpecialFormat ? 'original' : undefined
-                                          );
-                                        }}
-                                        disabled={downloading[item.id]}
-                                        className="bg-orange-500 hover:bg-orange-600"
-                                        data-testid={`button-download-${item.id}`}
-                                      >
-                                        {downloading[item.id] ? (
-                                          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                                        ) : (
-                                          <Download className="h-4 w-4 mr-2" />
-                                        )}
-                                        {(() => {
-                                          const url = item.design.highResExportUrl || item.design.previewUrl || '';
-                                          const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
-                                          const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
-                                          return isSpecialFormat ? `Download ${ext.toUpperCase()}` : 'Download';
-                                        })()}
-                                      </Button>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            onClick={() => {
+                                              const url = item.design.highResExportUrl || item.design.previewUrl || '';
+                                              const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                                              const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
+                                              handleDownload(
+                                                url,
+                                                item.id,
+                                                item.design.name || 'design',
+                                                isSpecialFormat ? 'original' : undefined
+                                              );
+                                            }}
+                                            disabled={downloading[item.id]}
+                                            className="bg-orange-500 hover:bg-orange-600"
+                                            data-testid={`button-download-${item.id}`}
+                                          >
+                                            {downloading[item.id] ? (
+                                              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                            ) : (
+                                              <Download className="h-4 w-4 mr-2" />
+                                            )}
+                                            {(() => {
+                                              const url = item.design.highResExportUrl || item.design.previewUrl || '';
+                                              const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                                              const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
+                                              return isSpecialFormat ? `Download ${ext.toUpperCase()}` : 'Download';
+                                            })()}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                          <p>Download print-ready artwork at 300 DPI in your selected format</p>
+                                        </TooltipContent>
+                                      </Tooltip>
                                     </div>
                                     <div className="text-xs text-gray-500 space-y-1">
                                       <p>PNG/TIFF preserve transparency</p>
@@ -1150,72 +1206,100 @@ export default function AdminOrders() {
                                   </>
                                 )}
                                 {item.design.customShapeUrl && (
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => handleDownload(
-                                      item.design.customShapeUrl,
-                                      item.id + 1000,
-                                      `${item.design.name || 'design'}_diecut`,
-                                      'original'
-                                    )}
-                                    disabled={downloading[item.id + 1000]}
-                                    className="text-blue-700 border-blue-300"
-                                  >
-                                    <FileImage className="h-4 w-4 mr-2" />
-                                    Download Die-Cut Shape
-                                  </Button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => handleDownload(
+                                          item.design.customShapeUrl,
+                                          item.id + 1000,
+                                          `${item.design.name || 'design'}_diecut`,
+                                          'original'
+                                        )}
+                                        disabled={downloading[item.id + 1000]}
+                                        className="text-blue-700 border-blue-300"
+                                      >
+                                        <FileImage className="h-4 w-4 mr-2" />
+                                        Download Die-Cut Shape
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p>Download the custom die-cut outline for this sticker design</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )}
                                 {item.printFileUrl && (
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => handleDownload(
-                                      item.printFileUrl,
-                                      item.id + 2000,
-                                      `${item.design?.name || 'design'}_production`,
-                                      'original'
-                                    )}
-                                    disabled={downloading[item.id + 2000]}
-                                    className="text-green-700 border-green-300"
-                                  >
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Download Production File
-                                  </Button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => handleDownload(
+                                          item.printFileUrl,
+                                          item.id + 2000,
+                                          `${item.design?.name || 'design'}_production`,
+                                          'original'
+                                        )}
+                                        disabled={downloading[item.id + 2000]}
+                                        className="text-green-700 border-green-300"
+                                      >
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Download Production File
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p>Download the final production-ready file for printing</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )}
                                 
                                 {/* Admin Artwork Review Actions */}
                                 <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-amber-700 border-amber-300 hover:bg-amber-50"
-                                    onClick={() => setArtworkReviewModal({
-                                      open: true,
-                                      item,
-                                      orderId: selectedOrder.id,
-                                      orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
-                                      action: 'flag'
-                                    })}
-                                    data-testid={`button-flag-revision-${item.id}`}
-                                  >
-                                    <RefreshCw className="h-4 w-4 mr-1" />
-                                    Request Revision
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-blue-700 border-blue-300 hover:bg-blue-50"
-                                    onClick={() => setArtworkReviewModal({
-                                      open: true,
-                                      item,
-                                      orderId: selectedOrder.id,
-                                      orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
-                                      action: 'upload'
-                                    })}
-                                    data-testid={`button-admin-upload-${item.id}`}
-                                  >
-                                    <Upload className="h-4 w-4 mr-1" />
-                                    Upload New Design
-                                  </Button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-amber-700 border-amber-300 hover:bg-amber-50"
+                                        onClick={() => setArtworkReviewModal({
+                                          open: true,
+                                          item,
+                                          orderId: selectedOrder.id,
+                                          orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                          action: 'flag'
+                                        })}
+                                        data-testid={`button-flag-revision-${item.id}`}
+                                      >
+                                        <RefreshCw className="h-4 w-4 mr-1" />
+                                        Request Revision
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="max-w-xs">
+                                      <p>Flag this artwork and ask the customer to upload a corrected version. Add notes explaining what needs to be changed.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-blue-700 border-blue-300 hover:bg-blue-50"
+                                        onClick={() => setArtworkReviewModal({
+                                          open: true,
+                                          item,
+                                          orderId: selectedOrder.id,
+                                          orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                          action: 'upload'
+                                        })}
+                                        data-testid={`button-admin-upload-${item.id}`}
+                                      >
+                                        <Upload className="h-4 w-4 mr-1" />
+                                        Upload New Design
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" className="max-w-xs">
+                                      <p>Upload a corrected or new design for this customer. They will need to approve it before printing.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 </div>
                               </div>
                             </div>
@@ -1382,17 +1466,24 @@ export default function AdminOrders() {
                         }
                       }}
                     />
-                    <Button
-                      onClick={() => sendNoteMutation.mutate(newAdminNote.trim())}
-                      disabled={sendNoteMutation.isPending || !newAdminNote.trim()}
-                      data-testid="button-send-admin-note"
-                    >
-                      {sendNoteMutation.isPending ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => sendNoteMutation.mutate(newAdminNote.trim())}
+                          disabled={sendNoteMutation.isPending || !newAdminNote.trim()}
+                          data-testid="button-send-admin-note"
+                        >
+                          {sendNoteMutation.isPending ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Send message to customer via email</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
 

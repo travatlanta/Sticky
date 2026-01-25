@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Plus, Save, Trash2, Settings as SettingsIcon, Shield, UserPlus, UserMinus, Mail, Loader2, Database, Code, FileText, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SiteSetting {
   id: number;
@@ -210,10 +215,17 @@ export default function AdminSettings() {
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleAddSetting} disabled={!newKey.trim()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleAddSetting} disabled={!newKey.trim()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add a new configuration setting (for advanced users)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -236,14 +248,21 @@ export default function AdminSettings() {
                     <label className="text-sm font-medium text-gray-900 font-mono">
                       {setting.key}
                     </label>
-                    <Button
-                      size="sm"
-                      onClick={() => handleSaveSetting(setting.key)}
-                      disabled={updateMutation.isPending}
-                    >
-                      <Save className="h-4 w-4 mr-1" />
-                      Save
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          onClick={() => handleSaveSetting(setting.key)}
+                          disabled={updateMutation.isPending}
+                        >
+                          <Save className="h-4 w-4 mr-1" />
+                          Save
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Save changes to this setting</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                   <textarea
                     value={getEditValue(setting)}

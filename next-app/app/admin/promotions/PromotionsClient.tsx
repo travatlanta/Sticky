@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { Plus, Pencil, Trash2, Tag, Percent, Hash, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Promotion {
   id: number;
@@ -124,10 +129,17 @@ export default function AdminPromotions() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Promotions</h1>
             <p className="text-gray-600 text-sm md:text-base">Manage discount codes</p>
           </div>
-          <Button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Promotion
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Promotion
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Create a new discount code for customers to use at checkout</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Help Guide */}
@@ -296,24 +308,38 @@ export default function AdminPromotions() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingPromo(promo)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this promotion?")) {
-                            deleteMutation.mutate(promo.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingPromo(promo)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Edit discount code settings</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm("Are you sure you want to delete this promotion?")) {
+                                deleteMutation.mutate(promo.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete this discount code</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </td>
                   </tr>
                 ))}

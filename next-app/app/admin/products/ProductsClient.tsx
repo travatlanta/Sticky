@@ -31,6 +31,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DealsTab from "@/components/admin/DealsTab";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function FixOptionsButton() {
   const [needsUpdate, setNeedsUpdate] = useState(false);
@@ -663,10 +668,17 @@ export default function AdminProducts() {
                 <h2 className="text-xl font-bold text-gray-900">Product Catalog</h2>
                 <p className="text-gray-600 text-sm">Manage your products</p>
               </div>
-              <Button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full sm:w-auto" data-testid="button-add-product">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={() => setShowCreateForm(!showCreateForm)} className="w-full sm:w-auto" data-testid="button-add-product">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Create a new sticker product for your store</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
 
             {/* Fix Options Banner - Shows when options need updating */}
@@ -1064,39 +1076,60 @@ export default function AdminProducts() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 self-end sm:self-center">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => toggleActive(product)}
-                      data-testid={`button-toggle-${product.id}`}
-                    >
-                      {product.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setEditingProduct(product)}
-                      data-testid={`button-edit-${product.id}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      disabled={deletingProductId === product.id}
-                      onClick={() => {
-                        if (confirm("Are you sure you want to delete this product?")) {
-                          deleteMutation.mutate({ id: product.id });
-                        }
-                      }}
-                      data-testid={`button-delete-${product.id}`}
-                    >
-                      {deletingProductId === product.id ? (
-                        <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      )}
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => toggleActive(product)}
+                          data-testid={`button-toggle-${product.id}`}
+                        >
+                          {product.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{product.isActive ? 'Deactivate product (hide from store)' : 'Activate product (show in store)'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setEditingProduct(product)}
+                          data-testid={`button-edit-${product.id}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Edit product details, images, and pricing</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          disabled={deletingProductId === product.id}
+                          onClick={() => {
+                            if (confirm("Are you sure you want to delete this product?")) {
+                              deleteMutation.mutate({ id: product.id });
+                            }
+                          }}
+                          data-testid={`button-delete-${product.id}`}
+                        >
+                          {deletingProductId === product.id ? (
+                            <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Permanently delete this product</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </div>

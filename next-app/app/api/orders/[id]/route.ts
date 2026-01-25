@@ -88,7 +88,15 @@ export async function GET(
             .select()
             .from(designs)
             .where(eq(designs.id, item.designId));
-          design = d || null;
+          if (d) {
+            const isApproved = d.name && d.name.includes('[APPROVED]');
+            const isPending = d.name && d.name.includes('[PENDING]');
+            design = {
+              ...d,
+              artworkUrl: (d as any).artworkUrl || null,
+              status: isApproved ? 'approved' : (isPending ? 'pending' : 'uploaded'),
+            };
+          }
         }
 
         return { ...item, product, design };

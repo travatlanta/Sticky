@@ -1,13 +1,14 @@
 "use client";
 
-
-import { useQuery } from "@tanstack/react-query";
+import { useState, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -24,14 +25,19 @@ import {
   Image,
   Phone,
   Mail,
+  Upload,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 
 interface Design {
   id: number;
   name: string | null;
   previewUrl: string | null;
+  artworkUrl: string | null;
   highResExportUrl: string | null;
   customShapeUrl: string | null;
+  status?: 'pending' | 'approved' | 'uploaded';
 }
 
 interface OrderItem {
@@ -85,6 +91,10 @@ export default function OrderDetail() {
   const id = params?.id as string;
   const { data: session, status: sessionStatus } = useSession();
   const isAuthenticated = sessionStatus === "authenticated";
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
+  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -95,6 +105,94 @@ export default function OrderDetail() {
     },
     enabled: isAuthenticated && !!id,
   });
+
+  const uploadArtworkMutation = useMutation({
+    mutationFn: async ({ orderItemId, file }: { orderItemId: number; file: File }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("orderItemId", orderItemId.toString());
+
+      const res = await fetch(`/api/orders/${id}/artwork`, {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Upload failed");
+      return json;
+    },
+    onSuccess: () => {
+      toast({ title: "Artwork uploaded successfully!" });
+      setUploadingItemId(null);
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setUploadingItemId(null);
+    },
+  });
+
+  const removeArtworkMutation = useMutation({
+    mutationFn: async (orderItemId: number) => {
+      const res = await fetch(`/api/orders/${id}/artwork?orderItemId=${orderItemId}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Remove failed");
+      return json;
+    },
+    onSuccess: () => {
+      toast({ title: "Artwork removed" });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Remove failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const approveArtworkMutation = useMutation({
+    mutationFn: async (orderItemId: number) => {
+      const res = await fetch(`/api/orders/${id}/artwork`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderItemId, action: "approve" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Approval failed");
+      return json;
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Artwork approved!", 
+        description: data.allItemsApproved 
+          ? "All artwork approved." 
+          : "Continue approving other items." 
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Approval failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelect = (orderItemId: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadingItemId(orderItemId);
+      uploadArtworkMutation.mutate({ orderItemId, file });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -222,6 +320,140 @@ export default function OrderDetail() {
                         </div>
                       </div>
                       
+                      {/* Artwork Upload Section */}
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium flex items-center gap-2">
+                            <FileImage className="h-4 w-4" />
+                            Artwork
+                          </span>
+                          {item.design?.status === 'approved' ? (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                              Approved
+                            </span>
+                          ) : item.design?.artworkUrl || item.design?.previewUrl ? (
+                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                              Pending Approval
+                            </span>
+                          ) : (
+                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                              Required
+                            </span>
+                          )}
+                        </div>
+
+                        {item.design?.artworkUrl || item.design?.previewUrl ? (
+                          <div className="flex items-center gap-3">
+                            <a 
+                              href={item.design.artworkUrl || item.design.previewUrl || "#"} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={item.design.artworkUrl || item.design.previewUrl || ""}
+                                alt="Your artwork"
+                                className="w-20 h-20 object-contain border rounded bg-white dark:bg-gray-800"
+                              />
+                            </a>
+                            <div className="flex-1">
+                              {item.design.status === 'approved' ? (
+                                <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+                                  <CheckCircle className="h-4 w-4" />
+                                  Artwork Approved
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-600 dark:text-muted-foreground">
+                                  Review and approve your artwork
+                                </p>
+                              )}
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {item.design.status !== 'approved' && (
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    onClick={() => approveArtworkMutation.mutate(item.id)}
+                                    disabled={approveArtworkMutation.isPending}
+                                    data-testid={`button-approve-artwork-${item.id}`}
+                                  >
+                                    {approveArtworkMutation.isPending ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="h-4 w-4 mr-1" />
+                                        Approve
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => fileInputRefs.current[item.id]?.click()}
+                                  disabled={uploadingItemId === item.id}
+                                  data-testid={`button-replace-artwork-${item.id}`}
+                                >
+                                  {uploadingItemId === item.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Upload className="h-4 w-4 mr-1" />
+                                      Replace
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => removeArtworkMutation.mutate(item.id)}
+                                  disabled={removeArtworkMutation.isPending}
+                                  data-testid={`button-remove-artwork-${item.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                            <Image className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                            <p className="text-sm text-gray-600 dark:text-muted-foreground mb-3">
+                              Upload your artwork for this product
+                            </p>
+                            <Button
+                              size="sm"
+                              onClick={() => fileInputRefs.current[item.id]?.click()}
+                              disabled={uploadingItemId === item.id}
+                              data-testid={`button-upload-artwork-${item.id}`}
+                            >
+                              {uploadingItemId === item.id ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Upload Artwork
+                                </>
+                              )}
+                            </Button>
+                            <p className="text-xs text-gray-500 mt-2">
+                              Accepts: JPG, PNG, PDF, EPS, AI, PSD, SVG
+                            </p>
+                          </div>
+                        )}
+
+                        <input
+                          type="file"
+                          ref={(el) => { fileInputRefs.current[item.id] = el; }}
+                          onChange={(e) => handleFileSelect(item.id, e)}
+                          accept=".jpg,.jpeg,.png,.pdf,.eps,.ai,.psd,.cdr,.svg"
+                          className="hidden"
+                          data-testid={`input-file-artwork-${item.id}`}
+                        />
+                      </div>
+
                       {item.design && (item.design.highResExportUrl || item.design.customShapeUrl) && (
                         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">

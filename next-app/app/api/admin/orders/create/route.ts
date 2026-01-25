@@ -173,7 +173,7 @@ export async function POST(request: Request) {
 
     try {
       const resendApiKey = process.env.RESEND_API_KEY;
-      const fromEmail = process.env.ORDER_EMAIL_FROM || "orders@stickybanditos.com";
+      const fromEmail = process.env.ORDER_EMAIL_FROM || "Sticky Banditos <onboarding@resend.dev>";
 
       if (resendApiKey) {
         const emailHtml = `
@@ -214,7 +214,9 @@ export async function POST(request: Request) {
           </html>
         `;
 
-        await fetch("https://api.resend.com/emails", {
+        console.log(`Sending order email to ${data.customer.email} from ${fromEmail}`);
+        
+        const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -227,6 +229,15 @@ export async function POST(request: Request) {
             html: emailHtml,
           }),
         });
+
+        const emailResult = await emailResponse.json();
+        if (!emailResponse.ok) {
+          console.error("Resend API error:", emailResult);
+        } else {
+          console.log("Email sent successfully:", emailResult.id);
+        }
+      } else {
+        console.log("RESEND_API_KEY not configured, skipping email");
       }
     } catch (emailError) {
       console.error("Failed to send payment email:", emailError);

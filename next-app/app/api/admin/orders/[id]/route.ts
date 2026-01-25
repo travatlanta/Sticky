@@ -389,6 +389,13 @@ export async function DELETE(
       // Table might not exist, continue
     }
 
+    // Delete artwork notes/messages
+    try {
+      await db.execute(sql`DELETE FROM artwork_notes WHERE order_id = ${orderId}`);
+    } catch (e) {
+      // Table might not exist, continue
+    }
+
     // Finally delete the order
     await db.execute(sql`DELETE FROM orders WHERE id = ${orderId}`);
 

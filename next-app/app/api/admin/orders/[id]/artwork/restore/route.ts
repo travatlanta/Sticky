@@ -4,8 +4,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { neon } from "@neondatabase/serverless";
-import { db } from "@/lib/db";
-import { notifications } from "@shared/schema";
 
 export async function POST(
   request: Request,
@@ -47,14 +45,17 @@ export async function POST(
     `;
 
     if (order.userId) {
-      await db.insert(notifications).values({
-        userId: order.userId,
-        type: "artwork_restored",
-        title: "Original Artwork Restored",
-        message: `Your original artwork for order #${order.orderNumber} has been restored.`,
-        orderId: orderId,
-        linkUrl: `/orders/${orderId}/artwork`,
-      });
+      await sql`
+        INSERT INTO notifications ("userId", type, title, message, "orderId", "linkUrl")
+        VALUES (
+          ${order.userId},
+          'order_updated',
+          'Original Artwork Restored',
+          ${'Your original artwork for order #' + order.orderNumber + ' has been restored.'},
+          ${orderId},
+          ${'/orders/' + orderId + '/artwork'}
+        )
+      `;
     }
 
     return NextResponse.json({ 

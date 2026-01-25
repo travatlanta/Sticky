@@ -72,8 +72,16 @@ export async function GET(
     );
 
     return NextResponse.json({ notes: notesWithUserInfo });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching artwork notes:", error);
+    // If the table doesn't exist yet, return empty array instead of error
+    if (error?.message?.includes('relation') && error?.message?.includes('does not exist')) {
+      return NextResponse.json({ notes: [] });
+    }
+    // Also handle "artwork_notes" table not found
+    if (error?.code === '42P01') { // PostgreSQL error code for undefined table
+      return NextResponse.json({ notes: [] });
+    }
     return NextResponse.json({ error: "Failed to fetch notes" }, { status: 500 });
   }
 }
@@ -131,8 +139,15 @@ export async function POST(
       noteId: insertedNote.id,
       createdAt: insertedNote.createdAt 
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating artwork note:", error);
+    // If the table doesn't exist yet, return a helpful message
+    if (error?.message?.includes('relation') && error?.message?.includes('does not exist')) {
+      return NextResponse.json({ error: "Messaging not available yet. Please try again later." }, { status: 503 });
+    }
+    if (error?.code === '42P01') {
+      return NextResponse.json({ error: "Messaging not available yet. Please try again later." }, { status: 503 });
+    }
     return NextResponse.json({ error: "Failed to create note" }, { status: 500 });
   }
 }

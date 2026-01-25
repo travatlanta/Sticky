@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
@@ -87,6 +87,19 @@ export default function PaymentClient({ token }: { token: string }) {
   const [accountCreated, setAccountCreated] = useState(false);
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  
+  // Auth step: 'auth' shows auth page first, 'payment' shows payment details
+  const [authStep, setAuthStep] = useState<'auth' | 'payment'>('auth');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | null>(null);
+
+  // Auto-advance to payment when user becomes authenticated
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      setAuthStep('payment');
+      setAuthMode(null);
+      setAccountCreated(false);
+    }
+  }, [sessionStatus]);
 
   const {
     data: order,
@@ -152,6 +165,7 @@ export default function PaymentClient({ token }: { token: string }) {
       toast({ title: "Account created!", description: "Please log in to continue." });
       setAccountCreated(true);
       setShowLoginForm(true);
+      setAuthMode('signin'); // Switch to sign in mode after successful registration
       setPassword("");
       setConfirmPassword("");
       queryClient.invalidateQueries({ queryKey: ["/api/orders/by-token", token] });
@@ -271,6 +285,8 @@ export default function PaymentClient({ token }: { token: string }) {
       });
     } else {
       toast({ title: "Logged in successfully!" });
+      setAuthStep('payment'); // Advance to payment step after login
+      setAuthMode(null);
       router.refresh();
     }
   };
@@ -333,6 +349,245 @@ export default function PaymentClient({ token }: { token: string }) {
             )}
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // If user is logged in, skip auth step and go straight to payment
+  // Always skip auth if authenticated, regardless of hasAccount status
+  // Also skip auth step while session is loading to avoid flicker
+  const shouldShowAuthStep = sessionStatus === 'unauthenticated' && authStep === 'auth';
+  
+  // Show loading state while session is being determined
+  if (sessionStatus === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-orange-500" />
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth step - visually appealing page with sign in, sign up, and guest options
+  if (shouldShowAuthStep) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white py-12 px-4">
+        <div className="max-w-md mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="h-8 w-8 text-orange-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Complete Your Order</h1>
+            <p className="text-gray-600 mt-2">Order #{order.orderNumber}</p>
+            <p className="text-xl font-semibold text-orange-600 mt-1">
+              {formatPrice(parseFloat(order.totalAmount))}
+            </p>
+          </div>
+
+          {/* Auth Options */}
+          {!authMode && (
+            <Card className="mb-6">
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  {/* Sign In Option */}
+                  <Button
+                    className="w-full h-14 text-lg"
+                    onClick={() => setAuthMode('signin')}
+                    data-testid="button-auth-signin"
+                  >
+                    <User className="h-5 w-5 mr-2" />
+                    Sign In to Your Account
+                  </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-gray-500">or</span>
+                    </div>
+                  </div>
+
+                  {/* Sign Up Option */}
+                  <Button
+                    variant="outline"
+                    className="w-full h-14 text-lg border-orange-200 hover:bg-orange-50"
+                    onClick={() => setAuthMode('signup')}
+                    data-testid="button-auth-signup"
+                  >
+                    <Mail className="h-5 w-5 mr-2" />
+                    Create New Account
+                  </Button>
+
+                  <p className="text-xs text-gray-500 text-center">
+                    Track your orders, save designs, and faster checkout
+                  </p>
+                </div>
+
+                {/* Guest Option - smaller and subtle */}
+                <div className="mt-8 pt-6 border-t">
+                  <button
+                    onClick={() => setAuthStep('payment')}
+                    className="w-full text-sm text-gray-500 hover:text-gray-700 underline"
+                    data-testid="button-continue-guest"
+                  >
+                    Continue as guest
+                  </button>
+                  <p className="text-xs text-gray-400 text-center mt-2">
+                    You won't be able to track your order online without an account
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sign In Form */}
+          {authMode === 'signin' && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Sign In
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Email</Label>
+                    <div className="flex items-center gap-2 mt-1 p-2 bg-gray-100 rounded border">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-700">{order.customerEmail}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="authLoginPassword" className="text-sm font-medium">Password</Label>
+                    <Input
+                      id="authLoginPassword"
+                      type="password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="mt-1"
+                      data-testid="input-auth-login-password"
+                    />
+                  </div>
+                  
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={!loginPassword}
+                    data-testid="button-auth-login-submit"
+                  >
+                    Sign In & Continue
+                  </Button>
+
+                  <div className="flex justify-between text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode(null)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      Back
+                    </button>
+                    <Link href="/forgot-password" className="text-orange-600 hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sign Up Form */}
+          {authMode === 'signup' && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Create Account
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Email</Label>
+                    <div className="flex items-center gap-2 mt-1 p-2 bg-gray-100 rounded border">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-700">{order.customerEmail}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="authRegPassword" className="text-sm font-medium">Password</Label>
+                    <Input
+                      id="authRegPassword"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Create a password (min 6 characters)"
+                      className="mt-1"
+                      data-testid="input-auth-register-password"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="authRegConfirmPassword" className="text-sm font-medium">Confirm Password</Label>
+                    <Input
+                      id="authRegConfirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm your password"
+                      className="mt-1"
+                      data-testid="input-auth-register-confirm-password"
+                    />
+                  </div>
+                  
+                  <Button
+                    className="w-full"
+                    onClick={() => registerMutation.mutate()}
+                    disabled={registerMutation.isPending || password.length < 6 || password !== confirmPassword}
+                    data-testid="button-auth-register-submit"
+                  >
+                    {registerMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      "Create Account & Continue"
+                    )}
+                  </Button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode(null)}
+                    className="w-full text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Back
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {accountCreated && (
+            <Card className="mb-6 border-green-200 bg-green-50">
+              <CardContent className="pt-6 text-center">
+                <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                <p className="font-medium text-green-800">Account created!</p>
+                <p className="text-sm text-green-700 mb-4">Please sign in to continue.</p>
+                <Button onClick={() => setAuthMode('signin')}>
+                  Sign In Now
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     );
   }

@@ -365,6 +365,13 @@ export async function DELETE(
     // Delete all related records with foreign keys to orders
     // Order matters due to FK constraints
     
+    // Delete artwork notes referencing this order
+    try {
+      await db.execute(sql`DELETE FROM artwork_notes WHERE order_id = ${orderId}`);
+    } catch (e) {
+      // Table might not exist, continue
+    }
+
     // Delete messages referencing this order
     try {
       await db.execute(sql`DELETE FROM messages WHERE order_id = ${orderId}`);
@@ -379,15 +386,15 @@ export async function DELETE(
       // Table might not exist, continue
     }
 
-    // Delete order items
-    await db.execute(sql`DELETE FROM order_items WHERE order_id = ${orderId}`);
-
     // Delete any related email delivery logs
     try {
       await db.execute(sql`DELETE FROM email_deliveries WHERE order_id = ${orderId}`);
     } catch (e) {
       // Table might not exist, continue
     }
+
+    // Delete order items
+    await db.execute(sql`DELETE FROM order_items WHERE order_id = ${orderId}`);
 
     // Finally delete the order
     await db.execute(sql`DELETE FROM orders WHERE id = ${orderId}`);

@@ -1195,7 +1195,7 @@ export default function AdminOrders() {
                             {/* Admin Artwork Review Actions - always show */}
                             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
                               {/* Approve button - show when artwork exists and needs approval */}
-                              {item.design && (item.design.previewUrl || item.design.highResExportUrl) && 
+                              {item.design && (item.design.previewUrl || item.design.highResExportUrl || item.design.artworkUrl) && 
                                !item.design?.name?.includes('[APPROVED]') && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>

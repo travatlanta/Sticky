@@ -187,8 +187,6 @@ export async function POST(
         designId,
         artworkUrl: blob.url,
       });
-    }
-
     } else if (action === 'approve') {
       // Admin approves customer artwork - order is ready for printing
       if (!orderItem.design_id) {

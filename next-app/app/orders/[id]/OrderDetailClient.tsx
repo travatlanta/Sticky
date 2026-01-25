@@ -93,6 +93,7 @@ export default function OrderDetail() {
   const id = params?.id as string;
   const { data: session, status: sessionStatus } = useSession();
   const isAuthenticated = sessionStatus === "authenticated";
+  const isAdmin = (session?.user as any)?.isAdmin === true;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
@@ -392,11 +393,12 @@ export default function OrderDetail() {
                                 </p>
                               ) : (
                                 <p className="text-sm text-gray-600 dark:text-muted-foreground">
-                                  Review and approve your artwork
+                                  {isAdmin ? "Review and approve artwork" : "Awaiting admin approval"}
                                 </p>
                               )}
                               <div className="flex flex-wrap gap-2 mt-2">
-                                {item.design.status !== 'approved' && (
+                                {/* Approve button only visible to admins */}
+                                {isAdmin && item.design.status !== 'approved' && (
                                   <Button
                                     size="sm"
                                     variant="default"

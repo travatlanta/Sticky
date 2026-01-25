@@ -40,6 +40,8 @@ interface Design {
   highResExportUrl: string | null;
   customShapeUrl: string | null;
   status?: 'pending' | 'approved' | 'uploaded';
+  isAdminDesign?: boolean;
+  isCustomerUpload?: boolean;
 }
 
 interface OrderItem {
@@ -391,14 +393,18 @@ export default function OrderDetail() {
                                   <CheckCircle className="h-4 w-4" />
                                   Artwork Approved
                                 </p>
+                              ) : item.design.isAdminDesign ? (
+                                <p className="text-sm text-blue-600 dark:text-blue-400">
+                                  {isAdmin ? "Design sent to customer for approval" : "Please review and approve this design"}
+                                </p>
                               ) : (
                                 <p className="text-sm text-gray-600 dark:text-muted-foreground">
-                                  {isAdmin ? "Review and approve artwork" : "Awaiting admin approval"}
+                                  {isAdmin ? "Customer uploaded artwork - ready for printing" : "Your artwork has been uploaded"}
                                 </p>
                               )}
                               <div className="flex flex-wrap gap-2 mt-2">
-                                {/* Approve button only visible to admins */}
-                                {isAdmin && item.design.status !== 'approved' && (
+                                {/* Approve button: customers approve admin designs, not their own uploads */}
+                                {!isAdmin && item.design.isAdminDesign && item.design.status !== 'approved' && (
                                   <Button
                                     size="sm"
                                     variant="default"
@@ -411,7 +417,7 @@ export default function OrderDetail() {
                                     ) : (
                                       <>
                                         <CheckCircle className="h-4 w-4 mr-1" />
-                                        Approve
+                                        Approve Design
                                       </>
                                     )}
                                   </Button>

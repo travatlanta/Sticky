@@ -90,11 +90,14 @@ export async function GET(
             .where(eq(designs.id, item.designId));
           if (d) {
             const isApproved = d.name && d.name.includes('[APPROVED]');
-            const isPending = d.name && d.name.includes('[PENDING]');
+            const isAdminDesign = d.name && d.name.includes('[ADMIN_DESIGN]');
+            const isCustomerUpload = d.name && d.name.includes('[CUSTOMER_UPLOAD]');
             design = {
               ...d,
               artworkUrl: d.previewUrl || null,
-              status: isApproved ? 'approved' : (isPending ? 'pending' : 'uploaded'),
+              status: isApproved ? 'approved' : 'pending',
+              isAdminDesign,
+              isCustomerUpload,
             };
           }
         }

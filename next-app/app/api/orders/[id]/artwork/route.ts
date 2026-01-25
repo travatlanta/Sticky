@@ -51,7 +51,8 @@ export async function GET(
 
     const items = (itemsResult.rows || []).map((row: any) => {
       const isApproved = row.design_name && row.design_name.includes('[APPROVED]');
-      const isPending = row.design_name && row.design_name.includes('[PENDING]');
+      const isAdminDesign = row.design_name && row.design_name.includes('[ADMIN_DESIGN]');
+      const isCustomerUpload = row.design_name && row.design_name.includes('[CUSTOMER_UPLOAD]');
       return {
         id: row.id,
         productId: row.product_id,
@@ -66,7 +67,9 @@ export async function GET(
           name: row.design_name,
           previewUrl: row.preview_url,
           artworkUrl: row.preview_url,
-          status: isApproved ? 'approved' : (isPending ? 'pending' : 'uploaded'),
+          status: isApproved ? 'approved' : 'pending',
+          isAdminDesign,
+          isCustomerUpload,
         } : null,
       };
     });
@@ -143,11 +146,15 @@ export async function POST(
 
     let designId = orderItem.design_id;
 
+    const isAdminUpload = (session.user as any).isAdmin === true;
+    const uploadTag = isAdminUpload ? '[ADMIN_DESIGN]' : '[CUSTOMER_UPLOAD]';
+    const designName = `${uploadTag} Artwork for Order ${order.order_number}`;
+
     if (designId) {
       await db.execute(sql`
         UPDATE designs SET
           preview_url = ${blob.url},
-          name = ${'[PENDING] Artwork for Order ' + order.order_number},
+          name = ${designName},
           updated_at = NOW()
         WHERE id = ${designId}
       `);
@@ -155,7 +162,7 @@ export async function POST(
       const designResult = await db.execute(sql`
         INSERT INTO designs (name, preview_url, product_id, created_at, updated_at)
         VALUES (
-          ${'[PENDING] Artwork for Order ' + order.order_number},
+          ${designName},
           ${blob.url},
           ${orderItem.product_id},
           NOW(),

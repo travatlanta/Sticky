@@ -173,7 +173,7 @@ export async function POST(request: Request) {
 
     try {
       const resendApiKey = process.env.RESEND_API_KEY;
-      const fromEmail = process.env.ORDER_EMAIL_FROM || "Sticky Banditos <onboarding@resend.dev>";
+      const fromEmail = process.env.ORDER_EMAIL_FROM || "orders@stickybanditos.com";
 
       if (resendApiKey) {
         const emailHtml = `

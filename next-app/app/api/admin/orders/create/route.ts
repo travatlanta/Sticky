@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { orders, orderItems, users, notifications, products } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { randomBytes } from "crypto";
@@ -103,22 +103,43 @@ export async function POST(request: Request) {
     ].filter(Boolean).join('\n');
     
     try {
-      const [order] = await db
-        .insert(orders)
-        .values({
-          orderNumber,
-          userId: customerId,
-          status: "pending" as const,
-          subtotal: data.subtotal.toFixed(2),
-          shippingCost: data.shippingCost.toFixed(2),
-          taxAmount: data.taxAmount.toFixed(2),
-          discountAmount: data.discountAmount.toFixed(2),
-          totalAmount: data.totalAmount.toFixed(2),
-          shippingAddress: data.shippingAddress,
-          notes: notesContent,
-        })
-        .returning();
-      newOrder = order;
+      // Use raw SQL to bypass Drizzle ORM schema validation
+      // This ensures we only use columns that exist in production database
+      const shippingAddressJson = JSON.stringify(data.shippingAddress);
+      
+      const result = await db.execute(sql`
+        INSERT INTO orders (
+          order_number,
+          user_id,
+          status,
+          subtotal,
+          shipping_cost,
+          tax_amount,
+          discount_amount,
+          total_amount,
+          shipping_address,
+          notes
+        ) VALUES (
+          ${orderNumber},
+          ${customerId},
+          'pending',
+          ${data.subtotal.toFixed(2)},
+          ${data.shippingCost.toFixed(2)},
+          ${data.taxAmount.toFixed(2)},
+          ${data.discountAmount.toFixed(2)},
+          ${data.totalAmount.toFixed(2)},
+          ${shippingAddressJson}::jsonb,
+          ${notesContent}
+        )
+        RETURNING id, order_number, status, total_amount
+      `);
+      
+      newOrder = {
+        id: result.rows[0].id as number,
+        orderNumber: result.rows[0].order_number as string,
+        status: result.rows[0].status as string,
+        totalAmount: result.rows[0].total_amount as string,
+      };
     } catch (dbError: any) {
       console.error("Order creation failed:", dbError.message);
       return NextResponse.json({ 

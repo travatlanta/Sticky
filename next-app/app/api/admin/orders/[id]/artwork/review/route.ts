@@ -189,6 +189,53 @@ export async function POST(
       });
     }
 
+    } else if (action === 'approve') {
+      // Admin approves customer artwork - order is ready for printing
+      if (!orderItem.design_id) {
+        return NextResponse.json({ message: "No design to approve" }, { status: 400 });
+      }
+
+      // Update design name to include [APPROVED] tag
+      await db.execute(sql`
+        UPDATE designs SET
+          name = '[APPROVED] ' || REGEXP_REPLACE(name, '^\[(ADMIN_DESIGN|CUSTOMER_UPLOAD|FLAGGED|APPROVED|PENDING)\]\s*', ''),
+          status = 'approved',
+          updated_at = NOW()
+        WHERE id = ${orderItem.design_id}
+      `);
+
+      // Update order artwork_status to 'approved'
+      try {
+        await db.execute(sql`
+          UPDATE orders SET artwork_status = 'approved'
+          WHERE id = ${orderId}
+        `);
+      } catch (err) {
+        console.log('Could not update artwork_status column (may not exist)');
+      }
+
+      // Add a message to the order communication
+      await db.execute(sql`
+        INSERT INTO artwork_notes (order_id, order_item_id, user_id, sender_type, content, created_at)
+        VALUES (
+          ${orderId},
+          ${orderItemId},
+          ${session.user.id},
+          'admin',
+          ${'Artwork Approved: ' + (notes || 'Your design has been approved and is ready for printing!')},
+          NOW()
+        )
+      `).catch(() => {
+        console.log('artwork_notes table not available');
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Artwork approved",
+        designId: orderItem.design_id,
+      });
+    }
+
     return NextResponse.json({ message: "Invalid action" }, { status: 400 });
 
   } catch (error) {

@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw, Check } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -417,6 +417,30 @@ export default function AdminOrders() {
   const handleDeleteOrder = (orderId: number) => {
     if (window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) {
       deleteMutation.mutate(orderId);
+    }
+  };
+
+  // Approve artwork function
+  const handleApproveArtwork = async (orderId: number, orderItemId: number) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/artwork/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          orderItemId,
+          action: "approve",
+          notes: "Artwork approved for printing."
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to approve artwork");
+      
+      toast({ title: "Artwork approved successfully!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders", orderId] });
+    } catch (error: any) {
+      toast({ title: error.message || "Failed to approve artwork", variant: "destructive" });
     }
   };
 
@@ -1170,6 +1194,27 @@ export default function AdminOrders() {
                             
                             {/* Admin Artwork Review Actions - always show */}
                             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
+                              {/* Approve button - show when artwork exists and needs approval */}
+                              {item.design && (item.design.previewUrl || item.design.highResExportUrl) && 
+                               !item.design?.name?.includes('[APPROVED]') && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-green-700 border-green-300 hover:bg-green-50"
+                                      onClick={() => handleApproveArtwork(selectedOrder.id, item.id)}
+                                      data-testid={`button-approve-artwork-${item.id}`}
+                                    >
+                                      <Check className="h-4 w-4 mr-1" />
+                                      Approve Artwork
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="max-w-xs">
+                                    <p>Approve this artwork for printing. The order will be marked as ready.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button

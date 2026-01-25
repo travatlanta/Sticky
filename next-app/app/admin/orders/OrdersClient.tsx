@@ -1151,260 +1151,230 @@ export default function AdminOrders() {
                             );
                           })()}
                           
-                        {item.design && (
-                          <>
-                            <p className="text-xs text-gray-500 mb-2">
-                              {(item.design.name || 'Untitled').replace(/\[(ADMIN_DESIGN|CUSTOMER_UPLOAD|FLAGGED|APPROVED)\]/g, '').trim()}
-                            </p>
-                            <div className="flex flex-wrap items-start gap-4">
-                              {/* Design Preview - Click to open modal */}
-                              {(item.design.highResExportUrl || item.design.previewUrl) && (() => {
-                                const previewUrl = item.design.previewUrl || item.design.highResExportUrl;
-                                const isPdf = previewUrl?.toLowerCase().includes('.pdf');
-                                
-                                if (isPdf) {
-                                  // Show PDF placeholder for PDF files
-                                  return (
-                                    <div className="w-24 h-24 flex flex-col items-center justify-center bg-red-50 rounded-lg border-2 border-red-200">
-                                      <FileText className="h-10 w-10 text-red-500" />
-                                      <span className="text-xs text-red-600 mt-1 font-medium">PDF File</span>
-                                    </div>
-                                  );
-                                }
-                                
-                                return (
-                                  <div 
-                                    className="relative cursor-pointer group"
-                                    onClick={() => setPreviewImage({
-                                      url: `/api/admin/design-download?url=${encodeURIComponent(item.design.highResExportUrl || item.design.previewUrl)}&format=preview`,
-                                      name: item.design.name || 'Design Preview'
-                                    })}
-                                  >
-                                    <img 
-                                      src={`/api/admin/design-download?url=${encodeURIComponent(previewUrl)}&format=preview`}
-                                      alt="Design preview" 
-                                      className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
-                                    />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                                      <ZoomIn className="h-6 w-6 text-white" />
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-                              
-                              {/* Download with Format Selection */}
-                              <div className="flex flex-col gap-2">
-                                {(item.design.highResExportUrl || item.design.previewUrl) && (
-                                  <>
-                                    {/* Check if file is a special format that can't be converted */}
-                                    {(() => {
-                                      const url = item.design.highResExportUrl || item.design.previewUrl || '';
-                                      const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
-                                      const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd'].includes(ext);
-                                      
-                                      if (isSpecialFormat) {
-                                        return (
-                                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-1">
-                                            <p className="text-xs text-amber-700 font-medium">
-                                              {ext.toUpperCase()} files can only be downloaded in their original format (no conversion available)
-                                            </p>
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
-                                    <div className="flex items-center gap-2">
-                                      {/* Only show format selection for convertible files */}
-                                      {(() => {
-                                        const url = item.design.highResExportUrl || item.design.previewUrl || '';
-                                        const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
-                                        const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
-                                        
-                                        if (isSpecialFormat) {
-                                          return null; // Hide format selector for special formats
-                                        }
-                                        
-                                        return (
-                                          <Select
-                                            value={downloadFormats[item.id] || 'pdf'}
-                                            onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, [item.id]: value }))}
-                                          >
-                                            <SelectTrigger className="w-28" data-testid={`select-format-${item.id}`}>
-                                              <SelectValue placeholder="Format" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="pdf">PDF</SelectItem>
-                                              <SelectItem value="png">PNG</SelectItem>
-                                              <SelectItem value="tiff">TIFF</SelectItem>
-                                              <SelectItem value="jpg">JPG</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        );
-                                      })()}
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            onClick={() => {
-                                              const url = item.design.highResExportUrl || item.design.previewUrl || '';
-                                              const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
-                                              const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
-                                              handleDownload(
-                                                url,
-                                                item.id,
-                                                item.design.name || 'design',
-                                                isSpecialFormat ? 'original' : undefined
-                                              );
-                                            }}
-                                            disabled={downloading[item.id]}
-                                            className="bg-orange-500 hover:bg-orange-600"
-                                            data-testid={`button-download-${item.id}`}
-                                          >
-                                            {downloading[item.id] ? (
-                                              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                                            ) : (
-                                              <Download className="h-4 w-4 mr-2" />
-                                            )}
-                                            {(() => {
-                                              const url = item.design.highResExportUrl || item.design.previewUrl || '';
-                                              const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
-                                              const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
-                                              return isSpecialFormat ? `Download ${ext.toUpperCase()}` : 'Download';
-                                            })()}
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          <p>Download print-ready artwork at 300 DPI in your selected format</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </div>
-                                    <div className="text-xs text-gray-500 space-y-1">
-                                      <p>PNG/TIFF preserve transparency</p>
-                                      <p className="text-amber-600">EPS, CDR, AI, PSD, PDF files download as-is (no conversion available)</p>
-                                    </div>
-                                  </>
-                                )}
-                                {item.design.customShapeUrl && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        onClick={() => handleDownload(
-                                          item.design.customShapeUrl,
-                                          item.id + 1000,
-                                          `${item.design.name || 'design'}_diecut`,
-                                          'original'
-                                        )}
-                                        disabled={downloading[item.id + 1000]}
-                                        className="text-blue-700 border-blue-300"
-                                      >
-                                        <FileImage className="h-4 w-4 mr-2" />
-                                        Download Die-Cut Shape
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs">
-                                      <p>Download the custom die-cut outline for this sticker design</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-                                {item.printFileUrl && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        onClick={() => handleDownload(
-                                          item.printFileUrl,
-                                          item.id + 2000,
-                                          `${item.design?.name || 'design'}_production`,
-                                          'original'
-                                        )}
-                                        disabled={downloading[item.id + 2000]}
-                                        className="text-green-700 border-green-300"
-                                      >
-                                        <Download className="h-4 w-4 mr-2" />
-                                        Download Production File
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs">
-                                      <p>Download the final production-ready file for printing</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-                                
-                                {/* Admin Artwork Review Actions */}
-                                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="text-amber-700 border-amber-300 hover:bg-amber-50"
-                                        onClick={() => setArtworkReviewModal({
-                                          open: true,
-                                          item,
-                                          orderId: selectedOrder.id,
-                                          orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
-                                          action: 'flag'
-                                        })}
-                                        data-testid={`button-flag-revision-${item.id}`}
-                                      >
-                                        <RefreshCw className="h-4 w-4 mr-1" />
-                                        Request Revision
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom" className="max-w-xs">
-                                      <p>Flag this artwork and ask the customer to upload a corrected version. Add notes explaining what needs to be changed.</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="text-blue-700 border-blue-300 hover:bg-blue-50"
-                                        onClick={() => setArtworkReviewModal({
-                                          open: true,
-                                          item,
-                                          orderId: selectedOrder.id,
-                                          orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
-                                          action: 'upload'
-                                        })}
-                                        data-testid={`button-admin-upload-${item.id}`}
-                                      >
-                                        <Upload className="h-4 w-4 mr-1" />
-                                        Upload New Design
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom" className="max-w-xs">
-                                      <p>Upload a corrected or new design for this customer. They will need to approve it before printing.</p>
-                                    </TooltipContent>
-                                  </Tooltip>
+                        {/* Artwork display - always show full layout */}
+                        <p className="text-xs text-gray-500 mb-2">
+                          {item.design 
+                            ? (item.design.name || 'Untitled').replace(/\[(ADMIN_DESIGN|CUSTOMER_UPLOAD|FLAGGED|APPROVED)\]/g, '').trim()
+                            : 'Uploaded Artwork'
+                          }
+                        </p>
+                        <div className="flex flex-wrap items-start gap-4">
+                          {/* Design Preview - Click to open modal */}
+                          {(() => {
+                            const hasDesign = item.design && (item.design.highResExportUrl || item.design.previewUrl);
+                            const previewUrl = item.design?.previewUrl || item.design?.highResExportUrl;
+                            const isPdf = previewUrl?.toLowerCase().includes('.pdf');
+                            
+                            if (!hasDesign) {
+                              return (
+                                <div className="w-24 h-24 flex flex-col items-center justify-center bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-dashed border-gray-300">
+                                  <FileImage className="h-8 w-8 text-gray-400" />
+                                  <span className="text-xs text-gray-400 mt-1">No artwork</span>
+                                </div>
+                              );
+                            }
+                            
+                            if (isPdf) {
+                              return (
+                                <div className="w-24 h-24 flex flex-col items-center justify-center bg-red-50 rounded-lg border-2 border-red-200">
+                                  <FileText className="h-10 w-10 text-red-500" />
+                                  <span className="text-xs text-red-600 mt-1 font-medium">PDF File</span>
+                                </div>
+                              );
+                            }
+                            
+                            return (
+                              <div 
+                                className="relative cursor-pointer group"
+                                onClick={() => setPreviewImage({
+                                  url: `/api/admin/design-download?url=${encodeURIComponent(item.design.highResExportUrl || item.design.previewUrl)}&format=preview`,
+                                  name: item.design.name || 'Design Preview'
+                                })}
+                              >
+                                <img 
+                                  src={`/api/admin/design-download?url=${encodeURIComponent(previewUrl)}&format=preview`}
+                                  alt="Design preview" 
+                                  className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                  <ZoomIn className="h-6 w-6 text-white" />
                                 </div>
                               </div>
+                            );
+                          })()}
+                          
+                          {/* Download with Format Selection */}
+                          <div className="flex flex-col gap-2">
+                            {/* Format selector and download - always show */}
+                            {(() => {
+                              const hasDesign = item.design && (item.design.highResExportUrl || item.design.previewUrl);
+                              const url = item.design?.highResExportUrl || item.design?.previewUrl || '';
+                              const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                              const isSpecialFormat = hasDesign && ['eps', 'cdr', 'ai', 'psd'].includes(ext);
+                              const isSpecialOrPdf = hasDesign && ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(ext);
+                              
+                              return (
+                                <>
+                                  {isSpecialFormat && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-1">
+                                      <p className="text-xs text-amber-700 font-medium">
+                                        {ext.toUpperCase()} files can only be downloaded in their original format (no conversion available)
+                                      </p>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-2">
+                                    {(!isSpecialOrPdf || !hasDesign) && (
+                                      <Select
+                                        value={downloadFormats[item.id] || 'pdf'}
+                                        onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, [item.id]: value }))}
+                                        disabled={!hasDesign}
+                                      >
+                                        <SelectTrigger className="w-28" data-testid={`select-format-${item.id}`}>
+                                          <SelectValue placeholder="Format" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="pdf">PDF</SelectItem>
+                                          <SelectItem value="png">PNG</SelectItem>
+                                          <SelectItem value="tiff">TIFF</SelectItem>
+                                          <SelectItem value="jpg">JPG</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          onClick={() => {
+                                            if (!hasDesign) return;
+                                            handleDownload(
+                                              url,
+                                              item.id,
+                                              item.design?.name || 'design',
+                                              isSpecialOrPdf ? 'original' : undefined
+                                            );
+                                          }}
+                                          disabled={downloading[item.id] || !hasDesign}
+                                          className="bg-orange-500 hover:bg-orange-600"
+                                          data-testid={`button-download-${item.id}`}
+                                        >
+                                          {downloading[item.id] ? (
+                                            <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                          ) : (
+                                            <Download className="h-4 w-4 mr-2" />
+                                          )}
+                                          {isSpecialOrPdf && hasDesign ? `Download ${ext.toUpperCase()}` : 'Download'}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-xs">
+                                        <p>{hasDesign ? 'Download print-ready artwork at 300 DPI in your selected format' : 'No artwork uploaded yet'}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                  <div className="text-xs text-gray-500 space-y-1">
+                                    <p>PNG/TIFF preserve transparency</p>
+                                    <p className="text-amber-600">EPS, CDR, AI, PSD, PDF files download as-is (no conversion available)</p>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                            
+                            {item.design?.customShapeUrl && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => handleDownload(
+                                      item.design.customShapeUrl,
+                                      item.id + 1000,
+                                      `${item.design.name || 'design'}_diecut`,
+                                      'original'
+                                    )}
+                                    disabled={downloading[item.id + 1000]}
+                                    className="text-blue-700 border-blue-300"
+                                  >
+                                    <FileImage className="h-4 w-4 mr-2" />
+                                    Download Die-Cut Shape
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Download the custom die-cut outline for this sticker design</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            {item.printFileUrl && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => handleDownload(
+                                      item.printFileUrl,
+                                      item.id + 2000,
+                                      `${item.design?.name || 'design'}_production`,
+                                      'original'
+                                    )}
+                                    disabled={downloading[item.id + 2000]}
+                                    className="text-green-700 border-green-300"
+                                  >
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download Production File
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>Download the final production-ready file for printing</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            
+                            {/* Admin Artwork Review Actions - always show */}
+                            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-amber-700 border-amber-300 hover:bg-amber-50"
+                                    onClick={() => setArtworkReviewModal({
+                                      open: true,
+                                      item,
+                                      orderId: selectedOrder.id,
+                                      orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                      action: 'flag'
+                                    })}
+                                    data-testid={`button-flag-revision-${item.id}`}
+                                  >
+                                    <RefreshCw className="h-4 w-4 mr-1" />
+                                    Request Revision
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-xs">
+                                  <p>Flag this artwork and ask the customer to upload a corrected version. Add notes explaining what needs to be changed.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-blue-700 border-blue-300 hover:bg-blue-50"
+                                    onClick={() => setArtworkReviewModal({
+                                      open: true,
+                                      item,
+                                      orderId: selectedOrder.id,
+                                      orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                      action: 'upload'
+                                    })}
+                                    data-testid={`button-admin-upload-${item.id}`}
+                                  >
+                                    <Upload className="h-4 w-4 mr-1" />
+                                    Upload New Design
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="max-w-xs">
+                                  <p>Upload a corrected or new design for this customer. They will need to approve it before printing.</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
-                          </>
-                        )}
-                        
-                        {/* Show upload button when no design exists */}
-                        {!item.design && (
-                          <div className="mt-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-blue-700 border-blue-300 hover:bg-blue-50"
-                              onClick={() => setArtworkReviewModal({
-                                open: true,
-                                item,
-                                orderId: selectedOrder.id,
-                                orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
-                                action: 'upload'
-                              })}
-                              data-testid={`button-admin-upload-nodesign-${item.id}`}
-                            >
-                              <Upload className="h-4 w-4 mr-1" />
-                              Upload Design for Customer
-                            </Button>
                           </div>
-                        )}
+                        </div>
                         </div>
                       </div>
                     ))}

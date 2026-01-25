@@ -899,7 +899,7 @@ export default function AdminOrders() {
                   )}
                 </div>
 
-{/* Artwork Management - Show saved versions */}
+{/* Artwork Management - Always show for admin to upload designs */}
                 {(() => {
                   // Detect if any order item has approved artwork
                   const hasApprovedArtwork = (orderDetails?.items || selectedOrder.items || []).some((item: any) => 
@@ -909,8 +909,7 @@ export default function AdminOrders() {
                   const actualStatus = hasApprovedArtwork ? 'approved' : 
                     (orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork');
                   
-                  if (!hasAnyArtwork && !selectedOrder.customerArtworkUrl && !selectedOrder.adminDesign) return null;
-                  
+                  // Always show this section so admin can upload designs
                   return (
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">

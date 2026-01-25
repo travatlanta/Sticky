@@ -166,6 +166,29 @@ export default function OrderDetail() {
   const [approvalConfirmItemId, setApprovalConfirmItemId] = useState<number | null>(null);
   const [changeNotes, setChangeNotes] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  
+  // Shipping/Billing address editing state
+  const [isEditingShipping, setIsEditingShipping] = useState(false);
+  const [shippingForm, setShippingForm] = useState({
+    name: "",
+    street: "",
+    street2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "USA",
+    phone: "",
+  });
+  const [billingForm, setBillingForm] = useState({
+    name: "",
+    street: "",
+    street2: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "USA",
+  });
+  const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
 
   // Square payment configuration
   const squareAppId = process.env.NEXT_PUBLIC_SQUARE_APP_ID || '';
@@ -352,6 +375,25 @@ export default function OrderDetail() {
     },
   });
 
+  // Initialize shipping form when order data loads
+  useEffect(() => {
+    if (order?.shippingAddress) {
+      const addr = typeof order.shippingAddress === 'string' 
+        ? JSON.parse(order.shippingAddress) 
+        : order.shippingAddress;
+      setShippingForm({
+        name: addr.name || "",
+        street: addr.street || "",
+        street2: addr.street2 || "",
+        city: addr.city || "",
+        state: addr.state || "",
+        zip: addr.zip || "",
+        country: addr.country || "USA",
+        phone: addr.phone || "",
+      });
+    }
+  }, [order?.shippingAddress]);
+
   const handleFileSelect = (orderItemId: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -359,6 +401,32 @@ export default function OrderDetail() {
       uploadArtworkMutation.mutate({ orderItemId, file });
     }
   };
+  
+  // Mutation to update shipping address
+  const updateShippingMutation = useMutation({
+    mutationFn: async (addressData: typeof shippingForm) => {
+      const res = await fetch(`/api/orders/${id}/shipping`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addressData),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to update shipping address");
+      return json;
+    },
+    onSuccess: () => {
+      toast({ title: "Shipping address updated!" });
+      setIsEditingShipping(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSquarePayment = async (token: any, verifiedBuyer?: any) => {
     if (!token?.token) {
@@ -1103,15 +1171,147 @@ export default function OrderDetail() {
               </Card>
             )}
 
-            {shippingAddress && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Shipping Address
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+            {/* Shipping Address - Editable if order is not yet paid */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-2">
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Shipping Address
+                </CardTitle>
+                {needsPayment && !isEditingShipping && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsEditingShipping(true)}
+                    data-testid="button-edit-shipping"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {isEditingShipping ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Full Name *</label>
+                      <input
+                        type="text"
+                        value={shippingForm.name}
+                        onChange={(e) => setShippingForm(prev => ({ ...prev, name: e.target.value }))}
+                        className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="John Doe"
+                        data-testid="input-shipping-name"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Street Address *</label>
+                      <input
+                        type="text"
+                        value={shippingForm.street}
+                        onChange={(e) => setShippingForm(prev => ({ ...prev, street: e.target.value }))}
+                        className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="123 Main St"
+                        data-testid="input-shipping-street"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apt/Suite/Unit</label>
+                      <input
+                        type="text"
+                        value={shippingForm.street2}
+                        onChange={(e) => setShippingForm(prev => ({ ...prev, street2: e.target.value }))}
+                        className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Apt 4B"
+                        data-testid="input-shipping-street2"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">City *</label>
+                        <input
+                          type="text"
+                          value={shippingForm.city}
+                          onChange={(e) => setShippingForm(prev => ({ ...prev, city: e.target.value }))}
+                          className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="Phoenix"
+                          data-testid="input-shipping-city"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">State *</label>
+                        <input
+                          type="text"
+                          value={shippingForm.state}
+                          onChange={(e) => setShippingForm(prev => ({ ...prev, state: e.target.value }))}
+                          className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="AZ"
+                          data-testid="input-shipping-state"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">ZIP Code *</label>
+                        <input
+                          type="text"
+                          value={shippingForm.zip}
+                          onChange={(e) => setShippingForm(prev => ({ ...prev, zip: e.target.value }))}
+                          className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="85001"
+                          data-testid="input-shipping-zip"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Country</label>
+                        <input
+                          type="text"
+                          value={shippingForm.country}
+                          onChange={(e) => setShippingForm(prev => ({ ...prev, country: e.target.value }))}
+                          className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="USA"
+                          data-testid="input-shipping-country"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone (optional)</label>
+                      <input
+                        type="tel"
+                        value={shippingForm.phone}
+                        onChange={(e) => setShippingForm(prev => ({ ...prev, phone: e.target.value }))}
+                        className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="602-555-1234"
+                        data-testid="input-shipping-phone"
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        onClick={() => {
+                          if (!shippingForm.name || !shippingForm.street || !shippingForm.city || !shippingForm.state || !shippingForm.zip) {
+                            toast({ title: "Please fill in all required fields", variant: "destructive" });
+                            return;
+                          }
+                          updateShippingMutation.mutate(shippingForm);
+                        }}
+                        disabled={updateShippingMutation.isPending}
+                        data-testid="button-save-shipping"
+                      >
+                        {updateShippingMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : null}
+                        Save Address
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditingShipping(false)}
+                        data-testid="button-cancel-shipping"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : shippingAddress ? (
                   <div className="text-gray-700 dark:text-muted-foreground">
                     <p className="font-medium text-gray-900 dark:text-foreground">
                       {shippingAddress.name}
@@ -1122,10 +1322,22 @@ export default function OrderDetail() {
                       {shippingAddress.city}, {shippingAddress.state} {shippingAddress.zip}
                     </p>
                     <p>{shippingAddress.country}</p>
+                    {shippingAddress.phone && (
+                      <p className="mt-2 flex items-center gap-1 text-sm">
+                        <Phone className="h-4 w-4" /> {shippingAddress.phone}
+                      </p>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 dark:text-muted-foreground mb-3">No shipping address on file</p>
+                    <Button size="sm" onClick={() => setIsEditingShipping(true)} data-testid="button-add-shipping">
+                      Add Shipping Address
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <div className="space-y-6">

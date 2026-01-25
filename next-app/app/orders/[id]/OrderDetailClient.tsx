@@ -351,16 +351,25 @@ export default function OrderDetail() {
               </CardContent>
             </Card>
 
-            {order.notes && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Order Notes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 dark:text-muted-foreground">{order.notes}</p>
-                </CardContent>
-              </Card>
-            )}
+            {order.notes && (() => {
+              // Clean notes: remove payment link tokens and clean up formatting
+              const cleanedNotes = order.notes
+                .replace(/Payment Link:\s*[a-f0-9-]+/gi, '')
+                .replace(/\n\s*\n/g, '\n')
+                .trim();
+              
+              // Only show if there's actual content after cleaning
+              return cleanedNotes ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Order Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 dark:text-muted-foreground whitespace-pre-line">{cleanedNotes}</p>
+                  </CardContent>
+                </Card>
+              ) : null;
+            })()}
 
             <Card>
               <CardHeader>

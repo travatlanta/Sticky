@@ -1082,7 +1082,12 @@ export default function AdminOrders() {
                 {selectedOrder.notes && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                     <h3 className="font-semibold text-gray-900 mb-2">Order Notes</h3>
-                    <p className="text-sm text-gray-700">{selectedOrder.notes}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-line">
+                      {selectedOrder.notes
+                        .replace(/Payment Link:\s*[a-f0-9-]+/gi, '')
+                        .replace(/\n\s*\n/g, '\n')
+                        .trim()}
+                    </p>
                   </div>
                 )}
               </div>

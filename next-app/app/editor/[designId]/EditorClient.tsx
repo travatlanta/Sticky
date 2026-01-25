@@ -1268,7 +1268,9 @@ export default function Editor() {
     );
   }
 
-  if (designError || !design) {
+  // For new designs with order context, we don't need an existing design
+  // Only show "Design not found" if we're trying to load an existing design and it failed
+  if (!isNewDesign && (designError || !design)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
         <h2 className="text-xl font-semibold mb-4">Design not found</h2>

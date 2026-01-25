@@ -52,74 +52,92 @@ export async function GET() {
     // Enrich each order with user info and items
     const enrichedOrders = await Promise.all(
       allOrders.map(async (order) => {
-        let user = null;
-        if (order.userId) {
-          const [u] = await db.select({
-            id: users.id,
-            email: users.email,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            phone: users.phone,
-          }).from(users).where(eq(users.id, order.userId));
-          user = u || null;
-        }
-
-        // Get order items with product info
-        const items = await db
-          .select()
-          .from(orderItems)
-          .where(eq(orderItems.orderId, order.id));
-
-        const enrichedItems = await Promise.all(
-          items.map(async (item) => {
-            let product = null;
-            let design = null;
-            let resolvedOptions: Record<string, string> = {};
-
-            if (item.productId) {
-              const [p] = await db.select().from(products).where(eq(products.id, item.productId));
-              product = p || null;
+        try {
+          let user = null;
+          if (order.userId) {
+            try {
+              const [u] = await db.select({
+                id: users.id,
+                email: users.email,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                phone: users.phone,
+              }).from(users).where(eq(users.id, order.userId));
+              user = u || null;
+            } catch (userErr) {
+              console.warn(`Failed to fetch user for order ${order.id}:`, userErr);
             }
+          }
 
-            if (item.designId) {
-              const [d] = await db.select().from(designs).where(eq(designs.id, item.designId));
-              design = d || null;
-            }
+          // Get order items with product info
+          let items: any[] = [];
+          try {
+            items = await db
+              .select()
+              .from(orderItems)
+              .where(eq(orderItems.orderId, order.id));
+          } catch (itemsErr) {
+            console.warn(`Failed to fetch items for order ${order.id}:`, itemsErr);
+          }
 
-            // Resolve selectedOptions IDs to human-readable names
-            if (item.selectedOptions && typeof item.selectedOptions === 'object') {
-              const optionIds = Object.values(item.selectedOptions as Record<string, number>).filter(
-                (v): v is number => typeof v === 'number'
-              );
-              
-              if (optionIds.length > 0) {
-                const options = await db
-                  .select({ id: productOptions.id, optionType: productOptions.optionType, name: productOptions.name })
-                  .from(productOptions)
-                  .where(inArray(productOptions.id, optionIds));
-                
-                const optionMap = new Map(options.map(o => [o.id, o]));
-                
-                for (const [key, optionId] of Object.entries(item.selectedOptions as Record<string, number>)) {
-                  const option = optionMap.get(optionId);
-                  if (option) {
-                    // Use the optionType as key for cleaner display
-                    const displayKey = option.optionType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                    resolvedOptions[displayKey] = option.name;
-                  } else {
-                    resolvedOptions[key] = String(optionId);
+          const enrichedItems = await Promise.all(
+            items.map(async (item) => {
+              let product = null;
+              let design = null;
+              let resolvedOptions: Record<string, string> = {};
+
+              try {
+                if (item.productId) {
+                  const [p] = await db.select().from(products).where(eq(products.id, item.productId));
+                  product = p || null;
+                }
+
+                if (item.designId) {
+                  const [d] = await db.select().from(designs).where(eq(designs.id, item.designId));
+                  design = d || null;
+                }
+
+                // Resolve selectedOptions IDs to human-readable names
+                if (item.selectedOptions && typeof item.selectedOptions === 'object') {
+                  const optionIds = Object.values(item.selectedOptions as Record<string, number>).filter(
+                    (v): v is number => typeof v === 'number'
+                  );
+                  
+                  if (optionIds.length > 0) {
+                    const options = await db
+                      .select({ id: productOptions.id, optionType: productOptions.optionType, name: productOptions.name })
+                      .from(productOptions)
+                      .where(inArray(productOptions.id, optionIds));
+                    
+                    const optionMap = new Map(options.map(o => [o.id, o]));
+                    
+                    for (const [key, optionId] of Object.entries(item.selectedOptions as Record<string, number>)) {
+                      const option = optionMap.get(optionId);
+                      if (option) {
+                        // Use the optionType as key for cleaner display
+                        const displayKey = option.optionType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                        resolvedOptions[displayKey] = option.name;
+                      } else {
+                        resolvedOptions[key] = String(optionId);
+                      }
+                    }
                   }
                 }
+              } catch (enrichErr) {
+                console.warn(`Failed to enrich item ${item.id}:`, enrichErr);
               }
-            }
 
-            return { ...item, product, design, resolvedOptions };
-          })
-        );
+              return { ...item, product, design, resolvedOptions };
+            })
+          );
 
-        const deliveries = deliveriesByOrderId.get(order.id) ?? [];
+          const deliveries = deliveriesByOrderId.get(order.id) ?? [];
 
-        return { ...order, user, items: enrichedItems, deliveries };
+          return { ...order, user, items: enrichedItems, deliveries };
+        } catch (orderErr) {
+          console.warn(`Failed to enrich order ${order.id}:`, orderErr);
+          return { ...order, user: null, items: [], deliveries: [] };
+        }
       })
     );
 

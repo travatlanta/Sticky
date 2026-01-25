@@ -22,9 +22,8 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  TooltipProvider,
 } from "@/components/ui/tooltip";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw, Image } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -252,8 +251,8 @@ export default function AdminOrders() {
     },
   });
 
-  const [downloadFormats, setDownloadFormats] = useState<Record<number | string, string>>({});
-  const [downloading, setDownloading] = useState<Record<number | string, boolean>>({});
+  const [downloadFormats, setDownloadFormats] = useState<Record<number, string>>({});
+  const [downloading, setDownloading] = useState<Record<number, boolean>>({});
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
   const [artworkUploading, setArtworkUploading] = useState(false);
   const [artworkNotes, setArtworkNotes] = useState("");
@@ -264,29 +263,13 @@ export default function AdminOrders() {
     item: any;
     orderId: number;
     orderNumber: string;
-    action: 'flag' | 'upload' | 'request' | null;
+    action: 'flag' | 'upload' | null;
   }>({ open: false, item: null, orderId: 0, orderNumber: '', action: null });
   const [reviewNotes, setReviewNotes] = useState("");
   const [adminUploadFile, setAdminUploadFile] = useState<File | null>(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
-  // Add Item modal state
-  const [addItemModal, setAddItemModal] = useState<{
-    open: boolean;
-    orderId: number;
-  }>({ open: false, orderId: 0 });
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [itemQuantity, setItemQuantity] = useState(1);
-  const [itemOptions, setItemOptions] = useState<Record<string, string>>({});
-  const [addingItem, setAddingItem] = useState(false);
-
-  // Fetch products for add item modal
-  const { data: productsData } = useQuery<{ id: number; name: string; basePrice: string }[]>({
-    queryKey: ['/api/products'],
-    enabled: addItemModal.open,
-  });
-
-  const handleDownload = async (url: string, itemId: number | string, designName: string, formatOverride?: string) => {
+  const handleDownload = async (url: string, itemId: number, designName: string, formatOverride?: string) => {
     const format = formatOverride || downloadFormats[itemId] || 'pdf';
     setDownloading(prev => ({ ...prev, [itemId]: true }));
     
@@ -485,40 +468,6 @@ export default function AdminOrders() {
     }
   };
 
-  // Handle adding item to order
-  const handleAddItem = async () => {
-    if (!selectedProduct || !addItemModal.orderId) return;
-    
-    setAddingItem(true);
-    try {
-      const res = await fetch(`/api/admin/orders/${addItemModal.orderId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          productId: selectedProduct.id,
-          quantity: itemQuantity,
-          unitPrice: selectedProduct.basePrice,
-          selectedOptions: itemOptions,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to add item");
-      
-      toast({ title: "Item added to order" });
-      setAddItemModal({ open: false, orderId: 0 });
-      setSelectedProduct(null);
-      setItemQuantity(1);
-      setItemOptions({});
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders", addItemModal.orderId] });
-    } catch (error: any) {
-      toast({ title: error.message || "Failed to add item", variant: "destructive" });
-    } finally {
-      setAddingItem(false);
-    }
-  };
-
   // Handle artwork review actions (flag for revision or admin upload for approval)
   const handleArtworkReviewSubmit = async () => {
     if (!artworkReviewModal.item || !artworkReviewModal.orderId) return;
@@ -569,25 +518,6 @@ export default function AdminOrders() {
           title: "Design uploaded",
           description: "Customer has been notified to approve the design"
         });
-      } else if (artworkReviewModal.action === 'request') {
-        // Request artwork from customer - send email asking them to upload
-        const res = await fetch(`/api/admin/orders/${artworkReviewModal.orderId}/artwork/review`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderItemId: artworkReviewModal.item.id,
-            action: 'request',
-            notes: reviewNotes,
-          }),
-          credentials: "include",
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Failed to send artwork request");
-        
-        toast({ 
-          title: "Artwork request sent",
-          description: "Customer has been notified to upload their artwork"
-        });
       }
       
       // Reset modal and refetch data
@@ -615,7 +545,6 @@ export default function AdminOrders() {
 
   return (
     <AdminLayout>
-      <TooltipProvider>
       <div className="p-4 md:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
@@ -970,6 +899,202 @@ export default function AdminOrders() {
                   )}
                 </div>
 
+{/* Artwork Management - Show saved versions */}
+                {(() => {
+                  // Detect if any order item has approved artwork
+                  const hasApprovedArtwork = (orderDetails?.items || selectedOrder.items || []).some((item: any) => 
+                    item.design?.name?.includes('[APPROVED]')
+                  );
+                  const hasAnyArtwork = (orderDetails?.items || selectedOrder.items || []).some((item: any) => item.design);
+                  const actualStatus = hasApprovedArtwork ? 'approved' : 
+                    (orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork');
+                  
+                  if (!hasAnyArtwork && !selectedOrder.customerArtworkUrl && !selectedOrder.adminDesign) return null;
+                  
+                  return (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Palette className="h-5 w-5 text-orange-600" />
+                    Artwork Files
+                    <Badge className={actualStatus === 'approved' 
+                      ? 'bg-green-100 text-green-800' 
+                      : artworkStatusColors[actualStatus] || 'bg-gray-100'}>
+                      {actualStatus.replace(/_/g, ' ')}
+                    </Badge>
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    {/* Customer Uploaded Artwork */}
+                    {(orderDetails?.customerArtworkUrl || selectedOrder.customerArtworkUrl) && (
+                      <div className="bg-white rounded-lg p-3 border">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Customer Uploaded Artwork:</p>
+                        <a 
+                          href={orderDetails?.customerArtworkUrl || selectedOrder.customerArtworkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 text-sm"
+                          data-testid="link-customer-artwork"
+                        >
+                          <FileImage className="h-4 w-4" />
+                          View Customer Artwork
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Artwork Notes */}
+                    {(orderDetails?.artworkNotes || selectedOrder.artworkNotes) && (
+                      <div className="bg-white rounded-lg p-3 border">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Artwork Notes:</p>
+                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{orderDetails?.artworkNotes || selectedOrder.artworkNotes}</p>
+                      </div>
+                    )}
+
+                    {/* Artwork Comparison - Show Original vs Admin Revision */}
+                    {(orderDetails?.adminDesign || selectedOrder.adminDesign) && (
+                      <div className="bg-white rounded-lg p-4 border space-y-4">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-700">Artwork Versions:</p>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-orange-600 border-orange-300"
+                                onClick={() => handleRestoreOriginalArtwork(selectedOrder.id)}
+                                disabled={restoringArtwork}
+                                data-testid="button-restore-original"
+                              >
+                                <RotateCcw className="h-4 w-4 mr-1" />
+                                {restoringArtwork ? "Restoring..." : "Restore Original"}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Discard the admin revision and restore the customer's original artwork</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Original Customer Artwork */}
+                          <div className="border rounded-lg p-3 bg-gray-50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                Original
+                              </Badge>
+                              <span className="text-xs text-gray-500">Customer Upload</span>
+                            </div>
+                            {(orderDetails?.customerArtworkUrl || selectedOrder.customerArtworkUrl) ? (
+                              <a 
+                                href={orderDetails?.customerArtworkUrl || selectedOrder.customerArtworkUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block hover-elevate"
+                                data-testid="link-original-artwork"
+                              >
+                                <div className="w-full h-24 bg-white rounded border flex items-center justify-center">
+                                  <FileImage className="h-8 w-8 text-blue-500" />
+                                </div>
+                                <p className="text-xs text-blue-600 mt-1 text-center underline">View Original</p>
+                              </a>
+                            ) : (
+                              <div className="w-full h-24 bg-white rounded border flex items-center justify-center" data-testid="container-no-original">
+                                <p className="text-xs text-gray-400">No original uploaded</p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Admin Revised Artwork */}
+                          <div className="border rounded-lg p-3 bg-orange-50 border-orange-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
+                                Revision
+                              </Badge>
+                              <span className="text-xs text-gray-500">Admin Upload</span>
+                            </div>
+                            {(orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl) ? (
+                              <a 
+                                href={orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block hover-elevate"
+                                data-testid="link-revision-artwork"
+                              >
+                                <img 
+                                  src={orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl}
+                                  alt="Admin revision"
+                                  className="w-full h-24 object-contain bg-white rounded border"
+                                  data-testid="img-admin-design"
+                                />
+                                <p className="text-xs text-orange-600 mt-1 text-center underline">View Revision</p>
+                              </a>
+                            ) : (
+                              <div className="w-full h-24 bg-white rounded border flex items-center justify-center" data-testid="container-no-revision">
+                                <p className="text-xs text-gray-400">Preview not available</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <p className="text-xs text-gray-500 text-center">
+                          The revision is currently sent to the customer for approval. Click "Restore Original" to revert to their original artwork.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Upload Design for Customer - Only show if not approved */}
+                    {actualStatus !== 'approved' && (
+                    <div className="bg-white rounded-lg p-3 border space-y-3">
+                      <p className="text-sm font-medium text-gray-700">Upload Design for Customer Approval:</p>
+                      <div className="space-y-2">
+                        <textarea
+                          className="w-full text-sm border rounded-lg p-2"
+                          placeholder="Notes to customer about the design..."
+                          value={artworkNotes}
+                          onChange={(e) => setArtworkNotes(e.target.value)}
+                          rows={2}
+                          data-testid="input-artwork-notes"
+                        />
+                        <input
+                          type="file"
+                          id={`artwork-upload-${selectedOrder.id}`}
+                          className="hidden"
+                          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.eps,.ai,.psd,.cdr"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleArtworkUpload(selectedOrder.id, file);
+                            e.target.value = '';
+                          }}
+                          data-testid="input-upload-design"
+                        />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              onClick={() => document.getElementById(`artwork-upload-${selectedOrder.id}`)?.click()}
+                              disabled={artworkUploading}
+                              className="w-full"
+                              data-testid="button-upload-design"
+                            >
+                              {artworkUploading ? (
+                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Upload className="h-4 w-4 mr-2" />
+                              )}
+                              Upload Design & Send for Approval
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Upload your design and automatically send it to the customer for approval before printing</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+                    )}
+                  </div>
+                </div>
+                  );
+                })()}
+
 {/* Order Items */}
                 <div className="bg-gray-50 rounded-xl p-4">
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -1259,78 +1384,33 @@ export default function AdminOrders() {
                           </>
                         )}
                         
-                        {/* Show upload options when no design exists - SAME structure as customer orders */}
+                        {/* Show upload button when no design exists */}
                         {!item.design && (
-                          <div className="text-center py-4 bg-gray-100 rounded-lg">
-                            <Image className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                            <p className="text-sm text-gray-600 mb-3">
-                              Upload artwork or request from customer
-                            </p>
-                            <div className="flex flex-wrap gap-2 justify-center">
-                              <Button
-                                size="sm"
-                                onClick={() => setArtworkReviewModal({
-                                  open: true,
-                                  item,
-                                  orderId: selectedOrder.id,
-                                  orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
-                                  action: 'upload'
-                                })}
-                                data-testid={`button-admin-upload-nodesign-${item.id}`}
-                              >
-                                <Upload className="h-4 w-4 mr-2" />
-                                Upload Artwork
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => {
-                                  // Send artwork request email to customer
-                                  const email = selectedOrder.shippingAddress?.email || 
-                                                orderDetails?.user?.email || 
-                                                (orderDetails as any)?.customerEmail;
-                                  if (email) {
-                                    setArtworkReviewModal({
-                                      open: true,
-                                      item,
-                                      orderId: selectedOrder.id,
-                                      orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
-                                      action: 'request'
-                                    });
-                                  } else {
-                                    toast({
-                                      title: "No email available",
-                                      description: "Cannot send artwork request - no customer email on file.",
-                                      variant: "destructive"
-                                    });
-                                  }
-                                }}
-                                data-testid={`button-request-artwork-${item.id}`}
-                              >
-                                <Mail className="h-4 w-4 mr-2" />
-                                Request Artwork
-                              </Button>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-2">
-                              Accepts: JPG, PNG, PDF, EPS, AI, PSD, SVG, CDR
-                            </p>
+                          <div className="mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-blue-700 border-blue-300 hover:bg-blue-50"
+                              onClick={() => setArtworkReviewModal({
+                                open: true,
+                                item,
+                                orderId: selectedOrder.id,
+                                orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                action: 'upload'
+                              })}
+                              data-testid={`button-admin-upload-nodesign-${item.id}`}
+                            >
+                              <Upload className="h-4 w-4 mr-1" />
+                              Upload Design for Customer
+                            </Button>
                           </div>
                         )}
                         </div>
                       </div>
                     ))}
                     {(!orderDetails?.items?.length && !selectedOrder.items?.length) && (
-                      <div className="text-center py-8">
-                        <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 mb-4">No items in this order yet</p>
-                        <Button
-                          onClick={() => setAddItemModal({ open: true, orderId: selectedOrder.id })}
-                          className="bg-orange-500 hover:bg-orange-600"
-                          data-testid="button-add-item-empty"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Item to Order
-                        </Button>
+                      <div className="text-center py-4 text-gray-500">
+                        No items found for this order
                       </div>
                     )}
                   </div>
@@ -1522,11 +1602,6 @@ export default function AdminOrders() {
                   <RefreshCw className="h-5 w-5 text-amber-500" />
                   Request Artwork Revision
                 </>
-              ) : artworkReviewModal.action === 'request' ? (
-                <>
-                  <Mail className="h-5 w-5 text-orange-500" />
-                  Request Artwork from Customer
-                </>
               ) : (
                 <>
                   <Upload className="h-5 w-5 text-blue-500" />
@@ -1550,14 +1625,6 @@ export default function AdminOrders() {
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <p className="text-sm text-amber-800">
                   This will flag the current artwork for revision and notify the customer to update their design.
-                </p>
-              </div>
-            )}
-
-            {artworkReviewModal.action === 'request' && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                <p className="text-sm text-orange-800">
-                  This will send an email to the customer requesting they upload their artwork for this order item.
                 </p>
               </div>
             )}
@@ -1591,16 +1658,13 @@ export default function AdminOrders() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {artworkReviewModal.action === 'flag' ? 'Reason for Revision' : 
-                 artworkReviewModal.action === 'request' ? 'Message to Customer' : 'Notes for Customer'}
+                {artworkReviewModal.action === 'flag' ? 'Reason for Revision' : 'Notes for Customer'}
               </label>
               <textarea
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
                 placeholder={artworkReviewModal.action === 'flag' 
                   ? "Explain what needs to be changed (e.g., resolution too low, colors outside printable range, text too close to edge...)"
-                  : artworkReviewModal.action === 'request'
-                  ? "Add any instructions for the customer (e.g., Please upload your artwork in high resolution, minimum 300 DPI...)"
                   : "Add any notes about this design (e.g., I've adjusted the colors for better print quality...)"
                 }
                 className="w-full border rounded-lg p-3 text-sm"
@@ -1623,11 +1687,7 @@ export default function AdminOrders() {
                 Cancel
               </Button>
               <Button
-                className={`flex-1 ${
-                  artworkReviewModal.action === 'flag' ? 'bg-amber-500 hover:bg-amber-600' : 
-                  artworkReviewModal.action === 'request' ? 'bg-orange-500 hover:bg-orange-600' : 
-                  'bg-blue-500 hover:bg-blue-600'
-                }`}
+                className={`flex-1 ${artworkReviewModal.action === 'flag' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'}`}
                 onClick={handleArtworkReviewSubmit}
                 disabled={reviewSubmitting || (artworkReviewModal.action === 'upload' && !adminUploadFile)}
                 data-testid="button-submit-review"
@@ -1637,9 +1697,7 @@ export default function AdminOrders() {
                 ) : (
                   <Send className="h-4 w-4 mr-2" />
                 )}
-                {artworkReviewModal.action === 'flag' ? 'Send Revision Request' : 
-                 artworkReviewModal.action === 'request' ? 'Send Artwork Request' : 
-                 'Send to Customer'}
+                {artworkReviewModal.action === 'flag' ? 'Send Revision Request' : 'Send to Customer'}
               </Button>
             </div>
           </div>
@@ -1663,162 +1721,6 @@ export default function AdminOrders() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Add Item Modal */}
-      <Dialog 
-        open={addItemModal.open} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setAddItemModal({ open: false, orderId: 0 });
-            setSelectedProduct(null);
-            setItemQuantity(1);
-            setItemOptions({});
-          }
-        }}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Item to Order</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-2">Select Product</label>
-              <Select
-                value={selectedProduct?.id?.toString() || ''}
-                onValueChange={(value) => {
-                  const product = productsData?.find((p: any) => p.id.toString() === value);
-                  setSelectedProduct(product || null);
-                }}
-              >
-                <SelectTrigger className="w-full" data-testid="select-product">
-                  <SelectValue placeholder="Choose a product..." />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {productsData?.map((product: any) => (
-                    <SelectItem key={product.id} value={product.id.toString()}>
-                      {product.name} - {formatPrice(product.basePrice)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedProduct && (
-              <>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-2">Quantity</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={itemQuantity}
-                    onChange={(e) => setItemQuantity(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                    data-testid="input-quantity"
-                  />
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Unit Price:</span>
-                    <span className="font-medium">{formatPrice(selectedProduct.basePrice)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm mt-1">
-                    <span className="text-gray-600">Quantity:</span>
-                    <span className="font-medium">{itemQuantity}</span>
-                  </div>
-                  <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t">
-                    <span>Subtotal:</span>
-                    <span className="text-green-600">
-                      {formatPrice((parseFloat(selectedProduct.basePrice) * itemQuantity).toString())}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Material</label>
-                    <Select
-                      value={itemOptions.material || 'Vinyl'}
-                      onValueChange={(value) => setItemOptions(prev => ({ ...prev, material: value }))}
-                    >
-                      <SelectTrigger className="w-full" data-testid="select-material">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Vinyl">Vinyl</SelectItem>
-                        <SelectItem value="Foil">Foil (+$0.20)</SelectItem>
-                        <SelectItem value="Holographic">Holographic</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Spot Gloss</label>
-                    <Select
-                      value={itemOptions.spotGloss || 'None'}
-                      onValueChange={(value) => setItemOptions(prev => ({ ...prev, spotGloss: value }))}
-                    >
-                      <SelectTrigger className="w-full" data-testid="select-spot-gloss">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="None">None</SelectItem>
-                        <SelectItem value="Varnish">Varnish (+$0.10)</SelectItem>
-                        <SelectItem value="Emboss">Emboss</SelectItem>
-                        <SelectItem value="Both">Both (+$0.10)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Cut Type</label>
-                    <Select
-                      value={itemOptions.cutType || 'Standard'}
-                      onValueChange={(value) => setItemOptions(prev => ({ ...prev, cutType: value }))}
-                    >
-                      <SelectTrigger className="w-full" data-testid="select-cut-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Standard">Standard</SelectItem>
-                        <SelectItem value="Die Cut">Die Cut</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="flex gap-3 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setAddItemModal({ open: false, orderId: 0 });
-                  setSelectedProduct(null);
-                  setItemQuantity(1);
-                  setItemOptions({});
-                }}
-                data-testid="button-cancel-add-item"
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-orange-500 hover:bg-orange-600"
-                onClick={handleAddItem}
-                disabled={!selectedProduct || addingItem}
-                data-testid="button-confirm-add-item"
-              >
-                {addingItem ? (
-                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Plus className="h-4 w-4 mr-2" />
-                )}
-                Add Item
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-      </TooltipProvider>
     </AdminLayout>
   );
 }

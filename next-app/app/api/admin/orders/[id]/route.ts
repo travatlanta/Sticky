@@ -51,7 +51,7 @@ export async function GET(
     const result = await db.execute(sql`
       SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
              tax_amount, discount_amount, total_amount, shipping_address, 
-             notes, tracking_number, created_at, created_by_admin_id
+             notes, tracking_number, created_at
       FROM orders 
       WHERE id = ${parseInt(id)}
     `);
@@ -77,7 +77,6 @@ export async function GET(
       notes: cleanNotesForDisplay(row.notes),
       trackingNumber: row.tracking_number,
       createdAt: row.created_at,
-      createdByAdminId: row.created_by_admin_id,
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
       customerPhone: customerInfo.phone,
@@ -164,33 +163,7 @@ export async function GET(
       deliveries = [];
     }
 
-    // Fetch admin design for this order from order_designs table
-    let adminDesign = null;
-    let artworkStatus = 'awaiting_artwork';
-    try {
-      const designResult = await db.execute(sql`
-        SELECT od.id as link_id, od.status, od.notes as design_notes,
-               d.id, d.name, d.preview_url as "thumbnailUrl"
-        FROM order_designs od
-        JOIN designs d ON d.id = od.design_id
-        WHERE od.order_id = ${order.id}
-        ORDER BY od.created_at DESC
-        LIMIT 1
-      `);
-      if (designResult.rows?.[0]) {
-        const row = designResult.rows[0] as any;
-        adminDesign = {
-          id: row.id,
-          name: row.name,
-          thumbnailUrl: row.thumbnailUrl,
-        };
-        artworkStatus = row.status || 'pending_approval';
-      }
-    } catch (e) {
-      // Table might not exist yet - ignore
-    }
-
-    return NextResponse.json({ ...order, user, items: enrichedItems, deliveries, adminDesign, artworkStatus });
+    return NextResponse.json({ ...order, user, items: enrichedItems, deliveries });
   } catch (error) {
     console.error('Error fetching order:', error);
     return NextResponse.json({ message: 'Failed to fetch order' }, { status: 500 });
@@ -412,20 +385,6 @@ export async function DELETE(
     // Delete any related email delivery logs
     try {
       await db.execute(sql`DELETE FROM email_deliveries WHERE order_id = ${orderId}`);
-    } catch (e) {
-      // Table might not exist, continue
-    }
-
-    // Delete artwork notes/messages
-    try {
-      await db.execute(sql`DELETE FROM artwork_notes WHERE order_id = ${orderId}`);
-    } catch (e) {
-      // Table might not exist, continue
-    }
-
-    // Delete order designs links
-    try {
-      await db.execute(sql`DELETE FROM order_designs WHERE order_id = ${orderId}`);
     } catch (e) {
       // Table might not exist, continue
     }

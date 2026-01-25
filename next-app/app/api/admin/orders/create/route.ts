@@ -7,7 +7,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { z } from "zod";
-import { generateEmailHtml } from "@/lib/email/template";
 
 function generateOrderNumber(): string {
   const prefix = "SB";
@@ -177,36 +176,43 @@ export async function POST(request: Request) {
       const fromEmail = process.env.ORDER_EMAIL_FROM || "donotreply@stickybanditos.com";
 
       if (resendApiKey) {
-        const emailHtml = generateEmailHtml({
-          preheaderText: `Complete payment for order ${orderNumber}`,
-          headline: "Your Order is Ready for Payment",
-          subheadline: `Order #${orderNumber}`,
-          greeting: `Hi ${data.customer.name},`,
-          bodyContent: `
-            <p>An order has been created for you by our team at Sticky Banditos!</p>
-            
-            <div style="background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 8px; padding: 16px; margin: 16px 0;">
-              <table width="100%" style="border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 8px 0; color: #9ca3af; font-size: 14px;">Order Number:</td>
-                  <td style="padding: 8px 0; color: #f97316; font-weight: 700; text-align: right;">${orderNumber}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.1); color: #9ca3af; font-size: 14px;">Order Total:</td>
-                  <td style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.1); color: #22c55e; font-weight: 700; font-size: 18px; text-align: right;">$${data.totalAmount.toFixed(2)}</td>
-                </tr>
-              </table>
+        const emailHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background-color: #1a1a1a; padding: 20px; text-align: center;">
+              <h1 style="color: white; margin: 0;">Sticky Banditos</h1>
             </div>
-            
-            <p style="margin-top: 16px;">Click the button below to complete your payment and get your order started!</p>
-          `,
-          ctaButton: {
-            text: "Complete Payment",
-            url: paymentLink,
-            color: "orange",
-          },
-          customFooterNote: "This payment link is unique to your order. Please do not share it with others.",
-        });
+            <div style="padding: 30px 20px; background-color: #f9f9f9;">
+              <h2 style="color: #333;">Your Order is Ready for Payment</h2>
+              <p style="color: #666; font-size: 16px;">
+                Hi ${data.customer.name},
+              </p>
+              <p style="color: #666; font-size: 16px;">
+                An order has been created for you. Your order number is <strong>${orderNumber}</strong>.
+              </p>
+              <p style="color: #666; font-size: 16px;">
+                <strong>Order Total: $${data.totalAmount.toFixed(2)}</strong>
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${paymentLink}" style="background-color: #f97316; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                  Complete Payment
+                </a>
+              </div>
+              <p style="color: #999; font-size: 14px;">
+                If you have any questions, please contact us at mhobbs.stickybanditos@gmail.com or call 602-554-5338.
+              </p>
+            </div>
+            <div style="padding: 20px; text-align: center; color: #999; font-size: 12px;">
+              <p>Sticky Banditos Printing Company<br>2 North 35th Ave, Phoenix, AZ 85009</p>
+            </div>
+          </body>
+          </html>
+        `;
 
         console.log(`Sending order email to ${data.customer.email} from ${fromEmail}`);
         

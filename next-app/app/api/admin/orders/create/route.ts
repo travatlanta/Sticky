@@ -91,49 +91,57 @@ export async function POST(request: Request) {
     }
 
     let newOrder;
-    const orderValues = {
-      orderNumber,
-      userId: customerId,
-      customerEmail: data.customer.email,
-      customerName: data.customer.name,
-      customerPhone: data.customer.phone || null,
-      status: "pending_payment" as const,
-      subtotal: data.subtotal.toFixed(2),
-      shippingCost: data.shippingCost.toFixed(2),
-      taxAmount: data.taxAmount.toFixed(2),
-      discountAmount: data.discountAmount.toFixed(2),
-      totalAmount: data.totalAmount.toFixed(2),
-      shippingAddress: data.shippingAddress,
-      notes: data.notes || null,
-      createdByAdminId: (session.user as any).id,
-      paymentLinkToken,
-    };
     
+    // Try with all columns first, then fallback to minimal columns
+    // This handles production databases that may be missing new columns
     try {
+      // First attempt: Use all columns with pending status (most compatible)
       const [order] = await db
         .insert(orders)
-        .values(orderValues)
+        .values({
+          orderNumber,
+          userId: customerId,
+          customerEmail: data.customer.email,
+          customerName: data.customer.name,
+          customerPhone: data.customer.phone || null,
+          status: "pending" as const,
+          subtotal: data.subtotal.toFixed(2),
+          shippingCost: data.shippingCost.toFixed(2),
+          taxAmount: data.taxAmount.toFixed(2),
+          discountAmount: data.discountAmount.toFixed(2),
+          totalAmount: data.totalAmount.toFixed(2),
+          shippingAddress: data.shippingAddress,
+          notes: `Payment Link Token: ${paymentLinkToken}${data.notes ? `\n\nAdmin Notes: ${data.notes}` : ''}`,
+          createdByAdminId: (session.user as any).id,
+          paymentLinkToken,
+        })
         .returning();
       newOrder = order;
-    } catch (dbError: any) {
-      console.error("Database insert error:", dbError);
-      // If pending_payment status doesn't exist, try with "pending"
-      if (dbError.message?.includes('pending_payment') || dbError.message?.includes('invalid input value')) {
-        try {
-          const [order] = await db
-            .insert(orders)
-            .values({ ...orderValues, status: "pending" as const })
-            .returning();
-          newOrder = order;
-        } catch (retryError: any) {
-          console.error("Retry with pending status failed:", retryError);
-          return NextResponse.json({ 
-            message: `Failed to create order: ${retryError.message || 'Database error'}` 
-          }, { status: 500 });
-        }
-      } else {
+    } catch (dbError1: any) {
+      console.error("First attempt failed:", dbError1.message);
+      
+      try {
+        // Second attempt: Try without createdByAdminId and paymentLinkToken columns
+        const [order] = await db
+          .insert(orders)
+          .values({
+            orderNumber,
+            userId: customerId,
+            status: "pending" as const,
+            subtotal: data.subtotal.toFixed(2),
+            shippingCost: data.shippingCost.toFixed(2),
+            taxAmount: data.taxAmount.toFixed(2),
+            discountAmount: data.discountAmount.toFixed(2),
+            totalAmount: data.totalAmount.toFixed(2),
+            shippingAddress: data.shippingAddress,
+            notes: `Customer: ${data.customer.name} (${data.customer.email})${data.customer.phone ? `, Phone: ${data.customer.phone}` : ''}\nPayment Link Token: ${paymentLinkToken}${data.notes ? `\n\nAdmin Notes: ${data.notes}` : ''}`,
+          })
+          .returning();
+        newOrder = order;
+      } catch (dbError2: any) {
+        console.error("Second attempt failed:", dbError2.message);
         return NextResponse.json({ 
-          message: `Failed to create order: ${dbError.message || 'Database error'}` 
+          message: `Failed to create order: ${dbError2.message || 'Database error'}. First error: ${dbError1.message}` 
         }, { status: 500 });
       }
     }

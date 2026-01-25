@@ -748,7 +748,7 @@ export default function CreateOrderClient() {
                 </div>
 
                 <Button
-                  className="w-full"
+                  className="w-full text-sm px-3"
                   size="lg"
                   onClick={handleSubmit}
                   disabled={
@@ -762,10 +762,12 @@ export default function CreateOrderClient() {
                   {createOrderMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating Order...
+                      Creating...
                     </>
                   ) : (
-                    "Create Order & Send Payment Link"
+                    <>
+                      <span className="whitespace-nowrap">Create Order & Send Link</span>
+                    </>
                   )}
                 </Button>
 

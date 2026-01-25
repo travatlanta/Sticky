@@ -90,26 +90,53 @@ export async function POST(request: Request) {
       }
     }
 
-    const [newOrder] = await db
-      .insert(orders)
-      .values({
-        orderNumber,
-        userId: customerId,
-        customerEmail: data.customer.email,
-        customerName: data.customer.name,
-        customerPhone: data.customer.phone || null,
-        status: "pending_payment",
-        subtotal: data.subtotal.toFixed(2),
-        shippingCost: data.shippingCost.toFixed(2),
-        taxAmount: data.taxAmount.toFixed(2),
-        discountAmount: data.discountAmount.toFixed(2),
-        totalAmount: data.totalAmount.toFixed(2),
-        shippingAddress: data.shippingAddress,
-        notes: data.notes || null,
-        createdByAdminId: (session.user as any).id,
-        paymentLinkToken,
-      })
-      .returning();
+    let newOrder;
+    const orderValues = {
+      orderNumber,
+      userId: customerId,
+      customerEmail: data.customer.email,
+      customerName: data.customer.name,
+      customerPhone: data.customer.phone || null,
+      status: "pending_payment" as const,
+      subtotal: data.subtotal.toFixed(2),
+      shippingCost: data.shippingCost.toFixed(2),
+      taxAmount: data.taxAmount.toFixed(2),
+      discountAmount: data.discountAmount.toFixed(2),
+      totalAmount: data.totalAmount.toFixed(2),
+      shippingAddress: data.shippingAddress,
+      notes: data.notes || null,
+      createdByAdminId: (session.user as any).id,
+      paymentLinkToken,
+    };
+    
+    try {
+      const [order] = await db
+        .insert(orders)
+        .values(orderValues)
+        .returning();
+      newOrder = order;
+    } catch (dbError: any) {
+      console.error("Database insert error:", dbError);
+      // If pending_payment status doesn't exist, try with "pending"
+      if (dbError.message?.includes('pending_payment') || dbError.message?.includes('invalid input value')) {
+        try {
+          const [order] = await db
+            .insert(orders)
+            .values({ ...orderValues, status: "pending" as const })
+            .returning();
+          newOrder = order;
+        } catch (retryError: any) {
+          console.error("Retry with pending status failed:", retryError);
+          return NextResponse.json({ 
+            message: `Failed to create order: ${retryError.message || 'Database error'}` 
+          }, { status: 500 });
+        }
+      } else {
+        return NextResponse.json({ 
+          message: `Failed to create order: ${dbError.message || 'Database error'}` 
+        }, { status: 500 });
+      }
+    }
 
     for (const item of data.items) {
       await db.insert(orderItems).values({

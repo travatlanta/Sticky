@@ -69,6 +69,11 @@ export async function GET(
       .from(orderItems)
       .where(eq(orderItems.orderId, order.id));
 
+    console.log(`[Order ${order.id}] Found ${items.length} order items`);
+    items.forEach((item, idx) => {
+      console.log(`[Order ${order.id}] Item ${idx}: id=${item.id}, designId=${item.designId}, productId=${item.productId}`);
+    });
+
     // Enrich items with product and design data
     const enrichedItems = await Promise.all(
       items.map(async (item) => {
@@ -84,10 +89,12 @@ export async function GET(
         }
 
         if (item.designId) {
+          console.log(`[Order ${order.id}] Fetching design ${item.designId} for item ${item.id}`);
           const [d] = await db
             .select()
             .from(designs)
             .where(eq(designs.id, item.designId));
+          console.log(`[Order ${order.id}] Design found:`, d ? { id: d.id, name: d.name, previewUrl: d.previewUrl?.substring(0, 50) } : 'null');
           if (d) {
             const designName = d.name || '';
             const isApproved = designName.includes('[APPROVED]');

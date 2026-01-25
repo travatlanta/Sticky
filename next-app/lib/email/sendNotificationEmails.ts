@@ -114,16 +114,17 @@ export async function sendArtworkApprovalEmail(params: ArtworkApprovalEmailParam
 }
 
 interface AdminNotificationParams {
-  type: 'new_order' | 'design_submitted' | 'artwork_approved' | 'issue_flagged';
+  type: 'new_order' | 'design_submitted' | 'artwork_approved' | 'issue_flagged' | 'order_paid';
   orderNumber: string;
   orderId: number;
   customerName?: string;
   customerEmail?: string;
   artworkPreviewUrl?: string;
+  paymentAmount?: string;
 }
 
 export async function sendAdminNotificationEmail(params: AdminNotificationParams): Promise<boolean> {
-  const { type, orderNumber, orderId, customerName, customerEmail, artworkPreviewUrl } = params;
+  const { type, orderNumber, orderId, customerName, customerEmail, artworkPreviewUrl, paymentAmount } = params;
   const orderUrl = `${SITE_URL}/admin/orders?id=${orderId}`;
 
   let subject: string;
@@ -165,6 +166,14 @@ export async function sendAdminNotificationEmail(params: AdminNotificationParams
       actionLabel = 'View Order';
       color = 'orange';
       badgeEmoji = '⚠️';
+      break;
+    case 'order_paid':
+      subject = `💳 Payment Received - Order #${orderNumber}`;
+      headline = 'Payment Received!';
+      message = `${customerName || 'A customer'} has successfully paid${paymentAmount ? ` $${paymentAmount}` : ''} for order #${orderNumber}. The order is now ready for production!`;
+      actionLabel = 'View Order';
+      color = 'green';
+      badgeEmoji = '💳';
       break;
     default:
       return false;

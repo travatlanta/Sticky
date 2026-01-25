@@ -7,10 +7,10 @@ import { authOptions } from "@/lib/auth";
 
 export async function POST(
   request: Request,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     const session = await getServerSession(authOptions);
 
     if (!token || token.length < 32) {

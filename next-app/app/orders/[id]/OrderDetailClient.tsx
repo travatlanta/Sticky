@@ -451,6 +451,15 @@ export default function OrderDetail() {
           }) || [];
 
           const needsPayment = order.status === 'pending' && order.notes?.includes('Payment Link:');
+          
+          // Extract payment token from notes
+          let paymentToken: string | null = null;
+          if (order.notes) {
+            const tokenMatch = order.notes.match(/Payment Link:\s*([a-f0-9-]+)/i);
+            if (tokenMatch) {
+              paymentToken = tokenMatch[1];
+            }
+          }
 
           return (
             <div className="space-y-3 mb-6">
@@ -492,7 +501,7 @@ export default function OrderDetail() {
                 </div>
               )}
 
-              {needsPayment && (
+              {needsPayment && paymentToken && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4" data-testid="banner-needs-payment">
                   <div className="flex items-start gap-3">
                     <CreditCard className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
@@ -501,17 +510,15 @@ export default function OrderDetail() {
                       <p className="text-sm text-orange-700 mb-3">
                         Complete your payment to start production.
                       </p>
-                      <Button 
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
-                        onClick={() => {
-                          // Navigate to payment page or open payment modal
-                          window.location.href = `/checkout/payment?orderId=${order.id}`;
-                        }}
-                        data-testid="button-pay-now"
-                      >
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Pay Now
-                      </Button>
+                      <Link href={`/pay/${paymentToken}`}>
+                        <Button 
+                          className="bg-orange-600 hover:bg-orange-700 text-white"
+                          data-testid="button-pay-now"
+                        >
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Pay Now
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>

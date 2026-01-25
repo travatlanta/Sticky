@@ -6,10 +6,10 @@ import { put } from "@vercel/blob";
 
 export async function POST(
   request: Request,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
 
     if (!token || token.length < 32) {
       return NextResponse.json({ message: "Invalid token" }, { status: 400 });
@@ -111,10 +111,10 @@ export async function POST(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     const body = await request.json();
     const { orderItemId, action, designId } = body;
 
@@ -218,10 +218,10 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     const { searchParams } = new URL(request.url);
     const orderItemId = searchParams.get("orderItemId");
 

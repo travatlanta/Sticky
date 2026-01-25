@@ -23,10 +23,10 @@ function parseNotesForCustomerInfo(notes: string | null): { name?: string; email
 
 export async function GET(
   request: Request,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
 
     if (!token || token.length < 32) {
       return NextResponse.json({ message: "Invalid token" }, { status: 400 });

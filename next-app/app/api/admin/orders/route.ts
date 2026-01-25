@@ -37,15 +37,29 @@ export async function GET() {
 
     let allOrders: any[] = [];
     try {
-      // Use raw SQL to only select columns that exist in production
-      // Check for artwork_status column and include if available
-      const result = await db.execute(sql`
-        SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
-               tax_amount, discount_amount, total_amount, shipping_address, 
-               notes, tracking_number, created_at, artwork_status, created_by_admin_id
-        FROM orders 
-        ORDER BY created_at DESC
-      `);
+      // Try with created_by_admin_id column first
+      let result;
+      let hasCreatedByAdminId = true;
+      try {
+        result = await db.execute(sql`
+          SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+                 tax_amount, discount_amount, total_amount, shipping_address, 
+                 notes, tracking_number, created_at, artwork_status, created_by_admin_id
+          FROM orders 
+          ORDER BY created_at DESC
+        `);
+      } catch (colErr) {
+        // Fallback without created_by_admin_id column (production may not have it)
+        console.log('Falling back to query without created_by_admin_id column');
+        hasCreatedByAdminId = false;
+        result = await db.execute(sql`
+          SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+                 tax_amount, discount_amount, total_amount, shipping_address, 
+                 notes, tracking_number, created_at, artwork_status
+          FROM orders 
+          ORDER BY created_at DESC
+        `);
+      }
       
       allOrders = (result.rows || []).map((row: any) => ({
         id: row.id,
@@ -62,7 +76,7 @@ export async function GET() {
         trackingNumber: row.tracking_number,
         createdAt: row.created_at,
         artworkStatus: row.artwork_status || null,
-        createdByAdminId: row.created_by_admin_id || null,
+        createdByAdminId: hasCreatedByAdminId ? (row.created_by_admin_id || null) : null,
         // Parse customer info from notes for display
         ...parseNotesForCustomerInfo(row.notes),
       }));

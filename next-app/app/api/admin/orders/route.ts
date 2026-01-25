@@ -18,10 +18,17 @@ export async function GET() {
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
-    const allOrders = await db
-      .select()
-      .from(orders)
-      .orderBy(desc(orders.createdAt));
+    let allOrders: any[] = [];
+    try {
+      allOrders = await db
+        .select()
+        .from(orders)
+        .orderBy(desc(orders.createdAt));
+    } catch (ordersErr) {
+      console.error('Error fetching orders (schema mismatch?):', ordersErr);
+      // Return empty array if orders table has schema issues
+      return NextResponse.json([]);
+    }
 
     // Prefetch email deliveries for these orders (best-effort: the table may not exist yet)
     const deliveriesByOrderId = new Map<number, (typeof emailDeliveries.$inferSelect)[]>();

@@ -6,6 +6,7 @@ import { sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { put } from "@vercel/blob";
+import { sendArtworkApprovalEmail, sendAdminNotificationEmail } from "@/lib/email/sendNotificationEmails";
 
 export async function GET(
   request: Request,
@@ -181,6 +182,27 @@ export async function POST(
       `);
     }
 
+    if (isAdminUpload) {
+      const customerResult = await db.execute(sql`
+        SELECT o.customer_name, u.email as user_email
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        WHERE o.id = ${order.id}
+      `);
+      
+      const customer = customerResult.rows[0] as any;
+      if (customer?.user_email) {
+        sendArtworkApprovalEmail({
+          customerEmail: customer.user_email,
+          customerName: customer.customer_name || 'Customer',
+          orderNumber: order.order_number,
+          orderId: order.id,
+          artworkPreviewUrl: blob.url,
+          isFlagged: false,
+        }).catch(err => console.error('Failed to send approval email:', err));
+      }
+    }
+
     return NextResponse.json({
       success: true,
       designId,
@@ -247,7 +269,7 @@ export async function PUT(
     if (action === "approve") {
       await db.execute(sql`
         UPDATE designs SET
-          name = '[APPROVED] ' || REGEXP_REPLACE(name, '^\[(PENDING|APPROVED)\]\s*', ''),
+          name = '[APPROVED] ' || REGEXP_REPLACE(name, '^\[(PENDING|APPROVED|FLAGGED|ADMIN_DESIGN|CUSTOMER_UPLOAD)\]\s*', ''),
           updated_at = NOW()
         WHERE id = ${orderItem.design_id}
       `);
@@ -263,6 +285,19 @@ export async function PUT(
       const allApproved = allItems.every((item: any) => 
         item.design_id && item.design_name && item.design_name.includes('[APPROVED]')
       );
+
+      const designResult = await db.execute(sql`
+        SELECT preview_url FROM designs WHERE id = ${orderItem.design_id}
+      `);
+      const artworkPreviewUrl = (designResult.rows[0] as any)?.preview_url || '';
+
+      sendAdminNotificationEmail({
+        type: 'artwork_approved',
+        orderNumber: order.order_number,
+        orderId: order.id,
+        customerName: order.customer_name || 'Customer',
+        artworkPreviewUrl,
+      }).catch(err => console.error('Failed to send approval notification:', err));
 
       return NextResponse.json({
         success: true,

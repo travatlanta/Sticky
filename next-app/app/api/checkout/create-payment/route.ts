@@ -7,6 +7,7 @@ import { carts, cartItems, orders, orderItems, products } from '../../../../shar
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { sendOrderConfirmationEmail } from '@/lib/email/sendOrderConfirmationEmail';
+import { sendAdminNotificationEmail } from '@/lib/email/sendNotificationEmails';
 
 export const dynamic = 'force-dynamic';
 
@@ -256,6 +257,14 @@ export async function POST(req: Request) {
         }
       }
 
+      sendAdminNotificationEmail({
+        type: 'new_order',
+        orderNumber: order.orderNumber,
+        orderId: order.id,
+        customerName: formattedShippingAddress?.name || 'Customer',
+        customerEmail: freeOrderEmail || undefined,
+      }).catch(err => console.error('Failed to send admin notification:', err));
+
       return noCache(NextResponse.json({ success: true, orderId: order.id }));
     }
 
@@ -408,6 +417,15 @@ export async function POST(req: Request) {
         console.error('Failed to send order confirmation email:', emailError);
       }
     }
+
+    const adminNotifyEmail = checkoutEmail || sessionEmail;
+    sendAdminNotificationEmail({
+      type: 'new_order',
+      orderNumber: order.orderNumber,
+      orderId: order.id,
+      customerName: formattedShippingAddress?.name || 'Customer',
+      customerEmail: adminNotifyEmail || undefined,
+    }).catch(err => console.error('Failed to send admin notification:', err));
 
     return noCache(
       NextResponse.json({ success: true, orderId: order.id })

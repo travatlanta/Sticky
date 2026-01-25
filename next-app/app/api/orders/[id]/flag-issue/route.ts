@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
+import { sendArtworkApprovalEmail, sendAdminNotificationEmail } from "@/lib/email/sendNotificationEmails";
 
 export async function POST(
   request: Request,
@@ -25,7 +26,10 @@ export async function POST(
     }
 
     const orderResult = await db.execute(sql`
-      SELECT id, order_number FROM orders WHERE id = ${orderId}
+      SELECT o.id, o.order_number, o.customer_name, u.email as user_email
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.id = ${orderId}
     `);
     
     if (!orderResult.rows || orderResult.rows.length === 0) {
@@ -64,8 +68,42 @@ export async function POST(
       }
     }
 
+    const customerEmail = order.user_email;
+    const customerName = order.customer_name || 'Customer';
+    
+    const firstDesign = itemsResult.rows.find((item: any) => item.design_id);
+    let artworkPreviewUrl = '';
+    if (firstDesign) {
+      const designResult = await db.execute(sql`
+        SELECT preview_url FROM designs WHERE id = ${(firstDesign as any).design_id}
+      `);
+      if (designResult.rows[0]) {
+        artworkPreviewUrl = (designResult.rows[0] as any).preview_url || '';
+      }
+    }
+
+    if (customerEmail) {
+      await sendArtworkApprovalEmail({
+        customerEmail,
+        customerName,
+        orderNumber: order.order_number,
+        orderId,
+        artworkPreviewUrl,
+        isFlagged: true,
+      });
+    }
+
+    await sendAdminNotificationEmail({
+      type: 'issue_flagged',
+      orderNumber: order.order_number,
+      orderId,
+      customerName,
+      customerEmail,
+      artworkPreviewUrl,
+    });
+
     return NextResponse.json({ 
-      message: "Issue flagged successfully. Customer will be asked to approve artwork." 
+      message: "Issue flagged successfully. Customer has been notified to approve artwork." 
     });
   } catch (error) {
     console.error("Error flagging issue:", error);

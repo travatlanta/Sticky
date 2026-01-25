@@ -1,9 +1,33 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { orders, users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+
+// Parse customer info from notes field (production schema doesn't have dedicated columns)
+function parseNotesForCustomerInfo(notes: string | null): { 
+  name: string | null; 
+  email: string | null; 
+  phone: string | null;
+} {
+  if (!notes) return { name: null, email: null, phone: null };
+  
+  let name: string | null = null;
+  let email: string | null = null;
+  let phone: string | null = null;
+  
+  const nameMatch = notes.match(/Customer Name:\s*([^\n]+)/i);
+  if (nameMatch) name = nameMatch[1].trim();
+  
+  const emailMatch = notes.match(/Customer Email:\s*([^\n]+)/i);
+  if (emailMatch) email = emailMatch[1].trim();
+  
+  const phoneMatch = notes.match(/Customer Phone:\s*([^\n]+)/i);
+  if (phoneMatch) phone = phoneMatch[1].trim();
+  
+  return { name, email, phone };
+}
 
 export async function POST(
   request: Request,
@@ -26,15 +50,20 @@ export async function POST(
       );
     }
 
-    const [order] = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.paymentLinkToken, token))
-      .limit(1);
+    // Find order by token in notes (production schema doesn't have paymentLinkToken column)
+    const orderResult = await db.execute(sql`
+      SELECT id, status, user_id, notes
+      FROM orders 
+      WHERE notes LIKE ${'%Payment Link: ' + token + '%'}
+      LIMIT 1
+    `);
 
-    if (!order) {
+    if (!orderResult.rows || orderResult.rows.length === 0) {
       return NextResponse.json({ message: "Order not found" }, { status: 404 });
     }
+
+    const order = orderResult.rows[0] as any;
+    const customerInfo = parseNotesForCustomerInfo(order.notes);
 
     if (order.status !== "pending_payment") {
       return NextResponse.json(
@@ -43,14 +72,14 @@ export async function POST(
       );
     }
 
-    if (order.userId) {
+    if (order.user_id) {
       return NextResponse.json(
         { message: "This order is already linked to an account. Please log in." },
         { status: 400 }
       );
     }
 
-    if (!order.customerEmail) {
+    if (!customerInfo.email) {
       return NextResponse.json(
         { message: "Order has no associated email" },
         { status: 400 }
@@ -58,7 +87,7 @@ export async function POST(
     }
 
     const existingUser = await db.query.users.findFirst({
-      where: eq(users.email, order.customerEmail),
+      where: eq(users.email, customerInfo.email),
     });
 
     if (existingUser) {
@@ -70,30 +99,31 @@ export async function POST(
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const nameParts = order.customerName?.split(" ") || [];
+    const nameParts = customerInfo.name?.split(" ") || [];
     const derivedFirstName = firstName || nameParts[0] || "";
     const derivedLastName = lastName || nameParts.slice(1).join(" ") || "";
 
     const [newUser] = await db
       .insert(users)
       .values({
-        email: order.customerEmail,
+        email: customerInfo.email,
         passwordHash,
         firstName: derivedFirstName,
         lastName: derivedLastName,
-        phone: order.customerPhone || null,
+        phone: customerInfo.phone || null,
       })
       .returning();
 
-    await db
-      .update(orders)
-      .set({ userId: newUser.id })
-      .where(eq(orders.id, order.id));
+    // Update order with user ID
+    await db.execute(sql`
+      UPDATE orders SET user_id = ${newUser.id}
+      WHERE id = ${order.id}
+    `);
 
     return NextResponse.json({
       success: true,
       message: "Account created successfully. You can now log in.",
-      email: order.customerEmail,
+      email: customerInfo.email,
     });
   } catch (error) {
     console.error("Error creating account:", error);

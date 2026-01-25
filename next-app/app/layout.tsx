@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   keywords: 'custom stickers, sticker printing, die-cut stickers, vinyl stickers',
 };
 
+const GA_TRACKING_ID = 'G-EXT24JDCC7';
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default function RootLayout({
   children,
 }: {
@@ -21,18 +24,22 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-EXT24JDCC7"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-EXT24JDCC7');
-          `}
-        </Script>
+        {isProduction && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_TRACKING_ID}');
+              `}
+            </Script>
+          </>
+        )}
       </head>
       <body className="min-h-screen flex flex-col bg-gradient-to-br from-orange-50/50 via-white to-yellow-50/50 overflow-x-hidden">
         <Providers>

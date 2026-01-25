@@ -493,13 +493,26 @@ export default function OrderDetail() {
               )}
 
               {needsPayment && (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3" data-testid="banner-needs-payment">
-                  <CreditCard className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-orange-800">Payment required</p>
-                    <p className="text-sm text-orange-700">
-                      Complete your payment to start production. Check your email for the payment link.
-                    </p>
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4" data-testid="banner-needs-payment">
+                  <div className="flex items-start gap-3">
+                    <CreditCard className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-medium text-orange-800">Payment required</p>
+                      <p className="text-sm text-orange-700 mb-3">
+                        Complete your payment to start production.
+                      </p>
+                      <Button 
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        onClick={() => {
+                          // Navigate to payment page or open payment modal
+                          window.location.href = `/checkout/payment?orderId=${order.id}`;
+                        }}
+                        data-testid="button-pay-now"
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Pay Now
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}

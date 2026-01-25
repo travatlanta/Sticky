@@ -10,7 +10,7 @@ import { sendArtworkApprovalEmail, sendAdminNotificationEmail } from "@/lib/emai
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,8 @@ export async function GET(
       return NextResponse.json({ message: "Authentication required" }, { status: 401 });
     }
 
-    const orderId = parseInt(params.id);
+    const { id } = await params;
+    const orderId = parseInt(id);
     if (isNaN(orderId)) {
       return NextResponse.json({ message: "Invalid order ID" }, { status: 400 });
     }
@@ -91,7 +92,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -99,7 +100,8 @@ export async function POST(
       return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
     }
 
-    const orderId = parseInt(params.id);
+    const { id } = await params;
+    const orderId = parseInt(id);
     const userId = (session.user as any).id;
 
     const orderResult = await db.execute(sql`
@@ -217,7 +219,7 @@ export async function POST(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -225,7 +227,8 @@ export async function PUT(
       return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
     }
 
-    const orderId = parseInt(params.id);
+    const { id } = await params;
+    const orderId = parseInt(id);
     const userId = (session.user as any).id;
     const body = await request.json();
     const { orderItemId, action } = body;
@@ -324,7 +327,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -332,7 +335,8 @@ export async function DELETE(
       return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
     }
 
-    const orderId = parseInt(params.id);
+    const { id } = await params;
+    const orderId = parseInt(id);
     const userId = (session.user as any).id;
     const { searchParams } = new URL(request.url);
     const orderItemId = searchParams.get("orderItemId");

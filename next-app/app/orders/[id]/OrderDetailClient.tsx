@@ -800,24 +800,36 @@ export default function OrderDetail() {
                             <p className="text-sm text-gray-600 dark:text-muted-foreground mb-3">
                               Upload your artwork for this product
                             </p>
-                            <Button
-                              size="sm"
-                              onClick={() => fileInputRefs.current[item.id]?.click()}
-                              disabled={uploadingItemId === item.id}
-                              data-testid={`button-upload-artwork-${item.id}`}
-                            >
-                              {uploadingItemId === item.id ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Uploading...
-                                </>
-                              ) : (
-                                <>
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Upload Artwork
-                                </>
-                              )}
-                            </Button>
+                            <div className="flex flex-wrap gap-2 justify-center">
+                              <Button
+                                size="sm"
+                                onClick={() => fileInputRefs.current[item.id]?.click()}
+                                disabled={uploadingItemId === item.id}
+                                data-testid={`button-upload-artwork-${item.id}`}
+                              >
+                                {uploadingItemId === item.id ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Upload Artwork
+                                  </>
+                                )}
+                              </Button>
+                              <Link href={`/editor/new?orderId=${order.id}&orderItemId=${item.id}&productId=${item.productId}`}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  data-testid={`button-open-editor-${item.id}`}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Open Editor
+                                </Button>
+                              </Link>
+                            </div>
                             <p className="text-xs text-gray-500 mt-2">
                               Accepts: JPG, PNG, PDF, EPS, AI, PSD, SVG
                             </p>

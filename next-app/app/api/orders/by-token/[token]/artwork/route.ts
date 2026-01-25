@@ -64,20 +64,21 @@ export async function POST(
     let designId = orderItem.design_id;
 
     if (designId) {
-      // Update existing design
+      // Update existing design - reset to pending when new artwork uploaded
       await db.execute(sql`
         UPDATE designs SET
           artwork_url = ${blob.url},
           preview_url = ${blob.url},
+          name = ${'[PENDING] Artwork for Order ' + order.order_number},
           updated_at = NOW()
         WHERE id = ${designId}
       `);
     } else {
-      // Create new design
+      // Create new design with pending status
       const designResult = await db.execute(sql`
         INSERT INTO designs (name, artwork_url, preview_url, product_id, created_at, updated_at)
         VALUES (
-          ${'Artwork for Order ' + order.order_number},
+          ${'[PENDING] Artwork for Order ' + order.order_number},
           ${blob.url},
           ${blob.url},
           ${orderItem.product_id},
@@ -105,6 +106,103 @@ export async function POST(
   } catch (error) {
     console.error("Error uploading artwork:", error);
     return NextResponse.json({ message: "Failed to upload artwork" }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { token: string } }
+) {
+  try {
+    const { token } = params;
+    const body = await request.json();
+    const { orderItemId, action } = body;
+
+    if (!token || token.length < 32) {
+      return NextResponse.json({ message: "Invalid token" }, { status: 400 });
+    }
+
+    if (!orderItemId) {
+      return NextResponse.json({ message: "Order item ID required" }, { status: 400 });
+    }
+
+    // Find order by token
+    const orderResult = await db.execute(sql`
+      SELECT id, order_number, status
+      FROM orders 
+      WHERE notes LIKE ${'%Payment Link: ' + token + '%'}
+      LIMIT 1
+    `);
+
+    if (!orderResult.rows || orderResult.rows.length === 0) {
+      return NextResponse.json({ message: "Order not found" }, { status: 404 });
+    }
+
+    const order = orderResult.rows[0] as any;
+
+    // Verify the order item belongs to this order
+    const itemResult = await db.execute(sql`
+      SELECT id, design_id FROM order_items 
+      WHERE id = ${parseInt(orderItemId)} AND order_id = ${order.id}
+    `);
+
+    if (!itemResult.rows || itemResult.rows.length === 0) {
+      return NextResponse.json({ message: "Order item not found" }, { status: 404 });
+    }
+
+    const orderItem = itemResult.rows[0] as any;
+
+    if (!orderItem.design_id) {
+      return NextResponse.json({ message: "No artwork to approve" }, { status: 400 });
+    }
+
+    if (action === "approve") {
+      // Mark design as approved - set name deterministically with [APPROVED] prefix
+      // Remove any existing status tags first, then add [APPROVED]
+      await db.execute(sql`
+        UPDATE designs SET
+          name = '[APPROVED] ' || REGEXP_REPLACE(name, '^\[(PENDING|APPROVED)\]\s*', ''),
+          updated_at = NOW()
+        WHERE id = ${orderItem.design_id}
+      `);
+
+      // Check if all items in order have approved designs
+      const allItemsResult = await db.execute(sql`
+        SELECT oi.id, oi.design_id, d.name as design_name
+        FROM order_items oi
+        LEFT JOIN designs d ON oi.design_id = d.id
+        WHERE oi.order_id = ${order.id}
+      `);
+
+      const allItems = allItemsResult.rows || [];
+      const allApproved = allItems.every((item: any) => 
+        item.design_id && item.design_name && item.design_name.includes('[APPROVED]')
+      );
+
+      // If all items have approved artwork, update order status
+      // Handle multiple possible "waiting for artwork" statuses
+      const artworkPendingStatuses = ['awaiting_artwork', 'pending', 'pending_payment'];
+      if (allApproved && artworkPendingStatuses.includes(order.status)) {
+        // Move to pending_payment if not already paid, otherwise keep as pending
+        const newStatus = order.status === 'pending_payment' ? 'pending_payment' : 'pending';
+        await db.execute(sql`
+          UPDATE orders SET status = ${newStatus}
+          WHERE id = ${order.id}
+        `);
+      }
+
+      return NextResponse.json({
+        success: true,
+        approved: true,
+        allItemsApproved: allApproved,
+        message: "Artwork approved successfully",
+      });
+    }
+
+    return NextResponse.json({ message: "Invalid action" }, { status: 400 });
+  } catch (error) {
+    console.error("Error updating artwork:", error);
+    return NextResponse.json({ message: "Failed to update artwork" }, { status: 500 });
   }
 }
 

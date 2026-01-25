@@ -91,11 +91,14 @@ export async function GET(
       `);
       
       for (const row of (designsResult.rows || []) as any[]) {
+        const isApproved = row.name && row.name.includes('[APPROVED]');
+        const isPending = row.name && row.name.includes('[PENDING]');
         designsMap[row.id] = {
           id: row.id,
           name: row.name,
           previewUrl: row.preview_url,
           artworkUrl: row.artwork_url,
+          status: isApproved ? 'approved' : (isPending ? 'pending' : 'uploaded'),
         };
       }
     }

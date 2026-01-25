@@ -33,6 +33,7 @@ interface Design {
   name: string;
   previewUrl: string | null;
   artworkUrl: string | null;
+  status: 'pending' | 'approved' | 'uploaded';
 }
 
 interface OrderItem {
@@ -214,6 +215,35 @@ export default function PaymentClient({ token }: { token: string }) {
     },
   });
 
+  const approveArtworkMutation = useMutation({
+    mutationFn: async (orderItemId: number) => {
+      const res = await fetch(`/api/orders/by-token/${token}/artwork`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderItemId, action: "approve" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Approval failed");
+      return json;
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Artwork approved!", 
+        description: data.allItemsApproved 
+          ? "All artwork approved. You can now proceed to payment." 
+          : "Continue approving other items." 
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/by-token", token] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Approval failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleFileSelect = (orderItemId: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -370,9 +400,13 @@ export default function PaymentClient({ token }: { token: string }) {
                         <FileImage className="h-4 w-4" />
                         Artwork
                       </span>
-                      {item.design?.artworkUrl ? (
+                      {item.design?.status === 'approved' ? (
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                          Uploaded
+                          Approved
+                        </span>
+                      ) : item.design?.artworkUrl ? (
+                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                          Pending Approval
                         </span>
                       ) : (
                         <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
@@ -396,8 +430,35 @@ export default function PaymentClient({ token }: { token: string }) {
                           />
                         </a>
                         <div className="flex-1">
-                          <p className="text-sm text-gray-600">Your artwork is ready</p>
-                          <div className="flex gap-2 mt-2">
+                          {item.design.status === 'approved' ? (
+                            <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+                              <CheckCircle className="h-4 w-4" />
+                              Approved
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-600">
+                              Please review and approve your artwork
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {item.design.status !== 'approved' && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => approveArtworkMutation.mutate(item.id)}
+                                disabled={approveArtworkMutation.isPending}
+                                data-testid={`button-approve-artwork-${item.id}`}
+                              >
+                                {approveArtworkMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Approve
+                                  </>
+                                )}
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"

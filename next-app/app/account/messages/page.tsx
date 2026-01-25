@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
@@ -29,7 +29,7 @@ interface Order {
   createdAt: string;
 }
 
-export default function MessagesPage() {
+function MessagesPageContent() {
   const { data: session, status: sessionStatus } = useSession();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -292,5 +292,17 @@ export default function MessagesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+      </div>
+    }>
+      <MessagesPageContent />
+    </Suspense>
   );
 }

@@ -712,26 +712,39 @@ export default function OrderDetail() {
                           <div className="text-center py-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
                             <Image className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                             <p className="text-sm text-gray-600 dark:text-muted-foreground mb-3">
-                              Upload your artwork for this product
+                              Upload your artwork or use the design editor
                             </p>
-                            <Button
-                              size="sm"
-                              onClick={() => fileInputRefs.current[item.id]?.click()}
-                              disabled={uploadingItemId === item.id}
-                              data-testid={`button-upload-artwork-${item.id}`}
-                            >
-                              {uploadingItemId === item.id ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Uploading...
-                                </>
-                              ) : (
-                                <>
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Upload Artwork
-                                </>
-                              )}
-                            </Button>
+                            <div className="flex flex-wrap gap-2 justify-center">
+                              <Button
+                                size="sm"
+                                onClick={() => fileInputRefs.current[item.id]?.click()}
+                                disabled={uploadingItemId === item.id}
+                                data-testid={`button-upload-artwork-${item.id}`}
+                              >
+                                {uploadingItemId === item.id ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Upload Artwork
+                                  </>
+                                )}
+                              </Button>
+                              <Link href={`/editor/new?orderId=${order?.id}&itemId=${item.id}&productId=${item.product?.id || ''}`}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                                  data-testid={`button-use-editor-${item.id}`}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Use Design Editor
+                                </Button>
+                              </Link>
+                            </div>
                             <p className="text-xs text-gray-500 mt-2">
                               Accepts: JPG, PNG, PDF, EPS, AI, PSD, SVG
                             </p>

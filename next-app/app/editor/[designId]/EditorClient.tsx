@@ -1084,15 +1084,29 @@ export default function Editor() {
         const newDesign = await createRes.json();
         
         // If we have order context, update the order item with the new design
-        if (orderIdFromUrl && itemIdFromUrl && tokenFromUrl) {
-          await fetch(`/api/orders/by-token/${tokenFromUrl}/artwork`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderItemId: parseInt(itemIdFromUrl, 10),
-              designId: newDesign.id,
-            }),
-          });
+        if (orderIdFromUrl && itemIdFromUrl) {
+          if (tokenFromUrl) {
+            // Guest checkout flow with token
+            await fetch(`/api/orders/by-token/${tokenFromUrl}/artwork`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderItemId: parseInt(itemIdFromUrl, 10),
+                designId: newDesign.id,
+              }),
+            });
+          } else {
+            // Authenticated user flow - link design to order item
+            await fetch(`/api/orders/${orderIdFromUrl}/artwork/link`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                orderItemId: parseInt(itemIdFromUrl, 10),
+                designId: newDesign.id,
+              }),
+            });
+          }
         }
         
         toast({
@@ -1100,9 +1114,11 @@ export default function Editor() {
           description: "Your design has been saved to the order.",
         });
         
-        // Redirect back to payment page if we have a token
+        // Redirect back to payment page if we have a token, otherwise to orders page
         if (tokenFromUrl) {
           router.push(`/pay/${tokenFromUrl}`);
+        } else if (orderIdFromUrl) {
+          router.push(`/orders/${orderIdFromUrl}`);
         }
         
         return newDesign.id;

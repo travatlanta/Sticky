@@ -150,6 +150,7 @@ export default function OrderDetail() {
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [newNote, setNewNote] = useState("");
   const [showNotes, setShowNotes] = useState(false);
+  const [requestChangesItemId, setRequestChangesItemId] = useState<number | null>(null);
 
   const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -531,7 +532,6 @@ export default function OrderDetail() {
                                 );
                               })()}
                               <div className="flex flex-wrap gap-2 mt-2">
-                                {/* Approve button: customers approve admin designs or flagged items */}
                                 {(() => {
                                   const designName = item.design?.name || '';
                                   const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
@@ -541,56 +541,141 @@ export default function OrderDetail() {
                                   
                                   if (needsApproval) {
                                     return (
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        onClick={() => approveArtworkMutation.mutate(item.id)}
-                                        disabled={approveArtworkMutation.isPending}
-                                        className="bg-green-600 hover:bg-green-700"
-                                        data-testid={`button-approve-artwork-${item.id}`}
-                                      >
-                                        {approveArtworkMutation.isPending ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <>
-                                            <CheckCircle className="h-4 w-4 mr-1" />
-                                            Approve Design
-                                          </>
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="default"
+                                          onClick={() => approveArtworkMutation.mutate(item.id)}
+                                          disabled={approveArtworkMutation.isPending}
+                                          className="bg-green-600"
+                                          data-testid={`button-approve-artwork-${item.id}`}
+                                        >
+                                          {approveArtworkMutation.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <>
+                                              <CheckCircle className="h-4 w-4 mr-1" />
+                                              Approve Design
+                                            </>
+                                          )}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setRequestChangesItemId(requestChangesItemId === item.id ? null : item.id)}
+                                          data-testid={`button-request-changes-${item.id}`}
+                                        >
+                                          <Edit className="h-4 w-4 mr-1" />
+                                          Request Changes
+                                        </Button>
+                                      </>
+                                    );
+                                  }
+                                  
+                                  if (!isDesignApproved) {
+                                    return (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => fileInputRefs.current[item.id]?.click()}
+                                          disabled={uploadingItemId === item.id}
+                                          data-testid={`button-edit-artwork-${item.id}`}
+                                        >
+                                          {uploadingItemId === item.id ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <>
+                                              <Upload className="h-4 w-4 mr-1" />
+                                              Replace
+                                            </>
+                                          )}
+                                        </Button>
+                                        {item.design?.id && (
+                                          <Link href={`/editor/${item.design.id}`}>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              data-testid={`button-open-editor-${item.id}`}
+                                            >
+                                              <Edit className="h-4 w-4 mr-1" />
+                                              Open Editor
+                                            </Button>
+                                          </Link>
                                         )}
-                                      </Button>
+                                      </>
                                     );
                                   }
                                   return null;
                                 })()}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => fileInputRefs.current[item.id]?.click()}
-                                  disabled={uploadingItemId === item.id}
-                                  data-testid={`button-edit-artwork-${item.id}`}
-                                >
-                                  {uploadingItemId === item.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <>
-                                      <Upload className="h-4 w-4 mr-1" />
-                                      Replace
-                                    </>
-                                  )}
-                                </Button>
-                                {item.design?.id && (
-                                  <Link href={`/editor/${item.design.id}`}>
+                              </div>
+                              
+                              {requestChangesItemId === item.id && (
+                                <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                                  <h4 className="font-medium text-gray-900 dark:text-foreground mb-3">
+                                    Request Changes
+                                  </h4>
+                                  
+                                  <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Design:</p>
+                                    {(item.design?.previewUrl || item.design?.artworkUrl) && (
+                                      <img 
+                                        src={item.design.previewUrl || item.design.artworkUrl || ''} 
+                                        alt="Current design"
+                                        className="w-32 h-32 object-contain bg-gray-100 rounded border mx-auto"
+                                        data-testid={`img-current-design-${item.id}`}
+                                      />
+                                    )}
+                                  </div>
+                                  
+                                  <p className="text-sm text-gray-600 dark:text-muted-foreground mb-4">
+                                    Not happy with the design? You can upload your own artwork or edit the current design. 
+                                    If you need help, just send us a message below - we're here to help!
+                                  </p>
+                                  
+                                  <div className="flex flex-wrap gap-2">
                                     <Button
                                       size="sm"
-                                      variant="outline"
-                                      data-testid={`button-open-editor-${item.id}`}
+                                      onClick={() => fileInputRefs.current[item.id]?.click()}
+                                      disabled={uploadingItemId === item.id}
+                                      data-testid={`button-upload-new-${item.id}`}
                                     >
-                                      <Edit className="h-4 w-4 mr-1" />
-                                      Open Editor
+                                      {uploadingItemId === item.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                      ) : (
+                                        <Upload className="h-4 w-4 mr-1" />
+                                      )}
+                                      Upload New Artwork
                                     </Button>
-                                  </Link>
-                                )}
-                              </div>
+                                    {item.design?.id && (
+                                      <Link href={`/editor/${item.design.id}`}>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          data-testid={`button-edit-design-${item.id}`}
+                                        >
+                                          <Edit className="h-4 w-4 mr-1" />
+                                          Edit This Design
+                                        </Button>
+                                      </Link>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                    <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
+                                      <Mail className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                      <span>
+                                        <strong>Need help?</strong> Use the Messages section below to tell us what changes you'd like. 
+                                        Our team will work with you to get your design just right!
+                                      </span>
+                                    </p>
+                                  </div>
+                                  
+                                  <p className="text-xs text-gray-500 mt-3">
+                                    Accepts: JPG, PNG, PDF, EPS, AI, PSD, SVG, CDR
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ) : (
@@ -675,41 +760,58 @@ export default function OrderDetail() {
                   ))}
                 </div>
 
-                {/* Submit Artwork Button - Only for admin-created orders or flagged items needing approval */}
-                {order.items?.some((item: any) => 
-                  (item.design?.artworkUrl || item.design?.previewUrl) && 
-                  (item.design?.isAdminDesign || item.design?.isFlagged) &&
-                  item.design?.status !== 'approved'
-                ) && !isAdmin && (
-                  <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-foreground">Ready to submit?</p>
-                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                          Click submit to notify us that your artwork is ready for review
-                        </p>
+                {/* Submit Artwork Button - Only for customer uploaded artwork that isn't pending admin approval */}
+                {(() => {
+                  const hasCustomerUpload = order.items?.some((item: any) => {
+                    const designName = item.design?.name || '';
+                    const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]') || item.design?.isCustomerUpload;
+                    const hasArtwork = item.design?.artworkUrl || item.design?.previewUrl;
+                    const isApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
+                    return hasArtwork && isCustomerUpload && !isApproved;
+                  });
+                  
+                  const hasPendingAdminApproval = order.items?.some((item: any) => {
+                    const designName = item.design?.name || '';
+                    const isAdminDesign = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
+                    const isFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
+                    const isApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
+                    return (isAdminDesign || isFlagged) && !isApproved;
+                  });
+                  
+                  if (hasCustomerUpload && !hasPendingAdminApproval && !isAdmin) {
+                    return (
+                      <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-foreground">Ready to submit?</p>
+                            <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                              Click submit to notify us that your artwork is ready for review
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => submitArtworkMutation.mutate()}
+                            disabled={submitArtworkMutation.isPending}
+                            className="w-full sm:w-auto"
+                            data-testid="button-submit-artwork"
+                          >
+                            {submitArtworkMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Submitting...
+                              </>
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 mr-2" />
+                                Submit Artwork for Review
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                      <Button
-                        onClick={() => submitArtworkMutation.mutate()}
-                        disabled={submitArtworkMutation.isPending}
-                        className="w-full sm:w-auto"
-                        data-testid="button-submit-artwork"
-                      >
-                        {submitArtworkMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Submitting...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4 mr-2" />
-                            Submit Artwork for Review
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Admin: Flag Printing Issue - For customer uploads that need revision */}
                 {isAdmin && order.items?.some((item: any) => {

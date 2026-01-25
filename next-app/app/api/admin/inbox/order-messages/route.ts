@@ -12,14 +12,16 @@ export async function GET() {
     }
 
     // Get all order conversations grouped by order with latest message
+    // Use total_amount instead of total for production compatibility
     const result = await db.execute(sql`
       SELECT 
         o.id as order_id,
         o.order_number,
         o.status as order_status,
-        o.total,
+        o.total_amount as total,
         o.created_at as order_date,
         o.user_id,
+        o.notes as order_notes,
         u.email as customer_email,
         u.first_name,
         u.last_name,
@@ -47,23 +49,37 @@ export async function GET() {
       LIMIT 50
     `);
 
-    const conversations = (result.rows || []).map((row: any) => ({
-      orderId: row.order_id,
-      orderNumber: row.order_number,
-      orderStatus: row.order_status,
-      orderTotal: parseFloat(row.total || 0),
-      orderDate: row.order_date,
-      userId: row.user_id,
-      customerEmail: row.customer_email,
-      customerName: row.first_name && row.last_name 
+    const conversations = (result.rows || []).map((row: any) => {
+      // Parse customer info from notes for guest orders
+      let customerName = row.first_name && row.last_name 
         ? `${row.first_name} ${row.last_name}` 
-        : row.first_name || row.customer_email || 'Customer',
-      messageCount: parseInt(row.message_count || 0),
-      unreadCount: parseInt(row.unread_count || 0),
-      lastMessage: row.last_message,
-      lastSender: row.last_sender,
-      lastMessageAt: row.last_message_at,
-    }));
+        : row.first_name || row.customer_email || 'Customer';
+      let customerEmail = row.customer_email;
+      
+      // Try to get customer info from notes if user is null
+      if (!customerEmail && row.order_notes) {
+        const nameMatch = row.order_notes.match(/Customer:\s*(.+?)(?:\n|$)/);
+        const emailMatch = row.order_notes.match(/Email:\s*(.+?)(?:\n|$)/);
+        if (nameMatch) customerName = nameMatch[1].trim();
+        if (emailMatch) customerEmail = emailMatch[1].trim();
+      }
+      
+      return {
+        orderId: row.order_id,
+        orderNumber: row.order_number,
+        orderStatus: row.order_status,
+        orderTotal: parseFloat(row.total || 0),
+        orderDate: row.order_date,
+        userId: row.user_id,
+        customerEmail,
+        customerName,
+        messageCount: parseInt(row.message_count || 0),
+        unreadCount: parseInt(row.unread_count || 0),
+        lastMessage: row.last_message,
+        lastSender: row.last_sender,
+        lastMessageAt: row.last_message_at,
+      };
+    });
 
     return NextResponse.json({ conversations });
   } catch (error: any) {

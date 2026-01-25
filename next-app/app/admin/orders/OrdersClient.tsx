@@ -140,62 +140,37 @@ function getArtworkBadgeInfo(design: any, isAdminCreatedOrder: boolean): { text:
 }
 
 // Helper function to determine the order display status badge
-// This is the MAIN order status badge, not per-item artwork badge
+// SIMPLE LOGIC:
+// 1. Tracking number? -> "Shipped"
+// 2. Admin-created order (createdByAdminId OR awaiting_artwork)? -> "Pending" until approved
+// 3. Customer order with revision_requested? -> "Pending"
+// 4. Everything else (customer orders) -> "Ready"
 function getOrderDisplayStatus(order: Order): { text: string; colorClass: string } {
-  // If has tracking number -> always "Shipped"
+  // Priority 1: Tracking number = Shipped
   if (order.trackingNumber && order.trackingNumber.trim() !== '') {
     return { text: "Shipped", colorClass: "bg-cyan-100 text-cyan-800" };
   }
   
-  const isAdminCreated = !!order.createdByAdminId;
   const artworkStatus = order.artworkStatus || '';
   
-  // Check order-level artwork status
-  const isApprovedViaStatus = artworkStatus === 'approved';
-  const isRevisionRequested = artworkStatus === 'revision_requested';
-  // These statuses are ONLY set for admin-created orders
-  const isAdminOrderStatus = artworkStatus === 'awaiting_artwork' || artworkStatus === 'admin_designing';
+  // Priority 2: Admin-created orders (check createdByAdminId OR awaiting_artwork status)
+  const isAdminCreated = !!order.createdByAdminId || artworkStatus === 'awaiting_artwork' || artworkStatus === 'admin_designing';
   
-  // Check if any items have designs with flags (for detailed view when items are loaded)
-  const items = order.items || [];
-  let hasApprovedArtwork = isApprovedViaStatus;
-  let hasFlaggedArtwork = isRevisionRequested;
-  let hasAdminDesignPending = false;
-  
-  for (const item of items) {
-    const design = item.design;
-    if (design && (design.previewUrl || design.highResExportUrl)) {
-      const designName = design.name || '';
-      if (designName.includes('[APPROVED]') || design.status === 'approved') {
-        hasApprovedArtwork = true;
-      }
-      if (designName.includes('[FLAGGED]')) {
-        hasFlaggedArtwork = true;
-      }
-      if (designName.includes('[ADMIN_DESIGN]') && !designName.includes('[APPROVED]')) {
-        hasAdminDesignPending = true;
-      }
-    }
-  }
-  
-  // Determine if this is an admin-created order
-  const treatAsAdminOrder = isAdminCreated || isAdminOrderStatus;
-  
-  if (treatAsAdminOrder) {
-    // Admin-created orders: pending until customer approves
-    if (hasApprovedArtwork) {
+  if (isAdminCreated) {
+    // Admin orders: Pending until artwork is approved
+    if (artworkStatus === 'approved') {
       return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
     }
     return { text: "Pending", colorClass: "bg-yellow-100 text-yellow-800" };
-  } else {
-    // Customer-created orders: 
-    // - Ready by default (they submitted artwork at checkout)
-    // - Pending only if revision was explicitly requested or admin design pending
-    if (hasFlaggedArtwork || hasAdminDesignPending) {
-      return { text: "Pending", colorClass: "bg-yellow-100 text-yellow-800" };
-    }
-    return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
   }
+  
+  // Priority 3: Customer order with revision requested -> Pending
+  if (artworkStatus === 'revision_requested') {
+    return { text: "Pending", colorClass: "bg-yellow-100 text-yellow-800" };
+  }
+  
+  // Priority 4: Customer orders default to Ready
+  return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
 }
 
 interface ArtworkNote {

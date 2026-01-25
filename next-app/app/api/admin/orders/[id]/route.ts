@@ -255,17 +255,34 @@ export async function DELETE(
     const { id } = await params;
     const orderId = parseInt(id);
 
-    // First delete order items using raw SQL
+    // Delete all related records with foreign keys to orders
+    // Order matters due to FK constraints
+    
+    // Delete messages referencing this order
+    try {
+      await db.execute(sql`DELETE FROM messages WHERE order_id = ${orderId}`);
+    } catch (e) {
+      // Table might not exist, continue
+    }
+
+    // Delete notifications referencing this order
+    try {
+      await db.execute(sql`DELETE FROM notifications WHERE order_id = ${orderId}`);
+    } catch (e) {
+      // Table might not exist, continue
+    }
+
+    // Delete order items
     await db.execute(sql`DELETE FROM order_items WHERE order_id = ${orderId}`);
 
-    // Delete any related email delivery logs (best effort - table may not exist)
+    // Delete any related email delivery logs
     try {
       await db.execute(sql`DELETE FROM email_deliveries WHERE order_id = ${orderId}`);
     } catch (e) {
       // Table might not exist, continue
     }
 
-    // Then delete the order
+    // Finally delete the order
     await db.execute(sql`DELETE FROM orders WHERE id = ${orderId}`);
 
     return NextResponse.json({ message: 'Order deleted successfully' });

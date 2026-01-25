@@ -238,9 +238,9 @@ export async function POST(
       const resend = new Resend(process.env.RESEND_API_KEY);
 
       const emailContent = generateEmailHtml({
-        preheader: `Artwork needed for your order ${order.order_number}`,
+        preheaderText: `Artwork needed for your order ${order.order_number}`,
         headline: "Artwork Request",
-        body: `
+        bodyContent: `
           <p>Hello!</p>
           <p>We need your artwork for the following item in order <strong>${order.order_number}</strong>:</p>
           <p><strong>${productName}</strong></p>
@@ -248,7 +248,7 @@ export async function POST(
           <p>Please log into your account to upload your artwork or design online.</p>
           <p>If you have any questions, please reply to this email or contact our support team.</p>
         `,
-        callToAction: {
+        ctaButton: {
           text: "View Your Order",
           url: `${process.env.NEXTAUTH_URL || 'https://sticky-banditos.replit.app'}/account`,
         },

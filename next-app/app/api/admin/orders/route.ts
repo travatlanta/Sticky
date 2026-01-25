@@ -37,12 +37,12 @@ export async function GET() {
 
     let allOrders: any[] = [];
     try {
-      // Use raw SQL to only select columns that exist in production
-      // Check for artwork_status column and include if available
+      // Use raw SQL with only columns that exist in production
+      // Don't include artwork_status - we'll get it from order_designs table
       const result = await db.execute(sql`
         SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
                tax_amount, discount_amount, total_amount, shipping_address, 
-               notes, tracking_number, created_at, artwork_status
+               notes, tracking_number, created_at
         FROM orders 
         ORDER BY created_at DESC
       `);
@@ -61,7 +61,6 @@ export async function GET() {
         notes: row.notes,
         trackingNumber: row.tracking_number,
         createdAt: row.created_at,
-        artworkStatus: row.artwork_status || null,
         // Parse customer info from notes for display
         ...parseNotesForCustomerInfo(row.notes),
       }));
@@ -69,6 +68,33 @@ export async function GET() {
       console.error('Error fetching orders (schema mismatch?):', ordersErr);
       // Return empty array if orders table has schema issues
       return NextResponse.json([]);
+    }
+
+    // Fetch artwork statuses from order_designs table
+    const artworkStatusByOrderId = new Map<number, { status: string; designId: number; thumbnailUrl: string | null }>();
+    try {
+      const orderIds = allOrders.map((o) => o.id);
+      if (orderIds.length > 0) {
+        const artworkResult = await db.execute(sql`
+          SELECT DISTINCT ON (od.order_id) 
+            od.order_id, od.status, od.design_id,
+            d.preview_url as thumbnail_url
+          FROM order_designs od
+          LEFT JOIN designs d ON d.id = od.design_id
+          WHERE od.order_id = ANY(${orderIds}::int[])
+          ORDER BY od.order_id, od.created_at DESC
+        `);
+        
+        for (const row of (artworkResult.rows || []) as any[]) {
+          artworkStatusByOrderId.set(row.order_id, {
+            status: row.status || 'pending_approval',
+            designId: row.design_id,
+            thumbnailUrl: row.thumbnail_url,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[admin/orders] Skipping artwork status lookup:", err);
     }
 
     // Prefetch email deliveries for these orders (best-effort: the table may not exist yet)
@@ -180,11 +206,19 @@ export async function GET() {
           );
 
           const deliveries = deliveriesByOrderId.get(order.id) ?? [];
+          
+          // Get artwork status and admin design from order_designs table
+          const artworkInfo = artworkStatusByOrderId.get(order.id);
+          const artworkStatus = artworkInfo?.status || 'awaiting_artwork';
+          const adminDesign = artworkInfo ? {
+            id: artworkInfo.designId,
+            thumbnailUrl: artworkInfo.thumbnailUrl,
+          } : null;
 
-          return { ...order, user, items: enrichedItems, deliveries };
+          return { ...order, user, items: enrichedItems, deliveries, artworkStatus, adminDesign };
         } catch (orderErr) {
           console.warn(`Failed to enrich order ${order.id}:`, orderErr);
-          return { ...order, user: null, items: [], deliveries: [] };
+          return { ...order, user: null, items: [], deliveries: [], artworkStatus: 'awaiting_artwork', adminDesign: null };
         }
       })
     );

@@ -142,7 +142,7 @@ function getArtworkBadgeInfo(design: any, isAdminCreatedOrder: boolean): { text:
 // Helper function to determine the order display status badge
 // SIMPLE LOGIC:
 // 1. Tracking number? -> "Shipped"
-// 2. Admin-created order (ONLY check createdByAdminId)? -> "Pending" until approved
+// 2. Admin-created order? -> "Pending" until artwork approved
 // 3. Customer order with revision_requested? -> "Pending"
 // 4. Everything else (customer orders) -> "Ready"
 function getOrderDisplayStatus(order: Order): { text: string; colorClass: string } {
@@ -152,9 +152,12 @@ function getOrderDisplayStatus(order: Order): { text: string; colorClass: string
   }
   
   const artworkStatus = order.artworkStatus || '';
+  const notes = order.notes || '';
   
-  // Priority 2: Admin-created orders - ONLY use createdByAdminId flag
-  const isAdminCreated = !!order.createdByAdminId;
+  // Priority 2: Admin-created orders detection
+  // Use createdByAdminId if available, otherwise check notes for admin order markers
+  const hasAdminMarkerInNotes = notes.includes('Payment Link:') || notes.includes('Admin-created');
+  const isAdminCreated = !!order.createdByAdminId || hasAdminMarkerInNotes;
   
   if (isAdminCreated) {
     // Admin orders: Pending until artwork is approved

@@ -251,8 +251,8 @@ export default function AdminOrders() {
     },
   });
 
-  const [downloadFormats, setDownloadFormats] = useState<Record<number, string>>({});
-  const [downloading, setDownloading] = useState<Record<number, boolean>>({});
+  const [downloadFormats, setDownloadFormats] = useState<Record<number | string, string>>({});
+  const [downloading, setDownloading] = useState<Record<number | string, boolean>>({});
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
   const [artworkUploading, setArtworkUploading] = useState(false);
   const [artworkNotes, setArtworkNotes] = useState("");
@@ -269,7 +269,7 @@ export default function AdminOrders() {
   const [adminUploadFile, setAdminUploadFile] = useState<File | null>(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
-  const handleDownload = async (url: string, itemId: number, designName: string, formatOverride?: string) => {
+  const handleDownload = async (url: string, itemId: number | string, designName: string, formatOverride?: string) => {
     const format = formatOverride || downloadFormats[itemId] || 'pdf';
     setDownloading(prev => ({ ...prev, [itemId]: true }));
     
@@ -1213,54 +1213,186 @@ export default function AdminOrders() {
                       </div>
                     ))}
                     {(!orderDetails?.items?.length && !selectedOrder.items?.length) && (
-                      <div className="text-center py-6 space-y-4">
-                        <p className="text-gray-500">No items found for this order</p>
+                      <div className="bg-white rounded-lg border p-4">
+                        <p className="text-gray-500 text-center mb-4">No items found for this order</p>
                         
-                        {/* Upload Design Section for orders without items */}
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-md mx-auto">
-                          <div className="flex items-center justify-center gap-2 mb-3">
-                            <Palette className="h-5 w-5 text-orange-600" />
-                            <span className="font-medium text-gray-900">Upload Design for Approval</span>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">
-                            Upload a design to send to the customer for approval before adding items.
-                          </p>
-                          <div className="space-y-2">
-                            <textarea
-                              className="w-full text-sm border rounded-lg p-2"
-                              placeholder="Notes to customer about the design..."
-                              value={artworkNotes}
-                              onChange={(e) => setArtworkNotes(e.target.value)}
-                              rows={2}
-                              data-testid="input-order-artwork-notes"
-                            />
-                            <input
-                              type="file"
-                              id={`order-artwork-upload-${selectedOrder.id}`}
-                              className="hidden"
-                              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.eps,.ai,.psd,.cdr"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleArtworkUpload(selectedOrder.id, file);
-                                e.target.value = '';
-                              }}
-                              data-testid="input-order-upload-design"
-                            />
-                            <Button
-                              variant="outline"
-                              onClick={() => document.getElementById(`order-artwork-upload-${selectedOrder.id}`)?.click()}
-                              disabled={artworkUploading}
-                              className="w-full border-orange-300 text-orange-700 hover:bg-orange-100"
-                              data-testid="button-order-upload-design"
-                            >
-                              {artworkUploading ? (
-                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                              ) : (
-                                <Upload className="h-4 w-4 mr-2" />
-                              )}
-                              Upload Design & Send for Approval
-                            </Button>
-                          </div>
+                        {/* Order-level Artwork Section */}
+                        <div className="border-t pt-4">
+                          {(() => {
+                            const orderDesign = orderDetails?.adminDesign || selectedOrder.adminDesign;
+                            const artworkStatus = orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork';
+                            const hasUploadedArtwork = orderDesign?.thumbnailUrl;
+                            
+                            return (
+                              <>
+                                <div className="flex items-center justify-between mb-3">
+                                  <p className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                                    <Palette className="h-4 w-4 text-orange-500" />
+                                    Artwork
+                                  </p>
+                                  <Badge className={`text-xs ${
+                                    artworkStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                                    artworkStatus === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {artworkStatus === 'approved' ? 'Ready' : 
+                                     artworkStatus === 'pending_approval' ? 'Pending Approval' :
+                                     'Awaiting Artwork'}
+                                  </Badge>
+                                </div>
+                                
+                                {hasUploadedArtwork ? (
+                                  <>
+                                    <p className="text-xs text-gray-500 mb-2">Uploaded Artwork</p>
+                                    <div className="flex flex-wrap items-start gap-4">
+                                      {/* Design Preview */}
+                                      <div 
+                                        className="relative cursor-pointer group"
+                                        onClick={() => setPreviewImage({
+                                          url: `/api/admin/design-download?url=${encodeURIComponent(orderDesign.thumbnailUrl!)}&format=preview`,
+                                          name: orderDesign.name || 'Design Preview'
+                                        })}
+                                      >
+                                        <img 
+                                          src={`/api/admin/design-download?url=${encodeURIComponent(orderDesign.thumbnailUrl!)}&format=preview`}
+                                          alt="Design preview" 
+                                          className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                          <ZoomIn className="h-6 w-6 text-white" />
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Download Controls */}
+                                      <div className="flex flex-col gap-2">
+                                        <div className="flex items-center gap-2">
+                                          <Select
+                                            value={downloadFormats['order-level'] || 'pdf'}
+                                            onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, ['order-level']: value }))}
+                                          >
+                                            <SelectTrigger className="w-28" data-testid="select-format-order-level">
+                                              <SelectValue placeholder="Format" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="pdf">PDF</SelectItem>
+                                              <SelectItem value="png">PNG</SelectItem>
+                                              <SelectItem value="tiff">TIFF</SelectItem>
+                                              <SelectItem value="jpg">JPG</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                          <Button
+                                            onClick={() => handleDownload(orderDesign.thumbnailUrl!, 'order-level', orderDesign.name || 'design')}
+                                            disabled={downloading['order-level']}
+                                            className="bg-orange-500 hover:bg-orange-600"
+                                            data-testid="button-download-order-level"
+                                          >
+                                            {downloading['order-level'] ? (
+                                              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                            ) : (
+                                              <Download className="h-4 w-4 mr-2" />
+                                            )}
+                                            Download
+                                          </Button>
+                                        </div>
+                                        <div className="text-xs text-gray-500 space-y-1">
+                                          <p>PNG/TIFF preserve transparency</p>
+                                          <p className="text-amber-600">EPS, CDR, AI, PSD, PDF files download as-is (no conversion available)</p>
+                                        </div>
+                                        
+                                        {/* Action Buttons */}
+                                        <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-gray-200">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-amber-700 border-amber-300 hover:bg-amber-50"
+                                            onClick={() => {
+                                              // Flag for revision
+                                              toast({
+                                                title: "Request Revision",
+                                                description: "Use the messaging section to request a revision from the customer.",
+                                              });
+                                            }}
+                                            data-testid="button-request-revision-order"
+                                          >
+                                            <RefreshCw className="h-4 w-4 mr-1" />
+                                            Request Revision
+                                          </Button>
+                                          <input
+                                            type="file"
+                                            id={`order-artwork-upload-${selectedOrder.id}`}
+                                            className="hidden"
+                                            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.eps,.ai,.psd,.cdr"
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handleArtworkUpload(selectedOrder.id, file);
+                                              e.target.value = '';
+                                            }}
+                                          />
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-blue-700 border-blue-300 hover:bg-blue-50"
+                                            onClick={() => document.getElementById(`order-artwork-upload-${selectedOrder.id}`)?.click()}
+                                            disabled={artworkUploading}
+                                            data-testid="button-upload-new-design-order"
+                                          >
+                                            {artworkUploading ? (
+                                              <RefreshCw className="h-4 w-4 animate-spin mr-1" />
+                                            ) : (
+                                              <Upload className="h-4 w-4 mr-1" />
+                                            )}
+                                            Upload New Design
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                    <p className="text-sm text-gray-600 mb-3">
+                                      Upload a design to send to the customer for approval.
+                                    </p>
+                                    <div className="space-y-2">
+                                      <textarea
+                                        className="w-full text-sm border rounded-lg p-2"
+                                        placeholder="Notes to customer about the design..."
+                                        value={artworkNotes}
+                                        onChange={(e) => setArtworkNotes(e.target.value)}
+                                        rows={2}
+                                        data-testid="input-order-artwork-notes"
+                                      />
+                                      <input
+                                        type="file"
+                                        id={`order-artwork-upload-${selectedOrder.id}`}
+                                        className="hidden"
+                                        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.eps,.ai,.psd,.cdr"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleArtworkUpload(selectedOrder.id, file);
+                                          e.target.value = '';
+                                        }}
+                                        data-testid="input-order-upload-design"
+                                      />
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => document.getElementById(`order-artwork-upload-${selectedOrder.id}`)?.click()}
+                                        disabled={artworkUploading}
+                                        className="w-full border-orange-300 text-orange-700 hover:bg-orange-100"
+                                        data-testid="button-order-upload-design"
+                                      >
+                                        {artworkUploading ? (
+                                          <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                        ) : (
+                                          <Upload className="h-4 w-4 mr-2" />
+                                        )}
+                                        Upload Design & Send for Approval
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     )}

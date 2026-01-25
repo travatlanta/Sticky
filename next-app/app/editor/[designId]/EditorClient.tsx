@@ -134,6 +134,12 @@ export default function Editor() {
   const isDeal = !!dealId && initialQuantityFromUrl > 0;
   const fixedDealPrice = isDeal && dealPrice ? parseFloat(dealPrice) : null;
   
+  // Order context params (coming from payment page)
+  const orderIdFromUrl = searchParams.get("orderId");
+  const itemIdFromUrl = searchParams.get("itemId");
+  const productIdFromUrl = searchParams.get("productId");
+  const tokenFromUrl = searchParams.get("token");
+  
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const multiFileInputRef = useRef<HTMLInputElement>(null);
@@ -220,14 +226,17 @@ export default function Editor() {
     retry: false,
   });
 
+  // Determine which product ID to use: from design or from URL params
+  const effectiveProductId = design?.productId || (productIdFromUrl ? parseInt(productIdFromUrl, 10) : null);
+  
   const { data: product, isLoading: productLoading, error: productError } = useQuery<Product>({
-    queryKey: [`/api/products/by-id/${design?.productId}`],
+    queryKey: [`/api/products/by-id/${effectiveProductId}`],
     queryFn: async () => {
-      const res = await fetch(`/api/products/by-id/${design?.productId}`, { credentials: "include" });
+      const res = await fetch(`/api/products/by-id/${effectiveProductId}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch product");
       return res.json();
     },
-    enabled: !!design?.productId,
+    enabled: !!effectiveProductId,
     retry: false,
   });
 
@@ -1046,15 +1055,60 @@ export default function Editor() {
     });
   }, []);
 
-  const saveDesign = async () => {
+  const saveDesign = async (): Promise<number | null> => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
 
     setIsSaving(true);
     try {
       const canvasJson = canvas.toJSON();
       const previewUrl = canvas.toDataURL({ format: 'png', quality: 0.8 });
 
+      // For new designs from order context, create a new design
+      if (isNewDesign && productIdFromUrl) {
+        const createRes = await fetch('/api/designs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            name: `Design for Order #${orderIdFromUrl || 'new'}`,
+            productId: parseInt(productIdFromUrl, 10),
+            canvasJson,
+            previewUrl,
+            contourPath,
+            selectedOptions,
+          }),
+        });
+
+        if (!createRes.ok) throw new Error('Failed to create design');
+        const newDesign = await createRes.json();
+        
+        // If we have order context, update the order item with the new design
+        if (orderIdFromUrl && itemIdFromUrl && tokenFromUrl) {
+          await fetch(`/api/orders/by-token/${tokenFromUrl}/artwork`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderItemId: parseInt(itemIdFromUrl, 10),
+              designId: newDesign.id,
+            }),
+          });
+        }
+        
+        toast({
+          title: "Design saved",
+          description: "Your design has been saved to the order.",
+        });
+        
+        // Redirect back to payment page if we have a token
+        if (tokenFromUrl) {
+          router.push(`/pay/${tokenFromUrl}`);
+        }
+        
+        return newDesign.id;
+      }
+
+      // For existing designs, update as normal
       const res = await fetch(`/api/designs/${designId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1069,10 +1123,22 @@ export default function Editor() {
 
       if (!res.ok) throw new Error('Failed to save');
       
+      // If editing existing design from order, redirect back
+      if (tokenFromUrl) {
+        toast({
+          title: "Design updated",
+          description: "Redirecting back to payment...",
+        });
+        router.push(`/pay/${tokenFromUrl}`);
+        return parseInt(designId, 10);
+      }
+      
       toast({
         title: "Design saved",
         description: "Your design has been saved successfully.",
       });
+      
+      return parseInt(designId, 10);
     } catch (error) {
       console.error("Save error:", error);
       toast({
@@ -1080,6 +1146,7 @@ export default function Editor() {
         description: "There was an error saving your design.",
         variant: "destructive",
       });
+      return null;
     } finally {
       setIsSaving(false);
     }
@@ -1169,7 +1236,8 @@ export default function Editor() {
   };
 
 
-  if (isNewDesign) {
+  // Show product selection only if it's a new design WITHOUT a productId in URL
+  if (isNewDesign && !productIdFromUrl) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
         <h2 className="text-xl font-semibold mb-4">Select a product to start designing</h2>
@@ -1179,6 +1247,15 @@ export default function Editor() {
         <Button onClick={() => router.push("/products")} data-testid="button-browse-products">
           Browse Products
         </Button>
+      </div>
+    );
+  }
+  
+  // Show loading when we have a productId from URL but still fetching the product
+  if (isNewDesign && productIdFromUrl && productLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }

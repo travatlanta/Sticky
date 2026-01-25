@@ -116,7 +116,7 @@ export async function PUT(
   try {
     const { token } = params;
     const body = await request.json();
-    const { orderItemId, action } = body;
+    const { orderItemId, action, designId } = body;
 
     if (!token || token.length < 32) {
       return NextResponse.json({ message: "Invalid token" }, { status: 400 });
@@ -151,6 +151,20 @@ export async function PUT(
     }
 
     const orderItem = itemResult.rows[0] as any;
+
+    // Handle linking a design from the editor
+    if (designId) {
+      await db.execute(sql`
+        UPDATE order_items SET design_id = ${designId}
+        WHERE id = ${parseInt(orderItemId)}
+      `);
+      
+      return NextResponse.json({
+        success: true,
+        designId,
+        message: "Design linked to order successfully",
+      });
+    }
 
     if (!orderItem.design_id) {
       return NextResponse.json({ message: "No artwork to approve" }, { status: 400 });

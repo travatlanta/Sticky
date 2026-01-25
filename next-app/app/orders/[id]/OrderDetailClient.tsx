@@ -502,6 +502,10 @@ export default function OrderDetail() {
   const status = statusConfig[order.status || "pending"] || statusConfig.pending;
   const StatusIcon = status.icon;
   const shippingAddress = order.shippingAddress as any;
+  
+  // Determine if order needs payment (component-level for use in shipping edit button)
+  const payableStatuses = ['pending', 'pending_payment', 'awaiting_artwork'];
+  const needsPayment = payableStatuses.includes(order.status) && order.notes?.includes('Payment Link:');
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background">
@@ -1408,7 +1412,129 @@ export default function OrderDetail() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="bg-white border rounded-lg p-4">
+                        {/* Billing Address Section */}
+                        <div className="bg-white dark:bg-gray-900 border rounded-lg p-4 mb-4">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <CreditCard className="h-4 w-4" />
+                            Billing Information
+                          </h4>
+                          
+                          <div className="mb-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={billingSameAsShipping}
+                                onChange={(e) => {
+                                  setBillingSameAsShipping(e.target.checked);
+                                  if (e.target.checked) {
+                                    setBillingForm({
+                                      name: shippingForm.name,
+                                      street: shippingForm.street,
+                                      street2: shippingForm.street2,
+                                      city: shippingForm.city,
+                                      state: shippingForm.state,
+                                      zip: shippingForm.zip,
+                                      country: shippingForm.country,
+                                    });
+                                  }
+                                }}
+                                className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                                data-testid="checkbox-billing-same"
+                              />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">
+                                Billing address same as shipping
+                              </span>
+                            </label>
+                          </div>
+                          
+                          {!billingSameAsShipping && (
+                            <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
+                              <div>
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Full Name *</label>
+                                <input
+                                  type="text"
+                                  value={billingForm.name}
+                                  onChange={(e) => setBillingForm(prev => ({ ...prev, name: e.target.value }))}
+                                  className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                  placeholder="John Doe"
+                                  data-testid="input-billing-name"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Street Address *</label>
+                                <input
+                                  type="text"
+                                  value={billingForm.street}
+                                  onChange={(e) => setBillingForm(prev => ({ ...prev, street: e.target.value }))}
+                                  className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                  placeholder="123 Main St"
+                                  data-testid="input-billing-street"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Apt/Suite/Unit</label>
+                                <input
+                                  type="text"
+                                  value={billingForm.street2}
+                                  onChange={(e) => setBillingForm(prev => ({ ...prev, street2: e.target.value }))}
+                                  className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                  placeholder="Apt 4B"
+                                  data-testid="input-billing-street2"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">City *</label>
+                                  <input
+                                    type="text"
+                                    value={billingForm.city}
+                                    onChange={(e) => setBillingForm(prev => ({ ...prev, city: e.target.value }))}
+                                    className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    placeholder="Phoenix"
+                                    data-testid="input-billing-city"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">State *</label>
+                                  <input
+                                    type="text"
+                                    value={billingForm.state}
+                                    onChange={(e) => setBillingForm(prev => ({ ...prev, state: e.target.value }))}
+                                    className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    placeholder="AZ"
+                                    data-testid="input-billing-state"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">ZIP Code *</label>
+                                  <input
+                                    type="text"
+                                    value={billingForm.zip}
+                                    onChange={(e) => setBillingForm(prev => ({ ...prev, zip: e.target.value }))}
+                                    className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    placeholder="85001"
+                                    data-testid="input-billing-zip"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Country</label>
+                                  <input
+                                    type="text"
+                                    value={billingForm.country}
+                                    onChange={(e) => setBillingForm(prev => ({ ...prev, country: e.target.value }))}
+                                    className="mt-1 w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    placeholder="USA"
+                                    data-testid="input-billing-country"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white dark:bg-gray-900 border rounded-lg p-4">
                           <div className="flex justify-between items-center mb-4">
                             <span className="text-lg font-semibold">Amount Due</span>
                             <span className="text-2xl font-bold text-orange-600">

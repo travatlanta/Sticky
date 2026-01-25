@@ -92,12 +92,14 @@ export async function GET(
             const isApproved = d.name && d.name.includes('[APPROVED]');
             const isAdminDesign = d.name && d.name.includes('[ADMIN_DESIGN]');
             const isCustomerUpload = d.name && d.name.includes('[CUSTOMER_UPLOAD]');
+            const isFlagged = d.name && d.name.includes('[FLAGGED]');
             design = {
               ...d,
               artworkUrl: d.previewUrl || null,
               status: isApproved ? 'approved' : 'pending',
               isAdminDesign,
               isCustomerUpload,
+              isFlagged,
             };
           }
         }

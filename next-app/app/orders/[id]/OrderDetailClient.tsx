@@ -42,6 +42,7 @@ interface Design {
   status?: 'pending' | 'approved' | 'uploaded';
   isAdminDesign?: boolean;
   isCustomerUpload?: boolean;
+  isFlagged?: boolean;
 }
 
 interface OrderItem {
@@ -217,6 +218,33 @@ export default function OrderDetail() {
     },
   });
 
+  const flagIssueMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/orders/${id}/flag-issue`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Flag failed");
+      return json;
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "Issue Flagged", 
+        description: "Customer will be notified to review and approve the updated artwork." 
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Flag failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleFileSelect = (orderItemId: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -362,9 +390,17 @@ export default function OrderDetail() {
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
                               Approved
                             </span>
-                          ) : item.design?.artworkUrl || item.design?.previewUrl ? (
+                          ) : item.design?.isFlagged ? (
+                            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                              Issue Flagged - Needs Approval
+                            </span>
+                          ) : item.design?.isAdminDesign ? (
                             <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
                               Pending Approval
+                            </span>
+                          ) : item.design?.artworkUrl || item.design?.previewUrl ? (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                              Ready
                             </span>
                           ) : (
                             <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
@@ -393,6 +429,10 @@ export default function OrderDetail() {
                                   <CheckCircle className="h-4 w-4" />
                                   Artwork Approved
                                 </p>
+                              ) : item.design.isFlagged ? (
+                                <p className="text-sm text-red-600 dark:text-red-400">
+                                  {isAdmin ? "Issue flagged - waiting for customer approval" : "We've made adjustments - please review and approve"}
+                                </p>
                               ) : item.design.isAdminDesign ? (
                                 <p className="text-sm text-blue-600 dark:text-blue-400">
                                   {isAdmin ? "Design sent to customer for approval" : "Please review and approve this design"}
@@ -403,8 +443,8 @@ export default function OrderDetail() {
                                 </p>
                               )}
                               <div className="flex flex-wrap gap-2 mt-2">
-                                {/* Approve button: customers approve admin designs, not their own uploads */}
-                                {!isAdmin && item.design.isAdminDesign && item.design.status !== 'approved' && (
+                                {/* Approve button: customers approve admin designs or flagged items */}
+                                {!isAdmin && (item.design.isAdminDesign || item.design.isFlagged) && item.design.status !== 'approved' && (
                                   <Button
                                     size="sm"
                                     variant="default"
@@ -532,8 +572,12 @@ export default function OrderDetail() {
                   ))}
                 </div>
 
-                {/* Submit Artwork Button */}
-                {order.items?.some((item: any) => item.design?.artworkUrl || item.design?.previewUrl) && (
+                {/* Submit Artwork Button - Only for admin-created orders or flagged items needing approval */}
+                {order.items?.some((item: any) => 
+                  (item.design?.artworkUrl || item.design?.previewUrl) && 
+                  (item.design?.isAdminDesign || item.design?.isFlagged) &&
+                  item.design?.status !== 'approved'
+                ) && !isAdmin && (
                   <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div>
@@ -557,6 +601,43 @@ export default function OrderDetail() {
                           <>
                             <Send className="h-4 w-4 mr-2" />
                             Submit Artwork for Review
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Admin: Flag Printing Issue - For customer uploads that need revision */}
+                {isAdmin && order.items?.some((item: any) => 
+                  item.design?.isCustomerUpload && 
+                  !item.design?.isFlagged && 
+                  item.design?.status !== 'approved'
+                ) && (
+                  <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-foreground">Printing Issue?</p>
+                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                          Flag an issue to request customer approval after making adjustments
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        onClick={() => flagIssueMutation.mutate()}
+                        disabled={flagIssueMutation.isPending}
+                        className="w-full sm:w-auto"
+                        data-testid="button-flag-issue"
+                      >
+                        {flagIssueMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Flagging...
+                          </>
+                        ) : (
+                          <>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Flag Printing Issue
                           </>
                         )}
                       </Button>

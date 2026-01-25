@@ -53,6 +53,7 @@ export async function GET(
       const isApproved = row.design_name && row.design_name.includes('[APPROVED]');
       const isAdminDesign = row.design_name && row.design_name.includes('[ADMIN_DESIGN]');
       const isCustomerUpload = row.design_name && row.design_name.includes('[CUSTOMER_UPLOAD]');
+      const isFlagged = row.design_name && row.design_name.includes('[FLAGGED]');
       return {
         id: row.id,
         productId: row.product_id,
@@ -70,6 +71,7 @@ export async function GET(
           status: isApproved ? 'approved' : 'pending',
           isAdminDesign,
           isCustomerUpload,
+          isFlagged,
         } : null,
       };
     });

@@ -901,13 +901,32 @@ export default function AdminOrders() {
 
 {/* Artwork Management - Show saved versions */}
                 {(() => {
-                  // Detect if any order item has approved artwork
-                  const hasApprovedArtwork = (orderDetails?.items || selectedOrder.items || []).some((item: any) => 
+                  // Check artwork status from order items
+                  const items = orderDetails?.items || selectedOrder.items || [];
+                  const hasApprovedArtwork = items.some((item: any) => 
                     item.design?.name?.includes('[APPROVED]')
                   );
-                  const hasAnyArtwork = (orderDetails?.items || selectedOrder.items || []).some((item: any) => item.design);
-                  const actualStatus = hasApprovedArtwork ? 'approved' : 
-                    (orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork');
+                  const hasReadyArtwork = items.some((item: any) => 
+                    item.design && (
+                      item.design.status === 'ready' || 
+                      item.design.name?.includes('[CUSTOMER_UPLOAD]') ||
+                      (item.design.previewUrl || item.design.highResExportUrl)
+                    )
+                  );
+                  const hasAnyArtwork = items.some((item: any) => item.design);
+                  
+                  // Determine actual status
+                  let actualStatus = 'awaiting_artwork';
+                  if (hasApprovedArtwork) {
+                    actualStatus = 'approved';
+                  } else if (hasReadyArtwork) {
+                    actualStatus = 'ready';
+                  } else if (hasAnyArtwork) {
+                    actualStatus = 'artwork_uploaded';
+                  }
+                  
+                  // Don't show this section if artwork is ready (customer uploaded) - it's shown in Order Items
+                  if (hasReadyArtwork && !hasApprovedArtwork && !selectedOrder.adminDesign) return null;
                   
                   if (!hasAnyArtwork && !selectedOrder.customerArtworkUrl && !selectedOrder.adminDesign) return null;
                   

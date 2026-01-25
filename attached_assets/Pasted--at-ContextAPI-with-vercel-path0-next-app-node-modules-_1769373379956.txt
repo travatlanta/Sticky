@@ -1,0 +1,20 @@
+    at ContextAPI.with (/vercel/path0/next-app/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+    at NoopTracer.startActiveSpan (/vercel/path0/next-app/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18093)
+    at ProxyTracer.startActiveSpan (/vercel/path0/next-app/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18854) {
+  description: "Route /api/account/orders couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+Error fetching order messages: n [Error]: Dynamic server usage: Route /api/admin/inbox/order-messages couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (/vercel/path0/next-app/.next/server/chunks/8948.js:1:37220)
+    at d (/vercel/path0/next-app/.next/server/chunks/1734.js:25:31549)
+    at s (/vercel/path0/next-app/.next/server/chunks/1734.js:25:20859)
+    at l (/vercel/path0/next-app/.next/server/app/api/admin/inbox/order-messages/route.js:1:1978)
+    at /vercel/path0/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:38417
+    at /vercel/path0/next-app/node_modules/next/dist/server/lib/trace/tracer.js:140:36
+    at NoopContextManager.with (/vercel/path0/next-app/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:7062)
+    at ContextAPI.with (/vercel/path0/next-app/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:518)
+    at NoopTracer.startActiveSpan (/vercel/path0/next-app/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18093)
+    at ProxyTracer.startActiveSpan (/vercel/path0/next-app/node_modules/next/dist/compiled/@opentelemetry/api/index.js:1:18854) {
+  description: "Route /api/admin/inbox/order-messages couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}

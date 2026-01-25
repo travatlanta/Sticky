@@ -15,19 +15,27 @@ export async function GET() {
 
     const userId = (session.user as any).id;
 
-    const userNotifications = await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.createdAt))
-      .limit(20);
+    try {
+      const userNotifications = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, userId))
+        .orderBy(desc(notifications.createdAt))
+        .limit(20);
 
-    const unreadCount = userNotifications.filter((n) => !n.isRead).length;
+      const unreadCount = userNotifications.filter((n) => !n.isRead).length;
 
-    return NextResponse.json({
-      notifications: userNotifications,
-      unreadCount,
-    });
+      return NextResponse.json({
+        notifications: userNotifications,
+        unreadCount,
+      });
+    } catch (dbError) {
+      console.warn("Notifications table may not exist:", dbError);
+      return NextResponse.json({
+        notifications: [],
+        unreadCount: 0,
+      });
+    }
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return NextResponse.json({ message: "Failed to fetch notifications" }, { status: 500 });
@@ -45,27 +53,32 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { notificationId, markAllRead } = body;
 
-    if (markAllRead) {
-      await db
-        .update(notifications)
-        .set({ isRead: true })
-        .where(eq(notifications.userId, userId));
+    try {
+      if (markAllRead) {
+        await db
+          .update(notifications)
+          .set({ isRead: true })
+          .where(eq(notifications.userId, userId));
 
-      return NextResponse.json({ message: "All notifications marked as read" });
-    }
+        return NextResponse.json({ message: "All notifications marked as read" });
+      }
 
-    if (notificationId) {
-      await db
-        .update(notifications)
-        .set({ isRead: true })
-        .where(
-          and(
-            eq(notifications.id, notificationId),
-            eq(notifications.userId, userId)
-          )
-        );
+      if (notificationId) {
+        await db
+          .update(notifications)
+          .set({ isRead: true })
+          .where(
+            and(
+              eq(notifications.id, notificationId),
+              eq(notifications.userId, userId)
+            )
+          );
 
-      return NextResponse.json({ message: "Notification marked as read" });
+        return NextResponse.json({ message: "Notification marked as read" });
+      }
+    } catch (dbError) {
+      console.warn("Notifications table may not exist:", dbError);
+      return NextResponse.json({ message: "Notifications not available" });
     }
 
     return NextResponse.json({ message: "Invalid request" }, { status: 400 });

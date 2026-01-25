@@ -1,0 +1,56 @@
+js:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+/api/admin/orders:1  Failed to load resource: the server responded with a status of 500 ()
+/api/notifications:1  Failed to load resource: the server responded with a status of 500 ()
+/api/admin/orders:1  Failed to load resource: the server responded with a status of 500 ()
+/api/notifications:1  Failed to load resource: the server responded with a status of 500 ()
+/api/admin/orders:1  Failed to load resource: the server responded with a status of 500 ()
+/api/notifications:1  Failed to load resource: the server responded with a status of 500 ()
+orders:1  Failed to load resource: the server responded with a status of 500 ()
+layout-3be8fd9e7bf9ab67.js:1  GET https://stickybanditos.com/api/notifications 500 (Internal Server Error)
+u @ layout-3be8fd9e7bf9ab67.js:1
+U @ 7609-4e02630a3e61b3cb.js:1
+m @ 5277-61f12dfbe783334f.js:1
+(anonymous) @ 5277-61f12dfbe783334f.js:1
+layout-3be8fd9e7bf9ab67.js:1  GET https://stickybanditos.com/api/notifications 500 (Internal Server Error)
+u @ layout-3be8fd9e7bf9ab67.js:1
+U @ 7609-4e02630a3e61b3cb.js:1
+m @ 5277-61f12dfbe783334f.js:1
+start @ 5277-61f12dfbe783334f.js:1
+fetch @ 7609-4e02630a3e61b3cb.js:1
+G @ 7609-4e02630a3e61b3cb.js:1
+(anonymous) @ 7609-4e02630a3e61b3cb.js:1
+setInterval
+setInterval @ 5277-61f12dfbe783334f.js:1
+setInterval @ 5277-61f12dfbe783334f.js:1
+Z @ 7609-4e02630a3e61b3cb.js:1
+B @ 7609-4e02630a3e61b3cb.js:1
+onQueryUpdate @ 7609-4e02630a3e61b3cb.js:1
+(anonymous) @ 7609-4e02630a3e61b3cb.js:1
+(anonymous) @ 7609-4e02630a3e61b3cb.js:1
+batch @ 5277-61f12dfbe783334f.js:1
+k @ 7609-4e02630a3e61b3cb.js:1
+fetch @ 7609-4e02630a3e61b3cb.js:1
+layout-3be8fd9e7bf9ab67.js:1  GET https://stickybanditos.com/api/notifications 500 (Internal Server Error)
+u @ layout-3be8fd9e7bf9ab67.js:1
+U @ 7609-4e02630a3e61b3cb.js:1
+m @ 5277-61f12dfbe783334f.js:1
+(anonymous) @ 5277-61f12dfbe783334f.js:1
+Promise.then
+(anonymous) @ 5277-61f12dfbe783334f.js:1
+Promise.catch
+m @ 5277-61f12dfbe783334f.js:1
+start @ 5277-61f12dfbe783334f.js:1
+fetch @ 7609-4e02630a3e61b3cb.js:1
+G @ 7609-4e02630a3e61b3cb.js:1
+(anonymous) @ 7609-4e02630a3e61b3cb.js:1
+setInterval
+setInterval @ 5277-61f12dfbe783334f.js:1
+setInterval @ 5277-61f12dfbe783334f.js:1
+Z @ 7609-4e02630a3e61b3cb.js:1
+B @ 7609-4e02630a3e61b3cb.js:1
+onQueryUpdate @ 7609-4e02630a3e61b3cb.js:1
+(anonymous) @ 7609-4e02630a3e61b3cb.js:1
+(anonymous) @ 7609-4e02630a3e61b3cb.js:1
+batch @ 5277-61f12dfbe783334f.js:1
+k @ 7609-4e02630a3e61b3cb.js:1
+fetch @ 7609-4e02630a3e61b3cb.js:1

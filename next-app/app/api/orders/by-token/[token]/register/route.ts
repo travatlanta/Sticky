@@ -65,9 +65,11 @@ export async function POST(
     const order = orderResult.rows[0] as any;
     const customerInfo = parseNotesForCustomerInfo(order.notes);
 
-    if (order.status !== "pending_payment") {
+    // Allow registration for orders in pending states (not just pending_payment)
+    const allowedStatuses = ["pending_payment", "pending", "awaiting_artwork", "processing"];
+    if (!allowedStatuses.includes(order.status)) {
       return NextResponse.json(
-        { message: "This order is no longer available for registration" },
+        { message: `This order cannot be used for registration (status: ${order.status}). Please contact support.` },
         { status: 400 }
       );
     }

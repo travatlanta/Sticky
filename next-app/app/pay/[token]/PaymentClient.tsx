@@ -84,6 +84,8 @@ export default function PaymentClient({ token }: { token: string }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
@@ -271,23 +273,38 @@ export default function PaymentClient({ token }: { token: string }) {
     e.preventDefault();
     if (!order?.customerEmail) return;
     
-    const result = await signIn("credentials", {
-      email: order.customerEmail,
-      password: loginPassword,
-      redirect: false,
-    });
+    setIsLoggingIn(true);
+    setLoginError(null);
     
-    if (result?.error) {
+    try {
+      const result = await signIn("credentials", {
+        email: order.customerEmail,
+        password: loginPassword,
+        redirect: false,
+      });
+      
+      if (result?.error) {
+        setLoginError("Invalid email or password. Please check your credentials and try again.");
+        toast({
+          title: "Login failed",
+          description: "Invalid email or password",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Logged in successfully!" });
+        setAuthStep('payment'); // Advance to payment step after login
+        setAuthMode(null);
+        router.refresh();
+      }
+    } catch (error) {
+      setLoginError("An unexpected error occurred. Please try again or contact support.");
       toast({
         title: "Login failed",
-        description: "Invalid email or password",
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
-    } else {
-      toast({ title: "Logged in successfully!" });
-      setAuthStep('payment'); // Advance to payment step after login
-      setAuthMode(null);
-      router.refresh();
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -479,11 +496,26 @@ export default function PaymentClient({ token }: { token: string }) {
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={!loginPassword}
+                    disabled={!loginPassword || isLoggingIn}
                     data-testid="button-auth-login-submit"
                   >
-                    Sign In & Continue
+                    {isLoggingIn ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Signing In...
+                      </>
+                    ) : (
+                      "Sign In & Continue"
+                    )}
                   </Button>
+
+                  {/* Error display for login */}
+                  {loginError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-sm text-red-700 font-medium">Login Error</p>
+                      <p className="text-sm text-red-600">{loginError}</p>
+                    </div>
+                  )}
 
                   <div className="flex justify-between text-sm">
                     <button
@@ -496,6 +528,21 @@ export default function PaymentClient({ token }: { token: string }) {
                     <Link href="/forgot-password" className="text-orange-600 hover:underline">
                       Forgot password?
                     </Link>
+                  </div>
+                  
+                  {/* Contact info for help */}
+                  <div className="text-center text-xs text-gray-500 pt-2 border-t">
+                    <p>Having trouble? Contact us:</p>
+                    <p className="mt-1">
+                      <a href="mailto:mhobbs.stickybanditos@gmail.com" className="text-orange-600 hover:underline">
+                        mhobbs.stickybanditos@gmail.com
+                      </a>
+                    </p>
+                    <p>
+                      <a href="tel:602-554-5338" className="text-orange-600 hover:underline">
+                        602-554-5338
+                      </a>
+                    </p>
                   </div>
                 </form>
               </CardContent>
@@ -563,6 +610,14 @@ export default function PaymentClient({ token }: { token: string }) {
                     )}
                   </Button>
 
+                  {/* Error display for registration */}
+                  {registerMutation.isError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-sm text-red-700 font-medium">Registration Error</p>
+                      <p className="text-sm text-red-600">{registerMutation.error?.message || "Unable to create account. Please try again."}</p>
+                    </div>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => setAuthMode(null)}
@@ -570,6 +625,21 @@ export default function PaymentClient({ token }: { token: string }) {
                   >
                     Back
                   </button>
+                  
+                  {/* Contact info for help */}
+                  <div className="text-center text-xs text-gray-500 pt-2 border-t">
+                    <p>Having trouble? Contact us:</p>
+                    <p className="mt-1">
+                      <a href="mailto:mhobbs.stickybanditos@gmail.com" className="text-orange-600 hover:underline">
+                        mhobbs.stickybanditos@gmail.com
+                      </a>
+                    </p>
+                    <p>
+                      <a href="tel:602-554-5338" className="text-orange-600 hover:underline">
+                        602-554-5338
+                      </a>
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

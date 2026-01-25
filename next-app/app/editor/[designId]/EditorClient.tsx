@@ -1219,7 +1219,8 @@ export default function Editor() {
   };
 
   // Detect if we're in order context (editing artwork for an existing order)
-  const isOrderContext = !!(orderIdFromUrl && itemIdFromUrl && tokenFromUrl);
+  // This includes both token-based (guest checkout) and authenticated (logged-in customer) flows
+  const isOrderContext = !!(orderIdFromUrl && itemIdFromUrl);
 
   // Handle saving design for order context (link to existing order item)
   const handleSaveToOrder = async () => {
@@ -1267,27 +1268,45 @@ export default function Editor() {
         savedDesignId = parseInt(designId);
       }
 
-      // Link design to order item
-      const linkRes = await fetch(`/api/orders/by-token/${tokenFromUrl}/artwork`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          orderItemId: parseInt(itemIdFromUrl || "0"),
-          designId: savedDesignId,
-        }),
-      });
-
-      if (!linkRes.ok) throw new Error("Failed to link design to order");
+      // Link design to order item - use token-based or authenticated endpoint
+      if (tokenFromUrl) {
+        // Guest checkout flow with token
+        const linkRes = await fetch(`/api/orders/by-token/${tokenFromUrl}/artwork`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            orderItemId: parseInt(itemIdFromUrl || "0"),
+            designId: savedDesignId,
+          }),
+        });
+        if (!linkRes.ok) throw new Error("Failed to link design to order");
+      } else if (orderIdFromUrl) {
+        // Authenticated user flow
+        const linkRes = await fetch(`/api/orders/${orderIdFromUrl}/artwork/link`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            orderItemId: parseInt(itemIdFromUrl || "0"),
+            designId: savedDesignId,
+          }),
+        });
+        if (!linkRes.ok) throw new Error("Failed to link design to order");
+      }
 
       toast({
         title: "Artwork saved!",
         description: "Your design has been linked to this order.",
       });
 
-      // Navigate back to payment page
+      // Navigate back to payment page or order page
       setTimeout(() => {
-        router.push(`/pay/${tokenFromUrl}`);
+        if (tokenFromUrl) {
+          router.push(`/pay/${tokenFromUrl}`);
+        } else if (orderIdFromUrl) {
+          router.push(`/orders/${orderIdFromUrl}`);
+        }
       }, 1000);
     } catch (error) {
       console.error("Save to order error:", error);
@@ -2340,7 +2359,15 @@ export default function Editor() {
                 <div className="flex items-center gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => router.push(`/pay/${tokenFromUrl}`)}
+                    onClick={() => {
+                      if (tokenFromUrl) {
+                        router.push(`/pay/${tokenFromUrl}`);
+                      } else if (orderIdFromUrl) {
+                        router.push(`/orders/${orderIdFromUrl}`);
+                      } else {
+                        router.back();
+                      }
+                    }}
                     data-testid="button-back-to-order"
                   >
                     Cancel

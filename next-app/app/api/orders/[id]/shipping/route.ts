@@ -51,7 +51,7 @@ export async function PUT(
     }
 
     const paidStatuses = ['paid', 'in_production', 'printed', 'shipped', 'delivered'];
-    if (paidStatuses.includes(order.status)) {
+    if (order.status && paidStatuses.includes(order.status)) {
       return NextResponse.json({ message: "Cannot update shipping address after payment" }, { status: 400 });
     }
 

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { pool } from "@/lib/db";
+import { db } from "@/lib/db";
+import { artworkNotes, orders, users } from "@shared/schema";
+import { eq, asc } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
@@ -21,44 +23,55 @@ export async function GET(
     const userId = (session.user as any).id;
     const isAdmin = (session.user as any).isAdmin === true;
 
-    const orderCheck = await pool.query(
-      `SELECT id, user_id FROM orders WHERE id = $1`,
-      [orderId]
-    );
+    const order = await db.query.orders.findFirst({
+      where: eq(orders.id, orderId),
+      columns: { id: true, userId: true },
+    });
 
-    if (orderCheck.rows.length === 0) {
+    if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const order = orderCheck.rows[0];
-    if (!isAdmin && order.user_id !== userId) {
+    if (!isAdmin && order.userId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const notesResult = await pool.query(
-      `SELECT an.*, u.first_name, u.last_name, u.email
-       FROM artwork_notes an
-       LEFT JOIN users u ON an.user_id = u.id
-       WHERE an.order_id = $1
-       ORDER BY an.created_at ASC`,
-      [orderId]
+    const notes = await db.query.artworkNotes.findMany({
+      where: eq(artworkNotes.orderId, orderId),
+      orderBy: [asc(artworkNotes.createdAt)],
+    });
+
+    const notesWithUserInfo = await Promise.all(
+      notes.map(async (note) => {
+        let senderName = note.senderType === 'admin' ? 'Admin' : 'Customer';
+        
+        if (note.userId) {
+          const user = await db.query.users.findFirst({
+            where: eq(users.id, note.userId),
+            columns: { firstName: true, lastName: true, email: true },
+          });
+          if (user) {
+            senderName = user.firstName && user.lastName 
+              ? `${user.firstName} ${user.lastName}` 
+              : user.email || senderName;
+          }
+        }
+
+        return {
+          id: note.id,
+          orderId: note.orderId,
+          orderItemId: note.orderItemId,
+          userId: note.userId,
+          senderType: note.senderType,
+          content: note.content,
+          isRead: note.isRead,
+          createdAt: note.createdAt,
+          senderName,
+        };
+      })
     );
 
-    const notes = notesResult.rows.map(row => ({
-      id: row.id,
-      orderId: row.order_id,
-      orderItemId: row.order_item_id,
-      userId: row.user_id,
-      senderType: row.sender_type,
-      content: row.content,
-      isRead: row.is_read,
-      createdAt: row.created_at,
-      senderName: row.first_name && row.last_name 
-        ? `${row.first_name} ${row.last_name}` 
-        : row.email || (row.sender_type === 'admin' ? 'Admin' : 'Customer'),
-    }));
-
-    return NextResponse.json({ notes });
+    return NextResponse.json({ notes: notesWithUserInfo });
   } catch (error) {
     console.error("Error fetching artwork notes:", error);
     return NextResponse.json({ error: "Failed to fetch notes" }, { status: 500 });
@@ -83,17 +96,16 @@ export async function POST(
     const userId = (session.user as any).id;
     const isAdmin = (session.user as any).isAdmin === true;
 
-    const orderCheck = await pool.query(
-      `SELECT id, user_id FROM orders WHERE id = $1`,
-      [orderId]
-    );
+    const order = await db.query.orders.findFirst({
+      where: eq(orders.id, orderId),
+      columns: { id: true, userId: true },
+    });
 
-    if (orderCheck.rows.length === 0) {
+    if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const order = orderCheck.rows[0];
-    if (!isAdmin && order.user_id !== userId) {
+    if (!isAdmin && order.userId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -106,17 +118,18 @@ export async function POST(
 
     const senderType = isAdmin ? 'admin' : 'user';
 
-    const insertResult = await pool.query(
-      `INSERT INTO artwork_notes (order_id, order_item_id, user_id, sender_type, content)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, created_at`,
-      [orderId, orderItemId || null, userId, senderType, content.trim()]
-    );
+    const [insertedNote] = await db.insert(artworkNotes).values({
+      orderId,
+      orderItemId: orderItemId || null,
+      userId,
+      senderType: senderType as 'admin' | 'user',
+      content: content.trim(),
+    }).returning({ id: artworkNotes.id, createdAt: artworkNotes.createdAt });
 
     return NextResponse.json({ 
       success: true, 
-      noteId: insertResult.rows[0].id,
-      createdAt: insertResult.rows[0].created_at 
+      noteId: insertedNote.id,
+      createdAt: insertedNote.createdAt 
     });
   } catch (error) {
     console.error("Error creating artwork note:", error);

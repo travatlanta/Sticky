@@ -25,6 +25,7 @@ import {
   FileImage,
   Trash2,
   Image as ImageIcon,
+  Palette,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -484,6 +485,15 @@ export default function PaymentClient({ token }: { token: string }) {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
+                            <Link href={`/editor?orderId=${order.id}&itemId=${item.id}&productId=${item.productId}&designId=${item.designId}&token=${token}`}>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                data-testid={`button-edit-in-editor-${item.id}`}
+                              >
+                                <Palette className="h-4 w-4" />
+                              </Button>
+                            </Link>
                           </div>
                         </div>
                       </div>
@@ -493,24 +503,37 @@ export default function PaymentClient({ token }: { token: string }) {
                         <p className="text-sm text-gray-600 mb-3">
                           Upload your artwork for this product
                         </p>
-                        <Button
-                          size="sm"
-                          onClick={() => fileInputRefs.current[item.id]?.click()}
-                          disabled={uploadingItemId === item.id}
-                          data-testid={`button-upload-artwork-${item.id}`}
-                        >
-                          {uploadingItemId === item.id ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4 mr-2" />
-                              Upload Artwork
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-2 justify-center items-center">
+                          <Button
+                            size="sm"
+                            onClick={() => fileInputRefs.current[item.id]?.click()}
+                            disabled={uploadingItemId === item.id}
+                            data-testid={`button-upload-artwork-${item.id}`}
+                          >
+                            {uploadingItemId === item.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Upload Artwork
+                              </>
+                            )}
+                          </Button>
+                          <span className="text-xs text-gray-400">or</span>
+                          <Link href={`/editor?orderId=${order.id}&itemId=${item.id}&productId=${item.productId}&token=${token}`}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              data-testid={`button-open-editor-${item.id}`}
+                            >
+                              <Palette className="h-4 w-4 mr-2" />
+                              Open Design Editor
+                            </Button>
+                          </Link>
+                        </div>
                         <p className="text-xs text-gray-500 mt-2">
                           Accepts: JPG, PNG, PDF, EPS, AI, PSD
                         </p>

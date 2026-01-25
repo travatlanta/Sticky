@@ -93,7 +93,7 @@ export async function GET(
             const isPending = d.name && d.name.includes('[PENDING]');
             design = {
               ...d,
-              artworkUrl: (d as any).artworkUrl || null,
+              artworkUrl: d.previewUrl || null,
               status: isApproved ? 'approved' : (isPending ? 'pending' : 'uploaded'),
             };
           }

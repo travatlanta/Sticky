@@ -28,6 +28,8 @@ import {
   Upload,
   Trash2,
   Loader2,
+  Send,
+  Edit,
 } from "lucide-react";
 
 interface Design {
@@ -180,6 +182,32 @@ export default function OrderDetail() {
     onError: (error: Error) => {
       toast({
         title: "Approval failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const submitArtworkMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/orders/${id}/submit-artwork`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Submit failed");
+      return json;
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Artwork Submitted!", 
+        description: data.message || "We'll review your artwork and get back to you soon." 
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Submit failed",
         description: error.message,
         variant: "destructive",
       });
@@ -391,14 +419,14 @@ export default function OrderDetail() {
                                   variant="outline"
                                   onClick={() => fileInputRefs.current[item.id]?.click()}
                                   disabled={uploadingItemId === item.id}
-                                  data-testid={`button-replace-artwork-${item.id}`}
+                                  data-testid={`button-edit-artwork-${item.id}`}
                                 >
                                   {uploadingItemId === item.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
                                     <>
-                                      <Upload className="h-4 w-4 mr-1" />
-                                      Replace
+                                      <Edit className="h-4 w-4 mr-1" />
+                                      Edit
                                     </>
                                   )}
                                 </Button>
@@ -495,6 +523,38 @@ export default function OrderDetail() {
                     </div>
                   ))}
                 </div>
+
+                {/* Submit Artwork Button */}
+                {order.items?.some((item: any) => item.design?.artworkUrl || item.design?.previewUrl) && (
+                  <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-foreground">Ready to submit?</p>
+                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                          Click submit to notify us that your artwork is ready for review
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => submitArtworkMutation.mutate()}
+                        disabled={submitArtworkMutation.isPending}
+                        className="w-full sm:w-auto"
+                        data-testid="button-submit-artwork"
+                      >
+                        {submitArtworkMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Submit Artwork for Review
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

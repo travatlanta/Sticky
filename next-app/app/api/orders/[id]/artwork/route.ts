@@ -42,7 +42,7 @@ export async function GET(
     const itemsResult = await db.execute(sql`
       SELECT oi.id, oi.product_id, oi.quantity, oi.unit_price, oi.design_id,
              p.name as product_name, p.thumbnail_url,
-             d.id as design_id, d.name as design_name, d.preview_url, d.artwork_url
+             d.id as design_id, d.name as design_name, d.preview_url
       FROM order_items oi
       LEFT JOIN products p ON oi.product_id = p.id
       LEFT JOIN designs d ON oi.design_id = d.id
@@ -65,7 +65,7 @@ export async function GET(
           id: row.design_id,
           name: row.design_name,
           previewUrl: row.preview_url,
-          artworkUrl: row.artwork_url,
+          artworkUrl: row.preview_url,
           status: isApproved ? 'approved' : (isPending ? 'pending' : 'uploaded'),
         } : null,
       };
@@ -146,7 +146,6 @@ export async function POST(
     if (designId) {
       await db.execute(sql`
         UPDATE designs SET
-          artwork_url = ${blob.url},
           preview_url = ${blob.url},
           name = ${'[PENDING] Artwork for Order ' + order.order_number},
           updated_at = NOW()
@@ -154,10 +153,9 @@ export async function POST(
       `);
     } else {
       const designResult = await db.execute(sql`
-        INSERT INTO designs (name, artwork_url, preview_url, product_id, created_at, updated_at)
+        INSERT INTO designs (name, preview_url, product_id, created_at, updated_at)
         VALUES (
           ${'[PENDING] Artwork for Order ' + order.order_number},
-          ${blob.url},
           ${blob.url},
           ${orderItem.product_id},
           NOW(),

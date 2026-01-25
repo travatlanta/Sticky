@@ -899,14 +899,27 @@ export default function AdminOrders() {
                   )}
                 </div>
 
-{/* Artwork Management */}
-                {(orderDetails?.artworkStatus || selectedOrder.artworkStatus) && (
+{/* Artwork Management - Show saved versions */}
+                {(() => {
+                  // Detect if any order item has approved artwork
+                  const hasApprovedArtwork = (orderDetails?.items || selectedOrder.items || []).some((item: any) => 
+                    item.design?.name?.includes('[APPROVED]')
+                  );
+                  const hasAnyArtwork = (orderDetails?.items || selectedOrder.items || []).some((item: any) => item.design);
+                  const actualStatus = hasApprovedArtwork ? 'approved' : 
+                    (orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork');
+                  
+                  if (!hasAnyArtwork && !selectedOrder.customerArtworkUrl && !selectedOrder.adminDesign) return null;
+                  
+                  return (
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <Palette className="h-5 w-5 text-orange-600" />
-                    Artwork Management
-                    <Badge className={artworkStatusColors[(orderDetails?.artworkStatus || selectedOrder.artworkStatus) || 'awaiting_artwork'] || 'bg-gray-100'}>
-                      {(orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork').replace(/_/g, ' ')}
+                    Artwork Files
+                    <Badge className={actualStatus === 'approved' 
+                      ? 'bg-green-100 text-green-800' 
+                      : artworkStatusColors[actualStatus] || 'bg-gray-100'}>
+                      {actualStatus.replace(/_/g, ' ')}
                     </Badge>
                   </h3>
                   
@@ -1028,94 +1041,59 @@ export default function AdminOrders() {
                       </div>
                     )}
 
-                    {/* Status Update Actions */}
+                    {/* Upload Design for Customer - Only show if not approved */}
+                    {actualStatus !== 'approved' && (
                     <div className="bg-white rounded-lg p-3 border space-y-3">
-                      <p className="text-sm font-medium text-gray-700">Update Artwork Status:</p>
-                      <div className="flex flex-wrap gap-2">
+                      <p className="text-sm font-medium text-gray-700">Upload Design for Customer Approval:</p>
+                      <div className="space-y-2">
+                        <textarea
+                          className="w-full text-sm border rounded-lg p-2"
+                          placeholder="Notes to customer about the design..."
+                          value={artworkNotes}
+                          onChange={(e) => setArtworkNotes(e.target.value)}
+                          rows={2}
+                          data-testid="input-artwork-notes"
+                        />
+                        <input
+                          type="file"
+                          id={`artwork-upload-${selectedOrder.id}`}
+                          className="hidden"
+                          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.eps,.ai,.psd,.cdr"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleArtworkUpload(selectedOrder.id, file);
+                            e.target.value = '';
+                          }}
+                          data-testid="input-upload-design"
+                        />
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div>
-                              <Select
-                                value={orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork'}
-                                onValueChange={(value) => updateArtworkStatusMutation.mutate({ 
-                                  orderId: selectedOrder.id, 
-                                  status: value 
-                                })}
-                              >
-                                <SelectTrigger className="w-48" data-testid="select-artwork-status">
-                                  <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="awaiting_artwork">Awaiting Artwork</SelectItem>
-                                  <SelectItem value="customer_designing">Customer Designing</SelectItem>
-                                  <SelectItem value="artwork_uploaded">Artwork Uploaded</SelectItem>
-                                  <SelectItem value="admin_designing">Admin Designing</SelectItem>
-                                  <SelectItem value="pending_approval">Pending Approval</SelectItem>
-                                  <SelectItem value="revision_requested">Revision Requested</SelectItem>
-                                  <SelectItem value="approved">Approved</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
+                            <Button
+                              variant="outline"
+                              onClick={() => document.getElementById(`artwork-upload-${selectedOrder.id}`)?.click()}
+                              disabled={artworkUploading}
+                              className="w-full"
+                              data-testid="button-upload-design"
+                            >
+                              {artworkUploading ? (
+                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Upload className="h-4 w-4 mr-2" />
+                              )}
+                              Upload Design & Send for Approval
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent side="right" className="max-w-xs">
-                            <p>Track artwork progress: Awaiting → Designing → Uploaded → Approved</p>
+                          <TooltipContent className="max-w-xs">
+                            <p>Upload your design and automatically send it to the customer for approval before printing</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
-
-                      {/* Upload Design for Customer Approval */}
-                      {['artwork_uploaded', 'admin_designing', 'revision_requested'].includes(orderDetails?.artworkStatus || selectedOrder.artworkStatus || '') && (
-                        <div className="pt-3 border-t">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Upload Design for Customer Approval:</p>
-                          <div className="space-y-2">
-                            <textarea
-                              className="w-full text-sm border rounded-lg p-2"
-                              placeholder="Notes to customer about the design..."
-                              value={artworkNotes}
-                              onChange={(e) => setArtworkNotes(e.target.value)}
-                              rows={2}
-                              data-testid="input-artwork-notes"
-                            />
-                            <input
-                              type="file"
-                              id={`artwork-upload-${selectedOrder.id}`}
-                              className="hidden"
-                              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.eps,.ai,.psd,.cdr"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleArtworkUpload(selectedOrder.id, file);
-                                e.target.value = '';
-                              }}
-                              data-testid="input-upload-design"
-                            />
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => document.getElementById(`artwork-upload-${selectedOrder.id}`)?.click()}
-                                  disabled={artworkUploading}
-                                  className="w-full"
-                                  data-testid="button-upload-design"
-                                >
-                                  {artworkUploading ? (
-                                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                                  ) : (
-                                    <Upload className="h-4 w-4 mr-2" />
-                                  )}
-                                  Upload Design & Send for Approval
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
-                                <p>Upload your design and automatically send it to the customer for approval before printing</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </div>
-                      )}
                     </div>
+                    )}
                   </div>
                 </div>
-                )}
+                  );
+                })()}
 
 {/* Order Items */}
                 <div className="bg-gray-50 rounded-xl p-4">

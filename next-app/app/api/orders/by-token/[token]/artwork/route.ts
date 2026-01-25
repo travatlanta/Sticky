@@ -193,14 +193,10 @@ export async function PUT(
         item.design_id && item.design_name && item.design_name.includes('[APPROVED]')
       );
 
-      // If all items have approved artwork, update order status
-      // Handle multiple possible "waiting for artwork" statuses
-      const artworkPendingStatuses = ['awaiting_artwork', 'pending', 'pending_payment'];
-      if (allApproved && artworkPendingStatuses.includes(order.status)) {
-        // Move to pending_payment if not already paid, otherwise keep as pending
-        const newStatus = order.status === 'pending_payment' ? 'pending_payment' : 'pending';
+      // If all items have approved artwork, update order artwork_status to 'approved'
+      if (allApproved) {
         await db.execute(sql`
-          UPDATE orders SET status = ${newStatus}
+          UPDATE orders SET artwork_status = 'approved', updated_at = NOW()
           WHERE id = ${order.id}
         `);
       }

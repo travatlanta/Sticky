@@ -286,6 +286,14 @@ export async function PUT(
         item.design_id && item.design_name && item.design_name.includes('[APPROVED]')
       );
 
+      // Update order artwork_status to 'approved' when all items are approved
+      if (allApproved) {
+        await db.execute(sql`
+          UPDATE orders SET artwork_status = 'approved', updated_at = NOW()
+          WHERE id = ${order.id}
+        `);
+      }
+
       const designResult = await db.execute(sql`
         SELECT preview_url FROM designs WHERE id = ${orderItem.design_id}
       `);

@@ -23,7 +23,7 @@ export async function POST(
 
     const session = await getServerSession(authOptions);
     const body = await request.json();
-    const { sourceId } = body;
+    const { sourceId, billingAddress: clientBillingAddress } = body;
 
     if (!sourceId) {
       return NextResponse.json({ error: "Missing payment source" }, { status: 400 });
@@ -104,21 +104,25 @@ export async function POST(
       );
     }
 
-    // Parse shipping address for billing
+    // Parse billing address from client request or fall back to shipping address
     let billingAddress: any = {};
-    if (orderRow.shipping_address) {
-      const addr = typeof orderRow.shipping_address === 'string' 
-        ? JSON.parse(orderRow.shipping_address) 
-        : orderRow.shipping_address;
+    const billingSource = clientBillingAddress || 
+      (orderRow.shipping_address 
+        ? (typeof orderRow.shipping_address === 'string' 
+            ? JSON.parse(orderRow.shipping_address) 
+            : orderRow.shipping_address)
+        : null);
+    
+    if (billingSource) {
       billingAddress = {
-        first_name: addr.firstName || addr.name?.split(' ')[0] || '',
-        last_name: addr.lastName || addr.name?.split(' ').slice(1).join(' ') || '',
-        address_line_1: addr.address1 || addr.street || '',
-        address_line_2: addr.address2 || '',
-        locality: addr.city || '',
-        administrative_district_level_1: addr.state || '',
-        postal_code: addr.zip || '',
-        country: addr.country || 'US',
+        first_name: billingSource.firstName || billingSource.name?.split(' ')[0] || '',
+        last_name: billingSource.lastName || billingSource.name?.split(' ').slice(1).join(' ') || '',
+        address_line_1: billingSource.address1 || billingSource.street || '',
+        address_line_2: billingSource.address2 || billingSource.street2 || '',
+        locality: billingSource.city || '',
+        administrative_district_level_1: billingSource.state || '',
+        postal_code: billingSource.zip || '',
+        country: billingSource.country || 'US',
       };
     }
 

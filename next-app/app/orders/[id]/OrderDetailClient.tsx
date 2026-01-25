@@ -438,13 +438,33 @@ export default function OrderDetail() {
       return;
     }
 
+    // Validate billing address if not same as shipping
+    if (!billingSameAsShipping) {
+      if (!billingForm.name || !billingForm.street || !billingForm.city || !billingForm.state || !billingForm.zip) {
+        toast({
+          title: "Missing Billing Information",
+          description: "Please fill in all required billing address fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsProcessingPayment(true);
     try {
+      // Include billing address with payment
+      const billingAddress = billingSameAsShipping
+        ? shippingForm
+        : billingForm;
+        
       const res = await fetch(`/api/orders/${id}/pay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ sourceId: token.token }),
+        body: JSON.stringify({ 
+          sourceId: token.token,
+          billingAddress,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || json.message || "Payment failed");
@@ -567,10 +587,6 @@ export default function OrderDetail() {
             return hasArtwork && !isApproved && !isFlagged && !isAdminDesign && (isAdminCreatedOrder || isCustomerUpload);
           }) || [];
 
-          // Align with backend payable statuses
-          const payableStatuses = ['pending', 'pending_payment', 'awaiting_artwork'];
-          const needsPayment = payableStatuses.includes(order.status) && order.notes?.includes('Payment Link:');
-          
           // Extract payment token from notes (kept for potential future use)
           let paymentToken: string | null = null;
           if (order.notes) {
@@ -1383,9 +1399,6 @@ export default function OrderDetail() {
 
             {/* Payment Section - Show if order needs payment */}
             {(() => {
-              // Align with backend payable statuses: pending, pending_payment, awaiting_artwork
-              const payableStatuses = ['pending', 'pending_payment', 'awaiting_artwork'];
-              const needsPayment = payableStatuses.includes(order.status) && order.notes?.includes('Payment Link:');
               const totalAmount = parseFloat(order.totalAmount || "0");
               
               if (!needsPayment) return null;

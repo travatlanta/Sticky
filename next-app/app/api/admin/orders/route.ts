@@ -42,7 +42,7 @@ export async function GET() {
       const result = await db.execute(sql`
         SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
                tax_amount, discount_amount, total_amount, shipping_address, 
-               notes, tracking_number, created_at, artwork_status
+               notes, tracking_number, created_at, artwork_status, created_by_admin_id
         FROM orders 
         ORDER BY created_at DESC
       `);
@@ -62,6 +62,7 @@ export async function GET() {
         trackingNumber: row.tracking_number,
         createdAt: row.created_at,
         artworkStatus: row.artwork_status || null,
+        createdByAdminId: row.created_by_admin_id || null,
         // Parse customer info from notes for display
         ...parseNotesForCustomerInfo(row.notes),
       }));

@@ -139,6 +139,58 @@ function getArtworkBadgeInfo(design: any, isAdminCreatedOrder: boolean): { text:
   return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
 }
 
+// Helper function to determine the order display status badge
+// This is the MAIN order status badge, not per-item artwork badge
+function getOrderDisplayStatus(order: Order): { text: string; colorClass: string } {
+  // If has tracking number -> always "Shipped"
+  if (order.trackingNumber && order.trackingNumber.trim() !== '') {
+    return { text: "Shipped", colorClass: "bg-cyan-100 text-cyan-800" };
+  }
+  
+  const isAdminCreated = !!order.createdByAdminId;
+  const artworkStatus = order.artworkStatus || '';
+  
+  // Check order-level artwork status first (works even when items not loaded)
+  const isApprovedViaStatus = artworkStatus === 'approved';
+  const isRevisionRequested = artworkStatus === 'revision_requested' || artworkStatus === 'pending_approval';
+  
+  // Check if any items have designs with flags (for detailed view when items are loaded)
+  const items = order.items || [];
+  let hasApprovedArtwork = isApprovedViaStatus;
+  let hasFlaggedArtwork = isRevisionRequested;
+  let hasAdminDesignPending = false;
+  
+  for (const item of items) {
+    const design = item.design;
+    if (design) {
+      const designName = design.name || '';
+      if (designName.includes('[APPROVED]') || design.status === 'approved') {
+        hasApprovedArtwork = true;
+      }
+      if (designName.includes('[FLAGGED]')) {
+        hasFlaggedArtwork = true;
+      }
+      if (designName.includes('[ADMIN_DESIGN]') && !designName.includes('[APPROVED]')) {
+        hasAdminDesignPending = true;
+      }
+    }
+  }
+  
+  if (isAdminCreated) {
+    // Admin-created orders: pending until customer approves
+    if (hasApprovedArtwork) {
+      return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
+    }
+    return { text: "Pending", colorClass: "bg-yellow-100 text-yellow-800" };
+  } else {
+    // Customer-created orders: ready by default, pending only if revision requested
+    if (hasFlaggedArtwork || hasAdminDesignPending) {
+      return { text: "Pending", colorClass: "bg-yellow-100 text-yellow-800" };
+    }
+    return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
+  }
+}
+
 interface ArtworkNote {
   id: number;
   orderId: number;
@@ -624,15 +676,14 @@ export default function AdminOrders() {
                       <div className="flex items-center gap-3 flex-wrap mb-1">
                         <span className="font-bold text-gray-900">#{order.orderNumber || order.id}</span>
                         <span className="text-lg font-semibold text-green-600">{formatPrice(order.totalAmount)}</span>
-                        {order.artworkStatus === 'approved' ? (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                            approved
-                          </Badge>
-                        ) : (
-                          <Badge className={statusColors[order.status] || "bg-gray-100"}>
-                            {order.status.replace("_", " ")}
-                          </Badge>
-                        )}
+                        {(() => {
+                          const displayStatus = getOrderDisplayStatus(order);
+                          return (
+                            <Badge className={displayStatus.colorClass}>
+                              {displayStatus.text}
+                            </Badge>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                         <span className="flex items-center gap-1">
@@ -655,15 +706,14 @@ export default function AdminOrders() {
                       <p className="text-xs text-gray-400 mt-1">{formatDate(order.createdAt)}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                      {order.artworkStatus === 'approved' ? (
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                          approved
-                        </Badge>
-                      ) : (
-                        <Badge className={statusColors[order.status] || "bg-gray-100 text-gray-800"}>
-                          {order.status.replace("_", " ")}
-                        </Badge>
-                      )}
+                      {(() => {
+                        const displayStatus = getOrderDisplayStatus(order);
+                        return (
+                          <Badge className={displayStatus.colorClass}>
+                            {displayStatus.text}
+                          </Badge>
+                        );
+                      })()}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -704,9 +754,14 @@ export default function AdminOrders() {
                   <p className="text-sm text-gray-500">{formatDate(selectedOrder.createdAt)}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className={statusColors[selectedOrder.status] || "bg-gray-100"}>
-                    {selectedOrder.status.replace("_", " ")}
-                  </Badge>
+                  {(() => {
+                    const displayStatus = getOrderDisplayStatus(selectedOrder);
+                    return (
+                      <Badge className={displayStatus.colorClass}>
+                        {displayStatus.text}
+                      </Badge>
+                    );
+                  })()}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button

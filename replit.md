@@ -66,6 +66,11 @@ Preferred communication style: Simple, everyday language.
 - **Site Customization**: Full homepage content editing via admin panel with tabbed interface for Hero, Features, Custom Stickers, Stickers That Stick, Labels, Popular Products, and CTA sections. Settings stored in database with defaults fallback.
 - **Analytics Dashboard**: Google Analytics integration info page showing tracking ID (G-EXT24JDCC7) and setup status. May take 24-48 hours for data to appear.
 - **Enhanced Order Management**: Comprehensive order details including customer info, shipping address, detailed items with selected options, design files, financial summary, tracking, and notes.
+- **Order Status Badge Logic**: 
+  - **Customer-Created Orders**: Default "Ready" (print ready), only show "Pending" if admin requests revision
+  - **Admin-Created Orders**: Default "Pending" until customer approves artwork, then "Ready"
+  - **All Orders**: Show "Shipped" when tracking number is added (takes priority over other statuses)
+  - Uses `createdByAdminId` to differentiate order source, `artworkStatus` for approval state, `trackingNumber` for shipping
 - **Global Product Requirements**: All products automatically get:
   - **Material Options**: Vinyl, Foil, Holographic
   - **Spot Gloss Options**: None, Varnish, Emboss

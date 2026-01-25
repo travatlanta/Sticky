@@ -575,7 +575,7 @@ export default function AdminOrders() {
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="flex items-start gap-2">
               <RefreshCw className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm"><span className="font-semibold text-gray-800">Update Status</span><br /><span className="text-gray-600">Use dropdown to change order status</span></p>
+              <p className="text-sm"><span className="font-semibold text-gray-800">Order Status</span><br /><span className="text-gray-600">Green = Approved artwork</span></p>
             </div>
             <div className="flex items-start gap-2">
               <Eye className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
@@ -624,9 +624,15 @@ export default function AdminOrders() {
                       <div className="flex items-center gap-3 flex-wrap mb-1">
                         <span className="font-bold text-gray-900">#{order.orderNumber || order.id}</span>
                         <span className="text-lg font-semibold text-green-600">{formatPrice(order.totalAmount)}</span>
-                        <Badge className={statusColors[order.status] || "bg-gray-100"}>
-                          {order.status.replace("_", " ")}
-                        </Badge>
+                        {order.artworkStatus === 'approved' ? (
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            approved
+                          </Badge>
+                        ) : (
+                          <Badge className={statusColors[order.status] || "bg-gray-100"}>
+                            {order.status.replace("_", " ")}
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                         <span className="flex items-center gap-1">
@@ -649,22 +655,15 @@ export default function AdminOrders() {
                       <p className="text-xs text-gray-400 mt-1">{formatDate(order.createdAt)}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={order.status}
-                        onChange={(e) =>
-                          updateMutation.mutate({ id: order.id, data: { status: e.target.value as any } })
-                        }
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${
-                          statusColors[order.status] || "bg-gray-100 text-gray-800"
-                        }`}
-                        data-testid={`select-status-${order.id}`}
-                      >
-                        {statusOptions.map((status) => (
-                          <option key={status} value={status}>
-                            {status.replace("_", " ")}
-                          </option>
-                        ))}
-                      </select>
+                      {order.artworkStatus === 'approved' ? (
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          approved
+                        </Badge>
+                      ) : (
+                        <Badge className={statusColors[order.status] || "bg-gray-100 text-gray-800"}>
+                          {order.status.replace("_", " ")}
+                        </Badge>
+                      )}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button

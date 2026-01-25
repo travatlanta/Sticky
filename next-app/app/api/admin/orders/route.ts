@@ -38,10 +38,11 @@ export async function GET() {
     let allOrders: any[] = [];
     try {
       // Use raw SQL to only select columns that exist in production
+      // Check for artwork_status column and include if available
       const result = await db.execute(sql`
         SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
                tax_amount, discount_amount, total_amount, shipping_address, 
-               notes, tracking_number, created_at
+               notes, tracking_number, created_at, artwork_status
         FROM orders 
         ORDER BY created_at DESC
       `);
@@ -60,6 +61,7 @@ export async function GET() {
         notes: row.notes,
         trackingNumber: row.tracking_number,
         createdAt: row.created_at,
+        artworkStatus: row.artwork_status || null,
         // Parse customer info from notes for display
         ...parseNotesForCustomerInfo(row.notes),
       }));

@@ -21,7 +21,8 @@ import {
   LogOut,
   LayoutDashboard,
   CreditCard,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
@@ -340,6 +341,26 @@ export default function Account() {
                 </Link>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Messages */}
+        <Card className="shadow-lg mb-6">
+          <CardContent className="p-4 md:p-6">
+            <Link href="/account/messages">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" data-testid="link-messages">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm text-gray-900">Messages</p>
+                    <p className="text-xs text-gray-500">View messages from our team about your orders</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              </div>
+            </Link>
           </CardContent>
         </Card>
 

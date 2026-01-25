@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { artworkNotes, orders, users } from "@shared/schema";
 import { eq, asc } from "drizzle-orm";
+import { sendEmail, generateOrderMessageEmail } from "@/lib/email";
 
 export async function GET(
   request: NextRequest,
@@ -133,6 +134,36 @@ export async function POST(
       senderType: senderType as 'admin' | 'user',
       content: content.trim(),
     }).returning({ id: artworkNotes.id, createdAt: artworkNotes.createdAt });
+
+    // Send email notification when admin sends a message to customer
+    if (isAdmin && order.userId) {
+      try {
+        const customer = await db.query.users.findFirst({
+          where: eq(users.id, order.userId),
+          columns: { email: true, firstName: true, lastName: true },
+        });
+
+        if (customer?.email) {
+          const customerName = customer.firstName && customer.lastName 
+            ? `${customer.firstName} ${customer.lastName}` 
+            : customer.firstName || '';
+          
+          const emailContent = generateOrderMessageEmail({
+            customerName,
+            orderId,
+            message: content.trim(),
+          });
+
+          await sendEmail({
+            to: customer.email,
+            ...emailContent,
+          });
+        }
+      } catch (emailError) {
+        console.error("Failed to send email notification:", emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     return NextResponse.json({ 
       success: true, 

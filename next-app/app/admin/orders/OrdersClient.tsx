@@ -901,29 +901,15 @@ export default function AdminOrders() {
 
 {/* Artwork Management - Show saved versions */}
                 {(() => {
-                  // Check artwork status from order items
-                  const items = orderDetails?.items || selectedOrder.items || [];
-                  const hasApprovedArtwork = items.some((item: any) => 
+                  // Detect if any order item has approved artwork
+                  const hasApprovedArtwork = (orderDetails?.items || selectedOrder.items || []).some((item: any) => 
                     item.design?.name?.includes('[APPROVED]')
                   );
-                  const hasCustomerUploadedArtwork = items.some((item: any) => 
-                    item.design && (
-                      item.design.name?.includes('[CUSTOMER_UPLOAD]') ||
-                      (item.design.previewUrl || item.design.highResExportUrl)
-                    )
-                  );
+                  const hasAnyArtwork = (orderDetails?.items || selectedOrder.items || []).some((item: any) => item.design);
+                  const actualStatus = hasApprovedArtwork ? 'approved' : 
+                    (orderDetails?.artworkStatus || selectedOrder.artworkStatus || 'awaiting_artwork');
                   
-                  // Determine actual status
-                  let actualStatus = 'awaiting_artwork';
-                  if (hasApprovedArtwork) {
-                    actualStatus = 'approved';
-                  } else if (hasCustomerUploadedArtwork) {
-                    actualStatus = 'ready';
-                  }
-                  
-                  // Hide this section ONLY if customer has uploaded ready artwork (shown in Order Items)
-                  // Always show for admin-created orders or orders needing admin design work
-                  if (hasCustomerUploadedArtwork && !hasApprovedArtwork && !selectedOrder.adminDesign) return null;
+                  if (!hasAnyArtwork && !selectedOrder.customerArtworkUrl && !selectedOrder.adminDesign) return null;
                   
                   return (
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">

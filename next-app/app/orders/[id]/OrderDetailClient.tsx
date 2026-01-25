@@ -240,9 +240,11 @@ export default function OrderDetail() {
       toast({ 
         title: "Artwork approved!", 
         description: data.allItemsApproved 
-          ? "All artwork approved." 
+          ? "All items approved - Your order is ready for production!" 
           : "Continue approving other items." 
       });
+      setRequestChangesItemId(null);
+      setChangeNotes("");
       queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
     },
     onError: (error: Error) => {

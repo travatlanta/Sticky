@@ -162,6 +162,7 @@ export default function OrderDetail() {
   const [showNotes, setShowNotes] = useState(false);
   const [requestChangesItemId, setRequestChangesItemId] = useState<number | null>(null);
   const [approvalConfirmItemId, setApprovalConfirmItemId] = useState<number | null>(null);
+  const [changeNotes, setChangeNotes] = useState("");
 
   const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -639,9 +640,25 @@ export default function OrderDetail() {
                                     )}
                                   </div>
                                   
+                                  <div className="mb-4">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
+                                      Tell us what changes you'd like:
+                                    </label>
+                                    <textarea
+                                      value={changeNotes}
+                                      onChange={(e) => setChangeNotes(e.target.value)}
+                                      placeholder="Describe the changes you need... (e.g., 'Make the logo bigger', 'Change the background color to blue', 'Add my phone number')"
+                                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                                      rows={3}
+                                      data-testid={`textarea-change-notes-${item.id}`}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Be as specific as possible so we can get your design right the first time!
+                                    </p>
+                                  </div>
+                                  
                                   <p className="text-sm text-gray-600 dark:text-muted-foreground mb-4">
-                                    Not happy with the design? You can upload your own artwork or edit the current design. 
-                                    If you need help, just send us a message below - we're here to help!
+                                    You can also upload your own artwork or edit the current design directly:
                                   </p>
                                   
                                   <div className="flex flex-wrap gap-2">
@@ -676,8 +693,8 @@ export default function OrderDetail() {
                                     <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
                                       <Mail className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                       <span>
-                                        <strong>Need help?</strong> Use the Messages section below to tell us what changes you'd like. 
-                                        Our team will work with you to get your design just right!
+                                        <strong>Need help?</strong> Use the Messages section below to send your notes and chat with our team. 
+                                        We'll work with you to get your design just right!
                                       </span>
                                     </p>
                                   </div>

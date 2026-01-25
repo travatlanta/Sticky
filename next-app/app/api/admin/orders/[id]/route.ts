@@ -5,6 +5,8 @@ import { orderItems, products, designs, users, productOptions, emailDeliveries }
 import { eq, inArray, desc, sql } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { generateEmailHtml } from '@/lib/email/template';
+import { Resend } from 'resend';
 
 // Parse customer info from notes field
 function parseNotesForCustomerInfo(notes: string | null): { name?: string; email?: string; phone?: string } {
@@ -186,12 +188,23 @@ export async function PUT(
     const orderId = parseInt(id);
     const body = await request.json();
 
+    // Fetch current order to check if tracking number is being added
+    const currentOrderResult = await db.execute(sql`
+      SELECT order_number, tracking_number, notes, shipping_address
+      FROM orders WHERE id = ${orderId}
+    `);
+    const currentOrder = currentOrderResult.rows?.[0] as any;
+    const isAddingTracking = body.trackingNumber && !currentOrder?.tracking_number;
+
+    // Auto-set status to 'shipped' when tracking number is added
+    const effectiveStatus = isAddingTracking ? 'shipped' : body.status;
+
     // Build dynamic update using raw SQL
     const shippingAddressJson = body.shippingAddress ? JSON.stringify(body.shippingAddress) : null;
     
     await db.execute(sql`
       UPDATE orders SET
-        status = COALESCE(${body.status}, status),
+        status = COALESCE(${effectiveStatus}, status),
         shipping_address = COALESCE(${shippingAddressJson}::jsonb, shipping_address),
         tracking_number = COALESCE(${body.trackingNumber || null}, tracking_number),
         notes = COALESCE(${body.notes || null}, notes)
@@ -213,6 +226,100 @@ export async function PUT(
 
     const row = result.rows[0] as any;
     const customerInfo = parseNotesForCustomerInfo(row.notes);
+
+    // Send shipping notification email when tracking is added
+    if (isAddingTracking && customerInfo.email) {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        const orderNumber = row.order_number;
+        const trackingNumber = body.trackingNumber;
+        const shippingAddress = row.shipping_address || currentOrder?.shipping_address;
+        
+        // Determine carrier from tracking number format
+        let carrier = 'Your Carrier';
+        let trackingUrl = '';
+        if (/^1Z/i.test(trackingNumber)) {
+          carrier = 'UPS';
+          trackingUrl = `https://www.ups.com/track?tracknum=${trackingNumber}`;
+        } else if (/^\d{20,22}$/.test(trackingNumber)) {
+          carrier = 'USPS';
+          trackingUrl = `https://tools.usps.com/go/TrackConfirmAction?tLabels=${trackingNumber}`;
+        } else if (/^\d{12,15}$/.test(trackingNumber)) {
+          carrier = 'FedEx';
+          trackingUrl = `https://www.fedex.com/fedextrack/?trknbr=${trackingNumber}`;
+        }
+
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.SITE_URL || 'https://stickybanditos.com';
+
+        const emailHtml = generateEmailHtml({
+          preheaderText: `Great news! Your order #${orderNumber} has shipped!`,
+          headline: 'Your Order Has Shipped! 📦',
+          subheadline: `Order #${orderNumber}`,
+          greeting: `Hi ${customerInfo.name || 'Valued Customer'},`,
+          bodyContent: `
+            <p style="margin: 0 0 16px 0; color: #374151; font-size: 16px; line-height: 1.6;">
+              Great news! Your stickers are on the way! Your order has been shipped and is heading to you.
+            </p>
+            
+            <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 12px; padding: 24px; margin: 24px 0; border: 1px solid #bbf7d0;">
+              <h3 style="margin: 0 0 16px 0; color: #166534; font-size: 18px; font-weight: bold;">Tracking Information</h3>
+              <table style="width: 100%;">
+                <tr>
+                  <td style="padding: 8px 0; color: #374151; font-weight: 500;">Carrier:</td>
+                  <td style="padding: 8px 0; color: #1f2937; text-align: right;">${carrier}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #374151; font-weight: 500;">Tracking Number:</td>
+                  <td style="padding: 8px 0; color: #1f2937; text-align: right; font-family: monospace;">${trackingNumber}</td>
+                </tr>
+              </table>
+              ${trackingUrl ? `
+              <div style="margin-top: 16px; text-align: center;">
+                <a href="${trackingUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                  Track Your Package
+                </a>
+              </div>
+              ` : ''}
+            </div>
+
+            ${shippingAddress ? `
+            <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin: 24px 0; border: 1px solid #e5e7eb;">
+              <h3 style="margin: 0 0 12px 0; color: #374151; font-size: 16px; font-weight: 600;">Shipping To:</h3>
+              <p style="margin: 0; color: #6b7280; line-height: 1.5;">
+                ${shippingAddress.name || customerInfo.name || ''}<br>
+                ${shippingAddress.address1 || shippingAddress.street || ''}<br>
+                ${shippingAddress.address2 ? shippingAddress.address2 + '<br>' : ''}
+                ${shippingAddress.city || ''}, ${shippingAddress.state || ''} ${shippingAddress.zip || shippingAddress.zipCode || ''}<br>
+                ${shippingAddress.country || 'USA'}
+              </p>
+            </div>
+            ` : ''}
+
+            <p style="margin: 24px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+              <strong>Estimated Delivery:</strong> 3-7 business days (depending on your location and shipping method)
+            </p>
+          `,
+          ctaButton: {
+            text: 'View Order Details',
+            url: `${baseUrl}/orders/${orderId}`,
+            color: 'orange',
+          },
+          showSocialLinks: true,
+          customFooterNote: 'Thank you for choosing Sticky Banditos! We appreciate your business.',
+        });
+
+        await resend.emails.send({
+          from: 'Sticky Banditos <orders@stickybanditos.com>',
+          to: customerInfo.email,
+          subject: `Your Order #${orderNumber} Has Shipped! 📦`,
+          html: emailHtml,
+        });
+
+        console.log(`Shipping notification sent to ${customerInfo.email} for order ${orderNumber}`);
+      } catch (emailError) {
+        console.error('Error sending shipping notification email:', emailError);
+      }
+    }
     
     return NextResponse.json({
       id: row.id,

@@ -876,58 +876,6 @@ export default function OrderDetail() {
                   ))}
                 </div>
 
-                {/* Submit Artwork Button - Only for customer uploaded artwork that isn't pending admin approval */}
-                {(() => {
-                  const hasCustomerUpload = order.items?.some((item: any) => {
-                    const designName = item.design?.name || '';
-                    const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]') || item.design?.isCustomerUpload;
-                    const hasArtwork = item.design?.artworkUrl || item.design?.previewUrl;
-                    const isApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
-                    return hasArtwork && isCustomerUpload && !isApproved;
-                  });
-                  
-                  const hasPendingAdminApproval = order.items?.some((item: any) => {
-                    const designName = item.design?.name || '';
-                    const isAdminDesign = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
-                    const isFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
-                    const isApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
-                    return (isAdminDesign || isFlagged) && !isApproved;
-                  });
-                  
-                  if (hasCustomerUpload && !hasPendingAdminApproval && !isAdmin) {
-                    return (
-                      <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-foreground">Ready to submit?</p>
-                            <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                              Click submit to notify us that your artwork is ready for review
-                            </p>
-                          </div>
-                          <Button
-                            onClick={() => submitArtworkMutation.mutate()}
-                            disabled={submitArtworkMutation.isPending}
-                            className="w-full sm:w-auto"
-                            data-testid="button-submit-artwork"
-                          >
-                            {submitArtworkMutation.isPending ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Submitting...
-                              </>
-                            ) : (
-                              <>
-                                <Send className="h-4 w-4 mr-2" />
-                                Submit Artwork for Review
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
 
                 {/* Admin: Flag Printing Issue - For customer uploads that need revision */}
                 {isAdmin && order.items?.some((item: any) => {

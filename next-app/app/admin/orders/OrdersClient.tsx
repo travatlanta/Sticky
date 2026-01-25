@@ -906,29 +906,24 @@ export default function AdminOrders() {
                   const hasApprovedArtwork = items.some((item: any) => 
                     item.design?.name?.includes('[APPROVED]')
                   );
-                  const hasReadyArtwork = items.some((item: any) => 
+                  const hasCustomerUploadedArtwork = items.some((item: any) => 
                     item.design && (
-                      item.design.status === 'ready' || 
                       item.design.name?.includes('[CUSTOMER_UPLOAD]') ||
                       (item.design.previewUrl || item.design.highResExportUrl)
                     )
                   );
-                  const hasAnyArtwork = items.some((item: any) => item.design);
                   
                   // Determine actual status
                   let actualStatus = 'awaiting_artwork';
                   if (hasApprovedArtwork) {
                     actualStatus = 'approved';
-                  } else if (hasReadyArtwork) {
+                  } else if (hasCustomerUploadedArtwork) {
                     actualStatus = 'ready';
-                  } else if (hasAnyArtwork) {
-                    actualStatus = 'artwork_uploaded';
                   }
                   
-                  // Don't show this section if artwork is ready (customer uploaded) - it's shown in Order Items
-                  if (hasReadyArtwork && !hasApprovedArtwork && !selectedOrder.adminDesign) return null;
-                  
-                  if (!hasAnyArtwork && !selectedOrder.customerArtworkUrl && !selectedOrder.adminDesign) return null;
+                  // Hide this section ONLY if customer has uploaded ready artwork (shown in Order Items)
+                  // Always show for admin-created orders or orders needing admin design work
+                  if (hasCustomerUploadedArtwork && !hasApprovedArtwork && !selectedOrder.adminDesign) return null;
                   
                   return (
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">

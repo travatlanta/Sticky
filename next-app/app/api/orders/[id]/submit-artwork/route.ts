@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { generateEmailHtml } from "@/lib/email/template";
 
 export async function POST(
   request: Request,
@@ -89,37 +90,35 @@ export async function POST(
         const siteUrl = process.env.SITE_URL || "https://stickybanditos.com";
         const adminOrderUrl = `${siteUrl}/admin/orders`;
 
-        const emailHtml = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background-color: #1a1a1a; padding: 20px; text-align: center;">
-              <h1 style="color: white; margin: 0;">Sticky Banditos</h1>
+        const emailHtml = generateEmailHtml({
+          preheaderText: `New artwork submitted for order ${order.order_number}`,
+          headline: "New Artwork Submitted",
+          subheadline: `Order #${order.order_number}`,
+          bodyContent: `
+            <p><strong style="color: #f97316;">${customerName}</strong> has submitted artwork for review.</p>
+            
+            <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 16px; margin: 16px 0;">
+              <table width="100%" style="border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #9ca3af; font-size: 14px;">Customer:</td>
+                  <td style="padding: 8px 0; color: #ffffff; font-weight: 600; text-align: right;">${customerName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.1); color: #9ca3af; font-size: 14px;">Files Uploaded:</td>
+                  <td style="padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.1); color: #22c55e; font-weight: 700; text-align: right;">${itemsWithArtwork.length} file(s)</td>
+                </tr>
+              </table>
             </div>
-            <div style="padding: 30px 20px; background-color: #f9f9f9;">
-              <h2 style="color: #333;">Artwork Submitted</h2>
-              <p style="color: #666; font-size: 16px;">
-                <strong>${customerName}</strong> has submitted artwork for <strong>Order #${order.order_number}</strong>.
-              </p>
-              <p style="color: #666; font-size: 16px;">
-                ${itemsWithArtwork.length} file(s) have been uploaded and are ready for review.
-              </p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${adminOrderUrl}" style="background-color: #f97316; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                  Review Artwork
-                </a>
-              </div>
-            </div>
-            <div style="padding: 20px; text-align: center; color: #999; font-size: 12px;">
-              <p>Sticky Banditos Printing Company<br>2 North 35th Ave, Phoenix, AZ 85009</p>
-            </div>
-          </body>
-          </html>
-        `;
+            
+            <p>The artwork is ready for your review in the admin panel.</p>
+          `,
+          ctaButton: {
+            text: "Review Artwork",
+            url: adminOrderUrl,
+            color: "green",
+          },
+          showSocialLinks: false,
+        });
 
         console.log(`Sending artwork notification email to ${adminEmail}`);
 

@@ -202,12 +202,12 @@ export async function POST(request: Request) {
         title: "New Order Awaiting Payment",
         message: `Order ${orderNumber} has been created for you. Please complete payment to proceed.`,
         orderId: newOrder.id,
-        linkUrl: `/pay/${paymentLinkToken}`,
+        linkUrl: `/orders/${newOrder.id}`,
       });
     }
 
     const siteUrl = process.env.SITE_URL || "http://localhost:5000";
-    const paymentLink = `${siteUrl}/pay/${paymentLinkToken}`;
+    const orderLink = `${siteUrl}/orders/${newOrder.id}`;
 
     try {
       const resendApiKey = process.env.RESEND_API_KEY;
@@ -237,8 +237,8 @@ export async function POST(request: Request) {
                 <strong>Order Total: $${data.totalAmount.toFixed(2)}</strong>
               </p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${paymentLink}" style="background-color: #f97316; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                  Complete Payment
+                <a href="${orderLink}" style="background-color: #f97316; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                  View Order & Complete Payment
                 </a>
               </div>
               <p style="color: #999; font-size: 14px;">
@@ -284,7 +284,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       id: newOrder.id,
       orderNumber: newOrder.orderNumber,
-      paymentLink,
+      orderLink,
       message: "Order created successfully",
     });
   } catch (error) {

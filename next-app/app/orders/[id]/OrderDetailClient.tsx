@@ -163,6 +163,7 @@ export default function OrderDetail() {
   const [requestChangesItemId, setRequestChangesItemId] = useState<number | null>(null);
   const [approvalConfirmItemId, setApprovalConfirmItemId] = useState<number | null>(null);
   const [changeNotes, setChangeNotes] = useState("");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -352,6 +353,32 @@ export default function OrderDetail() {
     }
   };
 
+  const handlePayment = async (paymentToken: string) => {
+    setIsProcessingPayment(true);
+    try {
+      const res = await fetch(`/api/orders/by-token/${paymentToken}/pay`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Payment failed");
+      
+      if (json.checkoutUrl) {
+        window.location.href = json.checkoutUrl;
+      } else {
+        toast({ title: "Payment initiated" });
+        queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Payment failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsProcessingPayment(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-background">
@@ -510,15 +537,24 @@ export default function OrderDetail() {
                       <p className="text-sm text-orange-700 mb-3">
                         Complete your payment to start production.
                       </p>
-                      <Link href={`/pay/${paymentToken}`}>
-                        <Button 
-                          className="bg-orange-600 hover:bg-orange-700 text-white"
-                          data-testid="button-pay-now"
-                        >
-                          <CreditCard className="h-4 w-4 mr-2" />
-                          Pay Now
-                        </Button>
-                      </Link>
+                      <Button 
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        onClick={() => handlePayment(paymentToken)}
+                        disabled={isProcessingPayment}
+                        data-testid="button-pay-now"
+                      >
+                        {isProcessingPayment ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Pay {formatPrice(parseFloat(order.totalAmount || "0"))}
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>

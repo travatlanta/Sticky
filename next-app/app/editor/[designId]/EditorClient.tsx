@@ -1100,9 +1100,9 @@ export default function Editor() {
           description: "Your design has been saved to the order.",
         });
         
-        // Redirect back to payment page if we have a token
-        if (tokenFromUrl) {
-          router.push(`/pay/${tokenFromUrl}`);
+        // Redirect back to order page if we have an orderId
+        if (orderIdFromUrl) {
+          router.push(`/orders/${orderIdFromUrl}`);
         }
         
         return newDesign.id;
@@ -1124,12 +1124,12 @@ export default function Editor() {
       if (!res.ok) throw new Error('Failed to save');
       
       // If editing existing design from order, redirect back
-      if (tokenFromUrl) {
+      if (orderIdFromUrl) {
         toast({
           title: "Design updated",
-          description: "Redirecting back to payment...",
+          description: "Redirecting back to order...",
         });
-        router.push(`/pay/${tokenFromUrl}`);
+        router.push(`/orders/${orderIdFromUrl}`);
         return parseInt(designId, 10);
       }
       
@@ -1269,9 +1269,9 @@ export default function Editor() {
         description: "Your design has been linked to this order.",
       });
 
-      // Navigate back to payment page
+      // Navigate back to order page
       setTimeout(() => {
-        router.push(`/pay/${tokenFromUrl}`);
+        router.push(`/orders/${orderIdFromUrl}`);
       }, 1000);
     } catch (error) {
       console.error("Save to order error:", error);
@@ -2324,7 +2324,7 @@ export default function Editor() {
                 <div className="flex items-center gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => router.push(`/pay/${tokenFromUrl}`)}
+                    onClick={() => router.push(`/orders/${orderIdFromUrl}`)}
                     data-testid="button-back-to-order"
                   >
                     Cancel

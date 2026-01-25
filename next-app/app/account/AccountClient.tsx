@@ -234,7 +234,7 @@ export default function Account() {
                     </div>
                     <div className="flex items-center gap-3">
                       <p className="text-sm font-medium text-gray-900">{formatPrice(parseFloat(order.totalAmount || order.total))}</p>
-                      <Link href={order.paymentLinkToken ? `/pay/${order.paymentLinkToken}` : `/orders/${order.id}`}>
+                      <Link href={`/orders/${order.id}`}>
                         <Button size="sm" className="bg-orange-500 hover:bg-orange-600" data-testid={`button-pay-order-${order.id}`}>
                           Pay Now
                         </Button>

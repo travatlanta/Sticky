@@ -89,14 +89,33 @@ export async function GET(
             .from(designs)
             .where(eq(designs.id, item.designId));
           if (d) {
-            const isApproved = d.name && d.name.includes('[APPROVED]');
-            const isAdminDesign = d.name && d.name.includes('[ADMIN_DESIGN]');
-            const isCustomerUpload = d.name && d.name.includes('[CUSTOMER_UPLOAD]');
-            const isFlagged = d.name && d.name.includes('[FLAGGED]');
+            const designName = d.name || '';
+            const isApproved = designName.includes('[APPROVED]');
+            const isFlagged = designName.includes('[FLAGGED]');
+            const isAdminDesign = designName.includes('[ADMIN_DESIGN]');
+            const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]');
+            const isPending = designName.includes('[PENDING]');
+            
+            // Determine status based on tags (match by-token route logic)
+            let status: string = 'uploaded';
+            if (isApproved) {
+              status = 'approved';
+            } else if (isFlagged) {
+              status = 'flagged';
+            } else if (isAdminDesign) {
+              status = 'admin_review';
+            } else if (isPending || isCustomerUpload) {
+              status = 'pending';
+            }
+            
             design = {
-              ...d,
+              id: d.id,
+              name: d.name,
+              previewUrl: d.previewUrl,
               artworkUrl: d.previewUrl || null,
-              status: isApproved ? 'approved' : 'pending',
+              highResExportUrl: d.highResExportUrl,
+              customShapeUrl: d.customShapeUrl,
+              status,
               isAdminDesign,
               isCustomerUpload,
               isFlagged,

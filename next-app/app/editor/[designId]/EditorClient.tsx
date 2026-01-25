@@ -1257,7 +1257,7 @@ export default function Editor() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          orderItemId: parseInt(itemIdFromUrl),
+          orderItemId: parseInt(itemIdFromUrl || "0"),
           designId: savedDesignId,
         }),
       });

@@ -153,16 +153,21 @@ function getOrderDisplayStatus(order: Order): { text: string; colorClass: string
   // Check order-level artwork status first (works even when items not loaded)
   const isApprovedViaStatus = artworkStatus === 'approved';
   const isRevisionRequested = artworkStatus === 'revision_requested' || artworkStatus === 'pending_approval';
+  // pending_approval or awaiting_artwork suggests admin-created or pending state
+  const isPendingArtwork = artworkStatus === 'pending_approval' || artworkStatus === 'awaiting_artwork' || artworkStatus === 'admin_designing';
   
   // Check if any items have designs with flags (for detailed view when items are loaded)
   const items = order.items || [];
   let hasApprovedArtwork = isApprovedViaStatus;
   let hasFlaggedArtwork = isRevisionRequested;
   let hasAdminDesignPending = false;
+  let hasAnyArtwork = false;
+  let hasCustomerUpload = false;
   
   for (const item of items) {
     const design = item.design;
-    if (design) {
+    if (design && (design.previewUrl || design.highResExportUrl)) {
+      hasAnyArtwork = true;
       const designName = design.name || '';
       if (designName.includes('[APPROVED]') || design.status === 'approved') {
         hasApprovedArtwork = true;
@@ -173,20 +178,27 @@ function getOrderDisplayStatus(order: Order): { text: string; colorClass: string
       if (designName.includes('[ADMIN_DESIGN]') && !designName.includes('[APPROVED]')) {
         hasAdminDesignPending = true;
       }
+      if (designName.includes('[CUSTOMER_UPLOAD]')) {
+        hasCustomerUpload = true;
+      }
     }
   }
   
-  if (isAdminCreated) {
+  // If explicitly admin-created or has pending artwork status -> use admin logic
+  if (isAdminCreated || isPendingArtwork) {
     // Admin-created orders: pending until customer approves
     if (hasApprovedArtwork) {
       return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
     }
     return { text: "Pending", colorClass: "bg-yellow-100 text-yellow-800" };
   } else {
-    // Customer-created orders: ready by default, pending only if revision requested
+    // Customer-created orders: 
+    // - Ready if has customer artwork that's not flagged
+    // - Pending if flagged or admin uploaded design waiting approval
     if (hasFlaggedArtwork || hasAdminDesignPending) {
       return { text: "Pending", colorClass: "bg-yellow-100 text-yellow-800" };
     }
+    // Customer orders default to ready (they submitted artwork at checkout)
     return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
   }
 }

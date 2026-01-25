@@ -106,33 +106,71 @@ export async function POST(request: Request) {
       // Use raw SQL to bypass Drizzle ORM schema validation
       // This ensures we only use columns that exist in production database
       const shippingAddressJson = JSON.stringify(data.shippingAddress);
+      const adminId = (session.user as any).id;
       
-      const result = await db.execute(sql`
-        INSERT INTO orders (
-          order_number,
-          user_id,
-          status,
-          subtotal,
-          shipping_cost,
-          tax_amount,
-          discount_amount,
-          total_amount,
-          shipping_address,
-          notes
-        ) VALUES (
-          ${orderNumber},
-          ${customerId},
-          'pending',
-          ${data.subtotal.toFixed(2)},
-          ${data.shippingCost.toFixed(2)},
-          ${data.taxAmount.toFixed(2)},
-          ${data.discountAmount.toFixed(2)},
-          ${data.totalAmount.toFixed(2)},
-          ${shippingAddressJson}::jsonb,
-          ${notesContent}
-        )
-        RETURNING id, order_number, status, total_amount
-      `);
+      // Try with artwork_status and created_by_admin_id columns first
+      let result;
+      try {
+        result = await db.execute(sql`
+          INSERT INTO orders (
+            order_number,
+            user_id,
+            status,
+            subtotal,
+            shipping_cost,
+            tax_amount,
+            discount_amount,
+            total_amount,
+            shipping_address,
+            notes,
+            artwork_status,
+            created_by_admin_id
+          ) VALUES (
+            ${orderNumber},
+            ${customerId},
+            'pending',
+            ${data.subtotal.toFixed(2)},
+            ${data.shippingCost.toFixed(2)},
+            ${data.taxAmount.toFixed(2)},
+            ${data.discountAmount.toFixed(2)},
+            ${data.totalAmount.toFixed(2)},
+            ${shippingAddressJson}::jsonb,
+            ${notesContent},
+            'awaiting_artwork',
+            ${adminId}
+          )
+          RETURNING id, order_number, status, total_amount
+        `);
+      } catch (colErr) {
+        // Fallback without new columns (production may not have them)
+        console.log('Falling back to order creation without artwork_status/created_by_admin_id columns');
+        result = await db.execute(sql`
+          INSERT INTO orders (
+            order_number,
+            user_id,
+            status,
+            subtotal,
+            shipping_cost,
+            tax_amount,
+            discount_amount,
+            total_amount,
+            shipping_address,
+            notes
+          ) VALUES (
+            ${orderNumber},
+            ${customerId},
+            'pending',
+            ${data.subtotal.toFixed(2)},
+            ${data.shippingCost.toFixed(2)},
+            ${data.taxAmount.toFixed(2)},
+            ${data.discountAmount.toFixed(2)},
+            ${data.totalAmount.toFixed(2)},
+            ${shippingAddressJson}::jsonb,
+            ${notesContent}
+          )
+          RETURNING id, order_number, status, total_amount
+        `);
+      }
       
       newOrder = {
         id: result.rows[0].id as number,

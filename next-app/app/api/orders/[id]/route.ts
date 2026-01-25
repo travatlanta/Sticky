@@ -1,8 +1,25 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, orderItems, products, designs } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { orderItems, products, designs } from '@shared/schema';
+import { eq, sql } from 'drizzle-orm';
+
+// Parse customer info from notes field
+function parseNotesForCustomerInfo(notes: string | null): { name?: string; email?: string; phone?: string } {
+  if (!notes) return {};
+  const result: { name?: string; email?: string; phone?: string } = {};
+  
+  const nameMatch = notes.match(/Customer:\s*(.+?)(?:\n|$)/);
+  if (nameMatch) result.name = nameMatch[1].trim();
+  
+  const emailMatch = notes.match(/Email:\s*(.+?)(?:\n|$)/);
+  if (emailMatch) result.email = emailMatch[1].trim();
+  
+  const phoneMatch = notes.match(/Phone:\s*(.+?)(?:\n|$)/);
+  if (phoneMatch) result.phone = phoneMatch[1].trim();
+  
+  return result;
+}
 
 export async function GET(
   request: Request,
@@ -11,16 +28,40 @@ export async function GET(
   try {
     const { id } = await params;
     
-    // TODO: Verify user owns this order when NextAuth is integrated
-    
-    const [order] = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.id, parseInt(id)));
+    // Use raw SQL to only query columns that exist
+    const result = await db.execute(sql`
+      SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+             tax_amount, discount_amount, total_amount, shipping_address, 
+             notes, tracking_number, created_at
+      FROM orders 
+      WHERE id = ${parseInt(id)}
+    `);
 
-    if (!order) {
+    if (!result.rows || result.rows.length === 0) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
+
+    const row = result.rows[0] as any;
+    const customerInfo = parseNotesForCustomerInfo(row.notes);
+    
+    const order = {
+      id: row.id,
+      orderNumber: row.order_number,
+      userId: row.user_id,
+      status: row.status,
+      subtotal: row.subtotal,
+      shippingCost: row.shipping_cost,
+      taxAmount: row.tax_amount,
+      discountAmount: row.discount_amount,
+      totalAmount: row.total_amount,
+      shippingAddress: row.shipping_address,
+      notes: row.notes,
+      trackingNumber: row.tracking_number,
+      createdAt: row.created_at,
+      customerName: customerInfo.name,
+      customerEmail: customerInfo.email,
+      customerPhone: customerInfo.phone,
+    };
 
     // Get order items
     const items = await db

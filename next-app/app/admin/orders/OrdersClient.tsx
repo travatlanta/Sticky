@@ -1213,8 +1213,55 @@ export default function AdminOrders() {
                       </div>
                     ))}
                     {(!orderDetails?.items?.length && !selectedOrder.items?.length) && (
-                      <div className="text-center py-4 text-gray-500">
-                        No items found for this order
+                      <div className="text-center py-6 space-y-4">
+                        <p className="text-gray-500">No items found for this order</p>
+                        
+                        {/* Upload Design Section for orders without items */}
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 max-w-md mx-auto">
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <Palette className="h-5 w-5 text-orange-600" />
+                            <span className="font-medium text-gray-900">Upload Design for Approval</span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">
+                            Upload a design to send to the customer for approval before adding items.
+                          </p>
+                          <div className="space-y-2">
+                            <textarea
+                              className="w-full text-sm border rounded-lg p-2"
+                              placeholder="Notes to customer about the design..."
+                              value={artworkNotes}
+                              onChange={(e) => setArtworkNotes(e.target.value)}
+                              rows={2}
+                              data-testid="input-order-artwork-notes"
+                            />
+                            <input
+                              type="file"
+                              id={`order-artwork-upload-${selectedOrder.id}`}
+                              className="hidden"
+                              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.eps,.ai,.psd,.cdr"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleArtworkUpload(selectedOrder.id, file);
+                                e.target.value = '';
+                              }}
+                              data-testid="input-order-upload-design"
+                            />
+                            <Button
+                              variant="outline"
+                              onClick={() => document.getElementById(`order-artwork-upload-${selectedOrder.id}`)?.click()}
+                              disabled={artworkUploading}
+                              className="w-full border-orange-300 text-orange-700 hover:bg-orange-100"
+                              data-testid="button-order-upload-design"
+                            >
+                              {artworkUploading ? (
+                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Upload className="h-4 w-4 mr-2" />
+                              )}
+                              Upload Design & Send for Approval
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

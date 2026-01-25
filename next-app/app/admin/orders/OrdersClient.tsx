@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -440,6 +440,31 @@ export default function AdminOrders() {
       toast({ title: error.message || "Failed to upload design", variant: "destructive" });
     } finally {
       setArtworkUploading(false);
+    }
+  };
+
+  const [restoringArtwork, setRestoringArtwork] = useState(false);
+  
+  const handleRestoreOriginalArtwork = async (orderId: number) => {
+    if (!confirm("Are you sure you want to restore the original customer artwork? The admin revision will be discarded.")) {
+      return;
+    }
+    
+    setRestoringArtwork(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/artwork/restore`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Restore failed");
+      
+      toast({ title: "Original artwork restored successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+    } catch (error: any) {
+      toast({ title: error.message || "Failed to restore original artwork", variant: "destructive" });
+    } finally {
+      setRestoringArtwork(false);
     }
   };
 
@@ -912,19 +937,95 @@ export default function AdminOrders() {
                       </div>
                     )}
 
-                    {/* Admin Design Preview */}
+                    {/* Artwork Comparison - Show Original vs Admin Revision */}
                     {(orderDetails?.adminDesign || selectedOrder.adminDesign) && (
-                      <div className="bg-white rounded-lg p-3 border">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Admin Design (Sent for Approval):</p>
-                        {(orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl) && (
-                          <img 
-                            src={orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl}
-                            alt="Admin design preview"
-                            className="w-32 h-32 object-contain bg-gray-100 rounded border"
-                            data-testid="img-admin-design"
-                          />
-                        )}
-                        <p className="text-xs text-gray-500 mt-2">{orderDetails?.adminDesign?.name || selectedOrder.adminDesign?.name}</p>
+                      <div className="bg-white rounded-lg p-4 border space-y-4">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-gray-700">Artwork Versions:</p>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-orange-600 border-orange-300"
+                                onClick={() => handleRestoreOriginalArtwork(selectedOrder.id)}
+                                disabled={restoringArtwork}
+                                data-testid="button-restore-original"
+                              >
+                                <RotateCcw className="h-4 w-4 mr-1" />
+                                {restoringArtwork ? "Restoring..." : "Restore Original"}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Discard the admin revision and restore the customer's original artwork</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Original Customer Artwork */}
+                          <div className="border rounded-lg p-3 bg-gray-50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                Original
+                              </Badge>
+                              <span className="text-xs text-gray-500">Customer Upload</span>
+                            </div>
+                            {(orderDetails?.customerArtworkUrl || selectedOrder.customerArtworkUrl) ? (
+                              <a 
+                                href={orderDetails?.customerArtworkUrl || selectedOrder.customerArtworkUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block hover-elevate"
+                                data-testid="link-original-artwork"
+                              >
+                                <div className="w-full h-24 bg-white rounded border flex items-center justify-center">
+                                  <FileImage className="h-8 w-8 text-blue-500" />
+                                </div>
+                                <p className="text-xs text-blue-600 mt-1 text-center underline">View Original</p>
+                              </a>
+                            ) : (
+                              <div className="w-full h-24 bg-white rounded border flex items-center justify-center" data-testid="container-no-original">
+                                <p className="text-xs text-gray-400">No original uploaded</p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Admin Revised Artwork */}
+                          <div className="border rounded-lg p-3 bg-orange-50 border-orange-200">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
+                                Revision
+                              </Badge>
+                              <span className="text-xs text-gray-500">Admin Upload</span>
+                            </div>
+                            {(orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl) ? (
+                              <a 
+                                href={orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block hover-elevate"
+                                data-testid="link-revision-artwork"
+                              >
+                                <img 
+                                  src={orderDetails?.adminDesign?.thumbnailUrl || selectedOrder.adminDesign?.thumbnailUrl}
+                                  alt="Admin revision"
+                                  className="w-full h-24 object-contain bg-white rounded border"
+                                  data-testid="img-admin-design"
+                                />
+                                <p className="text-xs text-orange-600 mt-1 text-center underline">View Revision</p>
+                              </a>
+                            ) : (
+                              <div className="w-full h-24 bg-white rounded border flex items-center justify-center" data-testid="container-no-revision">
+                                <p className="text-xs text-gray-400">Preview not available</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <p className="text-xs text-gray-500 text-center">
+                          The revision is currently sent to the customer for approval. Click "Restore Original" to revert to their original artwork.
+                        </p>
                       </div>
                     )}
 

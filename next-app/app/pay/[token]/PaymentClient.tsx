@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
@@ -21,8 +21,19 @@ import {
   User,
   Lock,
   Mail,
+  Upload,
+  FileImage,
+  Trash2,
+  Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
+
+interface Design {
+  id: number;
+  name: string;
+  previewUrl: string | null;
+  artworkUrl: string | null;
+}
 
 interface OrderItem {
   id: number;
@@ -30,6 +41,8 @@ interface OrderItem {
   quantity: number;
   unitPrice: string;
   selectedOptions: Record<string, string> | null;
+  designId: number | null;
+  design: Design | null;
   product?: {
     name: string;
     thumbnailUrl: string | null;
@@ -70,6 +83,8 @@ export default function PaymentClient({ token }: { token: string }) {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [loginPassword, setLoginPassword] = useState("");
   const [accountCreated, setAccountCreated] = useState(false);
+  const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
+  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const {
     data: order,
@@ -147,6 +162,65 @@ export default function PaymentClient({ token }: { token: string }) {
       });
     },
   });
+
+  const uploadArtworkMutation = useMutation({
+    mutationFn: async ({ orderItemId, file }: { orderItemId: number; file: File }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("orderItemId", orderItemId.toString());
+
+      const res = await fetch(`/api/orders/by-token/${token}/artwork`, {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Upload failed");
+      return json;
+    },
+    onSuccess: () => {
+      toast({ title: "Artwork uploaded successfully!" });
+      setUploadingItemId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/by-token", token] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setUploadingItemId(null);
+    },
+  });
+
+  const removeArtworkMutation = useMutation({
+    mutationFn: async (orderItemId: number) => {
+      const res = await fetch(`/api/orders/by-token/${token}/artwork?orderItemId=${orderItemId}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Remove failed");
+      return json;
+    },
+    onSuccess: () => {
+      toast({ title: "Artwork removed" });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/by-token", token] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Remove failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelect = (orderItemId: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadingItemId(orderItemId);
+      uploadArtworkMutation.mutate({ orderItemId, file });
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,38 +328,142 @@ export default function PaymentClient({ token }: { token: string }) {
               {order.items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-4 py-3 border-b last:border-b-0"
+                  className="py-3 border-b last:border-b-0"
                 >
-                  {item.product?.thumbnailUrl ? (
-                    <img
-                      src={item.product.thumbnailUrl}
-                      alt={item.product?.name || "Product"}
-                      className="w-16 h-16 object-cover rounded"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
-                      <Package className="h-6 w-6 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <h4 className="font-medium">
-                      {item.product?.name || `Product #${item.productId}`}
-                    </h4>
-                    <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                    {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {Object.entries(item.selectedOptions).map(([key, val]) => (
-                          <span key={key} className="mr-2">
-                            {key}: {val}
-                          </span>
-                        ))}
+                  <div className="flex items-center gap-4">
+                    {item.product?.thumbnailUrl ? (
+                      <img
+                        src={item.product.thumbnailUrl}
+                        alt={item.product?.name || "Product"}
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
+                        <Package className="h-6 w-6 text-gray-400" />
                       </div>
                     )}
+                    <div className="flex-1">
+                      <h4 className="font-medium">
+                        {item.product?.name || `Product #${item.productId}`}
+                      </h4>
+                      <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                      {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {Object.entries(item.selectedOptions).map(([key, val]) => (
+                            <span key={key} className="mr-2">
+                              {key}: {val}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="font-medium">
+                        {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="font-medium">
-                      {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
-                    </span>
+
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium flex items-center gap-2">
+                        <FileImage className="h-4 w-4" />
+                        Artwork
+                      </span>
+                      {item.design?.artworkUrl ? (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                          Uploaded
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                          Required
+                        </span>
+                      )}
+                    </div>
+
+                    {item.design?.artworkUrl || item.design?.previewUrl ? (
+                      <div className="flex items-center gap-3">
+                        <a 
+                          href={item.design.artworkUrl || item.design.previewUrl || "#"} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <img
+                            src={item.design.artworkUrl || item.design.previewUrl || ""}
+                            alt="Your artwork"
+                            className="w-20 h-20 object-contain border rounded bg-white"
+                          />
+                        </a>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600">Your artwork is ready</p>
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => fileInputRefs.current[item.id]?.click()}
+                              disabled={uploadingItemId === item.id}
+                              data-testid={`button-replace-artwork-${item.id}`}
+                            >
+                              {uploadingItemId === item.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-1" />
+                                  Replace
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeArtworkMutation.mutate(item.id)}
+                              disabled={removeArtworkMutation.isPending}
+                              data-testid={`button-remove-artwork-${item.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-600 mb-3">
+                          Upload your artwork for this product
+                        </p>
+                        <Button
+                          size="sm"
+                          onClick={() => fileInputRefs.current[item.id]?.click()}
+                          disabled={uploadingItemId === item.id}
+                          data-testid={`button-upload-artwork-${item.id}`}
+                        >
+                          {uploadingItemId === item.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload Artwork
+                            </>
+                          )}
+                        </Button>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Accepts: JPG, PNG, PDF, EPS, AI, PSD
+                        </p>
+                      </div>
+                    )}
+
+                    <input
+                      type="file"
+                      ref={(el) => { fileInputRefs.current[item.id] = el; }}
+                      onChange={(e) => handleFileSelect(item.id, e)}
+                      accept=".jpg,.jpeg,.png,.pdf,.eps,.ai,.psd,.cdr,.svg"
+                      className="hidden"
+                      data-testid={`input-file-artwork-${item.id}`}
+                    />
                   </div>
                 </div>
               ))}

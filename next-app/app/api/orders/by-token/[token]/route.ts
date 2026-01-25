@@ -71,6 +71,7 @@ export async function GET(
         quantity: orderItems.quantity,
         unitPrice: orderItems.unitPrice,
         selectedOptions: orderItems.selectedOptions,
+        designId: orderItems.designId,
         productName: products.name,
         productThumbnail: products.thumbnailUrl,
       })
@@ -78,12 +79,35 @@ export async function GET(
       .leftJoin(products, eq(orderItems.productId, products.id))
       .where(eq(orderItems.orderId, order.id));
 
+    // Fetch design data for items that have designs
+    const designIds = items.filter(i => i.designId).map(i => i.designId as number);
+    let designsMap: Record<number, any> = {};
+    
+    if (designIds.length > 0) {
+      const designsResult = await db.execute(sql`
+        SELECT id, name, preview_url, canvas_json, artwork_url
+        FROM designs 
+        WHERE id = ANY(${designIds})
+      `);
+      
+      for (const row of (designsResult.rows || []) as any[]) {
+        designsMap[row.id] = {
+          id: row.id,
+          name: row.name,
+          previewUrl: row.preview_url,
+          artworkUrl: row.artwork_url,
+        };
+      }
+    }
+
     const formattedItems = items.map((item) => ({
       id: item.id,
       productId: item.productId,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       selectedOptions: item.selectedOptions,
+      designId: item.designId,
+      design: item.designId ? designsMap[item.designId] || null : null,
       product: {
         name: item.productName,
         thumbnailUrl: item.productThumbnail,

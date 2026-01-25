@@ -1,10 +1,33 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, orderItems, products, designs, users, productOptions, emailDeliveries } from '@shared/schema';
-import { eq, inArray, desc } from 'drizzle-orm';
+import { orderItems, products, designs, users, productOptions, emailDeliveries } from '@shared/schema';
+import { eq, inArray, desc, sql } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+
+// Parse customer info from notes field
+function parseNotesForCustomerInfo(notes: string | null): { name?: string; email?: string; phone?: string } {
+  if (!notes) return {};
+  const result: { name?: string; email?: string; phone?: string } = {};
+  
+  const nameMatch = notes.match(/Customer:\s*(.+?)(?:\n|$)/);
+  if (nameMatch) result.name = nameMatch[1].trim();
+  
+  const emailMatch = notes.match(/Email:\s*(.+?)(?:\n|$)/);
+  if (emailMatch) result.email = emailMatch[1].trim();
+  
+  const phoneMatch = notes.match(/Phone:\s*(.+?)(?:\n|$)/);
+  if (phoneMatch) result.phone = phoneMatch[1].trim();
+  
+  return result;
+}
+
+// Clean notes to hide payment link from display
+function cleanNotesForDisplay(notes: string | null): string {
+  if (!notes) return '';
+  return notes.replace(/Payment Link:\s*[a-f0-9]+/gi, '').trim();
+}
 
 export async function GET(
   request: Request,
@@ -22,14 +45,40 @@ export async function GET(
 
     const { id } = await params;
     
-    const [order] = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.id, parseInt(id)));
+    // Use raw SQL to avoid schema conflicts
+    const result = await db.execute(sql`
+      SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+             tax_amount, discount_amount, total_amount, shipping_address, 
+             notes, tracking_number, created_at
+      FROM orders 
+      WHERE id = ${parseInt(id)}
+    `);
 
-    if (!order) {
+    if (!result.rows || result.rows.length === 0) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
+
+    const row = result.rows[0] as any;
+    const customerInfo = parseNotesForCustomerInfo(row.notes);
+    
+    const order = {
+      id: row.id,
+      orderNumber: row.order_number,
+      userId: row.user_id,
+      status: row.status,
+      subtotal: row.subtotal,
+      shippingCost: row.shipping_cost,
+      taxAmount: row.tax_amount,
+      discountAmount: row.discount_amount,
+      totalAmount: row.total_amount,
+      shippingAddress: row.shipping_address,
+      notes: cleanNotesForDisplay(row.notes),
+      trackingNumber: row.tracking_number,
+      createdAt: row.created_at,
+      customerName: customerInfo.name,
+      customerEmail: customerInfo.email,
+      customerPhone: customerInfo.phone,
+    };
 
     // Get user info
     let user = null;
@@ -134,21 +183,55 @@ export async function PUT(
     }
 
     const { id } = await params;
+    const orderId = parseInt(id);
     const body = await request.json();
 
-    const [order] = await db
-      .update(orders)
-      .set({
-        status: body.status,
-        shippingAddress: body.shippingAddress,
-        trackingNumber: body.trackingNumber,
-        notes: body.notes,
-        updatedAt: new Date(),
-      })
-      .where(eq(orders.id, parseInt(id)))
-      .returning();
+    // Build dynamic update using raw SQL
+    const shippingAddressJson = body.shippingAddress ? JSON.stringify(body.shippingAddress) : null;
+    
+    await db.execute(sql`
+      UPDATE orders SET
+        status = COALESCE(${body.status}, status),
+        shipping_address = COALESCE(${shippingAddressJson}::jsonb, shipping_address),
+        tracking_number = COALESCE(${body.trackingNumber || null}, tracking_number),
+        notes = COALESCE(${body.notes || null}, notes)
+      WHERE id = ${orderId}
+    `);
 
-    return NextResponse.json(order);
+    // Fetch the updated order
+    const result = await db.execute(sql`
+      SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+             tax_amount, discount_amount, total_amount, shipping_address, 
+             notes, tracking_number, created_at
+      FROM orders 
+      WHERE id = ${orderId}
+    `);
+
+    if (!result.rows || result.rows.length === 0) {
+      return NextResponse.json({ message: 'Order not found' }, { status: 404 });
+    }
+
+    const row = result.rows[0] as any;
+    const customerInfo = parseNotesForCustomerInfo(row.notes);
+    
+    return NextResponse.json({
+      id: row.id,
+      orderNumber: row.order_number,
+      userId: row.user_id,
+      status: row.status,
+      subtotal: row.subtotal,
+      shippingCost: row.shipping_cost,
+      taxAmount: row.tax_amount,
+      discountAmount: row.discount_amount,
+      totalAmount: row.total_amount,
+      shippingAddress: row.shipping_address,
+      notes: cleanNotesForDisplay(row.notes),
+      trackingNumber: row.tracking_number,
+      createdAt: row.created_at,
+      customerName: customerInfo.name,
+      customerEmail: customerInfo.email,
+      customerPhone: customerInfo.phone,
+    });
   } catch (error) {
     console.error('Error updating order:', error);
     return NextResponse.json({ message: 'Failed to update order' }, { status: 500 });
@@ -172,14 +255,18 @@ export async function DELETE(
     const { id } = await params;
     const orderId = parseInt(id);
 
-    // First delete order items
-    await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
+    // First delete order items using raw SQL
+    await db.execute(sql`DELETE FROM order_items WHERE order_id = ${orderId}`);
 
-    // Delete any related email delivery logs (FK to orders)
-    await db.delete(emailDeliveries).where(eq(emailDeliveries.orderId, orderId));
+    // Delete any related email delivery logs (best effort - table may not exist)
+    try {
+      await db.execute(sql`DELETE FROM email_deliveries WHERE order_id = ${orderId}`);
+    } catch (e) {
+      // Table might not exist, continue
+    }
 
     // Then delete the order
-    await db.delete(orders).where(eq(orders.id, orderId));
+    await db.execute(sql`DELETE FROM orders WHERE id = ${orderId}`);
 
     return NextResponse.json({ message: 'Order deleted successfully' });
   } catch (error) {

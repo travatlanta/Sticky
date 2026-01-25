@@ -172,10 +172,10 @@ export async function PUT(
 
     if (action === "approve") {
       // Mark design as approved - set name deterministically with [APPROVED] prefix
-      // Remove any existing status tags first, then add [APPROVED]
+      // Remove any existing status tags first (PENDING, APPROVED, FLAGGED, ADMIN_DESIGN, CUSTOMER_UPLOAD), then add [APPROVED]
       await db.execute(sql`
         UPDATE designs SET
-          name = '[APPROVED] ' || REGEXP_REPLACE(name, '^\[(PENDING|APPROVED)\]\s*', ''),
+          name = '[APPROVED] ' || REGEXP_REPLACE(name, '^\[(PENDING|APPROVED|FLAGGED|ADMIN_DESIGN|CUSTOMER_UPLOAD)\]\s*', ''),
           updated_at = NOW()
         WHERE id = ${orderItem.design_id}
       `);

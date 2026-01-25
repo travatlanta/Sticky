@@ -34,7 +34,7 @@ interface Design {
   name: string;
   previewUrl: string | null;
   artworkUrl: string | null;
-  status: 'pending' | 'approved' | 'uploaded';
+  status: 'pending' | 'approved' | 'uploaded' | 'flagged' | 'admin_review';
 }
 
 interface OrderItem {
@@ -727,41 +727,38 @@ export default function PaymentClient({ token }: { token: string }) {
                         Artwork
                       </span>
                       {(() => {
-                        const designName = item.design?.name || '';
-                        const isFlagged = designName.includes('[FLAGGED]');
-                        const isAdminDesign = designName.includes('[ADMIN_DESIGN]');
-                        const isApproved = item.design?.status === 'approved' || designName.includes('[APPROVED]');
+                        const status = item.design?.status;
                         
-                        if (isApproved) {
+                        if (status === 'approved') {
                           return (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded dark:bg-green-900 dark:text-green-300">
                               Approved
                             </span>
                           );
                         }
-                        if (isFlagged) {
+                        if (status === 'flagged') {
                           return (
-                            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded dark:bg-red-900 dark:text-red-300">
                               Revision Needed
                             </span>
                           );
                         }
-                        if (isAdminDesign) {
+                        if (status === 'admin_review') {
                           return (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded dark:bg-blue-900 dark:text-blue-300">
                               Review Required
                             </span>
                           );
                         }
                         if (item.design?.artworkUrl || item.design?.previewUrl) {
                           return (
-                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded dark:bg-yellow-900 dark:text-yellow-300">
                               Pending Approval
                             </span>
                           );
                         }
                         return (
-                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded dark:bg-orange-900 dark:text-orange-300">
                             Required
                           </span>
                         );
@@ -784,46 +781,43 @@ export default function PaymentClient({ token }: { token: string }) {
                         </a>
                         <div className="flex-1">
                           {(() => {
-                            const designName = item.design?.name || '';
-                            const isFlagged = designName.includes('[FLAGGED]');
-                            const isAdminDesign = designName.includes('[ADMIN_DESIGN]');
-                            const isApproved = item.design?.status === 'approved' || designName.includes('[APPROVED]');
+                            const status = item.design?.status;
                             
-                            if (isApproved) {
+                            if (status === 'approved') {
                               return (
-                                <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+                                <p className="text-sm text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
                                   <CheckCircle className="h-4 w-4" />
                                   Approved - Ready for printing
                                 </p>
                               );
                             }
-                            if (isFlagged) {
+                            if (status === 'flagged') {
                               return (
                                 <div>
-                                  <p className="text-sm text-red-600 font-medium flex items-center gap-1">
+                                  <p className="text-sm text-red-600 dark:text-red-400 font-medium flex items-center gap-1">
                                     <AlertCircle className="h-4 w-4" />
                                     Revision Requested
                                   </p>
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-xs text-muted-foreground mt-1">
                                     Please upload a new design or make changes
                                   </p>
                                 </div>
                               );
                             }
-                            if (isAdminDesign) {
+                            if (status === 'admin_review') {
                               return (
                                 <div>
-                                  <p className="text-sm text-blue-600 font-medium">
+                                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
                                     Our team has created a design for you
                                   </p>
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-xs text-muted-foreground mt-1">
                                     Please review and approve before we print
                                   </p>
                                 </div>
                               );
                             }
                             return (
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-muted-foreground">
                                 Please review and approve your artwork
                               </p>
                             );

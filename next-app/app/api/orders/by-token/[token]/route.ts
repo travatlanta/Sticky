@@ -95,15 +95,33 @@ export async function GET(
           
           if (designsResult.rows && designsResult.rows.length > 0) {
             const row = designsResult.rows[0] as any;
-            const isApproved = row.name && row.name.includes('[APPROVED]');
-            const isPending = row.name && row.name.includes('[PENDING]');
-            const isCustomerUpload = row.name && row.name.includes('[CUSTOMER_UPLOAD]');
+            const designName = row.name || '';
+            
+            // Parse all possible status tags
+            const isApproved = designName.includes('[APPROVED]');
+            const isFlagged = designName.includes('[FLAGGED]');
+            const isAdminDesign = designName.includes('[ADMIN_DESIGN]');
+            const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]');
+            const isPending = designName.includes('[PENDING]');
+            
+            // Determine status based on tags
+            let status = 'uploaded';
+            if (isApproved) {
+              status = 'approved';
+            } else if (isFlagged) {
+              status = 'flagged';
+            } else if (isAdminDesign) {
+              status = 'admin_review';
+            } else if (isPending || isCustomerUpload) {
+              status = 'pending';
+            }
+            
             designsMap[row.id] = {
               id: row.id,
               name: row.name,
               previewUrl: row.preview_url,
               artworkUrl: row.preview_url,
-              status: isApproved ? 'approved' : (isPending || isCustomerUpload ? 'pending' : 'uploaded'),
+              status,
             };
           }
         } catch (err) {

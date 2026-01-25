@@ -740,7 +740,7 @@ export default function PaymentClient({ token }: { token: string }) {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                            <Link href={`/editor?orderId=${order.id}&itemId=${item.id}&productId=${item.productId}&designId=${item.designId}&token=${token}`}>
+                            <Link href={`/editor/${item.designId}?orderId=${order.id}&itemId=${item.id}&productId=${item.productId}&token=${token}`}>
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -778,7 +778,7 @@ export default function PaymentClient({ token }: { token: string }) {
                             )}
                           </Button>
                           <span className="text-xs text-gray-400">or</span>
-                          <Link href={`/editor?orderId=${order.id}&itemId=${item.id}&productId=${item.productId}&token=${token}`}>
+                          <Link href={`/editor/new?orderId=${order.id}&itemId=${item.id}&productId=${item.productId}&token=${token}`}>
                             <Button
                               size="sm"
                               variant="outline"

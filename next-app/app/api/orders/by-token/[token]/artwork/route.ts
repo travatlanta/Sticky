@@ -65,21 +65,21 @@ export async function POST(
 
     if (designId) {
       // Update existing design - reset to pending when new artwork uploaded
+      // NOTE: Production lacks artwork_url column, only use preview_url
       await db.execute(sql`
         UPDATE designs SET
-          artwork_url = ${blob.url},
           preview_url = ${blob.url},
-          name = ${'[PENDING] Artwork for Order ' + order.order_number},
+          name = ${'[CUSTOMER_UPLOAD] Artwork for Order ' + order.order_number},
           updated_at = NOW()
         WHERE id = ${designId}
       `);
     } else {
       // Create new design with pending status
+      // NOTE: Production lacks artwork_url column, only use preview_url
       const designResult = await db.execute(sql`
-        INSERT INTO designs (name, artwork_url, preview_url, product_id, created_at, updated_at)
+        INSERT INTO designs (name, preview_url, product_id, created_at, updated_at)
         VALUES (
-          ${'[PENDING] Artwork for Order ' + order.order_number},
-          ${blob.url},
+          ${'[CUSTOMER_UPLOAD] Artwork for Order ' + order.order_number},
           ${blob.url},
           ${orderItem.product_id},
           NOW(),

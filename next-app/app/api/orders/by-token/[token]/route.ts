@@ -84,8 +84,9 @@ export async function GET(
     let designsMap: Record<number, any> = {};
     
     if (designIds.length > 0) {
+      // NOTE: Production lacks artwork_url column, only use preview_url
       const designsResult = await db.execute(sql`
-        SELECT id, name, preview_url, canvas_json, artwork_url
+        SELECT id, name, preview_url, canvas_json
         FROM designs 
         WHERE id = ANY(${designIds})
       `);
@@ -93,12 +94,13 @@ export async function GET(
       for (const row of (designsResult.rows || []) as any[]) {
         const isApproved = row.name && row.name.includes('[APPROVED]');
         const isPending = row.name && row.name.includes('[PENDING]');
+        const isCustomerUpload = row.name && row.name.includes('[CUSTOMER_UPLOAD]');
         designsMap[row.id] = {
           id: row.id,
           name: row.name,
           previewUrl: row.preview_url,
-          artworkUrl: row.artwork_url,
-          status: isApproved ? 'approved' : (isPending ? 'pending' : 'uploaded'),
+          artworkUrl: row.preview_url, // Use preview_url since artwork_url doesn't exist in production
+          status: isApproved ? 'approved' : (isPending || isCustomerUpload ? 'pending' : 'uploaded'),
         };
       }
     }

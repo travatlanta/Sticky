@@ -6,6 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 // Parse customer info from notes field (production schema doesn't have dedicated columns)
+// Must match the format used in by-token route.ts: "Customer:", "Email:", "Phone:"
 function parseNotesForCustomerInfo(notes: string | null): { 
   name: string | null; 
   email: string | null; 
@@ -17,13 +18,16 @@ function parseNotesForCustomerInfo(notes: string | null): {
   let email: string | null = null;
   let phone: string | null = null;
   
-  const nameMatch = notes.match(/Customer Name:\s*([^\n]+)/i);
+  // Try both formats: "Customer:" and "Customer Name:"
+  const nameMatch = notes.match(/Customer:\s*(.+?)(?:\n|$)/i) || notes.match(/Customer Name:\s*([^\n]+)/i);
   if (nameMatch) name = nameMatch[1].trim();
   
-  const emailMatch = notes.match(/Customer Email:\s*([^\n]+)/i);
+  // Try both formats: "Email:" and "Customer Email:"
+  const emailMatch = notes.match(/Email:\s*(.+?)(?:\n|$)/i) || notes.match(/Customer Email:\s*([^\n]+)/i);
   if (emailMatch) email = emailMatch[1].trim();
   
-  const phoneMatch = notes.match(/Customer Phone:\s*([^\n]+)/i);
+  // Try both formats: "Phone:" and "Customer Phone:"
+  const phoneMatch = notes.match(/Phone:\s*(.+?)(?:\n|$)/i) || notes.match(/Customer Phone:\s*([^\n]+)/i);
   if (phoneMatch) phone = phoneMatch[1].trim();
   
   return { name, email, phone };

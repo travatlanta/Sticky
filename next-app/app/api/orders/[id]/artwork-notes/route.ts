@@ -2,9 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { artworkNotes, orders, users } from "@shared/schema";
-import { eq, asc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { sendEmail, generateOrderMessageEmail } from "@/lib/email";
+
+async function ensureArtworkNotesTable() {
+  try {
+    await db.execute(sql`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'sender_type') THEN
+          CREATE TYPE sender_type AS ENUM ('user', 'admin');
+        END IF;
+      END $$;
+    `);
+    
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS artwork_notes (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER REFERENCES orders(id) NOT NULL,
+        order_item_id INTEGER REFERENCES order_items(id),
+        user_id VARCHAR REFERENCES users(id),
+        sender_type sender_type NOT NULL,
+        content TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+  } catch (error) {
+    console.error("Error ensuring artwork_notes table:", error);
+  }
+}
 
 export async function GET(
   request: NextRequest,
@@ -24,63 +51,69 @@ export async function GET(
     const userId = (session.user as any).id;
     const isAdmin = (session.user as any).isAdmin === true;
 
-    const order = await db.query.orders.findFirst({
-      where: eq(orders.id, orderId),
-      columns: { id: true, userId: true },
-    });
-
+    const orderResult = await db.execute(sql`
+      SELECT id, user_id FROM orders WHERE id = ${orderId}
+    `);
+    
+    const order = orderResult.rows[0] as any;
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (!isAdmin && order.userId !== userId) {
+    if (!isAdmin && order.user_id !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const notes = await db.query.artworkNotes.findMany({
-      where: eq(artworkNotes.orderId, orderId),
-      orderBy: [asc(artworkNotes.createdAt)],
+    await ensureArtworkNotesTable();
+
+    const notesResult = await db.execute(sql`
+      SELECT 
+        an.id,
+        an.order_id,
+        an.order_item_id,
+        an.user_id,
+        an.sender_type,
+        an.content,
+        an.is_read,
+        an.created_at,
+        u.first_name,
+        u.last_name,
+        u.email
+      FROM artwork_notes an
+      LEFT JOIN users u ON an.user_id = u.id
+      WHERE an.order_id = ${orderId}
+      ORDER BY an.created_at ASC
+    `);
+
+    const notes = (notesResult.rows || []).map((row: any) => {
+      let senderName = row.sender_type === 'admin' ? 'Sticky Banditos Team' : 'Customer';
+      
+      if (row.first_name && row.last_name) {
+        senderName = `${row.first_name} ${row.last_name}`;
+      } else if (row.email) {
+        senderName = row.email;
+      }
+
+      return {
+        id: row.id,
+        orderId: row.order_id,
+        orderItemId: row.order_item_id,
+        userId: row.user_id,
+        senderType: row.sender_type,
+        content: row.content,
+        isRead: row.is_read,
+        createdAt: row.created_at,
+        senderName,
+      };
     });
 
-    const notesWithUserInfo = await Promise.all(
-      notes.map(async (note) => {
-        let senderName = note.senderType === 'admin' ? 'Admin' : 'Customer';
-        
-        if (note.userId) {
-          const user = await db.query.users.findFirst({
-            where: eq(users.id, note.userId),
-            columns: { firstName: true, lastName: true, email: true },
-          });
-          if (user) {
-            senderName = user.firstName && user.lastName 
-              ? `${user.firstName} ${user.lastName}` 
-              : user.email || senderName;
-          }
-        }
-
-        return {
-          id: note.id,
-          orderId: note.orderId,
-          orderItemId: note.orderItemId,
-          userId: note.userId,
-          senderType: note.senderType,
-          content: note.content,
-          isRead: note.isRead,
-          createdAt: note.createdAt,
-          senderName,
-        };
-      })
-    );
-
-    return NextResponse.json({ notes: notesWithUserInfo });
+    return NextResponse.json({ notes });
   } catch (error: any) {
     console.error("Error fetching artwork notes:", error);
-    // If the table doesn't exist yet, return empty array instead of error
     if (error?.message?.includes('relation') && error?.message?.includes('does not exist')) {
       return NextResponse.json({ notes: [] });
     }
-    // Also handle "artwork_notes" table not found
-    if (error?.code === '42P01') { // PostgreSQL error code for undefined table
+    if (error?.code === '42P01') {
       return NextResponse.json({ notes: [] });
     }
     return NextResponse.json({ error: "Failed to fetch notes" }, { status: 500 });
@@ -105,16 +138,16 @@ export async function POST(
     const userId = (session.user as any).id;
     const isAdmin = (session.user as any).isAdmin === true;
 
-    const order = await db.query.orders.findFirst({
-      where: eq(orders.id, orderId),
-      columns: { id: true, userId: true },
-    });
-
+    const orderResult = await db.execute(sql`
+      SELECT id, user_id, order_number FROM orders WHERE id = ${orderId}
+    `);
+    
+    const order = orderResult.rows[0] as any;
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (!isAdmin && order.userId !== userId) {
+    if (!isAdmin && order.user_id !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -125,28 +158,30 @@ export async function POST(
       return NextResponse.json({ error: "Content is required" }, { status: 400 });
     }
 
+    await ensureArtworkNotesTable();
+
     const senderType = isAdmin ? 'admin' : 'user';
 
-    const [insertedNote] = await db.insert(artworkNotes).values({
-      orderId,
-      orderItemId: orderItemId || null,
-      userId,
-      senderType: senderType as 'admin' | 'user',
-      content: content.trim(),
-    }).returning({ id: artworkNotes.id, createdAt: artworkNotes.createdAt });
+    const insertResult = await db.execute(sql`
+      INSERT INTO artwork_notes (order_id, order_item_id, user_id, sender_type, content)
+      VALUES (${orderId}, ${orderItemId || null}, ${userId}, ${senderType}::sender_type, ${content.trim()})
+      RETURNING id, created_at
+    `);
 
-    // Send email notification when admin sends a message to customer
-    if (isAdmin && order.userId) {
+    const insertedNote = insertResult.rows[0] as any;
+
+    if (isAdmin && order.user_id) {
       try {
-        const customer = await db.query.users.findFirst({
-          where: eq(users.id, order.userId),
-          columns: { email: true, firstName: true, lastName: true },
-        });
+        const customerResult = await db.execute(sql`
+          SELECT email, first_name, last_name FROM users WHERE id = ${order.user_id}
+        `);
+        
+        const customer = customerResult.rows[0] as any;
 
         if (customer?.email) {
-          const customerName = customer.firstName && customer.lastName 
-            ? `${customer.firstName} ${customer.lastName}` 
-            : customer.firstName || '';
+          const customerName = customer.first_name && customer.last_name 
+            ? `${customer.first_name} ${customer.last_name}` 
+            : customer.first_name || '';
           
           const emailContent = generateOrderMessageEmail({
             customerName,
@@ -161,24 +196,19 @@ export async function POST(
         }
       } catch (emailError) {
         console.error("Failed to send email notification:", emailError);
-        // Don't fail the request if email fails
       }
     }
 
     return NextResponse.json({ 
       success: true, 
       noteId: insertedNote.id,
-      createdAt: insertedNote.createdAt 
+      createdAt: insertedNote.created_at 
     });
   } catch (error: any) {
     console.error("Error creating artwork note:", error);
-    // If the table doesn't exist yet, return a helpful message
-    if (error?.message?.includes('relation') && error?.message?.includes('does not exist')) {
-      return NextResponse.json({ error: "Messaging not available yet. Please try again later." }, { status: 503 });
-    }
-    if (error?.code === '42P01') {
-      return NextResponse.json({ error: "Messaging not available yet. Please try again later." }, { status: 503 });
-    }
-    return NextResponse.json({ error: "Failed to create note" }, { status: 500 });
+    return NextResponse.json({ 
+      error: error?.message || "Failed to create note",
+      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    }, { status: 500 });
   }
 }

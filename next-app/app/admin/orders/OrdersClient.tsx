@@ -23,7 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw, Image } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -263,7 +263,7 @@ export default function AdminOrders() {
     item: any;
     orderId: number;
     orderNumber: string;
-    action: 'flag' | 'upload' | null;
+    action: 'flag' | 'upload' | 'request' | null;
   }>({ open: false, item: null, orderId: 0, orderNumber: '', action: null });
   const [reviewNotes, setReviewNotes] = useState("");
   const [adminUploadFile, setAdminUploadFile] = useState<File | null>(null);
@@ -567,6 +567,25 @@ export default function AdminOrders() {
         toast({ 
           title: "Design uploaded",
           description: "Customer has been notified to approve the design"
+        });
+      } else if (artworkReviewModal.action === 'request') {
+        // Request artwork from customer - send email asking them to upload
+        const res = await fetch(`/api/admin/orders/${artworkReviewModal.orderId}/artwork/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderItemId: artworkReviewModal.item.id,
+            action: 'request',
+            notes: reviewNotes,
+          }),
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to send artwork request");
+        
+        toast({ 
+          title: "Artwork request sent",
+          description: "Customer has been notified to upload their artwork"
         });
       }
       
@@ -1238,25 +1257,61 @@ export default function AdminOrders() {
                           </>
                         )}
                         
-                        {/* Show upload button when no design exists */}
+                        {/* Show upload options when no design exists - SAME structure as customer orders */}
                         {!item.design && (
-                          <div className="mt-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-blue-700 border-blue-300 hover:bg-blue-50"
-                              onClick={() => setArtworkReviewModal({
-                                open: true,
-                                item,
-                                orderId: selectedOrder.id,
-                                orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
-                                action: 'upload'
-                              })}
-                              data-testid={`button-admin-upload-nodesign-${item.id}`}
-                            >
-                              <Upload className="h-4 w-4 mr-1" />
-                              Upload Design for Customer
-                            </Button>
+                          <div className="text-center py-4 bg-gray-100 rounded-lg">
+                            <Image className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                            <p className="text-sm text-gray-600 mb-3">
+                              Upload artwork or request from customer
+                            </p>
+                            <div className="flex flex-wrap gap-2 justify-center">
+                              <Button
+                                size="sm"
+                                onClick={() => setArtworkReviewModal({
+                                  open: true,
+                                  item,
+                                  orderId: selectedOrder.id,
+                                  orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                  action: 'upload'
+                                })}
+                                data-testid={`button-admin-upload-nodesign-${item.id}`}
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Upload Artwork
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => {
+                                  // Send artwork request email to customer
+                                  const email = selectedOrder.shippingAddress?.email || 
+                                                orderDetails?.user?.email || 
+                                                (orderDetails as any)?.customerEmail;
+                                  if (email) {
+                                    setArtworkReviewModal({
+                                      open: true,
+                                      item,
+                                      orderId: selectedOrder.id,
+                                      orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                      action: 'request'
+                                    });
+                                  } else {
+                                    toast({
+                                      title: "No email available",
+                                      description: "Cannot send artwork request - no customer email on file.",
+                                      variant: "destructive"
+                                    });
+                                  }
+                                }}
+                                data-testid={`button-request-artwork-${item.id}`}
+                              >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Request Artwork
+                              </Button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                              Accepts: JPG, PNG, PDF, EPS, AI, PSD, SVG, CDR
+                            </p>
                           </div>
                         )}
                         </div>
@@ -1465,6 +1520,11 @@ export default function AdminOrders() {
                   <RefreshCw className="h-5 w-5 text-amber-500" />
                   Request Artwork Revision
                 </>
+              ) : artworkReviewModal.action === 'request' ? (
+                <>
+                  <Mail className="h-5 w-5 text-orange-500" />
+                  Request Artwork from Customer
+                </>
               ) : (
                 <>
                   <Upload className="h-5 w-5 text-blue-500" />
@@ -1488,6 +1548,14 @@ export default function AdminOrders() {
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <p className="text-sm text-amber-800">
                   This will flag the current artwork for revision and notify the customer to update their design.
+                </p>
+              </div>
+            )}
+
+            {artworkReviewModal.action === 'request' && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <p className="text-sm text-orange-800">
+                  This will send an email to the customer requesting they upload their artwork for this order item.
                 </p>
               </div>
             )}
@@ -1521,13 +1589,16 @@ export default function AdminOrders() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {artworkReviewModal.action === 'flag' ? 'Reason for Revision' : 'Notes for Customer'}
+                {artworkReviewModal.action === 'flag' ? 'Reason for Revision' : 
+                 artworkReviewModal.action === 'request' ? 'Message to Customer' : 'Notes for Customer'}
               </label>
               <textarea
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
                 placeholder={artworkReviewModal.action === 'flag' 
                   ? "Explain what needs to be changed (e.g., resolution too low, colors outside printable range, text too close to edge...)"
+                  : artworkReviewModal.action === 'request'
+                  ? "Add any instructions for the customer (e.g., Please upload your artwork in high resolution, minimum 300 DPI...)"
                   : "Add any notes about this design (e.g., I've adjusted the colors for better print quality...)"
                 }
                 className="w-full border rounded-lg p-3 text-sm"
@@ -1550,7 +1621,11 @@ export default function AdminOrders() {
                 Cancel
               </Button>
               <Button
-                className={`flex-1 ${artworkReviewModal.action === 'flag' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+                className={`flex-1 ${
+                  artworkReviewModal.action === 'flag' ? 'bg-amber-500 hover:bg-amber-600' : 
+                  artworkReviewModal.action === 'request' ? 'bg-orange-500 hover:bg-orange-600' : 
+                  'bg-blue-500 hover:bg-blue-600'
+                }`}
                 onClick={handleArtworkReviewSubmit}
                 disabled={reviewSubmitting || (artworkReviewModal.action === 'upload' && !adminUploadFile)}
                 data-testid="button-submit-review"
@@ -1560,7 +1635,9 @@ export default function AdminOrders() {
                 ) : (
                   <Send className="h-4 w-4 mr-2" />
                 )}
-                {artworkReviewModal.action === 'flag' ? 'Send Revision Request' : 'Send to Customer'}
+                {artworkReviewModal.action === 'flag' ? 'Send Revision Request' : 
+                 artworkReviewModal.action === 'request' ? 'Send Artwork Request' : 
+                 'Send to Customer'}
               </Button>
             </div>
           </div>

@@ -187,6 +187,110 @@ export async function POST(
         designId,
         artworkUrl: blob.url,
       });
+
+    } else if (action === 'request') {
+      // Request artwork from customer - send email asking them to upload
+      
+      // Try to get customer email from various sources
+      let email = customerEmail;
+      
+      if (!email && order.user_id) {
+        const userResult = await db.execute(sql`
+          SELECT email FROM users WHERE id = ${order.user_id}
+        `);
+        if (userResult.rows && userResult.rows.length > 0) {
+          email = (userResult.rows[0] as any).email;
+        }
+      }
+      
+      // Also check shipping address
+      if (!email) {
+        const shippingResult = await db.execute(sql`
+          SELECT shipping_address FROM orders WHERE id = ${orderId}
+        `);
+        if (shippingResult.rows && shippingResult.rows.length > 0) {
+          const shipping = (shippingResult.rows[0] as any).shipping_address;
+          if (shipping && typeof shipping === 'object' && shipping.email) {
+            email = shipping.email;
+          }
+        }
+      }
+
+      if (!email) {
+        return NextResponse.json({ 
+          message: "No customer email on file for this order" 
+        }, { status: 400 });
+      }
+
+      // Get product name
+      const productResult = await db.execute(sql`
+        SELECT p.name FROM products p
+        JOIN order_items oi ON oi.product_id = p.id
+        WHERE oi.id = ${orderItemId}
+      `);
+      const productName = productResult.rows?.length > 0 
+        ? (productResult.rows[0] as any).name 
+        : `Product #${orderItem.product_id}`;
+
+      // Send artwork request email using the template
+      const { generateEmailHtml } = await import('@/lib/email/template');
+      const { Resend } = await import('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+
+      const emailContent = generateEmailHtml({
+        preheader: `Artwork needed for your order ${order.order_number}`,
+        headline: "Artwork Request",
+        body: `
+          <p>Hello!</p>
+          <p>We need your artwork for the following item in order <strong>${order.order_number}</strong>:</p>
+          <p><strong>${productName}</strong></p>
+          ${notes ? `<p><strong>Note from our team:</strong> ${notes}</p>` : ''}
+          <p>Please log into your account to upload your artwork or design online.</p>
+          <p>If you have any questions, please reply to this email or contact our support team.</p>
+        `,
+        callToAction: {
+          text: "View Your Order",
+          url: `${process.env.NEXTAUTH_URL || 'https://sticky-banditos.replit.app'}/account`,
+        },
+      });
+
+      await resend.emails.send({
+        from: 'Sticky Banditos <orders@stickybanditos.com>',
+        to: email,
+        subject: `Artwork Needed for Order ${order.order_number}`,
+        html: emailContent,
+      });
+
+      // Add a message to the order communication
+      await db.execute(sql`
+        INSERT INTO artwork_notes (order_id, order_item_id, user_id, sender_type, content, created_at)
+        VALUES (
+          ${orderId},
+          ${orderItemId},
+          ${session.user.id},
+          'admin',
+          ${'Artwork Request Sent: ' + (notes || 'Please upload your artwork for this order.')},
+          NOW()
+        )
+      `).catch(() => {
+        console.log('artwork_notes table not available');
+      });
+
+      // Record email delivery
+      try {
+        await db.execute(sql`
+          INSERT INTO email_deliveries (order_id, type, recipient_email, status, attempts, created_at)
+          VALUES (${orderId}, 'artwork_request', ${email}, 'sent', 1, NOW())
+        `);
+      } catch (e) {
+        console.log('email_deliveries table might not exist');
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Artwork request sent to customer",
+        emailSentTo: email,
+      });
     }
 
     return NextResponse.json({ message: "Invalid action" }, { status: 400 });

@@ -251,6 +251,18 @@ export default function AdminOrders() {
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
   const [artworkUploading, setArtworkUploading] = useState(false);
   const [artworkNotes, setArtworkNotes] = useState("");
+  
+  // Artwork review modal state
+  const [artworkReviewModal, setArtworkReviewModal] = useState<{
+    open: boolean;
+    item: any;
+    orderId: number;
+    orderNumber: string;
+    action: 'flag' | 'upload' | null;
+  }>({ open: false, item: null, orderId: 0, orderNumber: '', action: null });
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [adminUploadFile, setAdminUploadFile] = useState<File | null>(null);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   const handleDownload = async (url: string, itemId: number, designName: string, formatOverride?: string) => {
     const format = formatOverride || downloadFormats[itemId] || 'pdf';
@@ -423,6 +435,71 @@ export default function AdminOrders() {
       toast({ title: error.message || "Failed to upload design", variant: "destructive" });
     } finally {
       setArtworkUploading(false);
+    }
+  };
+
+  // Handle artwork review actions (flag for revision or admin upload for approval)
+  const handleArtworkReviewSubmit = async () => {
+    if (!artworkReviewModal.item || !artworkReviewModal.orderId) return;
+    
+    setReviewSubmitting(true);
+    try {
+      if (artworkReviewModal.action === 'flag') {
+        // Flag artwork for revision - send back to customer
+        const res = await fetch(`/api/admin/orders/${artworkReviewModal.orderId}/artwork/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderItemId: artworkReviewModal.item.id,
+            action: 'flag',
+            notes: reviewNotes,
+          }),
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to flag artwork");
+        
+        toast({ 
+          title: "Artwork flagged for revision",
+          description: "Customer has been notified to update their design"
+        });
+      } else if (artworkReviewModal.action === 'upload') {
+        // Admin uploads new design for customer approval
+        if (!adminUploadFile) {
+          toast({ title: "Please select a file to upload", variant: "destructive" });
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append("file", adminUploadFile);
+        formData.append("orderItemId", artworkReviewModal.item.id.toString());
+        formData.append("notes", reviewNotes);
+        formData.append("action", "admin_upload");
+        
+        const res = await fetch(`/api/admin/orders/${artworkReviewModal.orderId}/artwork/review`, {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to upload design");
+        
+        toast({ 
+          title: "Design uploaded",
+          description: "Customer has been notified to approve the design"
+        });
+      }
+      
+      // Reset modal and refetch data
+      setArtworkReviewModal({ open: false, item: null, orderId: 0, orderNumber: '', action: null });
+      setReviewNotes("");
+      setAdminUploadFile(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      
+    } catch (error: any) {
+      toast({ title: error.message || "Failed to process artwork review", variant: "destructive" });
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -1104,9 +1181,67 @@ export default function AdminOrders() {
                                     Download Production File
                                   </Button>
                                 )}
+                                
+                                {/* Admin Artwork Review Actions */}
+                                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-amber-700 border-amber-300 hover:bg-amber-50"
+                                    onClick={() => setArtworkReviewModal({
+                                      open: true,
+                                      item,
+                                      orderId: selectedOrder.id,
+                                      orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                      action: 'flag'
+                                    })}
+                                    data-testid={`button-flag-revision-${item.id}`}
+                                  >
+                                    <RefreshCw className="h-4 w-4 mr-1" />
+                                    Request Revision
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-blue-700 border-blue-300 hover:bg-blue-50"
+                                    onClick={() => setArtworkReviewModal({
+                                      open: true,
+                                      item,
+                                      orderId: selectedOrder.id,
+                                      orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                      action: 'upload'
+                                    })}
+                                    data-testid={`button-admin-upload-${item.id}`}
+                                  >
+                                    <Upload className="h-4 w-4 mr-1" />
+                                    Upload New Design
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </>
+                        )}
+                        
+                        {/* Show upload button when no design exists */}
+                        {!item.design && (
+                          <div className="mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-blue-700 border-blue-300 hover:bg-blue-50"
+                              onClick={() => setArtworkReviewModal({
+                                open: true,
+                                item,
+                                orderId: selectedOrder.id,
+                                orderNumber: selectedOrder.orderNumber || `#${selectedOrder.id}`,
+                                action: 'upload'
+                              })}
+                              data-testid={`button-admin-upload-nodesign-${item.id}`}
+                            >
+                              <Upload className="h-4 w-4 mr-1" />
+                              Upload Design for Customer
+                            </Button>
+                          </div>
                         )}
                         </div>
                       </div>
@@ -1278,6 +1413,127 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+
+      {/* Artwork Review Modal */}
+      <Dialog 
+        open={artworkReviewModal.open} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setArtworkReviewModal({ open: false, item: null, orderId: 0, orderNumber: '', action: null });
+            setReviewNotes("");
+            setAdminUploadFile(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {artworkReviewModal.action === 'flag' ? (
+                <>
+                  <RefreshCw className="h-5 w-5 text-amber-500" />
+                  Request Artwork Revision
+                </>
+              ) : (
+                <>
+                  <Upload className="h-5 w-5 text-blue-500" />
+                  Upload Design for Customer
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-2">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-sm text-gray-600">
+                <strong>Order:</strong> {artworkReviewModal.orderNumber}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>Product:</strong> {artworkReviewModal.item?.product?.name || `Product #${artworkReviewModal.item?.productId}`}
+              </p>
+            </div>
+
+            {artworkReviewModal.action === 'flag' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-800">
+                  This will flag the current artwork for revision and notify the customer to update their design.
+                </p>
+              </div>
+            )}
+
+            {artworkReviewModal.action === 'upload' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Upload New Design
+                  </label>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.eps,.ai,.psd,.cdr,.svg"
+                    onChange={(e) => setAdminUploadFile(e.target.files?.[0] || null)}
+                    className="w-full text-sm border rounded-lg p-2"
+                    data-testid="input-admin-design-file"
+                  />
+                  {adminUploadFile && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Selected: {adminUploadFile.name}
+                    </p>
+                  )}
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    This design will be sent to the customer for their approval before printing.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {artworkReviewModal.action === 'flag' ? 'Reason for Revision' : 'Notes for Customer'}
+              </label>
+              <textarea
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                placeholder={artworkReviewModal.action === 'flag' 
+                  ? "Explain what needs to be changed (e.g., resolution too low, colors outside printable range, text too close to edge...)"
+                  : "Add any notes about this design (e.g., I've adjusted the colors for better print quality...)"
+                }
+                className="w-full border rounded-lg p-3 text-sm"
+                rows={4}
+                data-testid="input-review-notes"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setArtworkReviewModal({ open: false, item: null, orderId: 0, orderNumber: '', action: null });
+                  setReviewNotes("");
+                  setAdminUploadFile(null);
+                }}
+                data-testid="button-cancel-review"
+              >
+                Cancel
+              </Button>
+              <Button
+                className={`flex-1 ${artworkReviewModal.action === 'flag' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+                onClick={handleArtworkReviewSubmit}
+                disabled={reviewSubmitting || (artworkReviewModal.action === 'upload' && !adminUploadFile)}
+                data-testid="button-submit-review"
+              >
+                {reviewSubmitting ? (
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                {artworkReviewModal.action === 'flag' ? 'Send Revision Request' : 'Send to Customer'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Image Preview Modal */}
       <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>

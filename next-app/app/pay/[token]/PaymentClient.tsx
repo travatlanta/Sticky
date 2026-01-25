@@ -726,19 +726,46 @@ export default function PaymentClient({ token }: { token: string }) {
                         <FileImage className="h-4 w-4" />
                         Artwork
                       </span>
-                      {item.design?.status === 'approved' ? (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                          Approved
-                        </span>
-                      ) : item.design?.artworkUrl ? (
-                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
-                          Pending Approval
-                        </span>
-                      ) : (
-                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
-                          Required
-                        </span>
-                      )}
+                      {(() => {
+                        const designName = item.design?.name || '';
+                        const isFlagged = designName.includes('[FLAGGED]');
+                        const isAdminDesign = designName.includes('[ADMIN_DESIGN]');
+                        const isApproved = item.design?.status === 'approved' || designName.includes('[APPROVED]');
+                        
+                        if (isApproved) {
+                          return (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                              Approved
+                            </span>
+                          );
+                        }
+                        if (isFlagged) {
+                          return (
+                            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                              Revision Needed
+                            </span>
+                          );
+                        }
+                        if (isAdminDesign) {
+                          return (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                              Review Required
+                            </span>
+                          );
+                        }
+                        if (item.design?.artworkUrl || item.design?.previewUrl) {
+                          return (
+                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                              Pending Approval
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                            Required
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {item.design?.artworkUrl || item.design?.previewUrl ? (
@@ -756,16 +783,51 @@ export default function PaymentClient({ token }: { token: string }) {
                           />
                         </a>
                         <div className="flex-1">
-                          {item.design.status === 'approved' ? (
-                            <p className="text-sm text-green-600 font-medium flex items-center gap-1">
-                              <CheckCircle className="h-4 w-4" />
-                              Approved
-                            </p>
-                          ) : (
-                            <p className="text-sm text-gray-600">
-                              Please review and approve your artwork
-                            </p>
-                          )}
+                          {(() => {
+                            const designName = item.design?.name || '';
+                            const isFlagged = designName.includes('[FLAGGED]');
+                            const isAdminDesign = designName.includes('[ADMIN_DESIGN]');
+                            const isApproved = item.design?.status === 'approved' || designName.includes('[APPROVED]');
+                            
+                            if (isApproved) {
+                              return (
+                                <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+                                  <CheckCircle className="h-4 w-4" />
+                                  Approved - Ready for printing
+                                </p>
+                              );
+                            }
+                            if (isFlagged) {
+                              return (
+                                <div>
+                                  <p className="text-sm text-red-600 font-medium flex items-center gap-1">
+                                    <AlertCircle className="h-4 w-4" />
+                                    Revision Requested
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Please upload a new design or make changes
+                                  </p>
+                                </div>
+                              );
+                            }
+                            if (isAdminDesign) {
+                              return (
+                                <div>
+                                  <p className="text-sm text-blue-600 font-medium">
+                                    Our team has created a design for you
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Please review and approve before we print
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return (
+                              <p className="text-sm text-gray-600">
+                                Please review and approve your artwork
+                              </p>
+                            );
+                          })()}
                           <div className="flex flex-wrap gap-2 mt-2">
                             {item.design.status !== 'approved' && (
                               <Button

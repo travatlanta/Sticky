@@ -84,24 +84,31 @@ export async function GET(
     let designsMap: Record<number, any> = {};
     
     if (designIds.length > 0) {
-      // NOTE: Production lacks artwork_url column, only use preview_url
-      const designsResult = await db.execute(sql`
-        SELECT id, name, preview_url, canvas_json
-        FROM designs 
-        WHERE id = ANY(${designIds})
-      `);
-      
-      for (const row of (designsResult.rows || []) as any[]) {
-        const isApproved = row.name && row.name.includes('[APPROVED]');
-        const isPending = row.name && row.name.includes('[PENDING]');
-        const isCustomerUpload = row.name && row.name.includes('[CUSTOMER_UPLOAD]');
-        designsMap[row.id] = {
-          id: row.id,
-          name: row.name,
-          previewUrl: row.preview_url,
-          artworkUrl: row.preview_url, // Use preview_url since artwork_url doesn't exist in production
-          status: isApproved ? 'approved' : (isPending || isCustomerUpload ? 'pending' : 'uploaded'),
-        };
+      // Fetch each design individually to avoid array parameter issues
+      for (const designId of designIds) {
+        try {
+          const designsResult = await db.execute(sql`
+            SELECT id, name, preview_url, canvas_json
+            FROM designs 
+            WHERE id = ${designId}
+          `);
+          
+          if (designsResult.rows && designsResult.rows.length > 0) {
+            const row = designsResult.rows[0] as any;
+            const isApproved = row.name && row.name.includes('[APPROVED]');
+            const isPending = row.name && row.name.includes('[PENDING]');
+            const isCustomerUpload = row.name && row.name.includes('[CUSTOMER_UPLOAD]');
+            designsMap[row.id] = {
+              id: row.id,
+              name: row.name,
+              previewUrl: row.preview_url,
+              artworkUrl: row.preview_url,
+              status: isApproved ? 'approved' : (isPending || isCustomerUpload ? 'pending' : 'uploaded'),
+            };
+          }
+        } catch (err) {
+          console.error(`Error fetching design ${designId}:`, err);
+        }
       }
     }
 

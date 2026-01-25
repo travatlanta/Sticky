@@ -71,6 +71,53 @@ interface Order {
   shippingAddress?: any;
   notes?: string;
   items?: OrderItem[];
+  createdByAdminId?: string | null;
+}
+
+interface ArtworkNote {
+  id: number;
+  orderId: number;
+  orderItemId?: number;
+  userId: string;
+  senderType: 'admin' | 'user';
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+  senderName: string;
+}
+
+function getArtworkBadgeInfo(design: Design | null | undefined, isAdminCreatedOrder: boolean): { text: string; colorClass: string } {
+  if (!design || (!design.previewUrl && !design.highResExportUrl && !design.artworkUrl)) {
+    return { text: "No Artwork", colorClass: "bg-red-100 text-red-700" };
+  }
+  
+  const designName = design.name || '';
+  const isAdminDesign = designName.includes('[ADMIN_DESIGN]') || design.isAdminDesign;
+  const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]') || design.isCustomerUpload;
+  const isFlagged = designName.includes('[FLAGGED]') || design.isFlagged;
+  const isApproved = designName.includes('[APPROVED]') || design.status === 'approved';
+  
+  if (isApproved) {
+    return { text: "Approved", colorClass: "bg-green-100 text-green-700" };
+  }
+  
+  if (isFlagged) {
+    return { text: "Needs Your Approval", colorClass: "bg-yellow-100 text-yellow-700" };
+  }
+  
+  if (isAdminDesign) {
+    return { text: "Needs Your Approval", colorClass: "bg-yellow-100 text-yellow-700" };
+  }
+  
+  if (isCustomerUpload) {
+    return { text: "Ready", colorClass: "bg-green-100 text-green-700" };
+  }
+  
+  if (isAdminCreatedOrder && !isCustomerUpload) {
+    return { text: "Needs Your Approval", colorClass: "bg-yellow-100 text-yellow-700" };
+  }
+  
+  return { text: "Ready", colorClass: "bg-green-100 text-green-700" };
 }
 
 const statusConfig: Record<string, { icon: any; color: string; label: string; bgColor: string }> = {
@@ -101,6 +148,8 @@ export default function OrderDetail() {
   const queryClient = useQueryClient();
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const [newNote, setNewNote] = useState("");
+  const [showNotes, setShowNotes] = useState(false);
 
   const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
@@ -245,6 +294,41 @@ export default function OrderDetail() {
     },
   });
 
+  const { data: artworkNotes } = useQuery<{ notes: ArtworkNote[] }>({
+    queryKey: ['/api/orders', id, 'artwork-notes'],
+    queryFn: async () => {
+      const res = await fetch(`/api/orders/${id}/artwork-notes`);
+      if (!res.ok) throw new Error("Failed to fetch notes");
+      return res.json();
+    },
+    enabled: isAuthenticated && !!id,
+  });
+
+  const addNoteMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const res = await fetch(`/api/orders/${id}/artwork-notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to add note");
+      return json;
+    },
+    onSuccess: () => {
+      toast({ title: "Message sent!" });
+      setNewNote("");
+      queryClient.invalidateQueries({ queryKey: ['/api/orders', id, 'artwork-notes'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send message",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleFileSelect = (orderItemId: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -381,33 +465,21 @@ export default function OrderDetail() {
                       
                       {/* Artwork Upload Section */}
                       <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium flex items-center gap-2">
-                            <FileImage className="h-4 w-4" />
-                            Artwork
-                          </span>
-                          {item.design?.status === 'approved' ? (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                              Approved
-                            </span>
-                          ) : item.design?.isFlagged ? (
-                            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
-                              Issue Flagged - Needs Approval
-                            </span>
-                          ) : item.design?.isAdminDesign ? (
-                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
-                              Pending Approval
-                            </span>
-                          ) : item.design?.artworkUrl || item.design?.previewUrl ? (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                              Ready
-                            </span>
-                          ) : (
-                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
-                              Required
-                            </span>
-                          )}
-                        </div>
+                        {(() => {
+                          const isAdminCreatedOrder = !!order.createdByAdminId;
+                          const badgeInfo = getArtworkBadgeInfo(item.design, isAdminCreatedOrder);
+                          return (
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium flex items-center gap-2">
+                                <FileImage className="h-4 w-4" />
+                                Artwork
+                              </span>
+                              <span className={`text-xs px-2 py-1 rounded ${badgeInfo.colorClass}`} data-testid={`badge-artwork-${item.id}`}>
+                                {badgeInfo.text}
+                              </span>
+                            </div>
+                          );
+                        })()}
 
                         {item.design?.artworkUrl || item.design?.previewUrl ? (
                           <div className="flex items-center gap-3">
@@ -424,44 +496,72 @@ export default function OrderDetail() {
                               />
                             </a>
                             <div className="flex-1">
-                              {item.design.status === 'approved' ? (
-                                <p className="text-sm text-green-600 font-medium flex items-center gap-1">
-                                  <CheckCircle className="h-4 w-4" />
-                                  Artwork Approved
-                                </p>
-                              ) : item.design.isFlagged ? (
-                                <p className="text-sm text-red-600 dark:text-red-400">
-                                  {isAdmin ? "Issue flagged - waiting for customer approval" : "We've made adjustments - please review and approve"}
-                                </p>
-                              ) : item.design.isAdminDesign ? (
-                                <p className="text-sm text-blue-600 dark:text-blue-400">
-                                  {isAdmin ? "Design sent to customer for approval" : "Please review and approve this design"}
-                                </p>
-                              ) : (
-                                <p className="text-sm text-gray-600 dark:text-muted-foreground">
-                                  {isAdmin ? "Customer uploaded artwork - ready for printing" : "Your artwork has been uploaded"}
-                                </p>
-                              )}
+                              {(() => {
+                                const designName = item.design?.name || '';
+                                const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
+                                const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
+                                const isDesignAdmin = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
+                                
+                                if (isDesignApproved) {
+                                  return (
+                                    <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+                                      <CheckCircle className="h-4 w-4" />
+                                      Artwork Approved - Ready for Printing
+                                    </p>
+                                  );
+                                }
+                                if (isDesignFlagged) {
+                                  return (
+                                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                                      We've made adjustments to your design. Please review and approve to continue.
+                                    </p>
+                                  );
+                                }
+                                if (isDesignAdmin) {
+                                  return (
+                                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                                      We've created a design for you. Please review and approve to continue.
+                                    </p>
+                                  );
+                                }
+                                return (
+                                  <p className="text-sm text-gray-600 dark:text-muted-foreground">
+                                    Your artwork has been uploaded and is ready for printing.
+                                  </p>
+                                );
+                              })()}
                               <div className="flex flex-wrap gap-2 mt-2">
                                 {/* Approve button: customers approve admin designs or flagged items */}
-                                {!isAdmin && (item.design.isAdminDesign || item.design.isFlagged) && item.design.status !== 'approved' && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => approveArtworkMutation.mutate(item.id)}
-                                    disabled={approveArtworkMutation.isPending}
-                                    data-testid={`button-approve-artwork-${item.id}`}
-                                  >
-                                    {approveArtworkMutation.isPending ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <>
-                                        <CheckCircle className="h-4 w-4 mr-1" />
-                                        Approve Design
-                                      </>
-                                    )}
-                                  </Button>
-                                )}
+                                {(() => {
+                                  const designName = item.design?.name || '';
+                                  const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
+                                  const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
+                                  const isDesignAdmin = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
+                                  const needsApproval = !isAdmin && (isDesignAdmin || isDesignFlagged) && !isDesignApproved;
+                                  
+                                  if (needsApproval) {
+                                    return (
+                                      <Button
+                                        size="sm"
+                                        variant="default"
+                                        onClick={() => approveArtworkMutation.mutate(item.id)}
+                                        disabled={approveArtworkMutation.isPending}
+                                        className="bg-green-600 hover:bg-green-700"
+                                        data-testid={`button-approve-artwork-${item.id}`}
+                                      >
+                                        {approveArtworkMutation.isPending ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <CheckCircle className="h-4 w-4 mr-1" />
+                                            Approve Design
+                                          </>
+                                        )}
+                                      </Button>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -473,20 +573,23 @@ export default function OrderDetail() {
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
                                     <>
-                                      <Edit className="h-4 w-4 mr-1" />
-                                      Edit
+                                      <Upload className="h-4 w-4 mr-1" />
+                                      Replace
                                     </>
                                   )}
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => removeArtworkMutation.mutate(item.id)}
-                                  disabled={removeArtworkMutation.isPending}
-                                  data-testid={`button-remove-artwork-${item.id}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {item.design?.id && (
+                                  <Link href={`/editor/${item.design.id}`}>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      data-testid={`button-open-editor-${item.id}`}
+                                    >
+                                      <Edit className="h-4 w-4 mr-1" />
+                                      Open Editor
+                                    </Button>
+                                  </Link>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -609,11 +712,13 @@ export default function OrderDetail() {
                 )}
 
                 {/* Admin: Flag Printing Issue - For customer uploads that need revision */}
-                {isAdmin && order.items?.some((item: any) => 
-                  item.design?.isCustomerUpload && 
-                  !item.design?.isFlagged && 
-                  item.design?.status !== 'approved'
-                ) && (
+                {isAdmin && order.items?.some((item: any) => {
+                  const designName = item.design?.name || '';
+                  return designName.includes('[CUSTOMER_UPLOAD]') && 
+                    !designName.includes('[FLAGGED]') && 
+                    !designName.includes('[APPROVED]') &&
+                    item.design?.status !== 'approved';
+                }) && (
                   <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div>
@@ -644,6 +749,98 @@ export default function OrderDetail() {
                     </div>
                   </div>
                 )}
+
+                {/* Notes / Communication Section */}
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div 
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => setShowNotes(!showNotes)}
+                    data-testid="toggle-notes-section"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium text-gray-900 dark:text-foreground">
+                        Messages {artworkNotes?.notes?.length ? `(${artworkNotes.notes.length})` : ''}
+                      </span>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      {showNotes ? 'Hide' : 'Show'}
+                    </Button>
+                  </div>
+                  
+                  {showNotes && (
+                    <div className="mt-4 space-y-4">
+                      {/* Message History */}
+                      {artworkNotes?.notes && artworkNotes.notes.length > 0 ? (
+                        <div className="space-y-3 max-h-60 overflow-y-auto">
+                          {artworkNotes.notes.map((note) => (
+                            <div 
+                              key={note.id} 
+                              className={`p-3 rounded-lg ${
+                                note.senderType === 'admin' 
+                                  ? 'bg-blue-50 dark:bg-blue-950 ml-4' 
+                                  : 'bg-gray-100 dark:bg-gray-800 mr-4'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                  {note.senderType === 'admin' ? 'Sticky Banditos' : 'You'}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(note.createdAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                                {note.content}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">
+                          No messages yet. Send a message to communicate with our team about your artwork.
+                        </p>
+                      )}
+                      
+                      {/* Add Note Form */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newNote}
+                          onChange={(e) => setNewNote(e.target.value)}
+                          placeholder="Type a message..."
+                          className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          data-testid="input-new-note"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newNote.trim()) {
+                              addNoteMutation.mutate(newNote.trim());
+                            }
+                          }}
+                        />
+                        <Button
+                          onClick={() => {
+                            if (newNote.trim()) {
+                              addNoteMutation.mutate(newNote.trim());
+                            }
+                          }}
+                          disabled={addNoteMutation.isPending || !newNote.trim()}
+                          data-testid="button-send-note"
+                        >
+                          {addNoteMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 

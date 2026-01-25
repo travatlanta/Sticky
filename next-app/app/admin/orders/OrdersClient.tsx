@@ -49,6 +49,7 @@ interface Order {
   customerArtworkUrl?: string;
   adminDesignId?: number;
   artworkNotes?: string;
+  createdByAdminId?: string | null;
   createdAt: string;
   shippingAddress: any;
   billingAddress?: any;
@@ -93,12 +94,69 @@ const artworkStatusColors: Record<string, string> = {
   approved: "bg-green-100 text-green-800",
 };
 
+// Helper function to determine artwork badge for an item
+function getArtworkBadgeInfo(design: any, isAdminCreatedOrder: boolean): { text: string; colorClass: string } {
+  if (!design || (!design.previewUrl && !design.highResExportUrl)) {
+    return { text: "No Artwork", colorClass: "bg-red-100 text-red-800" };
+  }
+  
+  const designName = design.name || '';
+  const isAdminDesign = designName.includes('[ADMIN_DESIGN]');
+  const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]');
+  const isFlagged = designName.includes('[FLAGGED]');
+  const isApproved = designName.includes('[APPROVED]') || design.status === 'approved';
+  
+  if (isApproved) {
+    return { text: "Approved", colorClass: "bg-green-100 text-green-800" };
+  }
+  
+  if (isFlagged) {
+    // Admin flagged, waiting for customer re-approval
+    return { text: "Pending Approval", colorClass: "bg-yellow-100 text-yellow-800" };
+  }
+  
+  if (isAdminDesign) {
+    // Admin uploaded design, waiting for customer approval
+    return { text: "Pending Approval", colorClass: "bg-yellow-100 text-yellow-800" };
+  }
+  
+  if (isCustomerUpload) {
+    // Customer uploaded, ready to print (no approval needed)
+    return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
+  }
+  
+  // If admin-created order and has artwork but no tag, it's pending customer upload
+  if (isAdminCreatedOrder && !isCustomerUpload) {
+    return { text: "Pending Approval", colorClass: "bg-yellow-100 text-yellow-800" };
+  }
+  
+  // Default: has artwork, ready to print
+  return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
+}
+
+interface ArtworkNote {
+  id: number;
+  orderId: number;
+  orderItemId?: number;
+  userId: string;
+  senderType: 'admin' | 'user';
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+  senderName: string;
+}
+
 export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [emailDeliveries, setEmailDeliveries] = useState<any[]>([]);
   const [emailDeliveriesLoading, setEmailDeliveriesLoading] = useState(false);
   const [emailDeliveriesError, setEmailDeliveriesError] = useState<string | null>(null);
   const [emailDeliveriesWarning, setEmailDeliveriesWarning] = useState<string | null>(null);
+  const [newAdminNote, setNewAdminNote] = useState("");
+  
+  // Must be declared before hooks that use them
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   useEffect(() => {
   const orderId = selectedOrder?.id;
@@ -109,6 +167,7 @@ export default function AdminOrders() {
     setEmailDeliveriesWarning(null);
     setEmailDeliveriesError(null);
     setEmailDeliveriesLoading(false);
+    setNewAdminNote("");
     return;
   }
   
@@ -152,13 +211,46 @@ export default function AdminOrders() {
   };
   }, [selectedOrder?.id]);
 
+  // Query for artwork notes - using React Query for proper cache management
+  const { data: artworkNotesQuery } = useQuery<{ notes: ArtworkNote[] }>({
+    queryKey: ['/api/orders', selectedOrder?.id, 'artwork-notes'],
+    queryFn: async () => {
+      const res = await fetch(`/api/orders/${selectedOrder?.id}/artwork-notes`);
+      if (!res.ok) throw new Error("Failed to fetch notes");
+      return res.json();
+    },
+    enabled: !!selectedOrder?.id,
+  });
+
+  const artworkNotesFromQuery = artworkNotesQuery?.notes || [];
+
+  // Mutation for sending notes - with proper cache invalidation
+  const sendNoteMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const res = await fetch(`/api/orders/${selectedOrder?.id}/artwork-notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to send note');
+      return json;
+    },
+    onSuccess: () => {
+      setNewAdminNote("");
+      toast({ title: "Message sent to customer" });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders', selectedOrder?.id, 'artwork-notes'] });
+    },
+    onError: () => {
+      toast({ title: "Failed to send message", variant: "destructive" });
+    },
+  });
+
   const [downloadFormats, setDownloadFormats] = useState<Record<number, string>>({});
   const [downloading, setDownloading] = useState<Record<number, boolean>>({});
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
   const [artworkUploading, setArtworkUploading] = useState(false);
   const [artworkNotes, setArtworkNotes] = useState("");
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const handleDownload = async (url: string, itemId: number, designName: string, formatOverride?: string) => {
     const format = formatOverride || downloadFormats[itemId] || 'pdf';
@@ -830,17 +922,35 @@ export default function AdminOrders() {
                           </div>
                         </div>
 
-                        {/* Design Files Section */}
+                        {/* Design/Artwork Section */}
+                        <div className="mt-3 pt-3 border-t">
+                          {(() => {
+                            const isAdminCreatedOrder = !!selectedOrder.createdByAdminId || !!(orderDetails as any)?.createdByAdminId;
+                            const badgeInfo = getArtworkBadgeInfo(item.design, isAdminCreatedOrder);
+                            return (
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                                  <Palette className="h-4 w-4 text-orange-500" />
+                                  Artwork
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  {item.product?.name?.toLowerCase().includes('die') || item.product?.name?.toLowerCase().includes('kiss') ? (
+                                    <Badge className="text-xs bg-purple-100 text-purple-700">
+                                      Die-Cut
+                                    </Badge>
+                                  ) : null}
+                                  <Badge className={`text-xs ${badgeInfo.colorClass}`} data-testid={`badge-artwork-status-${item.id}`}>
+                                    {badgeInfo.text}
+                                  </Badge>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          
                         {item.design && (
-                          <div className="mt-3 pt-3 border-t">
-                            <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                              <Palette className="h-4 w-4 text-orange-500" />
-                              Customer Design: {item.design.name || 'Untitled'}
-                              {item.product?.name?.toLowerCase().includes('die') || item.product?.name?.toLowerCase().includes('kiss') ? (
-                                <Badge className="ml-2 text-xs bg-purple-100 text-purple-700">
-                                  Transparent BG
-                                </Badge>
-                              ) : null}
+                          <>
+                            <p className="text-xs text-gray-500 mb-2">
+                              {(item.design.name || 'Untitled').replace(/\[(ADMIN_DESIGN|CUSTOMER_UPLOAD|FLAGGED|APPROVED)\]/g, '').trim()}
                             </p>
                             <div className="flex flex-wrap items-start gap-4">
                               {/* Design Preview - Click to open modal */}
@@ -996,8 +1106,9 @@ export default function AdminOrders() {
                                 )}
                               </div>
                             </div>
-                          </div>
+                          </>
                         )}
+                        </div>
                       </div>
                     ))}
                     {(!orderDetails?.items?.length && !selectedOrder.items?.length) && (
@@ -1075,6 +1186,78 @@ export default function AdminOrders() {
                         Save Tracking
                       </Button>
                     </div>
+                  </div>
+                </div>
+
+                {/* Customer Communication */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-blue-600" />
+                    Customer Communication
+                    {artworkNotesFromQuery.length > 0 && (
+                      <Badge className="bg-blue-100 text-blue-800 text-xs">{artworkNotesFromQuery.length}</Badge>
+                    )}
+                  </h3>
+                  
+                  {/* Message History */}
+                  {artworkNotesFromQuery.length > 0 ? (
+                    <div className="space-y-2 max-h-40 overflow-y-auto mb-3">
+                      {artworkNotesFromQuery.map((note) => (
+                        <div 
+                          key={note.id} 
+                          className={`p-2 rounded-lg text-sm ${
+                            note.senderType === 'admin' 
+                              ? 'bg-blue-100 ml-4' 
+                              : 'bg-white mr-4 border'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-600">
+                              {note.senderType === 'admin' ? 'You' : 'Customer'}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(note.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 mb-3">No messages yet.</p>
+                  )}
+                  
+                  {/* Send Message */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newAdminNote}
+                      onChange={(e) => setNewAdminNote(e.target.value)}
+                      placeholder="Send a message to the customer..."
+                      className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                      data-testid="input-admin-note"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newAdminNote.trim()) {
+                          sendNoteMutation.mutate(newAdminNote.trim());
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={() => sendNoteMutation.mutate(newAdminNote.trim())}
+                      disabled={sendNoteMutation.isPending || !newAdminNote.trim()}
+                      data-testid="button-send-admin-note"
+                    >
+                      {sendNoteMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
                 </div>
 

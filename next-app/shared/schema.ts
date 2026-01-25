@@ -358,6 +358,18 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Artwork approval notes for communication during approval workflow
+export const artworkNotes = pgTable("artwork_notes", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => orders.id).notNull(),
+  orderItemId: integer("order_item_id").references(() => orderItems.id),
+  userId: varchar("user_id").references(() => users.id),
+  senderType: senderTypeEnum("sender_type").notNull(), // 'admin' or 'user'
+  content: text("content").notNull(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Deals (promotional cards for hot deals section)
 export const deals = pgTable("deals", {
   id: serial("id").primaryKey(),

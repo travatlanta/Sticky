@@ -970,7 +970,14 @@ export default function AdminOrders() {
                     Order Items ({orderDetails?.items?.length || selectedOrder.items?.length || 0})
                   </h3>
                   <div className="space-y-3">
-                    {(orderDetails?.items || selectedOrder.items || []).map((item: any) => (
+                    {(orderDetails?.items || selectedOrder.items || []).map((item: any) => {
+                      // Determine if this is an admin-created order for this item's context
+                      const isAdminCreatedOrder = !!selectedOrder.createdByAdminId || 
+                        !!(orderDetails as any)?.createdByAdminId ||
+                        !!(selectedOrder.notes?.includes('Payment Link:')) || 
+                        !!(selectedOrder.notes?.includes('Admin-created'));
+                      
+                      return (
                       <div key={item.id} className="bg-white rounded-lg border p-4">
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
@@ -997,7 +1004,6 @@ export default function AdminOrders() {
                         {/* Design/Artwork Section */}
                         <div className="mt-3 pt-3 border-t">
                           {(() => {
-                            const isAdminCreatedOrder = !!selectedOrder.createdByAdminId || !!(orderDetails as any)?.createdByAdminId;
                             const badgeInfo = getArtworkBadgeInfo(item.design, isAdminCreatedOrder);
                             return (
                               <div className="flex items-center justify-between mb-2">
@@ -1194,9 +1200,12 @@ export default function AdminOrders() {
                             
                             {/* Admin Artwork Review Actions - always show */}
                             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
-                              {/* Approve button - show when artwork exists and needs approval */}
+                              {/* Approve button - show when:
+                                 - Admin-created order: always show if artwork exists and not approved
+                                 - Customer-created order: only show if artwork was flagged for revision by admin */}
                               {item.design && (item.design.previewUrl || item.design.highResExportUrl || item.design.artworkUrl) && 
-                               !item.design?.name?.includes('[APPROVED]') && (
+                               !item.design?.name?.includes('[APPROVED]') && 
+                               (isAdminCreatedOrder || item.design?.name?.includes('[FLAGGED]')) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
@@ -1266,7 +1275,8 @@ export default function AdminOrders() {
                         </div>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                     {(!orderDetails?.items?.length && !selectedOrder.items?.length) && (
                       <div className="text-center py-4 text-gray-500">
                         No items found for this order

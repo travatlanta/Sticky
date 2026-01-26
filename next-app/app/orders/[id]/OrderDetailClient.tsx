@@ -701,14 +701,18 @@ export default function OrderDetail() {
   
   // Determine if order needs payment (component-level for use in shipping edit button)
   // NEVER show payment for already paid or processed orders
+  // Use BOTH status AND paymentConfirmedAt as sources of truth
   const paidStatuses = ['paid', 'in_production', 'printed', 'shipped', 'delivered', 'completed'];
-  const isPaid = paidStatuses.includes(orderStatus);
+  const hasPaymentConfirmation = !!order.paymentConfirmedAt; // Backup source of truth
+  const isPaid = paidStatuses.includes(orderStatus) || hasPaymentConfirmation;
   const payableStatuses = ['pending', 'pending_payment', 'awaiting_artwork'];
   const needsPayment = !isPaid && payableStatuses.includes(orderStatus) && order.notes?.includes('Payment Link:');
   
   console.log('[OrderDetail] Payment check:', { 
     status: order.status, 
     isPaid, 
+    paymentConfirmedAt: order.paymentConfirmedAt,
+    hasPaymentConfirmation,
     inPayableStatuses: payableStatuses.includes(order.status),
     hasPaymentLink: order.notes?.includes('Payment Link:'),
     needsPayment 

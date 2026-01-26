@@ -304,6 +304,7 @@ export const orders = pgTable("orders", {
   adminDesignId: integer("admin_design_id").references(() => designs.id),
   artworkNotes: text("artwork_notes"),
   artworkApprovedAt: timestamp("artwork_approved_at"),
+  paymentConfirmedAt: timestamp("payment_confirmed_at"), // Source of truth for payment
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

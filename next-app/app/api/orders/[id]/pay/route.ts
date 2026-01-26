@@ -17,23 +17,35 @@ export async function POST(
     const { id } = await params;
     const orderId = parseInt(id, 10);
     
+    console.log(`[Pay API] ====== Payment request for order ${id} ======`);
+    
     if (isNaN(orderId)) {
+      console.log(`[Pay API] REJECTED - Invalid order ID: ${id}`);
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
     }
 
     const session = await getServerSession(authOptions);
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.log(`[Pay API] REJECTED - Failed to parse request body:`, parseError);
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    
     const { sourceId, billingAddress: clientBillingAddress } = body;
+    console.log(`[Pay API] Order ${orderId} - sourceId: ${sourceId}, hasSession: ${!!session}`);
 
     // sourceId can be "FREE_ORDER" for $0 orders or a Square token for paid orders
     if (!sourceId) {
+      console.log(`[Pay API] REJECTED - Missing sourceId for order ${orderId}`);
       return NextResponse.json({ error: "Missing payment source" }, { status: 400 });
     }
 
     // Fetch the order
     const orderResult = await db.execute(sql`
       SELECT id, order_number, user_id, status, total_amount, subtotal, shipping_cost, tax_amount, 
-             customer_email, shipping_address, notes
+             customer_email, shipping_address, notes, created_by_admin_id
       FROM orders 
       WHERE id = ${orderId}
       LIMIT 1
@@ -49,12 +61,24 @@ export async function POST(
     // - Allow if user is admin
     // - Allow if user is authenticated and owns the order
     // - Allow if order has no user_id yet (admin-created order, first-time payment)
+    // - Allow if order was created by admin (payment link access)
     const isAdmin = (session?.user as any)?.isAdmin === true;
     const userId = session?.user ? String((session.user as any).id) : null;
     const orderUserId = orderRow.user_id ? String(orderRow.user_id) : null;
+    const isAdminCreatedOrder = !!orderRow.created_by_admin_id;
     
-    // If order has a user_id, only owner or admin can pay
-    if (orderUserId && !isAdmin && orderUserId !== userId) {
+    console.log(`[Pay API] Order ${orderId} auth check:`, {
+      isAdmin,
+      userId,
+      orderUserId,
+      isAdminCreatedOrder,
+      hasSession: !!session
+    });
+    
+    // For admin-created orders (payment link), allow anyone with the link to pay
+    // For customer-created orders, only owner or admin can pay
+    if (!isAdminCreatedOrder && orderUserId && !isAdmin && orderUserId !== userId) {
+      console.log(`[Pay API] Order ${orderId} REJECTED - unauthorized (not owner, not admin, not admin-created)`);
       return NextResponse.json(
         { error: "You are not authorized to pay for this order" },
         { status: 403 }
@@ -63,9 +87,20 @@ export async function POST(
 
     // Check if order can be paid
     const payableStatuses = ["pending", "pending_payment", "awaiting_artwork"];
+    console.log(`[Pay API] Order ${orderId} status check:`, {
+      currentStatus: orderRow.status,
+      payableStatuses,
+      isPayable: payableStatuses.includes(orderRow.status),
+      totalAmount: orderRow.total_amount,
+      userId: userId,
+      orderUserId: orderUserId,
+      isAdmin
+    });
+    
     if (!payableStatuses.includes(orderRow.status)) {
+      console.log(`[Pay API] Order ${orderId} REJECTED - status '${orderRow.status}' not in payable list`);
       return NextResponse.json(
-        { error: "Order has already been paid or processed" },
+        { error: `Order has already been paid or processed (status: ${orderRow.status})` },
         { status: 400 }
       );
     }
@@ -85,9 +120,15 @@ export async function POST(
       console.log(`[Pay API] Order ${orderId} is $0 - marking as paid without Square`);
       
       try {
-        // Use raw SQL to ensure the update works
-        await db.execute(sql`UPDATE orders SET status = 'paid' WHERE id = ${orderId}`);
-        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (free order)`);
+        // Use raw SQL to update status AND set payment_confirmed_at as source of truth
+        await db.execute(sql`
+          UPDATE orders 
+          SET status = 'paid', 
+              payment_confirmed_at = NOW(),
+              updated_at = NOW()
+          WHERE id = ${orderId}
+        `);
+        console.log(`[Pay API] Order ${orderId} status updated to 'paid' with payment_confirmed_at (free order)`);
       } catch (updateError) {
         console.error(`[Pay API] Failed to update order ${orderId} status:`, updateError);
         return NextResponse.json({ error: "Failed to update order status" }, { status: 500 });
@@ -167,21 +208,28 @@ export async function POST(
       );
     }
 
-    // Update order status to paid - use raw SQL to ensure it works in production
+    // Update order status to paid with payment_confirmed_at as source of truth
     console.log(`[Pay API] Order ${orderId} payment completed. Square payment ID: ${payment.id}`);
     try {
       await db.execute(sql`
         UPDATE orders 
-        SET status = 'paid', stripe_payment_intent_id = ${payment.id}
+        SET status = 'paid', 
+            stripe_payment_intent_id = ${payment.id},
+            payment_confirmed_at = NOW(),
+            updated_at = NOW()
         WHERE id = ${orderId}
       `);
-      console.log(`[Pay API] Order ${orderId} status successfully updated to 'paid'`);
+      console.log(`[Pay API] Order ${orderId} status successfully updated to 'paid' with payment_confirmed_at`);
     } catch (updateError: any) {
       console.error(`[Pay API] CRITICAL: Failed to update order ${orderId} status to paid:`, updateError.message);
-      // Try a simpler update without the payment ID
+      // Try a simpler update without the payment ID but with payment_confirmed_at
       try {
-        await db.execute(sql`UPDATE orders SET status = 'paid' WHERE id = ${orderId}`);
-        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (without payment ID)`);
+        await db.execute(sql`
+          UPDATE orders 
+          SET status = 'paid', payment_confirmed_at = NOW() 
+          WHERE id = ${orderId}
+        `);
+        console.log(`[Pay API] Order ${orderId} status updated to 'paid' with payment_confirmed_at (fallback)`);
       } catch (fallbackError: any) {
         console.error(`[Pay API] CRITICAL: Even simple status update failed for order ${orderId}:`, fallbackError.message);
       }

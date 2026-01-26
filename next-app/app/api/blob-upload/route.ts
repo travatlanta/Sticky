@@ -1,29 +1,23 @@
-import { NextResponse } from "next/server";
-import crypto from "crypto";
 import { put } from "@vercel/blob";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-type UploadBody = {
+type Body = {
   dataUrl?: string;
-  filenamePrefix?: string;
+  pathname?: string;
 };
-
-function sanitizePrefix(input: string): string {
-  return input.trim().replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 80) || "preview";
-}
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as UploadBody;
-    const dataUrl = body.dataUrl;
-    const filenamePrefix = sanitizePrefix(body.filenamePrefix ?? "preview");
+    const body = (await req.json()) as Body;
 
-    if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) {
+    const dataUrl = body?.dataUrl;
+    if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) {
       return NextResponse.json({ error: "Invalid dataUrl" }, { status: 400 });
     }
 
-    const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!match) {
       return NextResponse.json({ error: "Invalid dataUrl format" }, { status: 400 });
     }
@@ -31,24 +25,21 @@ export async function POST(req: Request) {
     const contentType = match[1];
     const b64 = match[2];
 
-    const buffer = Buffer.from(b64, "base64");
-    if (!buffer.length) {
-      return NextResponse.json({ error: "Empty payload" }, { status: 400 });
-    }
+    const buf = Buffer.from(b64, "base64");
 
-    const extRaw = contentType.split("/")[1] || "png";
-    const ext = extRaw === "jpeg" ? "jpg" : extRaw;
+    const pathname =
+      typeof body?.pathname === "string" && body.pathname.trim()
+        ? body.pathname.trim().replace(/^\/+/, "")
+        : `previews/preview-${Date.now()}.png`;
 
-    const filename = `${filenamePrefix}-${crypto.randomUUID()}.${ext}`;
-    const blob = await put(filename, buffer, {
+    const blob = await put(pathname, buf, {
       access: "public",
       contentType,
-      addRandomSuffix: false,
     });
 
     return NextResponse.json({ url: blob.url });
   } catch (err) {
-    console.error("/api/blob-upload error", err);
+    console.error("[blob-upload] Error:", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }

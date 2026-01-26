@@ -147,7 +147,6 @@ export default function Editor() {
   const fabricCanvasRef = useRef<any>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const previewUrlLoadedRef = useRef<string | null>(null);
-  const disposedRef = useRef<boolean>(false);
   const canvasJsonLoadedRef = useRef<boolean>(false);
   const designDataLoadedRef = useRef<boolean>(false);
 
@@ -219,44 +218,6 @@ export default function Editor() {
     });
   }, [fabricModule]);
 
-  // Fabric Canvas.loadFromJSON differs between versions:
-  // - Fabric 5.x is callback-style and returns void
-  // - Fabric 6+ returns a Promise
-  // Wrap into a Promise so callers can await / .then safely.
-  const safeLoadFromJSON = useCallback((canvas: any, json: any) => {
-    return new Promise<void>((resolve, reject) => {
-      if (!canvas) {
-        resolve();
-        return;
-      }
-      try {
-        const maybe = canvas.loadFromJSON(json, () => {
-          try {
-            canvas.renderAll();
-          } catch {
-            // ignore
-          }
-          resolve();
-        });
-        if (maybe && typeof maybe.then === "function") {
-          (maybe as Promise<any>)
-            .then(() => {
-              try {
-                canvas.renderAll();
-              } catch {
-                // ignore
-              }
-              resolve();
-            })
-            .catch(reject);
-        }
-      } catch (err) {
-        reject(err);
-      }
-    });
-  }, []);
-
-
   const { data: design, isLoading: designLoading, error: designError } = useQuery<Design>({
     queryKey: [`/api/designs/${designId}`],
     queryFn: async () => {
@@ -296,7 +257,6 @@ export default function Editor() {
 
   useEffect(() => {
     if (fabricCanvasRef.current) return;
-    disposedRef.current = false;
     
     const checkAndInit = () => {
       if (!canvasRef.current) {
@@ -344,7 +304,6 @@ export default function Editor() {
     checkAndInit();
 
     return () => {
-      disposedRef.current = true;
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
@@ -429,24 +388,18 @@ export default function Editor() {
       // Remove ALL event listeners during load to prevent state update loops
       canvas.off();
       
-      safeLoadFromJSON(canvas, design.canvasJson)
-        .then(() => {
-          if (disposedRef.current) return;
-          canvas.renderAll();
-          // Re-attach event listeners after load completes
-          canvas.on("object:modified", saveCanvasState);
-          canvas.on("object:added", saveCanvasState);
-          canvas.on("object:removed", saveCanvasState);
-          if (product?.supportsCustomShape) {
-            canvas.on("object:moving", updateContourFromCanvas);
-            canvas.on("object:scaling", updateContourFromCanvas);
-          }
-          console.log("Canvas JSON loaded and events re-attached");
-        })
-        .catch((err) => {
-          console.error("Failed to load canvas JSON:", err);
-          toast({ title: "Failed to load design", description: "Could not load saved design state.", variant: "destructive" });
-        });
+      canvas.loadFromJSON(design.canvasJson).then(() => {
+        canvas.renderAll();
+        // Re-attach event listeners after load completes
+        canvas.on("object:modified", saveCanvasState);
+        canvas.on("object:added", saveCanvasState);
+        canvas.on("object:removed", saveCanvasState);
+        if (product?.supportsCustomShape) {
+          canvas.on("object:moving", updateContourFromCanvas);
+          canvas.on("object:scaling", updateContourFromCanvas);
+        }
+        console.log("Canvas JSON loaded and events re-attached");
+      });
     } else if (design?.previewUrl && fabricCanvasRef.current && fabricLoaded && fabricModule) {
       // No canvas JSON - this is a file upload, load the image onto the canvas
       // Prevent loading the same image multiple times
@@ -703,48 +656,44 @@ export default function Editor() {
   const undo = useCallback(() => {
     const canvas = fabricCanvasRef.current;
     if (!canvas || undoStack.length === 0) return;
-
+    
     const currentState = JSON.stringify(canvas.toJSON());
-    setRedoStack((prev) => [...prev, currentState]);
-
+    setRedoStack(prev => [...prev, currentState]);
+    
     const prevState = undoStack[undoStack.length - 1];
-    setUndoStack((prev) => prev.slice(0, -1));
-
-    let json: any = prevState;
+    setUndoStack(prev => prev.slice(0, -1));
+    
     try {
-      json = JSON.parse(prevState);
-    } catch {
-      // keep as string
+      canvas.loadFromJSON(JSON.parse(prevState), () => {
+        canvas.renderAll();
+      });
+    } catch (e) {
+      canvas.loadFromJSON(prevState).then(() => {
+        canvas.renderAll();
+      });
     }
-
-    safeLoadFromJSON(canvas, json).catch((err) => {
-      console.error("Undo loadFromJSON failed:", err);
-      toast({ title: "Undo failed", description: "Could not restore previous state.", variant: "destructive" });
-    });
-  }, [undoStack, safeLoadFromJSON, toast]);
+  }, [undoStack]);
 
   const redo = useCallback(() => {
     const canvas = fabricCanvasRef.current;
     if (!canvas || redoStack.length === 0) return;
-
+    
     const currentState = JSON.stringify(canvas.toJSON());
-    setUndoStack((prev) => [...prev, currentState]);
-
+    setUndoStack(prev => [...prev, currentState]);
+    
     const nextState = redoStack[redoStack.length - 1];
-    setRedoStack((prev) => prev.slice(0, -1));
-
-    let json: any = nextState;
+    setRedoStack(prev => prev.slice(0, -1));
+    
     try {
-      json = JSON.parse(nextState);
-    } catch {
-      // keep as string
+      canvas.loadFromJSON(JSON.parse(nextState), () => {
+        canvas.renderAll();
+      });
+    } catch (e) {
+      canvas.loadFromJSON(nextState).then(() => {
+        canvas.renderAll();
+      });
     }
-
-    safeLoadFromJSON(canvas, json).catch((err) => {
-      console.error("Redo loadFromJSON failed:", err);
-      toast({ title: "Redo failed", description: "Could not restore next state.", variant: "destructive" });
-    });
-  }, [redoStack, safeLoadFromJSON, toast]);
+  }, [redoStack]);
 
   const deleteSelected = useCallback(() => {
     const canvas = fabricCanvasRef.current;
@@ -1248,6 +1197,34 @@ export default function Editor() {
     });
   }, []);
 
+
+const uploadPreviewToBlob = useCallback(
+  async (dataUrl: string, keyHint: string): Promise<string | null> => {
+    if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) return null;
+
+    try {
+      const res = await fetch("/api/blob-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dataUrl,
+          // keep paths short + predictable
+          pathname: `previews/${keyHint}-${Date.now()}.png`,
+        }),
+      });
+
+      if (!res.ok) return null;
+
+      const data = await res.json().catch(() => null);
+      return typeof data?.url === "string" ? data.url : null;
+    } catch (err) {
+      console.error("[EditorClient] Preview upload failed:", err);
+      return null;
+    }
+  },
+  []
+);
+
   const saveDesign = async (): Promise<number | null> => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return null;
@@ -1255,7 +1232,9 @@ export default function Editor() {
     setIsSaving(true);
     try {
       const canvasJson = canvas.toJSON();
-      const previewUrl = canvas.toDataURL({ format: 'png', quality: 0.8 });
+      const previewDataUrl = canvas.toDataURL({ format: "png", quality: 0.8 });
+      const previewBlobUrl = await uploadPreviewToBlob(previewDataUrl, `design-${designId || "new"}`);
+      const previewUrl = previewBlobUrl || previewDataUrl;
 
       // For new designs from order context, create a new design
       if (isNewDesign && productIdFromUrl) {
@@ -1442,13 +1421,15 @@ export default function Editor() {
 
       // Export canvas
       const previewDataUrl = canvas.toDataURL({ format: "png", multiplier: 1 });
+      const previewBlobUrl = await uploadPreviewToBlob(previewDataUrl, `order-${orderIdFromUrl || "unknown"}-item-${itemIdFromUrl || "unknown"}`);
+      const previewUrl = previewBlobUrl || previewDataUrl;
 
       // Create/update design
       const designPayload: any = {
         name: `[CUSTOMER_UPLOAD] Artwork for Order Item ${itemIdFromUrl}`,
         productId: effectiveProductId,
         canvasJson: JSON.stringify(canvas.toJSON()),
-        previewUrl: previewDataUrl,
+        previewUrl,
       };
 
       let savedDesignId: number;

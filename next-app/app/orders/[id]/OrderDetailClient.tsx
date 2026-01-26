@@ -130,10 +130,9 @@ function getArtworkBadgeInfo(design: Design | null | undefined, isAdminCreatedOr
     return { text: "Approved", colorClass: "bg-green-100 text-green-700" };
   }
   
-  // Priority 2: Only show "Needs Approval" if EXPLICITLY FLAGGED by admin
-  // Regular admin uploads do NOT require customer approval
+  // Priority 2: Flagged for revision - show clear revision badge
   if (isFlagged) {
-    return { text: "Needs Your Approval", colorClass: "bg-yellow-100 text-yellow-700" };
+    return { text: "Revision Requested", colorClass: "bg-red-100 text-red-700" };
   }
   
   // Everything else is Ready - admin uploads, customer uploads, etc.
@@ -1158,6 +1157,13 @@ export default function OrderDetail() {
                           const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
                           const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
                           
+                          // Get admin notes for this item (or order-level admin notes)
+                          const adminNotes = artworkNotes?.notes?.filter((note: ArtworkNote) => 
+                            note.senderType === 'admin' && 
+                            (note.orderItemId === item.id || !note.orderItemId)
+                          ) || [];
+                          const latestAdminNote = adminNotes.length > 0 ? adminNotes[adminNotes.length - 1] : null;
+                          
                           if (!isAdmin && isDesignFlagged && !isDesignApproved) {
                             return (
                               <div className="mt-3 pt-3 border-t border-red-200">
@@ -1166,20 +1172,58 @@ export default function OrderDetail() {
                                     <Edit className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                                     <div className="flex-1">
                                       <p className="font-medium text-red-800">Revision Requested</p>
+                                      
+                                      {/* Show admin notes prominently */}
+                                      {latestAdminNote ? (
+                                        <div className="my-3 p-3 bg-white border border-red-200 rounded-lg">
+                                          <p className="text-xs font-medium text-gray-500 mb-1">
+                                            Message from Sticky Banditos:
+                                          </p>
+                                          <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                                            {latestAdminNote.content}
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <p className="text-sm text-red-700 mb-3">
+                                          We've flagged an issue with your artwork. Please review and upload revised artwork, or approve if the current design is acceptable.
+                                        </p>
+                                      )}
+                                      
                                       <p className="text-sm text-red-700 mb-3">
-                                        We've flagged an issue with your artwork. Please review and upload revised artwork, or approve if the current design is acceptable.
+                                        Use the <strong>Open Editor</strong> button to edit your design, or <strong>Upload File</strong> to submit new artwork.
                                       </p>
+                                      
                                       <div className="flex flex-wrap gap-2">
-                                        <Button
-                                          variant="destructive"
-                                          onClick={() => setReviseArtworkItemId(item.id)}
-                                          data-testid={`button-revise-artwork-${item.id}`}
+                                        <Link
+                                          href={item.design?.id 
+                                            ? `/editor/${item.design.id}?orderId=${id}&itemId=${item.id}&productId=${item.productId}`
+                                            : `/editor/new?orderId=${id}&itemId=${item.id}&productId=${item.productId}`}
                                         >
-                                          <Edit className="h-4 w-4 mr-2" />
-                                          Revise Artwork
-                                        </Button>
+                                          <Button
+                                            variant="destructive"
+                                            data-testid={`button-revise-editor-${item.id}`}
+                                          >
+                                            <Palette className="h-4 w-4 mr-2" />
+                                            Open Editor
+                                          </Button>
+                                        </Link>
                                         <Button
                                           variant="outline"
+                                          className="border-red-300 text-red-700 hover:bg-red-100"
+                                          onClick={() => fileInputRefs.current[item.id]?.click()}
+                                          disabled={uploadingItemId === item.id}
+                                          data-testid={`button-upload-revision-${item.id}`}
+                                        >
+                                          {uploadingItemId === item.id ? (
+                                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                          ) : (
+                                            <Upload className="h-4 w-4 mr-2" />
+                                          )}
+                                          Upload New File
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          className="text-gray-600"
                                           onClick={() => setApprovalConfirmItemId(item.id)}
                                           disabled={approveArtworkMutation.isPending}
                                           data-testid={`button-approve-anyway-${item.id}`}

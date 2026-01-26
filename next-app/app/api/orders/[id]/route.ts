@@ -89,10 +89,12 @@ export async function GET(
     
     console.log(`[Order API] Order ${orderId} - status: ${order.status}, adminDesignId: ${order.adminDesignId}`);
     
-    // Fetch admin design if exists (order-level design uploaded by admin)
+    // Fetch admin design - try multiple methods
     let adminDesign = null;
+    
+    // Method 1: Try using orders.admin_design_id
     if (order.adminDesignId) {
-      console.log(`[Order ${order.id}] Fetching admin design with id ${order.adminDesignId}`);
+      console.log(`[Order ${order.id}] Method 1: Fetching admin design with id ${order.adminDesignId}`);
       try {
         const designResult = await db.execute(sql`
           SELECT id, name, preview_url, high_res_export_url, custom_shape_url 
@@ -116,24 +118,91 @@ export async function GET(
             isCustomerUpload: false,
             isFlagged: designName.includes('[FLAGGED]'),
           };
-        } else {
-          console.log(`[Order ${order.id}] Admin design ${order.adminDesignId} not found in designs table`);
         }
       } catch (designError) {
         console.error(`[Order ${order.id}] Error fetching admin design:`, designError);
       }
-    } else {
-      console.log(`[Order ${order.id}] No admin design ID set on order`);
+    }
+    
+    // Method 2: Search designs table by name pattern if no admin design found yet
+    if (!adminDesign) {
+      console.log(`[Order ${order.id}] Method 2: Searching for [ADMIN_DESIGN] by order number`);
+      try {
+        const searchPattern = `%Order #${order.orderNumber}%`;
+        const adminDesignSearch = await db.execute(sql`
+          SELECT id, name, preview_url, high_res_export_url, custom_shape_url 
+          FROM designs 
+          WHERE name LIKE ${searchPattern} AND name LIKE '%[ADMIN_DESIGN]%'
+          ORDER BY id DESC
+          LIMIT 1
+        `);
+        
+        if (adminDesignSearch.rows && adminDesignSearch.rows.length > 0) {
+          const d = adminDesignSearch.rows[0] as any;
+          console.log(`[Order ${order.id}] Found admin design by search:`, { id: d.id, name: d.name });
+          const designName = d.name || '';
+          adminDesign = {
+            id: d.id,
+            name: d.name,
+            previewUrl: d.preview_url,
+            artworkUrl: d.preview_url || null,
+            highResExportUrl: d.high_res_export_url,
+            customShapeUrl: d.custom_shape_url,
+            status: 'admin_review',
+            isAdminDesign: true,
+            isCustomerUpload: false,
+            isFlagged: designName.includes('[FLAGGED]'),
+          };
+        } else {
+          console.log(`[Order ${order.id}] No admin design found by search pattern`);
+        }
+      } catch (searchError) {
+        console.error(`[Order ${order.id}] Error searching for admin design:`, searchError);
+      }
+    }
+    
+    if (!adminDesign) {
+      console.log(`[Order ${order.id}] No admin design found via any method`);
     }
 
-    // Get order items
-    const items = await db
-      .select()
-      .from(orderItems)
-      .where(eq(orderItems.orderId, order.id));
+    // Get order items using raw SQL for production compatibility
+    let items: any[] = [];
+    try {
+      const itemsResult = await db.execute(sql`
+        SELECT id, order_id, product_id, design_id, quantity, unit_price, selected_options
+        FROM order_items
+        WHERE order_id = ${order.id}
+      `);
+      items = (itemsResult.rows || []).map((row: any) => ({
+        id: row.id,
+        orderId: row.order_id,
+        productId: row.product_id,
+        designId: row.design_id,
+        quantity: row.quantity,
+        unitPrice: row.unit_price,
+        selectedOptions: row.selected_options,
+      }));
+    } catch (itemsError) {
+      console.error(`[Order ${order.id}] Error fetching items with design_id:`, itemsError);
+      // Fallback query without design_id column
+      const itemsResult = await db.execute(sql`
+        SELECT id, order_id, product_id, quantity, unit_price, selected_options
+        FROM order_items
+        WHERE order_id = ${order.id}
+      `);
+      items = (itemsResult.rows || []).map((row: any) => ({
+        id: row.id,
+        orderId: row.order_id,
+        productId: row.product_id,
+        designId: null,
+        quantity: row.quantity,
+        unitPrice: row.unit_price,
+        selectedOptions: row.selected_options,
+      }));
+    }
 
     console.log(`[Order ${order.id}] Found ${items.length} order items`);
-    items.forEach((item, idx) => {
+    items.forEach((item: any, idx: number) => {
       console.log(`[Order ${order.id}] Item ${idx}: id=${item.id}, designId=${item.designId}, productId=${item.productId}`);
     });
 

@@ -61,25 +61,30 @@ export async function GET() {
         `);
       }
       
-      allOrders = (result.rows || []).map((row: any) => ({
-        id: row.id,
-        orderNumber: row.order_number,
-        userId: row.user_id,
-        status: row.status,
-        subtotal: row.subtotal,
-        shippingCost: row.shipping_cost,
-        taxAmount: row.tax_amount,
-        discountAmount: row.discount_amount,
-        totalAmount: row.total_amount,
-        shippingAddress: row.shipping_address,
-        notes: row.notes,
-        trackingNumber: row.tracking_number,
-        createdAt: row.created_at,
-        artworkStatus: row.artwork_status || null,
-        createdByAdminId: hasCreatedByAdminId ? (row.created_by_admin_id || null) : null,
-        // Parse customer info from notes for display
-        ...parseNotesForCustomerInfo(row.notes),
-      }));
+      allOrders = (result.rows || []).map((row: any) => {
+        // Log each order's status for debugging
+        console.log(`[Admin Orders API] Order #${row.order_number || row.id}: status='${row.status}', total='${row.total_amount}'`);
+        
+        return {
+          id: row.id,
+          orderNumber: row.order_number,
+          userId: row.user_id,
+          status: row.status,
+          subtotal: row.subtotal,
+          shippingCost: row.shipping_cost,
+          taxAmount: row.tax_amount,
+          discountAmount: row.discount_amount,
+          totalAmount: row.total_amount,
+          shippingAddress: row.shipping_address,
+          notes: row.notes,
+          trackingNumber: row.tracking_number,
+          createdAt: row.created_at,
+          artworkStatus: row.artwork_status || null,
+          createdByAdminId: hasCreatedByAdminId ? (row.created_by_admin_id || null) : null,
+          // Parse customer info from notes for display
+          ...parseNotesForCustomerInfo(row.notes),
+        };
+      });
     } catch (ordersErr) {
       console.error('Error fetching orders (schema mismatch?):', ordersErr);
       // Return empty array if orders table has schema issues

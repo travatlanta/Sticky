@@ -167,13 +167,25 @@ export async function POST(
       );
     }
 
-    // Update order status to paid
-    await db.update(orders)
-      .set({ 
-        status: "paid",
-        stripePaymentIntentId: payment.id,
-      })
-      .where(eq(orders.id, orderId));
+    // Update order status to paid - use raw SQL to ensure it works in production
+    console.log(`[Pay API] Order ${orderId} payment completed. Square payment ID: ${payment.id}`);
+    try {
+      await db.execute(sql`
+        UPDATE orders 
+        SET status = 'paid', stripe_payment_intent_id = ${payment.id}
+        WHERE id = ${orderId}
+      `);
+      console.log(`[Pay API] Order ${orderId} status successfully updated to 'paid'`);
+    } catch (updateError: any) {
+      console.error(`[Pay API] CRITICAL: Failed to update order ${orderId} status to paid:`, updateError.message);
+      // Try a simpler update without the payment ID
+      try {
+        await db.execute(sql`UPDATE orders SET status = 'paid' WHERE id = ${orderId}`);
+        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (without payment ID)`);
+      } catch (fallbackError: any) {
+        console.error(`[Pay API] CRITICAL: Even simple status update failed for order ${orderId}:`, fallbackError.message);
+      }
+    }
 
     // Send confirmation email
     const customerEmail = orderRow.customer_email;

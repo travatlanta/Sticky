@@ -426,6 +426,34 @@ export default function AdminOrders() {
     }
   };
 
+  // Mark order as paid mutation
+  const markAsPaidMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/orders/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "paid" }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to update status");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      toast({ title: "✓ Order marked as paid" });
+    },
+    onError: (error: any) => toast({ title: error.message || "Failed to update status", variant: "destructive" }),
+  });
+
+  const handleMarkAsPaid = (orderId: number) => {
+    if (window.confirm("Mark this order as PAID? This will update the payment status.")) {
+      markAsPaidMutation.mutate(orderId);
+    }
+  };
+
   // Approve artwork function
   const handleApproveArtwork = async (orderId: number, orderItemId: number) => {
     try {
@@ -741,6 +769,26 @@ export default function AdminOrders() {
                       <p className="text-xs text-gray-400 mt-1">{formatDate(order.createdAt)}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                      {/* Mark as Paid button - only show for unpaid orders */}
+                      {!['paid', 'in_production', 'shipped', 'delivered'].includes(order.status) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleMarkAsPaid(order.id)}
+                              disabled={markAsPaidMutation.isPending}
+                              className="text-green-600 border-green-300 hover:bg-green-50"
+                              data-testid={`button-mark-paid-${order.id}`}
+                            >
+                              Mark Paid
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Manually mark this order as paid</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button

@@ -231,7 +231,7 @@ export async function PUT(
     const orderId = parseInt(id);
     const userId = (session.user as any).id;
     const body = await request.json();
-    const { orderItemId, action } = body;
+    const { orderItemId, action, designId } = body;
 
     if (!orderItemId) {
       return NextResponse.json({ message: "Order item ID required" }, { status: 400 });
@@ -264,6 +264,43 @@ export async function PUT(
     }
 
     const orderItem = itemResult.rows[0] as any;
+
+    // Handle linking a design to an order item (from editor)
+    if (designId) {
+      // Validate that the design exists and belongs to the same user (or admin is linking)
+      const designResult = await db.execute(sql`
+        SELECT id, user_id FROM designs WHERE id = ${designId}
+      `);
+      
+      if (!designResult.rows || designResult.rows.length === 0) {
+        return NextResponse.json({ message: "Design not found" }, { status: 404 });
+      }
+      
+      const design = designResult.rows[0] as any;
+      
+      // Only allow linking if: design has no user (system created), user owns it, or user is admin
+      if (design.user_id && design.user_id !== userId && !(session.user as any).isAdmin) {
+        return NextResponse.json({ message: "Cannot link design you don't own" }, { status: 403 });
+      }
+
+      await db.execute(sql`
+        UPDATE order_items SET design_id = ${designId}
+        WHERE id = ${parseInt(orderItemId)}
+      `);
+
+      // Update the design name to indicate it's a customer upload
+      await db.execute(sql`
+        UPDATE designs SET
+          name = '[CUSTOMER_UPLOAD] ' || COALESCE(REGEXP_REPLACE(name, '^\[(PENDING|APPROVED|FLAGGED|ADMIN_DESIGN|CUSTOMER_UPLOAD)\]\s*', ''), 'Design'),
+          updated_at = NOW()
+        WHERE id = ${designId}
+      `);
+
+      return NextResponse.json({
+        success: true,
+        message: "Design linked to order item successfully",
+      });
+    }
 
     if (!orderItem.design_id) {
       return NextResponse.json({ message: "No artwork to approve" }, { status: 400 });

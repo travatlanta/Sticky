@@ -42,6 +42,7 @@ import {
   Send,
   Edit,
   Lock,
+  Palette,
 } from "lucide-react";
 
 interface Design {
@@ -901,7 +902,7 @@ export default function OrderDetail() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-blue-700 border-blue-300 hover:bg-blue-50"
+                            className="text-blue-700 border-blue-300"
                             onClick={() => fileInputRefs.current[item.id]?.click()}
                             disabled={uploadingItemId === item.id}
                             data-testid={`button-upload-new-${item.id}`}
@@ -911,8 +912,25 @@ export default function OrderDetail() {
                             ) : (
                               <Upload className="h-4 w-4 mr-1" />
                             )}
-                            Upload New Design
+                            Upload File
                           </Button>
+                          
+                          {/* Open Editor button - allows customers to create/edit design using the built-in editor */}
+                          <Link
+                            href={item.design?.id 
+                              ? `/editor/${item.design.id}?orderId=${id}&itemId=${item.id}&productId=${item.productId}`
+                              : `/editor/new?orderId=${id}&itemId=${item.id}&productId=${item.productId}`}
+                            data-testid={`button-open-editor-${item.id}`}
+                          >
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-purple-700 border-purple-300"
+                            >
+                              <Palette className="h-4 w-4 mr-1" />
+                              Open Editor
+                            </Button>
+                          </Link>
                         </div>
                         
                         {/* Hidden file input */}

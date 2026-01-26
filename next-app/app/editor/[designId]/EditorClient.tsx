@@ -1084,25 +1084,58 @@ export default function Editor() {
         const newDesign = await createRes.json();
         
         // If we have order context, update the order item with the new design
-        if (orderIdFromUrl && itemIdFromUrl && tokenFromUrl) {
-          await fetch(`/api/orders/by-token/${tokenFromUrl}/artwork`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderItemId: parseInt(itemIdFromUrl, 10),
-              designId: newDesign.id,
-            }),
-          });
+        let linkedToOrder = false;
+        if (orderIdFromUrl && itemIdFromUrl) {
+          if (tokenFromUrl) {
+            // Using token-based auth (for unauthenticated users)
+            const tokenLinkRes = await fetch(`/api/orders/by-token/${tokenFromUrl}/artwork`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderItemId: parseInt(itemIdFromUrl, 10),
+                designId: newDesign.id,
+              }),
+            });
+            if (!tokenLinkRes.ok) {
+              const errorData = await tokenLinkRes.json().catch(() => ({}));
+              throw new Error(errorData.message || 'Failed to link design to order');
+            }
+            linkedToOrder = true;
+          } else if (session?.user) {
+            // Using session-based auth (for authenticated users from order page)
+            const linkRes = await fetch(`/api/orders/${orderIdFromUrl}/artwork`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                orderItemId: parseInt(itemIdFromUrl, 10),
+                designId: newDesign.id,
+              }),
+            });
+            
+            if (!linkRes.ok) {
+              const errorData = await linkRes.json().catch(() => ({}));
+              throw new Error(errorData.message || 'Failed to link design to order');
+            }
+            linkedToOrder = true;
+          } else {
+            // No auth available - show error
+            throw new Error('You must be logged in to save designs to orders');
+          }
         }
         
-        toast({
-          title: "Design saved",
-          description: "Your design has been saved to the order.",
-        });
-        
-        // Redirect back to order page if we have an orderId
-        if (orderIdFromUrl) {
+        if (linkedToOrder) {
+          toast({
+            title: "Design saved",
+            description: "Your design has been saved to the order.",
+          });
+          // Redirect back to order page
           router.push(`/orders/${orderIdFromUrl}`);
+        } else {
+          toast({
+            title: "Design created",
+            description: "Your design has been saved.",
+          });
         }
         
         return newDesign.id;

@@ -194,6 +194,11 @@ export async function POST(request: Request) {
     }
 
     for (const item of data.items) {
+      // Skip items without a valid productId (custom items not in catalog)
+      if (item.productId === null) {
+        console.log('[Admin Order] Skipping item without productId');
+        continue;
+      }
       await db.insert(orderItems).values({
         orderId: newOrder.id,
         productId: item.productId,

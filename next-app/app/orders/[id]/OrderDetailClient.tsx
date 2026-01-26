@@ -790,9 +790,6 @@ export default function OrderDetail() {
                     const isPdf = previewUrl?.toLowerCase().includes('.pdf');
                     const isSpecialFormat = hasDesign && ['eps', 'cdr', 'ai', 'psd'].includes(ext);
                     
-                    console.log('[OrderDetail] Item:', item.id, 'Design:', item.design ? { id: item.design.id, name: item.design.name, hasPreview: !!item.design.previewUrl, previewLength: item.design.previewUrl?.length } : 'null');
-                    console.log('[OrderDetail] hasDesign:', hasDesign, 'previewUrl starts with:', previewUrl?.substring(0, 30));
-                    
                     return (
                     <div
                       key={item.id}
@@ -874,9 +871,13 @@ export default function OrderDetail() {
                             
                             return (
                               <img 
-                                src={previewUrl}
+                                src={`/api/design-download?url=${encodeURIComponent(previewUrl)}`}
                                 alt="Design preview" 
                                 className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
+                                onError={(e) => {
+                                  console.error('[OrderDetail] Image failed to load:', previewUrl?.substring(0, 50));
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
                               />
                             );
                           })()}

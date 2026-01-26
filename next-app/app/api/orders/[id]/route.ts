@@ -32,7 +32,7 @@ export async function GET(
     const result = await db.execute(sql`
       SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
              tax_amount, discount_amount, total_amount, shipping_address, 
-             notes, tracking_number, created_at
+             notes, tracking_number, created_at, admin_design_id, created_by_admin_id
       FROM orders 
       WHERE id = ${parseInt(id)}
     `);
@@ -61,7 +61,35 @@ export async function GET(
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
       customerPhone: customerInfo.phone,
+      adminDesignId: row.admin_design_id,
+      createdByAdminId: row.created_by_admin_id,
     };
+    
+    // Fetch admin design if exists (order-level design uploaded by admin)
+    let adminDesign = null;
+    if (order.adminDesignId) {
+      console.log(`[Order ${order.id}] Fetching admin design ${order.adminDesignId}`);
+      const [d] = await db
+        .select()
+        .from(designs)
+        .where(eq(designs.id, order.adminDesignId));
+      if (d) {
+        const designName = d.name || '';
+        adminDesign = {
+          id: d.id,
+          name: d.name,
+          previewUrl: d.previewUrl,
+          artworkUrl: d.previewUrl || null,
+          highResExportUrl: d.highResExportUrl,
+          customShapeUrl: d.customShapeUrl,
+          status: 'admin_review',
+          isAdminDesign: true,
+          isCustomerUpload: false,
+          isFlagged: designName.includes('[FLAGGED]'),
+        };
+        console.log(`[Order ${order.id}] Admin design found:`, { id: d.id, name: d.name });
+      }
+    }
 
     // Get order items
     const items = await db
@@ -128,6 +156,12 @@ export async function GET(
               isFlagged,
             };
           }
+        }
+        
+        // If no item-level design, use order-level admin design
+        if (!design && adminDesign) {
+          console.log(`[Order ${order.id}] Using admin design for item ${item.id}`);
+          design = adminDesign;
         }
 
         return { ...item, product, design };

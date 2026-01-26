@@ -171,6 +171,17 @@ export async function POST(
           updated_at = NOW()
         WHERE id = ${designId}
       `);
+      
+      // ALSO ensure design is linked to order item (may have been unlinked)
+      try {
+        await db.execute(sql`
+          UPDATE order_items SET design_id = ${designId}
+          WHERE id = ${parseInt(orderItemId)}
+        `);
+        console.log('[Artwork Upload] Re-linked existing design to order item');
+      } catch (e: any) {
+        console.error('[Artwork Upload] Failed to re-link design:', e.message);
+      }
     } else {
       console.log('[Artwork Upload] Creating new design...');
       const designResult = await db.execute(sql`

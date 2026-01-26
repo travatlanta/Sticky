@@ -190,6 +190,36 @@ export default function OrderDetail() {
   });
   const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [downloading, setDownloading] = useState<Record<number, boolean>>({});
+
+  // Handle download for customer (direct URL download, no admin route needed)
+  const handleDownload = async (url: string, itemId: number, designName: string) => {
+    if (!url) return;
+    setDownloading(prev => ({ ...prev, [itemId]: true }));
+    try {
+      // Fetch directly from the URL (Vercel Blob URLs are publicly accessible)
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || 'file';
+      const filename = `${designName.replace(/[^a-zA-Z0-9]/g, '_')}.${ext}`;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Could not download the file",
+        variant: "destructive"
+      });
+    } finally {
+      setDownloading(prev => ({ ...prev, [itemId]: false }));
+    }
+  };
 
   // Square payment configuration
   const squareAppId = process.env.NEXT_PUBLIC_SQUARE_APP_ID || '';
@@ -675,324 +705,217 @@ export default function OrderDetail() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {order.items?.map((item: any) => (
+                  {order.items?.map((item: any) => {
+                    const isAdminCreatedOrder = !!order.createdByAdminId;
+                    const badgeInfo = getArtworkBadgeInfo(item.design, isAdminCreatedOrder);
+                    const hasDesign = item.design && (item.design.highResExportUrl || item.design.previewUrl || item.design.artworkUrl);
+                    const previewUrl = item.design?.previewUrl || item.design?.highResExportUrl || item.design?.artworkUrl;
+                    const downloadUrl = item.design?.highResExportUrl || item.design?.previewUrl || item.design?.artworkUrl || '';
+                    const ext = downloadUrl.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                    const isPdf = previewUrl?.toLowerCase().includes('.pdf');
+                    const isSpecialFormat = hasDesign && ['eps', 'cdr', 'ai', 'psd'].includes(ext);
+                    
+                    return (
                     <div
                       key={item.id}
-                      className="p-4 bg-gray-50 dark:bg-muted rounded-lg"
+                      className="p-4 bg-green-50 dark:bg-muted rounded-lg border border-green-100 dark:border-gray-700"
                       data-testid={`order-item-${item.id}`}
                     >
-                      <div className="flex gap-4">
-                        <div className="w-16 h-16 bg-white dark:bg-background rounded-lg flex items-center justify-center flex-shrink-0 border overflow-hidden">
-                          {item.design?.previewUrl ? (
-                            <img src={item.design.previewUrl} alt="Design preview" className="w-full h-full object-cover" />
-                          ) : (
-                            getProductIcon(item.product?.name || "")
-                          )}
-                        </div>
+                      {/* Product Info Header - matches admin style */}
+                      <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 dark:text-foreground">
-                            {item.product?.name || "Product"}
-                          </h4>
-                          {item.design?.name && (
-                            <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                              Design: {item.design.name}
-                            </p>
-                          )}
-                          <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                            Quantity: {item.quantity}
-                          </p>
+                          <p className="font-semibold text-gray-900 dark:text-foreground">{item.product?.name || "Product"}</p>
+                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-muted-foreground mt-1">
+                            <span>Qty: <strong>{item.quantity}</strong></span>
+                            <span>Unit Price: <strong>{formatPrice(item.unitPrice)}</strong></span>
+                            <span className="text-green-600 font-semibold">
+                              Subtotal: {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
+                            </span>
+                          </div>
                           {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                            <div className="mt-1 flex flex-wrap gap-1">
+                            <div className="flex flex-wrap gap-1 mt-2">
                               {Object.entries(item.selectedOptions).map(([key, value]) => (
-                                <Badge key={key} variant="outline" className="text-xs">
+                                <Badge key={key} variant="outline" className="text-xs capitalize">
                                   {key}: {String(value)}
                                 </Badge>
                               ))}
                             </div>
                           )}
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900 dark:text-foreground">
-                            {formatPrice(parseFloat(item.unitPrice) * item.quantity)}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                            {formatPrice(item.unitPrice)} each
-                          </p>
-                        </div>
                       </div>
                       
-                      {/* Artwork Upload Section */}
-                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        {(() => {
-                          const isAdminCreatedOrder = !!order.createdByAdminId;
-                          const badgeInfo = getArtworkBadgeInfo(item.design, isAdminCreatedOrder);
-                          return (
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium flex items-center gap-2">
-                                <FileImage className="h-4 w-4" />
-                                Artwork
-                              </span>
-                              <span className={`text-xs px-2 py-1 rounded ${badgeInfo.colorClass}`} data-testid={`badge-artwork-${item.id}`}>
-                                {badgeInfo.text}
-                              </span>
-                            </div>
-                          );
-                        })()}
-
-                        {item.design?.artworkUrl || item.design?.previewUrl ? (
-                          <div className="flex items-center gap-3">
-                            <a 
-                              href={item.design.artworkUrl || item.design.previewUrl || "#"} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="block"
-                            >
-                              <img
-                                src={item.design.artworkUrl || item.design.previewUrl || ""}
-                                alt="Your artwork"
-                                className="w-20 h-20 object-contain border rounded bg-white dark:bg-gray-800"
-                              />
-                            </a>
-                            <div className="flex-1">
-                              {(() => {
-                                const designName = item.design?.name || '';
-                                const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
-                                const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
-                                const isDesignAdmin = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
-                                
-                                if (isDesignApproved) {
-                                  return (
-                                    <p className="text-sm text-green-600 font-medium flex items-center gap-1">
-                                      <CheckCircle className="h-4 w-4" />
-                                      Artwork Approved - Ready for Printing
-                                    </p>
-                                  );
-                                }
-                                if (isDesignFlagged) {
-                                  return (
-                                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                                      We've made adjustments to your design. Please review and approve to continue.
-                                    </p>
-                                  );
-                                }
-                                if (isDesignAdmin) {
-                                  return (
-                                    <p className="text-sm text-blue-600 dark:text-blue-400">
-                                      We've created a design for you. Please review and approve to continue.
-                                    </p>
-                                  );
-                                }
-                                return (
-                                  <p className="text-sm text-gray-600 dark:text-muted-foreground">
-                                    Your artwork has been uploaded and is ready for printing.
-                                  </p>
-                                );
-                              })()}
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {(() => {
-                                  const designName = item.design?.name || '';
-                                  const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
-                                  const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
-                                  const isDesignAdmin = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
-                                  const needsApproval = !isAdmin && (isDesignAdmin || isDesignFlagged) && !isDesignApproved;
-                                  
-                                  if (needsApproval) {
-                                    return (
-                                      <>
-                                        <Button
-                                          size="sm"
-                                          variant="default"
-                                          onClick={() => setApprovalConfirmItemId(item.id)}
-                                          disabled={approveArtworkMutation.isPending}
-                                          className="bg-green-600"
-                                          data-testid={`button-approve-artwork-${item.id}`}
-                                        >
-                                          {approveArtworkMutation.isPending ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <>
-                                              <CheckCircle className="h-4 w-4 mr-1" />
-                                              Approve Design
-                                            </>
-                                          )}
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => setRequestChangesItemId(requestChangesItemId === item.id ? null : item.id)}
-                                          data-testid={`button-request-changes-${item.id}`}
-                                        >
-                                          <Edit className="h-4 w-4 mr-1" />
-                                          Request Changes
-                                        </Button>
-                                      </>
-                                    );
-                                  }
-                                  
-                                  if (!isDesignApproved) {
-                                    return (
-                                      <>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => fileInputRefs.current[item.id]?.click()}
-                                          disabled={uploadingItemId === item.id}
-                                          data-testid={`button-edit-artwork-${item.id}`}
-                                        >
-                                          {uploadingItemId === item.id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <>
-                                              <Upload className="h-4 w-4 mr-1" />
-                                              Replace
-                                            </>
-                                          )}
-                                        </Button>
-                                        {item.design?.id && (
-                                          <Link href={`/editor/${item.design.id}`}>
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              data-testid={`button-open-editor-${item.id}`}
-                                            >
-                                              <Edit className="h-4 w-4 mr-1" />
-                                              Open Editor
-                                            </Button>
-                                          </Link>
-                                        )}
-                                      </>
-                                    );
-                                  }
-                                  return null;
-                                })()}
-                              </div>
-                              
-                              {requestChangesItemId === item.id && (
-                                <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                                  <h4 className="font-medium text-gray-900 dark:text-foreground mb-3">
-                                    Request Changes
-                                  </h4>
-                                  
-                                  <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg border">
-                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Design:</p>
-                                    {(item.design?.previewUrl || item.design?.artworkUrl) && (
-                                      <img 
-                                        src={item.design.previewUrl || item.design.artworkUrl || ''} 
-                                        alt="Current design"
-                                        className="w-32 h-32 object-contain bg-gray-100 rounded border mx-auto"
-                                        data-testid={`img-current-design-${item.id}`}
-                                      />
-                                    )}
-                                  </div>
-                                  
-                                  <div className="mb-4">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">
-                                      Tell us what changes you'd like:
-                                    </label>
-                                    <textarea
-                                      value={changeNotes}
-                                      onChange={(e) => setChangeNotes(e.target.value)}
-                                      placeholder="Describe the changes you need... (e.g., 'Make the logo bigger', 'Change the background color to blue', 'Add my phone number')"
-                                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                                      rows={3}
-                                      data-testid={`textarea-change-notes-${item.id}`}
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      Be as specific as possible so we can get your design right the first time!
-                                    </p>
-                                  </div>
-                                  
-                                  <p className="text-sm text-gray-600 dark:text-muted-foreground mb-4">
-                                    You can also upload your own artwork or edit the current design directly:
-                                  </p>
-                                  
-                                  <div className="flex flex-wrap gap-2">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => fileInputRefs.current[item.id]?.click()}
-                                      disabled={uploadingItemId === item.id}
-                                      data-testid={`button-upload-new-${item.id}`}
-                                    >
-                                      {uploadingItemId === item.id ? (
-                                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                      ) : (
-                                        <Upload className="h-4 w-4 mr-1" />
-                                      )}
-                                      Upload New Artwork
-                                    </Button>
-                                    {item.design?.id && (
-                                      <Link href={`/editor/${item.design.id}`}>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          data-testid={`button-edit-design-${item.id}`}
-                                        >
-                                          <Edit className="h-4 w-4 mr-1" />
-                                          Edit This Design
-                                        </Button>
-                                      </Link>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                    <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
-                                      <Mail className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                      <span>
-                                        <strong>Need help?</strong> Use the Messages section below to send your notes and chat with our team. 
-                                        We'll work with you to get your design just right!
-                                      </span>
-                                    </p>
-                                  </div>
-                                  
-                                  <p className="text-xs text-gray-500 mt-3">
-                                    Accepts: JPG, PNG, PDF, EPS, AI, PSD, SVG, CDR
-                                  </p>
-                                </div>
-                              )}
-                            </div>
+                      {/* Artwork Section - Admin Style Layout */}
+                      <div className="mt-3 pt-3 border-t">
+                        {/* Artwork Header with Badge */}
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                            <FileImage className="h-4 w-4 text-orange-500" />
+                            Artwork
+                          </p>
+                          <div className="flex items-center gap-2">
+                            {item.product?.name?.toLowerCase().includes('die') || item.product?.name?.toLowerCase().includes('kiss') ? (
+                              <Badge className="text-xs bg-purple-100 text-purple-700">
+                                Die-Cut
+                              </Badge>
+                            ) : null}
+                            <Badge className={`text-xs ${badgeInfo.colorClass}`} data-testid={`badge-artwork-${item.id}`}>
+                              {badgeInfo.text}
+                            </Badge>
                           </div>
-                        ) : (
-                          <div className="text-center py-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                            <Image className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                            <p className="text-sm text-gray-600 dark:text-muted-foreground mb-3">
-                              Upload your artwork for this product
-                            </p>
-                            <div className="flex flex-wrap gap-2 justify-center">
+                        </div>
+                        
+                        {/* Artwork Label */}
+                        <p className="text-xs text-gray-500 mb-2">
+                          {item.design 
+                            ? (item.design.name || 'Untitled').replace(/\[(ADMIN_DESIGN|CUSTOMER_UPLOAD|FLAGGED|APPROVED)\]/g, '').trim()
+                            : 'Uploaded Artwork'
+                          }
+                        </p>
+                        
+                        {/* Artwork Display Area */}
+                        <div className="flex flex-wrap items-start gap-4">
+                          {/* Design Preview Thumbnail */}
+                          {(() => {
+                            if (!hasDesign) {
+                              return (
+                                <div className="w-24 h-24 flex flex-col items-center justify-center bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-dashed border-gray-300">
+                                  <FileImage className="h-8 w-8 text-gray-400" />
+                                  <span className="text-xs text-gray-400 mt-1">No artwork</span>
+                                </div>
+                              );
+                            }
+                            
+                            if (isPdf) {
+                              return (
+                                <div className="w-24 h-24 flex flex-col items-center justify-center bg-red-50 rounded-lg border-2 border-red-200">
+                                  <FileImage className="h-10 w-10 text-red-500" />
+                                  <span className="text-xs text-red-600 mt-1 font-medium">PDF File</span>
+                                </div>
+                              );
+                            }
+                            
+                            return (
+                              <img 
+                                src={previewUrl}
+                                alt="Design preview" 
+                                className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
+                              />
+                            );
+                          })()}
+                          
+                          {/* Download and Actions */}
+                          <div className="flex flex-col gap-2">
+                            {/* Special format notice */}
+                            {isSpecialFormat && (
+                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-1">
+                                <p className="text-xs text-amber-700 font-medium">
+                                  {ext.toUpperCase()} files download in original format
+                                </p>
+                              </div>
+                            )}
+                            
+                            {/* Download Button (no format dropdown for customers) */}
+                            <div className="flex items-center gap-2">
                               <Button
-                                size="sm"
-                                onClick={() => fileInputRefs.current[item.id]?.click()}
-                                disabled={uploadingItemId === item.id}
-                                data-testid={`button-upload-artwork-${item.id}`}
+                                onClick={() => {
+                                  if (!hasDesign) return;
+                                  handleDownload(
+                                    downloadUrl,
+                                    item.id,
+                                    item.design?.name || 'design'
+                                  );
+                                }}
+                                disabled={downloading[item.id] || !hasDesign}
+                                className="bg-orange-500"
+                                data-testid={`button-download-${item.id}`}
                               >
-                                {uploadingItemId === item.id ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Uploading...
-                                  </>
+                                {downloading[item.id] ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                 ) : (
-                                  <>
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Upload Artwork
-                                  </>
+                                  <Download className="h-4 w-4 mr-2" />
                                 )}
+                                Download
                               </Button>
-                              <Link href={`/editor/new?orderId=${order.id}&orderItemId=${item.id}&productId=${item.productId}`}>
+                            </div>
+                            
+                            {/* File format info */}
+                            <div className="text-xs text-gray-500 space-y-1">
+                              <p>PNG/TIFF preserve transparency</p>
+                              <p className="text-amber-600">EPS, CDR, AI, PSD, PDF files download as-is (no conversion available)</p>
+                            </div>
+                            
+                            {/* Die-cut shape download if available */}
+                            {item.design?.customShapeUrl && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDownload(
+                                  item.design.customShapeUrl,
+                                  item.id + 1000,
+                                  `${item.design.name || 'design'}_diecut`
+                                )}
+                                disabled={downloading[item.id + 1000]}
+                                className="text-blue-700 border-blue-300"
+                                data-testid={`button-download-diecut-${item.id}`}
+                              >
+                                <FileImage className="h-4 w-4 mr-2" />
+                                Download Die-Cut Shape
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Customer Actions: Approve (if needed) and Upload New Design */}
+                        <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
+                          {/* Approve button for customer (when admin sent a design or flagged for revision) */}
+                          {(() => {
+                            const designName = item.design?.name || '';
+                            const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
+                            const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
+                            const isDesignAdmin = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
+                            const needsApproval = !isAdmin && (isDesignAdmin || isDesignFlagged) && !isDesignApproved && hasDesign;
+                            
+                            if (needsApproval) {
+                              return (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  data-testid={`button-open-editor-${item.id}`}
+                                  className="text-green-700 border-green-300 hover:bg-green-50"
+                                  onClick={() => setApprovalConfirmItemId(item.id)}
+                                  disabled={approveArtworkMutation.isPending}
+                                  data-testid={`button-approve-artwork-${item.id}`}
                                 >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Open Editor
+                                  {approveArtworkMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                  ) : (
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                  )}
+                                  Approve Artwork
                                 </Button>
-                              </Link>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-2">
-                              Accepts: JPG, PNG, PDF, EPS, AI, PSD, SVG
-                            </p>
-                          </div>
-                        )}
-
+                              );
+                            }
+                            return null;
+                          })()}
+                          
+                          {/* Upload New Design button (always shown for customers) */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-700 border-blue-300 hover:bg-blue-50"
+                            onClick={() => fileInputRefs.current[item.id]?.click()}
+                            disabled={uploadingItemId === item.id}
+                            data-testid={`button-upload-new-${item.id}`}
+                          >
+                            {uploadingItemId === item.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            ) : (
+                              <Upload className="h-4 w-4 mr-1" />
+                            )}
+                            Upload New Design
+                          </Button>
+                        </div>
+                        
+                        {/* Hidden file input */}
                         <input
                           type="file"
                           ref={(el) => { fileInputRefs.current[item.id] = el; }}
@@ -1002,47 +925,8 @@ export default function OrderDetail() {
                           data-testid={`input-file-artwork-${item.id}`}
                         />
                       </div>
-
-                      {item.design && (item.design.highResExportUrl || item.design.customShapeUrl) && (
-                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
-                            <Image className="h-3 w-3" />
-                            Print-Ready Files
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {item.design.highResExportUrl && (
-                              <a
-                                href={item.design.highResExportUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download
-                                data-testid={`download-highres-${item.id}`}
-                              >
-                                <Button size="sm" variant="outline" className="gap-1">
-                                  <Download className="h-3 w-3" />
-                                  High-Res Design
-                                </Button>
-                              </a>
-                            )}
-                            {item.design.customShapeUrl && (
-                              <a
-                                href={item.design.customShapeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download
-                                data-testid={`download-shape-${item.id}`}
-                              >
-                                <Button size="sm" variant="outline" className="gap-1">
-                                  <Download className="h-3 w-3" />
-                                  Custom Shape
-                                </Button>
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  ))}
+                  )})}
                 </div>
 
 

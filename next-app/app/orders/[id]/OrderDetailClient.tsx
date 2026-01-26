@@ -19,6 +19,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -167,6 +176,11 @@ export default function OrderDetail() {
   const [approvalConfirmItemId, setApprovalConfirmItemId] = useState<number | null>(null);
   const [changeNotes, setChangeNotes] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  
+  // Revision dialog state
+  const [reviseArtworkItemId, setReviseArtworkItemId] = useState<number | null>(null);
+  const [revisionNote, setRevisionNote] = useState("");
+  const revisionFileInputRef = useRef<HTMLInputElement | null>(null);
   
   // Shipping/Billing address editing state
   const [isEditingShipping, setIsEditingShipping] = useState(false);
@@ -432,6 +446,28 @@ export default function OrderDetail() {
       setUploadingItemId(orderItemId);
       uploadArtworkMutation.mutate({ orderItemId, file });
     }
+  };
+
+  // Handle revision file upload with optional note
+  const handleRevisionUpload = async (orderItemId: number, file: File) => {
+    setUploadingItemId(orderItemId);
+    
+    // First add a note if provided
+    if (revisionNote.trim()) {
+      try {
+        await addNoteMutation.mutateAsync(revisionNote);
+      } catch (e) {
+        console.error('Failed to add note:', e);
+      }
+    }
+    
+    // Upload the new artwork
+    uploadArtworkMutation.mutate({ orderItemId, file }, {
+      onSuccess: () => {
+        setReviseArtworkItemId(null);
+        setRevisionNote("");
+      }
+    });
   };
   
   // Mutation to update shipping address
@@ -890,15 +926,66 @@ export default function OrderDetail() {
                           </div>
                         </div>
                         
+                        {/* Prominent Revise Artwork button for flagged items */}
+                        {(() => {
+                          const designName = item.design?.name || '';
+                          const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
+                          const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
+                          
+                          if (!isAdmin && isDesignFlagged && !isDesignApproved) {
+                            return (
+                              <div className="mt-3 pt-3 border-t border-red-200">
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                  <div className="flex items-start gap-3">
+                                    <Edit className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                      <p className="font-medium text-red-800">Revision Requested</p>
+                                      <p className="text-sm text-red-700 mb-3">
+                                        We've flagged an issue with your artwork. Please review and upload revised artwork, or approve if the current design is acceptable.
+                                      </p>
+                                      <div className="flex flex-wrap gap-2">
+                                        <Button
+                                          className="bg-red-600 hover:bg-red-700 text-white"
+                                          onClick={() => setReviseArtworkItemId(item.id)}
+                                          data-testid={`button-revise-artwork-${item.id}`}
+                                        >
+                                          <Edit className="h-4 w-4 mr-2" />
+                                          Revise Artwork
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          className="text-green-700 border-green-300 hover:bg-green-50"
+                                          onClick={() => setApprovalConfirmItemId(item.id)}
+                                          disabled={approveArtworkMutation.isPending}
+                                          data-testid={`button-approve-anyway-${item.id}`}
+                                        >
+                                          {approveArtworkMutation.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                          ) : (
+                                            <CheckCircle className="h-4 w-4 mr-1" />
+                                          )}
+                                          Approve As Is
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                        
                         {/* Customer Actions: Approve (if needed) and Upload New Design */}
                         <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
-                          {/* Approve button for customer (when admin sent a design or flagged for revision) */}
+                          {/* Approve button for customer (when admin sent a design - not flagged) */}
                           {(() => {
                             const designName = item.design?.name || '';
                             const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
                             const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
                             const isDesignAdmin = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
-                            const needsApproval = !isAdmin && (isDesignAdmin || isDesignFlagged) && !isDesignApproved && hasDesign;
+                            // Only show for admin designs that are NOT flagged (flagged gets its own section above)
+                            const needsApproval = !isAdmin && isDesignAdmin && !isDesignFlagged && !isDesignApproved && hasDesign;
                             
                             if (needsApproval) {
                               return (
@@ -1647,6 +1734,154 @@ export default function OrderDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Revise Artwork Dialog */}
+      <Dialog open={reviseArtworkItemId !== null} onOpenChange={(open) => !open && setReviseArtworkItemId(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-red-600" />
+              Revise Your Artwork
+            </DialogTitle>
+            <DialogDescription>
+              Choose how you'd like to revise your artwork. You can upload a new file or use our design editor.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Notes Section */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Add a note (optional)
+              </label>
+              <Textarea
+                placeholder="Describe the changes you're making or ask questions..."
+                value={revisionNote}
+                onChange={(e) => setRevisionNote(e.target.value)}
+                className="min-h-[80px]"
+                data-testid="textarea-revision-note"
+              />
+              <p className="text-xs text-gray-500">
+                This note will be visible to our team for reference.
+              </p>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="grid gap-3">
+              {/* Upload New File */}
+              <Button
+                variant="outline"
+                className="w-full justify-start h-auto p-4 text-left"
+                onClick={() => revisionFileInputRef.current?.click()}
+                disabled={uploadingItemId === reviseArtworkItemId}
+                data-testid="button-upload-revision-file"
+              >
+                <div className="flex items-center gap-3">
+                  {uploadingItemId === reviseArtworkItemId ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  ) : (
+                    <Upload className="h-6 w-6 text-blue-600" />
+                  )}
+                  <div>
+                    <p className="font-medium">Upload New File</p>
+                    <p className="text-sm text-gray-500">
+                      Upload a revised JPG, PNG, PDF, EPS, AI, PSD, or CDR file
+                    </p>
+                  </div>
+                </div>
+              </Button>
+              
+              {/* Open Editor */}
+              {reviseArtworkItemId && (
+                <Link
+                  href={(() => {
+                    const item = order?.items?.find((i: any) => i.id === reviseArtworkItemId);
+                    return item?.design?.id 
+                      ? `/editor/${item.design.id}?orderId=${id}&itemId=${reviseArtworkItemId}&productId=${item?.productId}`
+                      : `/editor/new?orderId=${id}&itemId=${reviseArtworkItemId}&productId=${order?.items?.find((i: any) => i.id === reviseArtworkItemId)?.productId}`;
+                  })()}
+                  onClick={() => setReviseArtworkItemId(null)}
+                  data-testid="button-open-editor-revision"
+                >
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-auto p-4 text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Palette className="h-6 w-6 text-purple-600" />
+                      <div>
+                        <p className="font-medium">Open Design Editor</p>
+                        <p className="text-sm text-gray-500">
+                          Edit your design using our built-in editor with shapes, text, and more
+                        </p>
+                      </div>
+                    </div>
+                  </Button>
+                </Link>
+              )}
+            </div>
+            
+            {/* Previous Notes */}
+            {artworkNotes?.notes && artworkNotes.notes.length > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Previous Messages
+                </h4>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {artworkNotes.notes.slice(0, 5).map((note: ArtworkNote) => (
+                    <div
+                      key={note.id}
+                      className={`p-2 rounded-lg text-sm ${
+                        note.senderType === 'admin'
+                          ? 'bg-blue-50 border border-blue-100'
+                          : 'bg-gray-50 border border-gray-100'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <span className="font-medium text-xs">
+                          {note.senderType === 'admin' ? 'Team' : 'You'}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(note.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 dark:text-gray-300 mt-1">{note.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReviseArtworkItemId(null);
+                setRevisionNote("");
+              }}
+              data-testid="button-cancel-revision"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+          
+          {/* Hidden file input for revision uploads */}
+          <input
+            type="file"
+            ref={revisionFileInputRef}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file && reviseArtworkItemId) {
+                handleRevisionUpload(reviseArtworkItemId, file);
+              }
+            }}
+            accept=".jpg,.jpeg,.png,.pdf,.eps,.ai,.psd,.cdr,.svg"
+            className="hidden"
+            data-testid="input-file-revision"
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

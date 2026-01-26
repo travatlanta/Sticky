@@ -137,6 +137,7 @@ export async function POST(
         await db.execute(sql`
           UPDATE designs SET
             preview_url = ${blob.url},
+            high_res_export_url = ${blob.url},
             name = ${'[ADMIN_DESIGN] ' + (notes ? notes.substring(0, 50) : 'Admin Design for Order ' + order.order_number)},
             updated_at = NOW()
           WHERE id = ${designId}
@@ -144,9 +145,10 @@ export async function POST(
       } else {
         // Create new design
         const designResult = await db.execute(sql`
-          INSERT INTO designs (name, preview_url, product_id, created_at, updated_at)
+          INSERT INTO designs (name, preview_url, high_res_export_url, product_id, created_at, updated_at)
           VALUES (
             ${'[ADMIN_DESIGN] ' + (notes ? notes.substring(0, 50) : 'Admin Design for Order ' + order.order_number)},
+            ${blob.url},
             ${blob.url},
             ${orderItem.product_id},
             NOW(),

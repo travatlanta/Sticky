@@ -315,6 +315,29 @@ export default function AdminOrders() {
     setDownloading(prev => ({ ...prev, [itemId]: true }));
     
     try {
+      // Data URLs cannot be passed through the download API (URL length limits).
+      // Download them directly.
+      if (url.startsWith('data:')) {
+        const mimeMatch = url.match(/^data:([^;]+);/);
+        const mime = mimeMatch?.[1] || 'image/png';
+        const extFromMime: Record<string, string> = {
+          'image/png': 'png',
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/webp': 'webp',
+          'application/pdf': 'pdf',
+        };
+        const ext = extFromMime[mime] || 'png';
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${designName.replace(/[^a-z0-9]/gi, '_')}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast({ title: 'Downloaded design' });
+        return;
+      }
+
       const downloadUrl = `/api/admin/design-download?url=${encodeURIComponent(url)}&format=${format}&filename=${encodeURIComponent(designName)}`;
       
       const response = await fetch(downloadUrl);
@@ -1103,8 +1126,9 @@ export default function AdminOrders() {
                           {/* Design Preview - Click to open modal */}
                           {(() => {
                             const hasDesign = item.design && (item.design.highResExportUrl || item.design.previewUrl);
-                            const previewUrl = item.design?.previewUrl || item.design?.highResExportUrl;
-                            const isPdf = previewUrl?.toLowerCase().includes('.pdf');
+                            const previewUrl = item.design?.previewUrl || item.design?.highResExportUrl || '';
+                            const isDataUrl = previewUrl.startsWith('data:');
+                            const isPdf = previewUrl.toLowerCase().includes('.pdf');
                             
                             if (!hasDesign) {
                               return (
@@ -1124,16 +1148,24 @@ export default function AdminOrders() {
                               );
                             }
                             
+                            const modalUrl = isDataUrl
+                              ? previewUrl
+                              : `/api/admin/design-download?url=${encodeURIComponent(item.design.highResExportUrl || item.design.previewUrl)}&format=preview`;
+
+                            const thumbSrc = isDataUrl
+                              ? previewUrl
+                              : `/api/admin/design-download?url=${encodeURIComponent(previewUrl)}&format=preview`;
+
                             return (
                               <div 
                                 className="relative cursor-pointer group"
                                 onClick={() => setPreviewImage({
-                                  url: `/api/admin/design-download?url=${encodeURIComponent(item.design.highResExportUrl || item.design.previewUrl)}&format=preview`,
+                                  url: modalUrl,
                                   name: item.design.name || 'Design Preview'
                                 })}
                               >
                                 <img 
-                                  src={`/api/admin/design-download?url=${encodeURIComponent(previewUrl)}&format=preview`}
+                                  src={thumbSrc}
                                   alt="Design preview" 
                                   className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
                                 />

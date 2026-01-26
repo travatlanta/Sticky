@@ -217,6 +217,29 @@ export default function OrderDetail() {
     setDownloading(prev => ({ ...prev, [itemId]: true }));
     
     try {
+      // If the design is stored as a data URL in the DB, downloading via the API
+      // will hit URL length limits. Handle these directly client-side.
+      if (url.startsWith('data:')) {
+        const mimeMatch = url.match(/^data:([^;]+);/);
+        const mime = mimeMatch?.[1] || 'application/octet-stream';
+        const extFromMime = mime.includes('png')
+          ? 'png'
+          : mime.includes('jpeg')
+            ? 'jpg'
+            : mime.includes('webp')
+              ? 'webp'
+              : 'bin';
+
+        const filename = `${designName.replace(/[^a-zA-Z0-9]/g, '_')}.${extFromMime}`;
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
       const sourceExt = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
       const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(sourceExt);
       
@@ -1092,13 +1115,28 @@ export default function OrderDetail() {
                               );
                             }
                             
+                            // Data URLs can't go through the download API (URL length limits).
+                            if (previewUrl.startsWith('data:')) {
+                              return (
+                                <img
+                                  src={previewUrl}
+                                  alt="Design preview"
+                                  className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
+                                  onError={(e) => {
+                                    console.error('[OrderDetail] Image failed to load (data URL)');
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              );
+                            }
+
                             // Cache busting using design id and refresh key (only changes after upload)
                             // MUST include format=preview for unauthenticated access
                             const cacheBuster = `&t=${item.design?.id || 0}-${imageRefreshKey}`;
                             return (
-                              <img 
+                              <img
                                 src={`/api/design-download?url=${encodeURIComponent(previewUrl)}&format=preview${cacheBuster}`}
-                                alt="Design preview" 
+                                alt="Design preview"
                                 className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
                                 onError={(e) => {
                                   console.error('[OrderDetail] Image failed to load:', previewUrl?.substring(0, 50));
@@ -1375,45 +1413,6 @@ export default function OrderDetail() {
                   )})}
                 </div>
 
-
-                {/* Admin: Flag Printing Issue - For customer uploads that need revision */}
-                {isAdmin && order.items?.some((item: any) => {
-                  const designName = item.design?.name || '';
-                  return designName.includes('[CUSTOMER_UPLOAD]') && 
-                    !designName.includes('[FLAGGED]') && 
-                    !designName.includes('[APPROVED]') &&
-                    item.design?.status !== 'approved';
-                }) && (
-                  <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-foreground">Printing Issue?</p>
-                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                          Flag an issue to request customer approval after making adjustments
-                        </p>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        onClick={() => flagIssueMutation.mutate()}
-                        disabled={flagIssueMutation.isPending}
-                        className="w-full sm:w-auto"
-                        data-testid="button-flag-issue"
-                      >
-                        {flagIssueMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Flagging...
-                          </>
-                        ) : (
-                          <>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Flag Printing Issue
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
               </CardContent>
             </Card>

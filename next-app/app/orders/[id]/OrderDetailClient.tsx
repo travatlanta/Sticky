@@ -1807,8 +1807,8 @@ export default function OrderDetail() {
                   href={(() => {
                     const item = order?.items?.find((i: any) => i.id === reviseArtworkItemId);
                     return item?.design?.id 
-                      ? `/editor/${item.design.id}?orderId=${id}&itemId=${reviseArtworkItemId}&productId=${item?.productId}`
-                      : `/editor/new?orderId=${id}&itemId=${reviseArtworkItemId}&productId=${order?.items?.find((i: any) => i.id === reviseArtworkItemId)?.productId}`;
+                      ? `/editor/${item.design.id}?orderId=${id}&itemId=${reviseArtworkItemId}&productId=${item?.product?.id}`
+                      : `/editor/new?orderId=${id}&itemId=${reviseArtworkItemId}&productId=${order?.items?.find((i: any) => i.id === reviseArtworkItemId)?.product?.id}`;
                   })()}
                   onClick={() => setReviseArtworkItemId(null)}
                   data-testid="button-open-editor-revision"

@@ -149,6 +149,14 @@ export default function Editor() {
   const previewUrlLoadedRef = useRef<string | null>(null);
   const canvasJsonLoadedRef = useRef<boolean>(false);
   const designDataLoadedRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const [toolDockOpen, setToolDockOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("");
@@ -387,19 +395,34 @@ export default function Editor() {
       const canvas = fabricCanvasRef.current;
       // Remove ALL event listeners during load to prevent state update loops
       canvas.off();
-      
-      canvas.loadFromJSON(design.canvasJson).then(() => {
-        canvas.renderAll();
-        // Re-attach event listeners after load completes
-        canvas.on("object:modified", saveCanvasState);
-        canvas.on("object:added", saveCanvasState);
-        canvas.on("object:removed", saveCanvasState);
-        if (product?.supportsCustomShape) {
-          canvas.on("object:moving", updateContourFromCanvas);
-          canvas.on("object:scaling", updateContourFromCanvas);
+
+      // Fabric v5's loadFromJSON is callback-based and does NOT return a Promise.
+      // Guard against async completion after unmount/dispose.
+      try {
+        if (!isMountedRef.current || !canvas?.contextContainer) {
+          return;
         }
-        console.log("Canvas JSON loaded and events re-attached");
-      });
+        // Clear any existing objects so we don't duplicate on re-load.
+        canvas.clear();
+        canvas.backgroundColor = "white";
+        canvas.loadFromJSON(design.canvasJson, () => {
+          if (!isMountedRef.current || fabricCanvasRef.current !== canvas) {
+            return;
+          }
+          canvas.renderAll();
+          // Re-attach event listeners after load completes
+          canvas.on("object:modified", saveCanvasState);
+          canvas.on("object:added", saveCanvasState);
+          canvas.on("object:removed", saveCanvasState);
+          if (product?.supportsCustomShape) {
+            canvas.on("object:moving", updateContourFromCanvas);
+            canvas.on("object:scaling", updateContourFromCanvas);
+          }
+          console.log("Canvas JSON loaded and events re-attached");
+        });
+      } catch (error) {
+        console.error("Error loading canvas JSON:", error);
+      }
     } else if (design?.previewUrl && fabricCanvasRef.current && fabricLoaded && fabricModule) {
       // No canvas JSON - this is a file upload, load the image onto the canvas
       // Prevent loading the same image multiple times
@@ -662,16 +685,18 @@ export default function Editor() {
     
     const prevState = undoStack[undoStack.length - 1];
     setUndoStack(prev => prev.slice(0, -1));
-    
+
+    let parsed: any = prevState;
     try {
-      canvas.loadFromJSON(JSON.parse(prevState), () => {
-        canvas.renderAll();
-      });
-    } catch (e) {
-      canvas.loadFromJSON(prevState).then(() => {
-        canvas.renderAll();
-      });
+      parsed = JSON.parse(prevState);
+    } catch {
+      // Keep as-is (already an object or non-JSON string)
     }
+
+    canvas.loadFromJSON(parsed, () => {
+      if (!isMountedRef.current || fabricCanvasRef.current !== canvas) return;
+      canvas.renderAll();
+    });
   }, [undoStack]);
 
   const redo = useCallback(() => {
@@ -683,16 +708,18 @@ export default function Editor() {
     
     const nextState = redoStack[redoStack.length - 1];
     setRedoStack(prev => prev.slice(0, -1));
-    
+
+    let parsed: any = nextState;
     try {
-      canvas.loadFromJSON(JSON.parse(nextState), () => {
-        canvas.renderAll();
-      });
-    } catch (e) {
-      canvas.loadFromJSON(nextState).then(() => {
-        canvas.renderAll();
-      });
+      parsed = JSON.parse(nextState);
+    } catch {
+      // Keep as-is
     }
+
+    canvas.loadFromJSON(parsed, () => {
+      if (!isMountedRef.current || fabricCanvasRef.current !== canvas) return;
+      canvas.renderAll();
+    });
   }, [redoStack]);
 
   const deleteSelected = useCallback(() => {

@@ -217,26 +217,34 @@ export default function OrderDetail() {
     setDownloading(prev => ({ ...prev, [itemId]: true }));
     
     try {
-      // If the design is stored as a data URL in the DB, downloading via the API
-      // will hit URL length limits. Handle these directly client-side.
+      // Data URLs can be extremely long; passing them as query params causes 414 (URI Too Long).
+      // Download them client-side.
       if (url.startsWith('data:')) {
-        const mimeMatch = url.match(/^data:([^;]+);/);
+        const mimeMatch = url.match(/^data:([^;]+);base64,/);
         const mime = mimeMatch?.[1] || 'application/octet-stream';
-        const extFromMime = mime.includes('png')
-          ? 'png'
-          : mime.includes('jpeg')
-            ? 'jpg'
-            : mime.includes('webp')
-              ? 'webp'
-              : 'bin';
+        const base64 = url.split(',')[1] || '';
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+        const blob = new Blob([bytes], { type: mime });
+        const extFromMime =
+          mime === 'image/png'
+            ? 'png'
+            : mime === 'image/jpeg'
+              ? 'jpg'
+              : mime === 'application/pdf'
+                ? 'pdf'
+                : (format === 'jpeg' ? 'jpg' : format);
 
         const filename = `${designName.replace(/[^a-zA-Z0-9]/g, '_')}.${extFromMime}`;
         const link = document.createElement('a');
-        link.href = url;
+        link.href = URL.createObjectURL(blob);
         link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
         return;
       }
 
@@ -1115,28 +1123,15 @@ export default function OrderDetail() {
                               );
                             }
                             
-                            // Data URLs can't go through the download API (URL length limits).
-                            if (previewUrl.startsWith('data:')) {
-                              return (
-                                <img
-                                  src={previewUrl}
-                                  alt="Design preview"
-                                  className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
-                                  onError={(e) => {
-                                    console.error('[OrderDetail] Image failed to load (data URL)');
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              );
-                            }
-
                             // Cache busting using design id and refresh key (only changes after upload)
                             // MUST include format=preview for unauthenticated access
                             const cacheBuster = `&t=${item.design?.id || 0}-${imageRefreshKey}`;
                             return (
-                              <img
-                                src={`/api/design-download?url=${encodeURIComponent(previewUrl)}&format=preview${cacheBuster}`}
-                                alt="Design preview"
+                              <img 
+                                src={previewUrl.startsWith('data:')
+                                  ? previewUrl
+                                  : `/api/design-download?url=${encodeURIComponent(previewUrl)}&format=preview${cacheBuster}`}
+                                alt="Design preview" 
                                 className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
                                 onError={(e) => {
                                   console.error('[OrderDetail] Image failed to load:', previewUrl?.substring(0, 50));

@@ -2014,22 +2014,37 @@ export default function OrderDetail() {
                                     },
                                   })}
                                   createVerificationDetails={() => {
-                                    const nameParts = billingAddr.name.trim().split(' ');
-                                    const addressLines = [billingAddr.street];
-                                    if (billingAddr.street2) addressLines.push(billingAddr.street2);
+                                    // Get fresh billing data at verification time
+                                    const freshBillingAddr = billingSameAsShipping ? shippingForm : billingForm;
+                                    const nameParts = (freshBillingAddr.name || 'Customer').trim().split(' ');
+                                    const addressLines = [freshBillingAddr.street].filter(Boolean);
+                                    if (freshBillingAddr.street2) addressLines.push(freshBillingAddr.street2);
+                                    
+                                    // Build contact with only non-empty values
+                                    const billingContact: Record<string, any> = {
+                                      givenName: nameParts[0] || 'Customer',
+                                      addressLines: addressLines.length > 0 ? addressLines : ['Address'],
+                                      city: freshBillingAddr.city || 'City',
+                                      postalCode: freshBillingAddr.zip || '00000',
+                                      countryCode: 'US',
+                                    };
+                                    
+                                    // Only add familyName if it exists (Square rejects empty strings)
+                                    const lastName = nameParts.slice(1).join(' ');
+                                    if (lastName) {
+                                      billingContact.familyName = lastName;
+                                    }
+                                    
+                                    // Only add state if it exists
+                                    if (freshBillingAddr.state) {
+                                      billingContact.state = freshBillingAddr.state;
+                                    }
+                                    
                                     return {
                                       amount: totalAmount.toFixed(2),
                                       currencyCode: 'USD',
                                       intent: 'CHARGE',
-                                      billingContact: {
-                                        givenName: nameParts[0] || 'Customer',
-                                        familyName: nameParts.slice(1).join(' ') || '',
-                                        addressLines,
-                                        city: billingAddr.city,
-                                        state: billingAddr.state,
-                                        postalCode: billingAddr.zip,
-                                        countryCode: billingAddr.country === 'USA' ? 'US' : (billingAddr.country || 'US'),
-                                      },
+                                      billingContact,
                                     };
                                   }}
                                 >

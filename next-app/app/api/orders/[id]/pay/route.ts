@@ -120,15 +120,22 @@ export async function POST(
       console.log(`[Pay API] Order ${orderId} is $0 - marking as paid without Square`);
       
       try {
-        // Use raw SQL to update status AND set payment_confirmed_at as source of truth
-        await db.execute(sql`
-          UPDATE orders 
-          SET status = 'paid', 
-              payment_confirmed_at = NOW(),
-              updated_at = NOW()
-          WHERE id = ${orderId}
-        `);
-        console.log(`[Pay API] Order ${orderId} status updated to 'paid' with payment_confirmed_at (free order)`);
+        // Try to update with payment_confirmed_at, fall back to just status if column doesn't exist
+        try {
+          await db.execute(sql`
+            UPDATE orders 
+            SET status = 'paid', 
+                payment_confirmed_at = NOW(),
+                updated_at = NOW()
+            WHERE id = ${orderId}
+          `);
+          console.log(`[Pay API] Order ${orderId} status updated to 'paid' with payment_confirmed_at (free order)`);
+        } catch (colError: any) {
+          // Column might not exist in production, fall back to simpler update
+          console.log(`[Pay API] payment_confirmed_at column might not exist, using simple update`);
+          await db.execute(sql`UPDATE orders SET status = 'paid' WHERE id = ${orderId}`);
+          console.log(`[Pay API] Order ${orderId} status updated to 'paid' (free order, simple update)`);
+        }
       } catch (updateError) {
         console.error(`[Pay API] Failed to update order ${orderId} status:`, updateError);
         return NextResponse.json({ error: "Failed to update order status" }, { status: 500 });
@@ -208,28 +215,36 @@ export async function POST(
       );
     }
 
-    // Update order status to paid with payment_confirmed_at as source of truth
+    // Update order status to paid
     console.log(`[Pay API] Order ${orderId} payment completed. Square payment ID: ${payment.id}`);
     try {
-      await db.execute(sql`
-        UPDATE orders 
-        SET status = 'paid', 
-            stripe_payment_intent_id = ${payment.id},
-            payment_confirmed_at = NOW(),
-            updated_at = NOW()
-        WHERE id = ${orderId}
-      `);
-      console.log(`[Pay API] Order ${orderId} status successfully updated to 'paid' with payment_confirmed_at`);
-    } catch (updateError: any) {
-      console.error(`[Pay API] CRITICAL: Failed to update order ${orderId} status to paid:`, updateError.message);
-      // Try a simpler update without the payment ID but with payment_confirmed_at
+      // Try with payment_confirmed_at first
       try {
         await db.execute(sql`
           UPDATE orders 
-          SET status = 'paid', payment_confirmed_at = NOW() 
+          SET status = 'paid', 
+              stripe_payment_intent_id = ${payment.id},
+              payment_confirmed_at = NOW(),
+              updated_at = NOW()
           WHERE id = ${orderId}
         `);
-        console.log(`[Pay API] Order ${orderId} status updated to 'paid' with payment_confirmed_at (fallback)`);
+        console.log(`[Pay API] Order ${orderId} status successfully updated to 'paid' with payment_confirmed_at`);
+      } catch (colError: any) {
+        // Column might not exist, try without it
+        console.log(`[Pay API] payment_confirmed_at might not exist, trying simpler update`);
+        await db.execute(sql`
+          UPDATE orders 
+          SET status = 'paid', stripe_payment_intent_id = ${payment.id}
+          WHERE id = ${orderId}
+        `);
+        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (without payment_confirmed_at)`);
+      }
+    } catch (updateError: any) {
+      console.error(`[Pay API] CRITICAL: Failed to update order ${orderId} status to paid:`, updateError.message);
+      // Last resort - just update status
+      try {
+        await db.execute(sql`UPDATE orders SET status = 'paid' WHERE id = ${orderId}`);
+        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (minimal fallback)`);
       } catch (fallbackError: any) {
         console.error(`[Pay API] CRITICAL: Even simple status update failed for order ${orderId}:`, fallbackError.message);
       }

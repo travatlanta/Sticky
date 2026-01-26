@@ -703,7 +703,7 @@ export default function OrderDetail() {
   // NEVER show payment for already paid or processed orders
   // Use BOTH status AND paymentConfirmedAt as sources of truth
   const paidStatuses = ['paid', 'in_production', 'printed', 'shipped', 'delivered', 'completed'];
-  const hasPaymentConfirmation = !!order.paymentConfirmedAt; // Backup source of truth
+  const hasPaymentConfirmation = !!(order as any).paymentConfirmedAt; // Backup source of truth (may not exist in older DBs)
   const isPaid = paidStatuses.includes(orderStatus) || hasPaymentConfirmation;
   const payableStatuses = ['pending', 'pending_payment', 'awaiting_artwork'];
   const needsPayment = !isPaid && payableStatuses.includes(orderStatus) && order.notes?.includes('Payment Link:');
@@ -711,7 +711,7 @@ export default function OrderDetail() {
   console.log('[OrderDetail] Payment check:', { 
     status: order.status, 
     isPaid, 
-    paymentConfirmedAt: order.paymentConfirmedAt,
+    paymentConfirmedAt: (order as any).paymentConfirmedAt,
     hasPaymentConfirmation,
     inPayableStatuses: payableStatuses.includes(order.status),
     hasPaymentLink: order.notes?.includes('Payment Link:'),

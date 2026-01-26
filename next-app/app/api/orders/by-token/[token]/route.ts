@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { orders, orderItems, products, users } from "@shared/schema";
@@ -169,6 +170,11 @@ export async function GET(
       totalAmount: order.totalAmount,
       shippingAddress: order.shippingAddress,
       items: formattedItems,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache'
+      }
     });
   } catch (error) {
     console.error("Error fetching order by token:", error);

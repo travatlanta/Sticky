@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
@@ -83,6 +84,11 @@ export async function GET(
       orderNumber: order.order_number,
       status: order.status,
       items,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache'
+      }
     });
   } catch (error) {
     console.error("Error fetching order artwork:", error);

@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
@@ -102,6 +103,11 @@ export async function POST(
       designId,
       artworkUrl: blob.url,
       message: "Artwork uploaded successfully",
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache'
+      }
     });
   } catch (error) {
     console.error("Error uploading artwork:", error);
@@ -163,6 +169,11 @@ export async function PUT(
         success: true,
         designId,
         message: "Design linked to order successfully",
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache'
+        }
       });
     }
 
@@ -206,6 +217,11 @@ export async function PUT(
         approved: true,
         allItemsApproved: allApproved,
         message: "Artwork approved successfully",
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache'
+        }
       });
     }
 
@@ -269,6 +285,11 @@ export async function DELETE(
     return NextResponse.json({
       success: true,
       message: "Artwork removed",
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache'
+      }
     });
   } catch (error) {
     console.error("Error removing artwork:", error);

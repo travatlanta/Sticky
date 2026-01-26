@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { orders } from "@/shared/schema";
@@ -148,6 +149,11 @@ export async function POST(
         success: true, 
         orderId,
         message: "Order marked as paid (free order)"
+      }, {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache'
+        }
       });
     }
 
@@ -306,6 +312,11 @@ export async function POST(
       success: true, 
       orderId,
       message: "Payment successful! Your order is now being processed."
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache'
+      }
     });
   } catch (error: any) {
     console.error("Error processing order payment:", error);

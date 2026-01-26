@@ -254,10 +254,18 @@ export default function OrderDetail() {
   const squareLocationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID || '';
   const squareConfigured = Boolean(squareAppId && squareLocationId);
 
-  const { data: order, isLoading } = useQuery<Order>({
+  const { data: order, isLoading, refetch: refetchOrder } = useQuery<Order>({
     queryKey: [`/api/orders/${id}`],
     queryFn: async () => {
-      const res = await fetch(`/api/orders/${id}`);
+      // Add cache-busting timestamp to force fresh data
+      const timestamp = Date.now();
+      const res = await fetch(`/api/orders/${id}?t=${timestamp}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        }
+      });
       if (!res.ok) throw new Error("Failed to fetch order");
       const data = await res.json();
       // Debug logging for order data
@@ -276,6 +284,8 @@ export default function OrderDetail() {
       return data;
     },
     enabled: isAuthenticated && !!id,
+    staleTime: 0, // Always consider data stale to force refetch
+    gcTime: 0, // Don't cache the data
   });
 
   const uploadArtworkMutation = useMutation({
@@ -292,12 +302,15 @@ export default function OrderDetail() {
       if (!res.ok) throw new Error(json.message || "Upload failed");
       return json;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({ title: "Artwork uploaded successfully!" });
       setUploadingItemId(null);
       // Increment refresh key to force image reload
       setImageRefreshKey(prev => prev + 1);
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      // Invalidate related queries and force refetch
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+      await refetchOrder();
     },
     onError: (error: Error) => {
       toast({
@@ -318,9 +331,12 @@ export default function OrderDetail() {
       if (!res.ok) throw new Error(json.message || "Remove failed");
       return json;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({ title: "Artwork removed" });
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      // Invalidate related queries and force refetch
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+      await refetchOrder();
     },
     onError: (error: Error) => {
       toast({
@@ -342,7 +358,7 @@ export default function OrderDetail() {
       if (!res.ok) throw new Error(json.message || "Approval failed");
       return json;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({ 
         title: "Artwork approved!", 
         description: data.allItemsApproved 
@@ -351,7 +367,10 @@ export default function OrderDetail() {
       });
       setRequestChangesItemId(null);
       setChangeNotes("");
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      // Invalidate related queries and force refetch
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+      await refetchOrder();
     },
     onError: (error: Error) => {
       toast({
@@ -372,12 +391,15 @@ export default function OrderDetail() {
       if (!res.ok) throw new Error(json.message || "Submit failed");
       return json;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({ 
         title: "Artwork Submitted!", 
         description: data.message || "We'll review your artwork and get back to you soon." 
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      // Invalidate related queries and refetch order
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      await refetchOrder();
     },
     onError: (error: Error) => {
       toast({
@@ -398,13 +420,15 @@ export default function OrderDetail() {
       if (!res.ok) throw new Error(json.message || "Flag failed");
       return json;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({ 
         title: "Issue Flagged", 
         description: "Customer will be notified to review and approve the updated artwork." 
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      // Invalidate related queries and refetch order
       queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      await refetchOrder();
     },
     onError: (error: Error) => {
       toast({
@@ -524,10 +548,11 @@ export default function OrderDetail() {
       if (!res.ok) throw new Error(json.message || "Failed to update shipping address");
       return json;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({ title: "Shipping address updated!" });
       setIsEditingShipping(false);
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      await refetchOrder();
     },
     onError: (error: Error) => {
       toast({
@@ -563,6 +588,30 @@ export default function OrderDetail() {
       });
       const json = await res.json();
       console.log('[OrderDetail] Payment API response:', { status: res.status, json });
+      
+      // Special handling for "already paid" error - this means the order was paid in another tab/session
+      // The backend returns: "Order has already been paid or processed (status: X)"
+      const isAlreadyPaidError = !res.ok && json.error && (
+        json.error.includes('already been paid') || 
+        json.error.includes('already paid') ||
+        json.error.includes('Order has already been paid')
+      );
+      
+      if (isAlreadyPaidError) {
+        console.log('[OrderDetail] Order was already paid - refreshing to show receipt');
+        toast({ 
+          title: "Order Already Paid!", 
+          description: "Your order has already been confirmed and is being processed.",
+        });
+        // Mark as completed and force refresh to show the receipt
+        setPaymentJustCompleted(true);
+        // Invalidate all related queries
+        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+        await refetchOrder();
+        return;
+      }
+      
       if (!res.ok) {
         console.error('[OrderDetail] Payment failed:', json);
         throw new Error(json.details || json.error || json.message || "Failed to confirm order");
@@ -576,9 +625,10 @@ export default function OrderDetail() {
       // Mark payment as just completed for success banner
       setPaymentJustCompleted(true);
       
-      // Force refetch immediately
-      await queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
-      await queryClient.refetchQueries({ queryKey: [`/api/orders/${id}`] });
+      // Invalidate all related queries and force refetch immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+      await refetchOrder();
     } catch (error: any) {
       toast({
         title: "Failed to confirm order",
@@ -639,6 +689,30 @@ export default function OrderDetail() {
         }),
       });
       const json = await res.json();
+      
+      // Special handling for "already paid" error - this means the order was paid in another tab/session
+      // The backend returns: "Order has already been paid or processed (status: X)"
+      const isAlreadyPaidError = !res.ok && json.error && (
+        json.error.includes('already been paid') || 
+        json.error.includes('already paid') ||
+        json.error.includes('Order has already been paid')
+      );
+      
+      if (isAlreadyPaidError) {
+        console.log('[OrderDetail] Order was already paid - refreshing to show receipt');
+        toast({ 
+          title: "Order Already Paid!", 
+          description: "Your order has already been confirmed and is being processed.",
+        });
+        // Mark as completed and force refresh to show the receipt
+        setPaymentJustCompleted(true);
+        // Invalidate all related queries
+        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+        await refetchOrder();
+        return;
+      }
+      
       if (!res.ok) throw new Error(json.error || json.message || "Payment failed");
       
       toast({ 
@@ -649,9 +723,10 @@ export default function OrderDetail() {
       // Mark payment as just completed for success banner
       setPaymentJustCompleted(true);
       
-      // Force refetch immediately (invalidate + refetch to bypass any caching)
-      await queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
-      await queryClient.refetchQueries({ queryKey: [`/api/orders/${id}`] });
+      // Invalidate all related queries and force refetch immediately
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}/artwork`] });
+      await refetchOrder();
     } catch (error: any) {
       toast({
         title: "Payment failed",

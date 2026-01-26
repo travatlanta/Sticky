@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
@@ -61,6 +62,11 @@ export async function POST(
     return NextResponse.json({
       checkoutUrl,
       message: "Redirecting to checkout",
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache'
+      }
     });
   } catch (error) {
     console.error("Error processing payment:", error);

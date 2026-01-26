@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -109,7 +110,12 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({ notes });
+    return NextResponse.json({ notes }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache'
+      }
+    });
   } catch (error: any) {
     console.error("Error fetching artwork notes:", error);
     if (error?.message?.includes('relation') && error?.message?.includes('does not exist')) {

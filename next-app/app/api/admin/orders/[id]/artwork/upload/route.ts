@@ -66,11 +66,30 @@ export async function POST(
 
     // CRITICAL: Update ALL order_items to link to this design
     // This ensures customer can see the artwork regardless of schema differences
-    await db.update(orderItems)
-      .set({ designId: design.id })
-      .where(eq(orderItems.orderId, orderId));
-    
-    console.log(`[Admin Artwork Upload] Updated order_items.design_id for order ${orderId}`);
+    try {
+      // First check how many items exist
+      const existingItems = await db.select({ id: orderItems.id }).from(orderItems).where(eq(orderItems.orderId, orderId));
+      console.log(`[Admin Artwork Upload] Found ${existingItems.length} items for order ${orderId}: ${existingItems.map(i => i.id).join(', ')}`);
+      
+      if (existingItems.length === 0) {
+        console.error(`[Admin Artwork Upload] NO ORDER ITEMS FOUND for order ${orderId}!`);
+      }
+      
+      // Update using raw SQL to ensure it works in production
+      const updateResult = await db.execute(sql`
+        UPDATE order_items SET design_id = ${design.id} WHERE order_id = ${orderId}
+      `);
+      console.log(`[Admin Artwork Upload] Updated order_items.design_id to ${design.id} for order ${orderId}`);
+      
+      // Verify the update worked
+      const verifyItems = await db.execute(sql`
+        SELECT id, design_id FROM order_items WHERE order_id = ${orderId}
+      `);
+      console.log(`[Admin Artwork Upload] Verification - items after update:`, verifyItems.rows);
+    } catch (updateError: any) {
+      console.error(`[Admin Artwork Upload] FAILED to update order_items:`, updateError.message);
+      // Don't throw - continue with the order-level update
+    }
 
     // Try to also update orders.adminDesignId (may not exist in production)
     try {

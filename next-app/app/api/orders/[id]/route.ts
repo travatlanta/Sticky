@@ -152,45 +152,63 @@ export async function GET(
         }
 
         if (item.designId) {
-          console.log(`[Order ${order.id}] Fetching design ${item.designId} for item ${item.id}`);
-          const [d] = await db
-            .select()
-            .from(designs)
-            .where(eq(designs.id, item.designId));
-          console.log(`[Order ${order.id}] Design found:`, d ? { id: d.id, name: d.name, previewUrl: d.previewUrl?.substring(0, 50) } : 'null');
-          if (d) {
-            const designName = d.name || '';
-            const isApproved = designName.includes('[APPROVED]');
-            const isFlagged = designName.includes('[FLAGGED]');
-            const isAdminDesign = designName.includes('[ADMIN_DESIGN]');
-            const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]');
-            const isPending = designName.includes('[PENDING]');
-            
-            // Determine status based on tags (match by-token route logic)
-            let status: string = 'uploaded';
-            if (isApproved) {
-              status = 'approved';
-            } else if (isFlagged) {
-              status = 'flagged';
-            } else if (isAdminDesign) {
-              status = 'admin_review';
-            } else if (isPending || isCustomerUpload) {
-              status = 'pending';
+          console.log(`[Order ${order.id}] Fetching design ${item.designId} (type: ${typeof item.designId}) for item ${item.id}`);
+          try {
+            // Use raw SQL to avoid any type conversion issues
+            const designResult = await db.execute(sql`
+              SELECT id, name, preview_url, high_res_export_url, custom_shape_url 
+              FROM designs WHERE id = ${item.designId}
+            `);
+            const d = designResult.rows?.[0] as any;
+            if (d) {
+              // Map from snake_case to camelCase
+              const designData = {
+                id: d.id,
+                name: d.name,
+                previewUrl: d.preview_url,
+                highResExportUrl: d.high_res_export_url,
+                customShapeUrl: d.custom_shape_url,
+              };
+              console.log(`[Order ${order.id}] Design found via SQL:`, { id: designData.id, name: designData.name, previewUrl: designData.previewUrl?.substring(0, 50) });
+              
+              const designName = designData.name || '';
+              const isApproved = designName.includes('[APPROVED]');
+              const isFlagged = designName.includes('[FLAGGED]');
+              const isAdminDesign = designName.includes('[ADMIN_DESIGN]');
+              const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]');
+              const isPending = designName.includes('[PENDING]');
+              
+              let status: string = 'uploaded';
+              if (isApproved) {
+                status = 'approved';
+              } else if (isFlagged) {
+                status = 'flagged';
+              } else if (isAdminDesign) {
+                status = 'admin_review';
+              } else if (isPending || isCustomerUpload) {
+                status = 'pending';
+              }
+              
+              design = {
+                id: designData.id,
+                name: designData.name,
+                previewUrl: designData.previewUrl,
+                artworkUrl: designData.previewUrl || null,
+                highResExportUrl: designData.highResExportUrl,
+                customShapeUrl: designData.customShapeUrl,
+                status,
+                isAdminDesign,
+                isCustomerUpload,
+                isFlagged,
+              };
+            } else {
+              console.log(`[Order ${order.id}] Design ${item.designId} NOT FOUND in database`);
             }
-            
-            design = {
-              id: d.id,
-              name: d.name,
-              previewUrl: d.previewUrl,
-              artworkUrl: d.previewUrl || null,
-              highResExportUrl: d.highResExportUrl,
-              customShapeUrl: d.customShapeUrl,
-              status,
-              isAdminDesign,
-              isCustomerUpload,
-              isFlagged,
-            };
+          } catch (designError: any) {
+            console.error(`[Order ${order.id}] Error fetching design ${item.designId}:`, designError.message);
           }
+        } else {
+          console.log(`[Order ${order.id}] Item ${item.id} has NO designId`);
         }
         
         // If no item-level design, use order-level admin design

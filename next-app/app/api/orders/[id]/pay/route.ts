@@ -43,14 +43,27 @@ export async function POST(
       return NextResponse.json({ error: "Missing payment source" }, { status: 400 });
     }
 
-    // Fetch the order
-    const orderResult = await db.execute(sql`
-      SELECT id, order_number, user_id, status, total_amount, subtotal, shipping_cost, tax_amount, 
-             customer_email, shipping_address, notes, created_by_admin_id
-      FROM orders 
-      WHERE id = ${orderId}
-      LIMIT 1
-    `);
+    // Fetch the order - using only columns that exist in production
+    let orderResult;
+    try {
+      orderResult = await db.execute(sql`
+        SELECT id, order_number, user_id, status, total_amount, subtotal, shipping_cost, tax_amount, 
+               customer_email, shipping_address, notes, created_by_admin_id
+        FROM orders 
+        WHERE id = ${orderId}
+        LIMIT 1
+      `);
+    } catch (colError: any) {
+      // created_by_admin_id might not exist in production
+      console.log('[Pay API] Fallback query without created_by_admin_id');
+      orderResult = await db.execute(sql`
+        SELECT id, order_number, user_id, status, total_amount, subtotal, shipping_cost, tax_amount, 
+               customer_email, shipping_address, notes
+        FROM orders 
+        WHERE id = ${orderId}
+        LIMIT 1
+      `);
+    }
 
     if (!orderResult.rows || orderResult.rows.length === 0) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -63,10 +76,12 @@ export async function POST(
     // - Allow if user is authenticated and owns the order
     // - Allow if order has no user_id yet (admin-created order, first-time payment)
     // - Allow if order was created by admin (payment link access)
+    // - Allow if notes contain "Payment Link:" (admin-created order indicator)
     const isAdmin = (session?.user as any)?.isAdmin === true;
     const userId = session?.user ? String((session.user as any).id) : null;
     const orderUserId = orderRow.user_id ? String(orderRow.user_id) : null;
-    const isAdminCreatedOrder = !!orderRow.created_by_admin_id;
+    // Check both column and notes for admin-created orders
+    const isAdminCreatedOrder = !!orderRow.created_by_admin_id || (orderRow.notes && orderRow.notes.includes('Payment Link:'));
     
     console.log(`[Pay API] Order ${orderId} auth check:`, {
       isAdmin,

@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { put } from "@vercel/blob";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { sendArtworkApprovalEmail } from "@/lib/email/sendNotificationEmails";
 
 export async function POST(
   request: Request,
@@ -23,10 +24,12 @@ export async function POST(
       return NextResponse.json({ message: "Invalid order ID" }, { status: 400 });
     }
 
-    // Get order details
+    // Get order details with customer info
     const orderResult = await db.execute(sql`
-      SELECT id, order_number, user_id, notes
-      FROM orders WHERE id = ${orderId}
+      SELECT o.id, o.order_number, o.user_id, o.notes, o.customer_name, u.email as user_email
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.id = ${orderId}
     `);
 
     if (!orderResult.rows || orderResult.rows.length === 0) {
@@ -111,12 +114,48 @@ export async function POST(
         console.log('artwork_notes table not available');
       });
 
-      // TODO: Send email notification to customer
-      // For now, the customer will see the flagged status on their payment page
+      // Get design preview URL for email
+      const designResult = await db.execute(sql`
+        SELECT preview_url FROM designs WHERE id = ${orderItem.design_id}
+      `);
+      const artworkPreviewUrl = (designResult.rows[0] as any)?.preview_url || '';
+
+      // Get customer email (from user or notes)
+      const customerEmailFinal = order.user_email || customerEmail;
+      const customerName = order.customer_name || 'Customer';
+
+      // Send email notification to customer
+      if (customerEmailFinal) {
+        await sendArtworkApprovalEmail({
+          customerEmail: customerEmailFinal,
+          customerName,
+          orderNumber: order.order_number,
+          orderId,
+          artworkPreviewUrl,
+          isFlagged: true,
+        }).catch(err => console.error('Failed to send revision email:', err));
+      }
+
+      // Create notification for customer
+      if (order.user_id) {
+        await db.execute(sql`
+          INSERT INTO notifications (user_id, type, title, message, order_id, link_url, is_read, created_at)
+          VALUES (
+            ${order.user_id},
+            'revision_requested',
+            ${'Revision Requested - #' + order.order_number},
+            ${notes || 'Please update your artwork.'},
+            ${orderId},
+            ${'/orders/' + orderId},
+            false,
+            NOW()
+          )
+        `).catch(err => console.error('Failed to create notification:', err));
+      }
 
       return NextResponse.json({
         success: true,
-        message: "Artwork flagged for revision",
+        message: "Artwork flagged for revision. Customer has been notified.",
         designId: orderItem.design_id,
       });
 

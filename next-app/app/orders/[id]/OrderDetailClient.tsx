@@ -1157,12 +1157,25 @@ export default function OrderDetail() {
                           const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
                           const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
                           
-                          // Get admin notes for this item (or order-level admin notes)
-                          const adminNotes = artworkNotes?.notes?.filter((note: ArtworkNote) => 
-                            note.senderType === 'admin' && 
-                            (note.orderItemId === item.id || !note.orderItemId)
+                          // Get the latest admin note for this specific item
+                          // Priority: 1) notes for this specific item, 2) order-level notes (no orderItemId)
+                          const itemSpecificNotes = artworkNotes?.notes?.filter((note: ArtworkNote) => 
+                            note.senderType === 'admin' && note.orderItemId === item.id
                           ) || [];
-                          const latestAdminNote = adminNotes.length > 0 ? adminNotes[adminNotes.length - 1] : null;
+                          
+                          // If no item-specific notes, check for order-level admin notes
+                          const orderLevelNotes = artworkNotes?.notes?.filter((note: ArtworkNote) => 
+                            note.senderType === 'admin' && !note.orderItemId
+                          ) || [];
+                          
+                          // Prefer item-specific notes, fallback to order-level notes
+                          const relevantNotes = itemSpecificNotes.length > 0 ? itemSpecificNotes : orderLevelNotes;
+                          
+                          // Get the most recent note (sorted by createdAt)
+                          const sortedNotes = [...relevantNotes].sort((a, b) => 
+                            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                          );
+                          const latestAdminNote = sortedNotes.length > 0 ? sortedNotes[0] : null;
                           
                           if (!isAdmin && isDesignFlagged && !isDesignApproved) {
                             return (

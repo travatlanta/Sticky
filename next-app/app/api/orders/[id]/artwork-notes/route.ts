@@ -179,6 +179,7 @@ export async function POST(
     const insertedNote = insertResult.rows[0] as any;
 
     if (isAdmin && order.user_id) {
+      // Admin sending message to customer - send email to customer
       try {
         const customerResult = await db.execute(sql`
           SELECT email, first_name, last_name FROM users WHERE id = ${order.user_id}
@@ -204,6 +205,39 @@ export async function POST(
         }
       } catch (emailError) {
         console.error("Failed to send email notification:", emailError);
+      }
+    } else if (!isAdmin) {
+      // Customer sending message - send email to admin (Mike)
+      const ADMIN_EMAIL = 'mhobbs.stickybanditos@gmail.com';
+      try {
+        // Get customer name
+        const customerResult = await db.execute(sql`
+          SELECT first_name, last_name, email FROM users WHERE id = ${userId}
+        `);
+        const customer = customerResult.rows[0] as any;
+        const customerName = customer?.first_name && customer?.last_name 
+          ? `${customer.first_name} ${customer.last_name}` 
+          : customer?.email || 'Customer';
+        
+        const emailContent = {
+          subject: `Customer Message - Order #${order.order_number}`,
+          html: `
+            <h2>New Customer Message</h2>
+            <p><strong>Order:</strong> #${order.order_number}</p>
+            <p><strong>From:</strong> ${customerName}</p>
+            <p><strong>Message:</strong></p>
+            <blockquote style="background: #f5f5f5; padding: 15px; border-left: 4px solid #333;">${content.trim()}</blockquote>
+            <p><a href="${process.env.SITE_URL || 'https://stickybanditos.com'}/admin/orders?id=${orderId}">View Order in Admin</a></p>
+          `,
+          text: `New Customer Message\nOrder: #${order.order_number}\nFrom: ${customerName}\nMessage: ${content.trim()}\n\nView order: ${process.env.SITE_URL || 'https://stickybanditos.com'}/admin/orders?id=${orderId}`,
+        };
+
+        await sendEmail({
+          to: ADMIN_EMAIL,
+          ...emailContent,
+        });
+      } catch (emailError) {
+        console.error("Failed to send admin email notification:", emailError);
       }
     }
 

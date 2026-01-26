@@ -51,6 +51,21 @@ export async function PUT(
     if (body.contourPath !== undefined) updateData.contourPath = body.contourPath;
     if (body.lastAutoSave !== undefined) updateData.lastAutoSave = body.lastAutoSave;
 
+    // If design content is being updated (canvasJson or previewUrl), clear any FLAGGED status
+    // This happens when customer edits their design in response to a revision request
+    if (body.canvasJson !== undefined || body.previewUrl !== undefined) {
+      const [currentDesign] = await db
+        .select({ name: designs.name })
+        .from(designs)
+        .where(eq(designs.id, parseInt(id)));
+      
+      if (currentDesign?.name?.includes('[FLAGGED]')) {
+        // Replace [FLAGGED] with [CUSTOMER_UPLOAD] to mark as customer updated
+        updateData.name = currentDesign.name.replace('[FLAGGED]', '[CUSTOMER_UPLOAD]');
+        console.log(`Design ${id} updated: cleared FLAGGED status`);
+      }
+    }
+
     const [design] = await db
       .update(designs)
       .set(updateData)
@@ -87,6 +102,19 @@ export async function PATCH(
     if (body.selectedOptions !== undefined) patchData.selectedOptions = body.selectedOptions;
     if (body.bleedColor !== undefined) patchData.bleedColor = body.bleedColor;
     if (body.contourPath !== undefined) patchData.contourPath = body.contourPath;
+
+    // If design content is being updated (canvasJson or previewUrl), clear any FLAGGED status
+    if (body.canvasJson !== undefined || body.previewUrl !== undefined) {
+      const [currentDesign] = await db
+        .select({ name: designs.name })
+        .from(designs)
+        .where(eq(designs.id, parseInt(id)));
+      
+      if (currentDesign?.name?.includes('[FLAGGED]')) {
+        patchData.name = currentDesign.name.replace('[FLAGGED]', '[CUSTOMER_UPLOAD]');
+        console.log(`Design ${id} updated via PATCH: cleared FLAGGED status`);
+      }
+    }
 
     const [design] = await db
       .update(designs)

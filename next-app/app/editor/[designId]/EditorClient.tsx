@@ -380,11 +380,45 @@ export default function Editor() {
       setContourPath(design.contourPath);
     }
     if (design?.canvasJson && fabricCanvasRef.current) {
+      // Load saved canvas JSON (from editor saves)
       fabricCanvasRef.current.loadFromJSON(design.canvasJson).then(() => {
         fabricCanvasRef.current?.renderAll();
       });
+    } else if (design?.previewUrl && fabricCanvasRef.current && fabricLoaded && fabricModule) {
+      // No canvas JSON - this is a file upload, load the image onto the canvas
+      console.log("Loading uploaded image onto canvas:", design.previewUrl);
+      fabricModule.Image.fromURL(design.previewUrl, { crossOrigin: 'anonymous' }).then((img: any) => {
+        if (!fabricCanvasRef.current) return;
+        
+        const canvas = fabricCanvasRef.current;
+        const canvasWidth = canvas.getWidth();
+        const canvasHeight = canvas.getHeight();
+        
+        // Scale image to fit within canvas while maintaining aspect ratio
+        const imgWidth = img.width || 400;
+        const imgHeight = img.height || 400;
+        const scale = Math.min(
+          (canvasWidth * 0.8) / imgWidth,
+          (canvasHeight * 0.8) / imgHeight
+        );
+        
+        img.scale(scale);
+        img.set({
+          left: (canvasWidth - imgWidth * scale) / 2,
+          top: (canvasHeight - imgHeight * scale) / 2,
+          selectable: true,
+          hasControls: true,
+        });
+        
+        canvas.add(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+        console.log("Image added to canvas successfully");
+      }).catch((err: any) => {
+        console.error("Failed to load image onto canvas:", err);
+      });
     }
-  }, [design]);
+  }, [design, fabricLoaded, fabricModule]);
 
   useEffect(() => {
     if (product?.options && Object.keys(selectedOptions).length === 0) {

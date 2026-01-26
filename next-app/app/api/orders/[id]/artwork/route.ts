@@ -114,7 +114,7 @@ export async function POST(
     console.log('[Artwork Upload] User:', userId, 'Order:', orderId);
 
     const orderResult = await db.execute(sql`
-      SELECT id, order_number, status, user_id
+      SELECT id, order_number, status, user_id, customer_name
       FROM orders 
       WHERE id = ${orderId}
       LIMIT 1
@@ -226,9 +226,28 @@ export async function POST(
       }
     }
 
-    // NOTE: No email is sent when admin uploads artwork
-    // Email to admin is only sent when CUSTOMER uploads artwork (see submit-artwork route)
-    // Email to customer is only sent when admin requests a REVISION (flag-issue route)
+    // Send email to admin when CUSTOMER uploads artwork
+    if (!isAdminUpload) {
+      sendAdminNotificationEmail({
+        type: 'design_submitted',
+        orderNumber: order.order_number,
+        orderId: order.id,
+        customerName: order.customer_name || 'Customer',
+        artworkPreviewUrl: blob.url,
+      }).catch(err => console.error('Failed to send admin notification:', err));
+
+      // Update any revision notifications to mark them as resolved
+      if (order.user_id) {
+        await db.execute(sql`
+          UPDATE notifications
+          SET title = ${'Artwork Updated - #' + order.order_number},
+              message = 'You have submitted new artwork for review.',
+              type = 'order',
+              is_read = false
+          WHERE order_id = ${order.id} AND user_id = ${order.user_id} AND type = 'revision_requested'
+        `).catch(err => console.error('Failed to update notification:', err));
+      }
+    }
 
     return NextResponse.json({
       success: true,

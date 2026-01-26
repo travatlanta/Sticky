@@ -145,38 +145,34 @@ export async function POST(
         return NextResponse.json({ error: "Failed to update order status" }, { status: 500 });
       }
 
-      // Update customer notification for free order
-      if (orderUserId || userId) {
-        const notifyUserId = orderUserId || userId;
-        try {
-          const updateResult = await db.execute(sql`
-            UPDATE notifications 
-            SET title = ${'Order Confirmed - #' + orderRow.order_number},
-                message = ${'Your order has been confirmed and is now being processed!'},
-                type = 'order',
-                is_read = false
-            WHERE order_id = ${orderId} AND user_id = ${notifyUserId}
-            RETURNING id
+      // Update or delete "awaiting payment" notification for free order
+      const notifyUserId = orderUserId || userId;
+      try {
+        // Delete any existing payment_required notifications for this order
+        await db.execute(sql`
+          DELETE FROM notifications 
+          WHERE order_id = ${orderId} AND type = 'payment_required'
+        `);
+        console.log(`[Pay API] Deleted awaiting payment notification for order ${orderId}`);
+        
+        // Create new "payment complete" notification if user exists
+        if (notifyUserId) {
+          await db.execute(sql`
+            INSERT INTO notifications (user_id, type, title, message, order_id, link_url, is_read, created_at)
+            VALUES (
+              ${notifyUserId},
+              'order',
+              ${'Order Confirmed - #' + orderRow.order_number},
+              ${'Your order has been confirmed and is now being processed!'},
+              ${orderId},
+              ${'/orders/' + orderId},
+              false,
+              NOW()
+            )
           `);
-          
-          if (!updateResult.rows || updateResult.rows.length === 0) {
-            await db.execute(sql`
-              INSERT INTO notifications (user_id, type, title, message, order_id, link_url, is_read, created_at)
-              VALUES (
-                ${notifyUserId},
-                'order',
-                ${'Order Confirmed - #' + orderRow.order_number},
-                ${'Your order has been confirmed and is now being processed!'},
-                ${orderId},
-                ${'/orders/' + orderId},
-                false,
-                NOW()
-              )
-            `);
-          }
-        } catch (notifError) {
-          console.error('[Pay API] Failed to update notification for free order:', notifError);
         }
+      } catch (notifError) {
+        console.error('[Pay API] Failed to update notification for free order:', notifError);
       }
 
       return NextResponse.json({ 
@@ -343,41 +339,35 @@ export async function POST(
     }).catch(err => console.error('Failed to send admin notification:', err));
 
     // Update or create customer notification to show payment completed
-    if (orderUserId || userId) {
-      const notifyUserId = orderUserId || userId;
-      try {
-        // First try to update existing notification for this order
-        const updateResult = await db.execute(sql`
-          UPDATE notifications 
-          SET title = ${'Payment Complete - Order #' + orderRow.order_number},
-              message = ${'Your payment has been received. Your order is now being processed!'},
-              type = 'order',
-              is_read = false
-          WHERE order_id = ${orderId} AND user_id = ${notifyUserId}
-          RETURNING id
+    const notifyUserId = orderUserId || userId;
+    try {
+      // Delete any existing payment_required notifications for this order
+      await db.execute(sql`
+        DELETE FROM notifications 
+        WHERE order_id = ${orderId} AND type = 'payment_required'
+      `);
+      console.log(`[Pay API] Deleted awaiting payment notification for order ${orderId}`);
+      
+      // Create new "payment complete" notification if user exists
+      if (notifyUserId) {
+        await db.execute(sql`
+          INSERT INTO notifications (user_id, type, title, message, order_id, link_url, is_read, created_at)
+          VALUES (
+            ${notifyUserId},
+            'order',
+            ${'Payment Complete - Order #' + orderRow.order_number},
+            ${'Your payment has been received. Your order is now being processed!'},
+            ${orderId},
+            ${'/orders/' + orderId},
+            false,
+            NOW()
+          )
         `);
-        
-        // If no existing notification was updated, create a new one
-        if (!updateResult.rows || updateResult.rows.length === 0) {
-          await db.execute(sql`
-            INSERT INTO notifications (user_id, type, title, message, order_id, link_url, is_read, created_at)
-            VALUES (
-              ${notifyUserId},
-              'order',
-              ${'Payment Complete - Order #' + orderRow.order_number},
-              ${'Your payment has been received. Your order is now being processed!'},
-              ${orderId},
-              ${'/orders/' + orderId},
-              false,
-              NOW()
-            )
-          `);
-        }
-        console.log(`[Pay API] Updated notification for order ${orderId}`);
-      } catch (notifError) {
-        console.error('[Pay API] Failed to update notification:', notifError);
-        // Don't fail the payment for notification issues
       }
+      console.log(`[Pay API] Created payment complete notification for order ${orderId}`);
+    } catch (notifError) {
+      console.error('[Pay API] Failed to update notification:', notifError);
+      // Don't fail the payment for notification issues
     }
 
     return NextResponse.json({ 

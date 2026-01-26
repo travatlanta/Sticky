@@ -790,6 +790,9 @@ export default function OrderDetail() {
                     const isPdf = previewUrl?.toLowerCase().includes('.pdf');
                     const isSpecialFormat = hasDesign && ['eps', 'cdr', 'ai', 'psd'].includes(ext);
                     
+                    console.log('[OrderDetail] Item:', item.id, 'Design:', item.design ? { id: item.design.id, name: item.design.name, hasPreview: !!item.design.previewUrl, previewLength: item.design.previewUrl?.length } : 'null');
+                    console.log('[OrderDetail] hasDesign:', hasDesign, 'previewUrl starts with:', previewUrl?.substring(0, 30));
+                    
                     return (
                     <div
                       key={item.id}

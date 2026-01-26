@@ -29,14 +29,17 @@ export async function GET(
     const { id } = await params;
     const orderId = parseInt(id);
     
-    // Use raw SQL matching the working orders list endpoint
+    // Use raw SQL matching the working orders list endpoint - include admin_design_id
     const result = await db.execute(sql`
       SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
              tax_amount, discount_amount, total_amount, shipping_address, 
-             notes, tracking_number, created_at
+             notes, tracking_number, created_at, admin_design_id, created_by_admin_id,
+             customer_email
       FROM orders 
       WHERE id = ${orderId}
     `);
+    
+    console.log(`[Order API] Raw query result for order ${orderId}:`, result.rows[0]);
     
     if (!result.rows || result.rows.length === 0) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
@@ -45,6 +48,7 @@ export async function GET(
     const row = result.rows[0] as any;
     const customerInfo = parseNotesForCustomerInfo(row.notes);
     
+    // Use values from main query - all columns now included
     const order = {
       id: row.id,
       orderNumber: row.order_number,
@@ -60,48 +64,49 @@ export async function GET(
       trackingNumber: row.tracking_number,
       createdAt: row.created_at,
       customerName: customerInfo.name,
-      customerEmail: customerInfo.email,
+      customerEmail: row.customer_email || customerInfo.email,
       customerPhone: customerInfo.phone,
-      adminDesignId: null,
-      createdByAdminId: null,
+      adminDesignId: row.admin_design_id || null,
+      createdByAdminId: row.created_by_admin_id || null,
     };
     
-    // Try to get admin_design_id separately (column may not exist in production)
-    try {
-      const adminResult = await db.execute(sql`
-        SELECT admin_design_id, created_by_admin_id FROM orders WHERE id = ${orderId}
-      `);
-      if (adminResult.rows && adminResult.rows.length > 0) {
-        const adminRow = adminResult.rows[0] as any;
-        order.adminDesignId = adminRow.admin_design_id || null;
-        order.createdByAdminId = adminRow.created_by_admin_id || null;
-      }
-    } catch (e) {
-      // Column doesn't exist, that's OK
-    }
+    console.log(`[Order API] Order ${orderId} - status: ${order.status}, adminDesignId: ${order.adminDesignId}`);
     
     // Fetch admin design if exists (order-level design uploaded by admin)
     let adminDesign = null;
     if (order.adminDesignId) {
-      const [d] = await db
-        .select()
-        .from(designs)
-        .where(eq(designs.id, order.adminDesignId));
-      if (d) {
-        const designName = d.name || '';
-        adminDesign = {
-          id: d.id,
-          name: d.name,
-          previewUrl: d.previewUrl,
-          artworkUrl: d.previewUrl || null,
-          highResExportUrl: d.highResExportUrl,
-          customShapeUrl: d.customShapeUrl,
-          status: 'admin_review',
-          isAdminDesign: true,
-          isCustomerUpload: false,
-          isFlagged: designName.includes('[FLAGGED]'),
-        };
+      console.log(`[Order ${order.id}] Fetching admin design with id ${order.adminDesignId}`);
+      try {
+        const designResult = await db.execute(sql`
+          SELECT id, name, preview_url, high_res_export_url, custom_shape_url 
+          FROM designs 
+          WHERE id = ${order.adminDesignId}
+        `);
+        
+        if (designResult.rows && designResult.rows.length > 0) {
+          const d = designResult.rows[0] as any;
+          console.log(`[Order ${order.id}] Found admin design:`, { id: d.id, name: d.name, previewUrl: d.preview_url?.substring(0, 50) });
+          const designName = d.name || '';
+          adminDesign = {
+            id: d.id,
+            name: d.name,
+            previewUrl: d.preview_url,
+            artworkUrl: d.preview_url || null,
+            highResExportUrl: d.high_res_export_url,
+            customShapeUrl: d.custom_shape_url,
+            status: 'admin_review',
+            isAdminDesign: true,
+            isCustomerUpload: false,
+            isFlagged: designName.includes('[FLAGGED]'),
+          };
+        } else {
+          console.log(`[Order ${order.id}] Admin design ${order.adminDesignId} not found in designs table`);
+        }
+      } catch (designError) {
+        console.error(`[Order ${order.id}] Error fetching admin design:`, designError);
       }
+    } else {
+      console.log(`[Order ${order.id}] No admin design ID set on order`);
     }
 
     // Get order items

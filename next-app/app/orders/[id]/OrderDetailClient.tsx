@@ -632,16 +632,18 @@ export default function OrderDetail() {
     );
   }
 
-  const status = statusConfig[order.status || "pending"] || statusConfig.pending;
+  // Normalize status for consistent comparison (handle case differences)
+  const orderStatus = order.status?.toLowerCase() || 'pending';
+  const status = statusConfig[orderStatus] || statusConfig.pending;
   const StatusIcon = status.icon;
   const shippingAddress = order.shippingAddress as any;
   
   // Determine if order needs payment (component-level for use in shipping edit button)
   // NEVER show payment for already paid or processed orders
   const paidStatuses = ['paid', 'in_production', 'printed', 'shipped', 'delivered', 'completed'];
-  const isPaid = paidStatuses.includes(order.status?.toLowerCase() || '');
+  const isPaid = paidStatuses.includes(orderStatus);
   const payableStatuses = ['pending', 'pending_payment', 'awaiting_artwork'];
-  const needsPayment = !isPaid && payableStatuses.includes(order.status) && order.notes?.includes('Payment Link:');
+  const needsPayment = !isPaid && payableStatuses.includes(orderStatus) && order.notes?.includes('Payment Link:');
   
   console.log('[OrderDetail] Payment check:', { 
     status: order.status, 
@@ -1492,6 +1494,56 @@ export default function OrderDetail() {
             {/* Payment Section - Show if order needs payment */}
             {(() => {
               const totalAmount = parseFloat(order.totalAmount || "0");
+              
+              // Show receipt/confirmation for paid orders
+              if (isPaid) {
+                return (
+                  <Card className="border-green-200 bg-green-50/50" data-testid="card-payment-receipt">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-green-700">
+                        <CheckCircle className="h-5 w-5" />
+                        Payment Complete
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="text-center py-4">
+                          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                            <CheckCircle className="h-8 w-8 text-green-600" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-green-800 mb-2">Thank You for Your Order!</h3>
+                          <p className="text-green-700">
+                            Your payment of <span className="font-bold">${totalAmount.toFixed(2)}</span> has been received.
+                          </p>
+                          <p className="text-sm text-green-600 mt-2">
+                            A confirmation email has been sent to your email address.
+                          </p>
+                        </div>
+                        
+                        <div className="border-t pt-4 mt-4">
+                          <h4 className="font-medium text-gray-700 mb-2">Order Summary</h4>
+                          <div className="flex justify-between text-sm">
+                            <span>Order Number:</span>
+                            <span className="font-mono font-medium">{order.orderNumber || order.id}</span>
+                          </div>
+                          <div className="flex justify-between text-sm mt-1">
+                            <span>Status:</span>
+                            <Badge className="bg-green-100 text-green-700">{status.label}</Badge>
+                          </div>
+                          <div className="flex justify-between text-sm mt-1">
+                            <span>Total Paid:</span>
+                            <span className="font-bold text-green-600">${totalAmount.toFixed(2)}</span>
+                          </div>
+                        </div>
+                        
+                        <p className="text-xs text-gray-500 text-center mt-4">
+                          Questions? Contact us at (602) 554-5338 or mhobbs.stickybanditos@gmail.com
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }
               
               if (!needsPayment) return null;
               

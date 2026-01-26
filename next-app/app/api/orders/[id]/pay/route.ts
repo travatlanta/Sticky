@@ -81,9 +81,16 @@ export async function POST(
     
     // If total is $0, just mark as paid without Square
     if (totalAmount === 0) {
-      await db.update(orders)
-        .set({ status: "paid" })
-        .where(eq(orders.id, orderId));
+      console.log(`[Pay API] Order ${orderId} is $0 - marking as paid without Square`);
+      
+      try {
+        // Use raw SQL to ensure the update works
+        await db.execute(sql`UPDATE orders SET status = 'paid' WHERE id = ${orderId}`);
+        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (free order)`);
+      } catch (updateError) {
+        console.error(`[Pay API] Failed to update order ${orderId} status:`, updateError);
+        return NextResponse.json({ error: "Failed to update order status" }, { status: 500 });
+      }
 
       return NextResponse.json({ 
         success: true, 

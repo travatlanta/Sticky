@@ -66,7 +66,14 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json(userOrders);
+    // Return with no-cache headers to prevent stale data
+    return NextResponse.json(userOrders, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
   } catch (error) {
     console.error('Error fetching orders:', error);
     return NextResponse.json({ message: 'Failed to fetch orders' }, { status: 500 });

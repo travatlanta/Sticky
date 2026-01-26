@@ -616,8 +616,19 @@ export default function OrderDetail() {
   const shippingAddress = order.shippingAddress as any;
   
   // Determine if order needs payment (component-level for use in shipping edit button)
+  // NEVER show payment for already paid or processed orders
+  const paidStatuses = ['paid', 'in_production', 'printed', 'shipped', 'delivered', 'completed'];
+  const isPaid = paidStatuses.includes(order.status?.toLowerCase() || '');
   const payableStatuses = ['pending', 'pending_payment', 'awaiting_artwork'];
-  const needsPayment = payableStatuses.includes(order.status) && order.notes?.includes('Payment Link:');
+  const needsPayment = !isPaid && payableStatuses.includes(order.status) && order.notes?.includes('Payment Link:');
+  
+  console.log('[OrderDetail] Payment check:', { 
+    status: order.status, 
+    isPaid, 
+    inPayableStatuses: payableStatuses.includes(order.status),
+    hasPaymentLink: order.notes?.includes('Payment Link:'),
+    needsPayment 
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background">

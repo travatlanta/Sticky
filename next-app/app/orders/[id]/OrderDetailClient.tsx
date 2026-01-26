@@ -1988,18 +1988,25 @@ export default function OrderDetail() {
                                 })}
                                 createVerificationDetails={() => {
                                   const billingAddr = billingSameAsShipping ? shippingForm : billingForm;
-                                  const nameParts = (billingAddr.name || '').split(' ');
+                                  // Only provide verification details if we have complete billing data
+                                  // Otherwise Square verification will fail with 400 error
+                                  if (!billingAddr.name || !billingAddr.street || !billingAddr.city || !billingAddr.state || !billingAddr.zip) {
+                                    return undefined as any; // Skip verification if incomplete
+                                  }
+                                  const nameParts = billingAddr.name.trim().split(' ');
+                                  const addressLines = [billingAddr.street];
+                                  if (billingAddr.street2) addressLines.push(billingAddr.street2);
                                   return {
                                     amount: totalAmount.toFixed(2),
                                     currencyCode: 'USD',
                                     intent: 'CHARGE',
                                     billingContact: {
-                                      givenName: nameParts[0] || '',
+                                      givenName: nameParts[0] || 'Customer',
                                       familyName: nameParts.slice(1).join(' ') || '',
-                                      addressLines: [billingAddr.street || '', billingAddr.street2 || ''].filter(Boolean),
-                                      city: billingAddr.city || '',
-                                      state: billingAddr.state || '',
-                                      postalCode: billingAddr.zip || '',
+                                      addressLines,
+                                      city: billingAddr.city,
+                                      state: billingAddr.state,
+                                      postalCode: billingAddr.zip,
                                       countryCode: billingAddr.country === 'USA' ? 'US' : (billingAddr.country || 'US'),
                                     },
                                   };

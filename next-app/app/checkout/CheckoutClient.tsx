@@ -697,20 +697,28 @@ export default function CheckoutClient() {
                           label: 'Total',
                         },
                       })}
-                      createVerificationDetails={() => ({
-                        amount: total.toFixed(2),
-                        currencyCode: 'USD',
-                        intent: 'CHARGE',
-                        billingContact: {
-                          givenName: shippingAddress.firstName || '',
-                          familyName: shippingAddress.lastName || '',
-                          addressLines: [shippingAddress.address1 || '', shippingAddress.address2 || ''].filter(Boolean),
-                          city: shippingAddress.city || '',
-                          state: shippingAddress.state || '',
-                          postalCode: shippingAddress.zip || '',
-                          countryCode: 'US',
-                        },
-                      })}
+                      createVerificationDetails={() => {
+                        // Only provide verification if we have complete address data
+                        if (!shippingAddress.firstName || !shippingAddress.address1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip) {
+                          return undefined as any; // Skip verification if incomplete
+                        }
+                        const addressLines = [shippingAddress.address1];
+                        if (shippingAddress.address2) addressLines.push(shippingAddress.address2);
+                        return {
+                          amount: total.toFixed(2),
+                          currencyCode: 'USD',
+                          intent: 'CHARGE',
+                          billingContact: {
+                            givenName: shippingAddress.firstName || 'Customer',
+                            familyName: shippingAddress.lastName || '',
+                            addressLines,
+                            city: shippingAddress.city,
+                            state: shippingAddress.state,
+                            postalCode: shippingAddress.zip,
+                            countryCode: 'US',
+                          },
+                        };
+                      }}
                     >
                       <CreditCard
                         buttonProps={{

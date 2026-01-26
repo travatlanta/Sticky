@@ -295,7 +295,21 @@ export async function POST(
       const city = billingSource.city || '';
       const state = billingSource.state || '';
       const zip = billingSource.zip || '';
-      const country = billingSource.country || 'US';
+      
+      // Convert country name/code to ISO 2-letter code (Square requires this)
+      const rawCountry = (billingSource.country || 'US').toString().trim().toUpperCase();
+      let countryCode = 'US'; // Default to US
+      if (rawCountry === 'US' || rawCountry === 'USA' || rawCountry === 'UNITED STATES' || rawCountry === 'UNITED STATES OF AMERICA') {
+        countryCode = 'US';
+      } else if (rawCountry === 'CA' || rawCountry === 'CAN' || rawCountry === 'CANADA') {
+        countryCode = 'CA';
+      } else if (rawCountry === 'MX' || rawCountry === 'MEX' || rawCountry === 'MEXICO') {
+        countryCode = 'MX';
+      } else if (rawCountry.length === 2) {
+        // If it's already a 2-letter code, use it
+        countryCode = rawCountry;
+      }
+      // For any other value, default to US
       
       // Only add fields with non-empty values
       if (firstName) billingAddress.first_name = firstName;
@@ -305,7 +319,7 @@ export async function POST(
       if (city) billingAddress.locality = city;
       if (state) billingAddress.administrative_district_level_1 = state;
       if (zip) billingAddress.postal_code = zip;
-      if (country) billingAddress.country = country;
+      billingAddress.country = countryCode;
     }
     
     console.log(`[Pay API] Order ${orderId} billing address for Square:`, JSON.stringify(billingAddress, null, 2));

@@ -10,7 +10,7 @@ import { put } from "@vercel/blob";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,9 @@ export async function POST(
       return NextResponse.json({ message: "Admin access required" }, { status: 403 });
     }
 
-    const orderId = parseInt(params.id);
+    // Await params for Next.js 14 compatibility
+    const { id } = await params;
+    const orderId = parseInt(id);
     if (isNaN(orderId)) {
       return NextResponse.json({ message: "Invalid order ID" }, { status: 400 });
     }

@@ -700,6 +700,17 @@ export default function AdminOrders() {
                       <div className="flex items-center gap-3 flex-wrap mb-1">
                         <span className="font-bold text-gray-900">#{order.orderNumber || order.id}</span>
                         <span className="text-lg font-semibold text-green-600">{formatPrice(order.totalAmount)}</span>
+                        {/* Payment status badge */}
+                        {order.status === 'paid' || order.status === 'in_production' || order.status === 'shipped' || order.status === 'delivered' ? (
+                          <Badge className="bg-green-100 text-green-800">
+                            Paid
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-orange-100 text-orange-800">
+                            Unpaid
+                          </Badge>
+                        )}
+                        {/* Artwork/Production status badge */}
                         {(() => {
                           const displayStatus = getOrderDisplayStatus(order);
                           return (
@@ -730,14 +741,6 @@ export default function AdminOrders() {
                       <p className="text-xs text-gray-400 mt-1">{formatDate(order.createdAt)}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                      {(() => {
-                        const displayStatus = getOrderDisplayStatus(order);
-                        return (
-                          <Badge className={displayStatus.colorClass}>
-                            {displayStatus.text}
-                          </Badge>
-                        );
-                      })()}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button

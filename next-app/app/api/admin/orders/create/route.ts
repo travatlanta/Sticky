@@ -5,9 +5,9 @@ import { orders, orderItems, users, notifications, products } from "@shared/sche
 import { eq, sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { sendAdminNotificationEmail } from "@/lib/email/sendNotificationEmails";
 import { randomBytes } from "crypto";
 import { z } from "zod";
+import { sendAdminNotificationEmail } from "@/lib/email/sendNotificationEmails";
 
 function generateOrderNumber(): string {
   const prefix = "SB";
@@ -28,25 +28,21 @@ const createOrderSchema = z.object({
     phone: z.string().optional(),
     isNewCustomer: z.boolean(),
   }),
-  // Manual orders can be for phone/in-person; allow shipping address
-  // to be omitted or partially filled.
-  shippingAddress: z
-    .object({
-      name: z.string().optional(),
-      street: z.string().optional(),
-      city: z.string().optional(),
-      state: z.string().optional(),
-      zipCode: z.string().optional(),
-      country: z.string().optional(),
-    })
-    .optional(),
+  shippingAddress: z.object({
+    name: z.string(),
+    street: z.string(),
+    city: z.string(),
+    state: z.string(),
+    zipCode: z.string(),
+    country: z.string(),
+  }),
   items: z.array(
     z.object({
-      // Custom items may not map to a catalog product.
-      productId: z.number().nullable(),
+      // Custom admin-created items may not map to a catalog product
+      productId: z.number().nullable().optional(),
       quantity: z.number().min(1),
       unitPrice: z.number().min(0),
-      selectedOptions: z.record(z.any()).default({}),
+      selectedOptions: z.record(z.string()),
     })
   ).min(1),
   subtotal: z.number().min(0),
@@ -111,9 +107,7 @@ export async function POST(request: Request) {
     try {
       // Use raw SQL to bypass Drizzle ORM schema validation
       // This ensures we only use columns that exist in production database
-      const shippingAddressJson = data.shippingAddress
-        ? JSON.stringify(data.shippingAddress)
-        : null;
+      const shippingAddressJson = JSON.stringify(data.shippingAddress);
       const adminId = (session.user as any).id;
       
       // Try with artwork_status and created_by_admin_id columns first
@@ -194,13 +188,14 @@ export async function POST(request: Request) {
     }
 
     for (const item of data.items) {
+      // Drizzle insert typings are stricter than runtime constraints here (custom items may have null productId).
       await db.insert(orderItems).values({
         orderId: newOrder.id,
-        productId: item.productId,
+        productId: (item.productId ?? null) as any,
         quantity: item.quantity,
         unitPrice: item.unitPrice.toFixed(2),
         selectedOptions: item.selectedOptions,
-      });
+      } as any);
     }
 
     if (customerId) {
@@ -212,6 +207,24 @@ export async function POST(request: Request) {
         orderId: newOrder.id,
         linkUrl: `/orders/${newOrder.id}`,
       });
+    }
+
+    // Notify main admin for manual orders as well
+    try {
+      const itemsSummary = data.items
+        .map((i) => `${i.quantity}× ${(i.productId ?? "custom") as any} @ $${i.unitPrice.toFixed(2)}`)
+        .join("\n");
+
+      await sendAdminNotificationEmail({
+        orderNumber,
+        customerName: data.customer.name,
+        customerEmail: data.customer.email,
+        totalAmount: data.totalAmount.toFixed(2),
+        orderItems: itemsSummary,
+        isManualOrder: true,
+      });
+    } catch (err) {
+      console.error("Failed to send admin notification email for manual order:", err);
     }
 
     const siteUrl = process.env.SITE_URL || "http://localhost:5000";
@@ -287,26 +300,6 @@ export async function POST(request: Request) {
       }
     } catch (emailError) {
       console.error("Failed to send payment email:", emailError);
-    }
-
-    // Notify main admin of newly created manual order (in addition to automated checkout flow notifications)
-    try {
-      await sendAdminNotificationEmail({
-        type: "new_order",
-        orderNumber,
-        customerName: data.customer.name,
-        customerEmail: data.customer.email,
-        totalAmount: data.totalAmount,
-        items: data.items.map((i) => ({
-          productName: i.productName || "Custom Order",
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          selectedOptions: i.selectedOptions || {},
-        })),
-        orderId: newOrder.id,
-      });
-    } catch (adminEmailError) {
-      console.error("Failed to send admin new-order notification:", adminEmailError);
     }
 
     return NextResponse.json({

@@ -1,5 +1,7 @@
 # Sticky Banditos Printing Company
 
+> **For detailed technical documentation**, see [TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md) - contains complete database schema, API reference, authentication flow, payment processing, and migration guide.
+
 ## Overview
 Sticky Banditos is an e-commerce platform specializing in custom stickers and labels. It features a customer-facing storefront with product browsing, an integrated design editor, shopping cart functionality, and an admin panel for product, order, promotion, and site customization management. The business is focused on sticker products only (not business cards or flyers).
 

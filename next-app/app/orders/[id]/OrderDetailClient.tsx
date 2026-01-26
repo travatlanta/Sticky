@@ -122,31 +122,21 @@ function getArtworkBadgeInfo(design: Design | null | undefined, isAdminCreatedOr
   }
   
   const designName = design.name || '';
-  const isAdminDesign = designName.includes('[ADMIN_DESIGN]') || design.isAdminDesign;
-  const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]') || design.isCustomerUpload;
   const isFlagged = designName.includes('[FLAGGED]') || design.isFlagged;
   const isApproved = designName.includes('[APPROVED]') || design.status === 'approved';
   
+  // Priority 1: Approved artwork
   if (isApproved) {
     return { text: "Approved", colorClass: "bg-green-100 text-green-700" };
   }
   
+  // Priority 2: Only show "Needs Approval" if EXPLICITLY FLAGGED by admin
+  // Regular admin uploads do NOT require customer approval
   if (isFlagged) {
     return { text: "Needs Your Approval", colorClass: "bg-yellow-100 text-yellow-700" };
   }
   
-  if (isAdminDesign) {
-    return { text: "Needs Your Approval", colorClass: "bg-yellow-100 text-yellow-700" };
-  }
-  
-  if (isCustomerUpload) {
-    return { text: "Ready", colorClass: "bg-green-100 text-green-700" };
-  }
-  
-  if (isAdminCreatedOrder && !isCustomerUpload) {
-    return { text: "Needs Your Approval", colorClass: "bg-yellow-100 text-yellow-700" };
-  }
-  
+  // Everything else is Ready - admin uploads, customer uploads, etc.
   return { text: "Ready", colorClass: "bg-green-100 text-green-700" };
 }
 
@@ -190,6 +180,9 @@ export default function OrderDetail() {
   const [reviseArtworkItemId, setReviseArtworkItemId] = useState<number | null>(null);
   const [revisionNote, setRevisionNote] = useState("");
   const revisionFileInputRef = useRef<HTMLInputElement | null>(null);
+  
+  // Cache busting key - increments after each upload to force image refresh
+  const [imageRefreshKey, setImageRefreshKey] = useState(0);
   
   // Shipping/Billing address editing state
   const [isEditingShipping, setIsEditingShipping] = useState(false);
@@ -302,6 +295,8 @@ export default function OrderDetail() {
     onSuccess: () => {
       toast({ title: "Artwork uploaded successfully!" });
       setUploadingItemId(null);
+      // Increment refresh key to force image reload
+      setImageRefreshKey(prev => prev + 1);
       queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
     },
     onError: (error: Error) => {
@@ -774,15 +769,9 @@ export default function OrderDetail() {
           const isAdminCreatedOrder = !!order.createdByAdminId || 
             (order.notes && (order.notes.includes('Payment Link:') || order.notes.includes('Admin-created')));
           
-          // Items with admin designs needing customer approval (NOT flagged - those are revisions)
-          const itemsNeedingApproval = order.items?.filter((item: any) => {
-            const designName = item.design?.name || '';
-            const isAdminDesign = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
-            const isFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
-            const isApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
-            // Admin uploaded design that needs approval (not flagged - flagged means revision needed)
-            return isAdminDesign && !isFlagged && !isApproved && item.design;
-          }) || [];
+          // Items needing approval - ONLY items explicitly flagged for revision by admin
+          // Regular admin uploads do NOT require approval (they are considered ready)
+          const itemsNeedingApproval: any[] = []; // Disabled - admin uploads are auto-approved
 
           // Items with flagged revisions (admin flagged customer's upload for revision)
           const itemsWithRevisionRequest = order.items?.filter((item: any) => {
@@ -988,9 +977,11 @@ export default function OrderDetail() {
                               );
                             }
                             
+                            // Cache busting using design id and refresh key (only changes after upload)
+                            const cacheBuster = `&t=${item.design?.id || 0}-${imageRefreshKey}`;
                             return (
                               <img 
-                                src={`/api/design-download?url=${encodeURIComponent(previewUrl)}`}
+                                src={`/api/design-download?url=${encodeURIComponent(previewUrl)}${cacheBuster}`}
                                 alt="Design preview" 
                                 className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
                                 onError={(e) => {

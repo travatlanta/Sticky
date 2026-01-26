@@ -59,6 +59,7 @@ import {
   Edit,
   Lock,
   Palette,
+  MessageCircle,
 } from "lucide-react";
 
 interface Design {

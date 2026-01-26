@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, orderItems, products, designs } from '@shared/schema';
+import { orderItems, products, designs } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
 // Parse customer info from notes field
@@ -29,40 +29,60 @@ export async function GET(
     const { id } = await params;
     const orderId = parseInt(id);
     
-    // Use Drizzle ORM with the orders table for proper field mapping
-    const [orderData] = await db.select().from(orders).where(eq(orders.id, orderId));
+    // Use raw SQL matching the working orders list endpoint
+    const result = await db.execute(sql`
+      SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+             tax_amount, discount_amount, total_amount, shipping_address, 
+             notes, tracking_number, created_at
+      FROM orders 
+      WHERE id = ${orderId}
+    `);
     
-    if (!orderData) {
+    if (!result.rows || result.rows.length === 0) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
 
-    const customerInfo = parseNotesForCustomerInfo(orderData.notes);
+    const row = result.rows[0] as any;
+    const customerInfo = parseNotesForCustomerInfo(row.notes);
     
     const order = {
-      id: orderData.id,
-      orderNumber: orderData.orderNumber,
-      userId: orderData.userId,
-      status: orderData.status,
-      subtotal: orderData.subtotal,
-      shippingCost: orderData.shippingCost,
-      taxAmount: orderData.taxAmount,
-      discountAmount: orderData.discountAmount,
-      totalAmount: orderData.totalAmount,
-      shippingAddress: orderData.shippingAddress,
-      notes: orderData.notes,
-      trackingNumber: orderData.trackingNumber,
-      createdAt: orderData.createdAt,
+      id: row.id,
+      orderNumber: row.order_number,
+      userId: row.user_id,
+      status: row.status,
+      subtotal: row.subtotal,
+      shippingCost: row.shipping_cost,
+      taxAmount: row.tax_amount,
+      discountAmount: row.discount_amount,
+      totalAmount: row.total_amount,
+      shippingAddress: row.shipping_address,
+      notes: row.notes,
+      trackingNumber: row.tracking_number,
+      createdAt: row.created_at,
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
       customerPhone: customerInfo.phone,
-      adminDesignId: (orderData as any).adminDesignId || null,
-      createdByAdminId: (orderData as any).createdByAdminId || null,
+      adminDesignId: null,
+      createdByAdminId: null,
     };
+    
+    // Try to get admin_design_id separately (column may not exist in production)
+    try {
+      const adminResult = await db.execute(sql`
+        SELECT admin_design_id, created_by_admin_id FROM orders WHERE id = ${orderId}
+      `);
+      if (adminResult.rows && adminResult.rows.length > 0) {
+        const adminRow = adminResult.rows[0] as any;
+        order.adminDesignId = adminRow.admin_design_id || null;
+        order.createdByAdminId = adminRow.created_by_admin_id || null;
+      }
+    } catch (e) {
+      // Column doesn't exist, that's OK
+    }
     
     // Fetch admin design if exists (order-level design uploaded by admin)
     let adminDesign = null;
     if (order.adminDesignId) {
-      console.log(`[Order ${order.id}] Fetching admin design ${order.adminDesignId}`);
       const [d] = await db
         .select()
         .from(designs)
@@ -81,7 +101,6 @@ export async function GET(
           isCustomerUpload: false,
           isFlagged: designName.includes('[FLAGGED]'),
         };
-        console.log(`[Order ${order.id}] Admin design found:`, { id: d.id, name: d.name });
       }
     }
 

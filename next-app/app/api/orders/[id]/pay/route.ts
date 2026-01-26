@@ -18,6 +18,7 @@ export async function POST(
     const orderId = parseInt(id, 10);
     
     console.log(`[Pay API] ====== Payment request for order ${id} ======`);
+    console.log(`[Pay API] DEPLOY VERSION: 2026-01-26-v3 - with fallback handling`);
     
     if (isNaN(orderId)) {
       console.log(`[Pay API] REJECTED - Invalid order ID: ${id}`);

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orderItems, products, designs } from '@shared/schema';
+import { orders, orderItems, products, designs } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
 // Parse customer info from notes field
@@ -27,57 +27,36 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const orderId = parseInt(id);
     
-    // Use raw SQL with fallback for columns that may not exist in production
-    let result;
-    let hasAdminDesignId = true;
-    try {
-      result = await db.execute(sql`
-        SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
-               tax_amount, discount_amount, total_amount, shipping_address, 
-               notes, tracking_number, created_at, admin_design_id, created_by_admin_id
-        FROM orders 
-        WHERE id = ${parseInt(id)}
-      `);
-    } catch (colErr) {
-      // Fallback without admin_design_id column (production may not have it)
-      console.log('[Order API] Falling back to query without admin_design_id column');
-      hasAdminDesignId = false;
-      result = await db.execute(sql`
-        SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
-               tax_amount, discount_amount, total_amount, shipping_address, 
-               notes, tracking_number, created_at
-        FROM orders 
-        WHERE id = ${parseInt(id)}
-      `);
-    }
-
-    if (!result.rows || result.rows.length === 0) {
+    // Use Drizzle ORM with the orders table for proper field mapping
+    const [orderData] = await db.select().from(orders).where(eq(orders.id, orderId));
+    
+    if (!orderData) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
 
-    const row = result.rows[0] as any;
-    const customerInfo = parseNotesForCustomerInfo(row.notes);
+    const customerInfo = parseNotesForCustomerInfo(orderData.notes);
     
     const order = {
-      id: row.id,
-      orderNumber: row.order_number,
-      userId: row.user_id,
-      status: row.status,
-      subtotal: row.subtotal,
-      shippingCost: row.shipping_cost,
-      taxAmount: row.tax_amount,
-      discountAmount: row.discount_amount,
-      totalAmount: row.total_amount,
-      shippingAddress: row.shipping_address,
-      notes: row.notes,
-      trackingNumber: row.tracking_number,
-      createdAt: row.created_at,
+      id: orderData.id,
+      orderNumber: orderData.orderNumber,
+      userId: orderData.userId,
+      status: orderData.status,
+      subtotal: orderData.subtotal,
+      shippingCost: orderData.shippingCost,
+      taxAmount: orderData.taxAmount,
+      discountAmount: orderData.discountAmount,
+      totalAmount: orderData.totalAmount,
+      shippingAddress: orderData.shippingAddress,
+      notes: orderData.notes,
+      trackingNumber: orderData.trackingNumber,
+      createdAt: orderData.createdAt,
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
       customerPhone: customerInfo.phone,
-      adminDesignId: hasAdminDesignId ? (row.admin_design_id || null) : null,
-      createdByAdminId: hasAdminDesignId ? (row.created_by_admin_id || null) : null,
+      adminDesignId: (orderData as any).adminDesignId || null,
+      createdByAdminId: (orderData as any).createdByAdminId || null,
     };
     
     // Fetch admin design if exists (order-level design uploaded by admin)

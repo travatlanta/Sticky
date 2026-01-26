@@ -60,6 +60,7 @@ import {
   Lock,
   Palette,
   MessageCircle,
+  AlertTriangle,
 } from "lucide-react";
 
 interface Design {
@@ -741,16 +742,23 @@ export default function OrderDetail() {
       return;
     }
 
-    // Validate billing address if not same as shipping
-    if (!billingSameAsShipping) {
-      if (!billingForm.name || !billingForm.street || !billingForm.city || !billingForm.state || !billingForm.zip) {
+    // Validate billing address - check the appropriate form based on toggle
+    const billingData = billingSameAsShipping ? shippingForm : billingForm;
+    if (!billingData.name || !billingData.street || !billingData.city || !billingData.state || !billingData.zip) {
+      if (billingSameAsShipping) {
+        toast({
+          title: "Missing Shipping Information",
+          description: "Please fill in all required shipping address fields before payment.",
+          variant: "destructive",
+        });
+      } else {
         toast({
           title: "Missing Billing Information",
           description: "Please fill in all required billing address fields.",
           variant: "destructive",
         });
-        return;
       }
+      return;
     }
 
     setIsProcessingPayment(true);
@@ -1972,61 +1980,75 @@ export default function OrderDetail() {
                                 )}
                               </Button>
                             </div>
-                          ) : (
-                            <div className="sq-payment-form">
-                              <PaymentForm
-                                applicationId={squareAppId}
-                                locationId={squareLocationId}
-                                cardTokenizeResponseReceived={handleSquarePayment}
-                                createPaymentRequest={() => ({
-                                  countryCode: 'US',
-                                  currencyCode: 'USD',
-                                  total: {
-                                    amount: totalAmount.toFixed(2),
-                                    label: `Order ${order.orderNumber}`,
-                                  },
-                                })}
-                                createVerificationDetails={() => {
-                                  const billingAddr = billingSameAsShipping ? shippingForm : billingForm;
-                                  // Only provide verification details if we have complete billing data
-                                  // Otherwise Square verification will fail with 400 error
-                                  if (!billingAddr.name || !billingAddr.street || !billingAddr.city || !billingAddr.state || !billingAddr.zip) {
-                                    return undefined as any; // Skip verification if incomplete
-                                  }
-                                  const nameParts = billingAddr.name.trim().split(' ');
-                                  const addressLines = [billingAddr.street];
-                                  if (billingAddr.street2) addressLines.push(billingAddr.street2);
-                                  return {
-                                    amount: totalAmount.toFixed(2),
+                          ) : (() => {
+                            // Check if billing address is complete
+                            const billingAddr = billingSameAsShipping ? shippingForm : billingForm;
+                            const isBillingComplete = billingAddr.name && billingAddr.street && billingAddr.city && billingAddr.state && billingAddr.zip;
+                            
+                            if (!isBillingComplete) {
+                              return (
+                                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-center">
+                                  <AlertTriangle className="h-6 w-6 text-amber-600 mx-auto mb-2" />
+                                  <p className="font-medium text-amber-800 dark:text-amber-200">
+                                    {billingSameAsShipping ? "Shipping Address Required" : "Billing Address Required"}
+                                  </p>
+                                  <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                                    Please fill in all required address fields above before entering payment details.
+                                  </p>
+                                </div>
+                              );
+                            }
+                            
+                            return (
+                              <div className="sq-payment-form">
+                                <PaymentForm
+                                  applicationId={squareAppId}
+                                  locationId={squareLocationId}
+                                  cardTokenizeResponseReceived={handleSquarePayment}
+                                  createPaymentRequest={() => ({
+                                    countryCode: 'US',
                                     currencyCode: 'USD',
-                                    intent: 'CHARGE',
-                                    billingContact: {
-                                      givenName: nameParts[0] || 'Customer',
-                                      familyName: nameParts.slice(1).join(' ') || '',
-                                      addressLines,
-                                      city: billingAddr.city,
-                                      state: billingAddr.state,
-                                      postalCode: billingAddr.zip,
-                                      countryCode: billingAddr.country === 'USA' ? 'US' : (billingAddr.country || 'US'),
+                                    total: {
+                                      amount: totalAmount.toFixed(2),
+                                      label: `Order ${order.orderNumber}`,
                                     },
-                                  };
-                                }}
-                              >
-                                <SquareCreditCard
-                                  buttonProps={{
-                                    css: {
-                                      backgroundColor: '#ea580c',
-                                      fontSize: '16px',
-                                      color: '#fff',
-                                      '&:hover': {
-                                        backgroundColor: '#c2410c',
+                                  })}
+                                  createVerificationDetails={() => {
+                                    const nameParts = billingAddr.name.trim().split(' ');
+                                    const addressLines = [billingAddr.street];
+                                    if (billingAddr.street2) addressLines.push(billingAddr.street2);
+                                    return {
+                                      amount: totalAmount.toFixed(2),
+                                      currencyCode: 'USD',
+                                      intent: 'CHARGE',
+                                      billingContact: {
+                                        givenName: nameParts[0] || 'Customer',
+                                        familyName: nameParts.slice(1).join(' ') || '',
+                                        addressLines,
+                                        city: billingAddr.city,
+                                        state: billingAddr.state,
+                                        postalCode: billingAddr.zip,
+                                        countryCode: billingAddr.country === 'USA' ? 'US' : (billingAddr.country || 'US'),
                                       },
-                                    },
+                                    };
                                   }}
-                                />
-                              </PaymentForm>
-                            </div>
-                          )}
+                                >
+                                  <SquareCreditCard
+                                    buttonProps={{
+                                      css: {
+                                        backgroundColor: '#ea580c',
+                                        fontSize: '16px',
+                                        color: '#fff',
+                                        '&:hover': {
+                                          backgroundColor: '#c2410c',
+                                        },
+                                      },
+                                    }}
+                                  />
+                                </PaymentForm>
+                              </div>
+                            );
+                          })()}
                         </div>
                         
                         <div className="flex items-center justify-center gap-2 text-sm text-gray-500">

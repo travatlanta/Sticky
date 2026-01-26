@@ -125,7 +125,8 @@ export default function CreateOrderClient() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState("");
   const [shippingCost, setShippingCost] = useState(15);
-  const [taxRate, setTaxRate] = useState(0);
+  // Phoenix, AZ default tax rate: 8.6% (state 5.6% + Maricopa County 0.7% + Phoenix 2.3%)
+  const [taxRate, setTaxRate] = useState(8.6);
   const [discountAmount, setDiscountAmount] = useState(0);
 
   const [showProductSearch, setShowProductSearch] = useState(false);

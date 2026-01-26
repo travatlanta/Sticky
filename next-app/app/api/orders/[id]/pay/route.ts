@@ -25,6 +25,7 @@ export async function POST(
     const body = await request.json();
     const { sourceId, billingAddress: clientBillingAddress } = body;
 
+    // sourceId can be "FREE_ORDER" for $0 orders or a Square token for paid orders
     if (!sourceId) {
       return NextResponse.json({ error: "Missing payment source" }, { status: 400 });
     }

@@ -197,26 +197,9 @@ export async function POST(
       console.log('[Artwork Upload] Design linked successfully');
     }
 
-    if (isAdminUpload) {
-      const customerResult = await db.execute(sql`
-        SELECT o.customer_name, u.email as user_email
-        FROM orders o
-        LEFT JOIN users u ON o.user_id = u.id
-        WHERE o.id = ${order.id}
-      `);
-      
-      const customer = customerResult.rows[0] as any;
-      if (customer?.user_email) {
-        sendArtworkApprovalEmail({
-          customerEmail: customer.user_email,
-          customerName: customer.customer_name || 'Customer',
-          orderNumber: order.order_number,
-          orderId: order.id,
-          artworkPreviewUrl: blob.url,
-          isFlagged: false,
-        }).catch(err => console.error('Failed to send approval email:', err));
-      }
-    }
+    // NOTE: No email is sent when admin uploads artwork
+    // Email to admin is only sent when CUSTOMER uploads artwork (see submit-artwork route)
+    // Email to customer is only sent when admin requests a REVISION (flag-issue route)
 
     return NextResponse.json({
       success: true,

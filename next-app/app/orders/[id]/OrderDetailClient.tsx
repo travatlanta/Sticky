@@ -525,6 +525,54 @@ export default function OrderDetail() {
     },
   });
 
+  // Handle $0 orders - no payment processing needed
+  const handleFreeOrder = async () => {
+    // Validate terms acceptance
+    if (!termsAccepted) {
+      toast({
+        title: "Terms Required",
+        description: "You must accept the Terms & Conditions to complete your order.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const res = await fetch(`/api/orders/${id}/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ 
+          sourceId: "FREE_ORDER",
+          billingAddress: shippingForm,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || json.message || "Failed to confirm order");
+      
+      toast({ 
+        title: "Order Confirmed!", 
+        description: json.message || "Your order is now being processed.",
+      });
+      
+      // Mark payment as just completed for success banner
+      setPaymentJustCompleted(true);
+      
+      // Force refetch immediately
+      await queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      await queryClient.refetchQueries({ queryKey: [`/api/orders/${id}`] });
+    } catch (error: any) {
+      toast({
+        title: "Failed to confirm order",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
   const handleSquarePayment = async (token: any, verifiedBuyer?: any) => {
     if (!token?.token) {
       toast({
@@ -1730,34 +1778,62 @@ export default function OrderDetail() {
                             </span>
                           </div>
                           
-                          <div className="sq-payment-form">
-                            <PaymentForm
-                              applicationId={squareAppId}
-                              locationId={squareLocationId}
-                              cardTokenizeResponseReceived={handleSquarePayment}
-                              createPaymentRequest={() => ({
-                                countryCode: 'US',
-                                currencyCode: 'USD',
-                                total: {
-                                  amount: totalAmount.toFixed(2),
-                                  label: `Order ${order.orderNumber}`,
-                                },
-                              })}
-                            >
-                              <SquareCreditCard
-                                buttonProps={{
-                                  css: {
-                                    backgroundColor: '#ea580c',
-                                    fontSize: '16px',
-                                    color: '#fff',
-                                    '&:hover': {
-                                      backgroundColor: '#c2410c',
-                                    },
+                          {totalAmount === 0 ? (
+                            /* $0 orders - show simple confirm button instead of payment form */
+                            <div className="space-y-3">
+                              <p className="text-sm text-gray-600 text-center">
+                                No payment required for this order.
+                              </p>
+                              <Button
+                                onClick={handleFreeOrder}
+                                disabled={!termsAccepted || isProcessingPayment}
+                                size="lg"
+                                className="w-full"
+                                data-testid="button-confirm-free-order"
+                              >
+                                {isProcessingPayment ? (
+                                  <>
+                                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                    Confirming...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-5 w-5 mr-2" />
+                                    Confirm Order
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="sq-payment-form">
+                              <PaymentForm
+                                applicationId={squareAppId}
+                                locationId={squareLocationId}
+                                cardTokenizeResponseReceived={handleSquarePayment}
+                                createPaymentRequest={() => ({
+                                  countryCode: 'US',
+                                  currencyCode: 'USD',
+                                  total: {
+                                    amount: totalAmount.toFixed(2),
+                                    label: `Order ${order.orderNumber}`,
                                   },
-                                }}
-                              />
-                            </PaymentForm>
-                          </div>
+                                })}
+                              >
+                                <SquareCreditCard
+                                  buttonProps={{
+                                    css: {
+                                      backgroundColor: '#ea580c',
+                                      fontSize: '16px',
+                                      color: '#fff',
+                                      '&:hover': {
+                                        backgroundColor: '#c2410c',
+                                      },
+                                    },
+                                  }}
+                                />
+                              </PaymentForm>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="flex items-center justify-center gap-2 text-sm text-gray-500">

@@ -7,7 +7,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { randomBytes } from "crypto";
 import { z } from "zod";
-import { sendAdminNotificationEmail } from "@/lib/email/sendNotificationEmails";
 
 function generateOrderNumber(): string {
   const prefix = "SB";
@@ -38,8 +37,7 @@ const createOrderSchema = z.object({
   }),
   items: z.array(
     z.object({
-      // Custom admin-created items may not map to a catalog product
-      productId: z.number().nullable().optional(),
+      productId: z.number(),
       quantity: z.number().min(1),
       unitPrice: z.number().min(0),
       selectedOptions: z.record(z.string()),
@@ -188,14 +186,13 @@ export async function POST(request: Request) {
     }
 
     for (const item of data.items) {
-      // Drizzle insert typings are stricter than runtime constraints here (custom items may have null productId).
       await db.insert(orderItems).values({
         orderId: newOrder.id,
-        productId: (item.productId ?? null) as any,
+        productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice.toFixed(2),
         selectedOptions: item.selectedOptions,
-      } as any);
+      });
     }
 
     if (customerId) {
@@ -207,24 +204,6 @@ export async function POST(request: Request) {
         orderId: newOrder.id,
         linkUrl: `/orders/${newOrder.id}`,
       });
-    }
-
-    // Notify main admin for manual orders as well
-    try {
-      const itemsSummary = data.items
-        .map((i) => `${i.quantity}× ${(i.productId ?? "custom") as any} @ $${i.unitPrice.toFixed(2)}`)
-        .join("\n");
-
-      await sendAdminNotificationEmail({
-        orderNumber,
-        customerName: data.customer.name,
-        customerEmail: data.customer.email,
-        totalAmount: data.totalAmount.toFixed(2),
-        orderItems: itemsSummary,
-        isManualOrder: true,
-      });
-    } catch (err) {
-      console.error("Failed to send admin notification email for manual order:", err);
     }
 
     const siteUrl = process.env.SITE_URL || "http://localhost:5000";

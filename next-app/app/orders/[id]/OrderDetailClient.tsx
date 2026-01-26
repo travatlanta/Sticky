@@ -177,6 +177,7 @@ export default function OrderDetail() {
   const [approvalConfirmItemId, setApprovalConfirmItemId] = useState<number | null>(null);
   const [changeNotes, setChangeNotes] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentJustCompleted, setPaymentJustCompleted] = useState(false);
   
   // Revision dialog state
   const [reviseArtworkItemId, setReviseArtworkItemId] = useState<number | null>(null);
@@ -579,7 +580,13 @@ export default function OrderDetail() {
         title: "Payment successful!", 
         description: json.message || "Your order is now being processed.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      
+      // Mark payment as just completed for success banner
+      setPaymentJustCompleted(true);
+      
+      // Force refetch immediately (invalidate + refetch to bypass any caching)
+      await queryClient.invalidateQueries({ queryKey: [`/api/orders/${id}`] });
+      await queryClient.refetchQueries({ queryKey: [`/api/orders/${id}`] });
     } catch (error: any) {
       toast({
         title: "Payment failed",
@@ -653,6 +660,25 @@ export default function OrderDetail() {
             Back to Orders
           </Button>
         </Link>
+
+        {/* Payment Success Banner - Shows after successful payment */}
+        {(paymentJustCompleted || isPaid) && order.createdByAdminId && (
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg" data-testid="banner-payment-success">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-green-800 dark:text-green-300">
+                  {paymentJustCompleted ? "Payment Confirmed!" : "Order Paid"}
+                </h3>
+                <p className="text-sm text-green-700 dark:text-green-400">
+                  {paymentJustCompleted 
+                    ? "Thank you for your payment! A confirmation email has been sent to your email address. Your order is now being processed."
+                    : "Your payment has been received and your order is being processed."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>

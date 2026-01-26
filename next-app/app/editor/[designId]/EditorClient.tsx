@@ -1236,7 +1236,8 @@ export default function Editor() {
   };
 
   // Detect if we're in order context (editing artwork for an existing order)
-  const isOrderContext = !!(orderIdFromUrl && itemIdFromUrl && tokenFromUrl);
+  // Order context is when we have orderId and itemId (token is optional - used for guest orders)
+  const isOrderContext = !!(orderIdFromUrl && itemIdFromUrl);
 
   // Handle saving design for order context (link to existing order item)
   const handleSaveToOrder = async () => {
@@ -1285,7 +1286,12 @@ export default function Editor() {
       }
 
       // Link design to order item
-      const linkRes = await fetch(`/api/orders/by-token/${tokenFromUrl}/artwork`, {
+      // Use token-based endpoint for guest orders, or authenticated endpoint for logged-in users
+      const linkEndpoint = tokenFromUrl 
+        ? `/api/orders/by-token/${tokenFromUrl}/artwork`
+        : `/api/orders/${orderIdFromUrl}/artwork`;
+      
+      const linkRes = await fetch(linkEndpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -1696,7 +1702,7 @@ export default function Editor() {
                         </li>
                         <li className="flex items-start gap-2">
                           <Check className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
-                          <span>Save your design before adding to cart</span>
+                          <span>{isOrderContext ? 'Click "Update Design" when finished' : 'Save your design before adding to cart'}</span>
                         </li>
                       </ul>
                     </div>
@@ -2495,7 +2501,11 @@ export default function Editor() {
                     >
                       {addedToCart ? (
                         <>
-                          <Check className="w-4 h-4 mr-1" /> Added
+                          <Check className="w-4 h-4 mr-1" /> {isOrderContext ? 'Updated!' : 'Added'}
+                        </>
+                      ) : isOrderContext ? (
+                        <>
+                          <Check className="w-4 h-4 mr-1" /> Update Design
                         </>
                       ) : (
                         <>

@@ -11,6 +11,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -1544,6 +1545,11 @@ export default function AdminOrders() {
                 </>
               )}
             </DialogTitle>
+            <DialogDescription>
+              {artworkReviewModal.action === 'flag' 
+                ? 'Flag the artwork and request the customer to upload a corrected version.'
+                : 'Upload a new design for the customer to review and approve.'}
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 mt-2">
@@ -1641,7 +1647,7 @@ export default function AdminOrders() {
 
       {/* Image Preview Modal */}
       <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden" aria-describedby={undefined}>
           <DialogHeader className="p-4 border-b">
             <DialogTitle>{previewImage?.name || 'Design Preview'}</DialogTitle>
           </DialogHeader>

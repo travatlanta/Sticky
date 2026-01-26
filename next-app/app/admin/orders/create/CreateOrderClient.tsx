@@ -861,7 +861,7 @@ export default function CreateOrderClient() {
       </div>
 
       <Dialog open={showProductSearch} onOpenChange={setShowProductSearch}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Add Product</DialogTitle>
           </DialogHeader>
@@ -915,7 +915,7 @@ export default function CreateOrderClient() {
       </Dialog>
 
       <Dialog open={showUserSearch} onOpenChange={setShowUserSearch}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Find Existing Customer</DialogTitle>
           </DialogHeader>
@@ -962,7 +962,7 @@ export default function CreateOrderClient() {
 
       {/* Custom Order Dialog */}
       <Dialog open={showCustomOrder} onOpenChange={setShowCustomOrder}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5 text-orange-500" />

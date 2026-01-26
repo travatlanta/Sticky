@@ -2353,7 +2353,7 @@ export default function Editor() {
         </div>
 
         <Dialog open={showColorPicker} onOpenChange={setShowColorPicker}>
-          <DialogContent className="max-w-sm">
+          <DialogContent className="max-w-sm" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle>Choose Color</DialogTitle>
             </DialogHeader>
@@ -2381,7 +2381,7 @@ export default function Editor() {
         </Dialog>
 
         <Dialog open={showHelp} onOpenChange={setShowHelp}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md" aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle>Editor Help</DialogTitle>
             </DialogHeader>

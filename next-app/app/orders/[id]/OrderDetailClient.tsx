@@ -456,8 +456,15 @@ export default function OrderDetail() {
     if (revisionNote.trim()) {
       try {
         await addNoteMutation.mutateAsync(revisionNote);
+        // Note added successfully, clear it
+        setRevisionNote("");
       } catch (e) {
         console.error('Failed to add note:', e);
+        toast({
+          title: "Note not saved",
+          description: "Your note couldn't be saved, but we'll continue with the upload.",
+          variant: "destructive",
+        });
       }
     }
     
@@ -466,6 +473,12 @@ export default function OrderDetail() {
       onSuccess: () => {
         setReviseArtworkItemId(null);
         setRevisionNote("");
+        // Invalidate notes to show updated communication
+        queryClient.invalidateQueries({ queryKey: ['/api/orders', id, 'artwork-notes'] });
+      },
+      onError: () => {
+        // Keep dialog open on error so user can retry
+        setUploadingItemId(null);
       }
     });
   };
@@ -945,7 +958,7 @@ export default function OrderDetail() {
                                       </p>
                                       <div className="flex flex-wrap gap-2">
                                         <Button
-                                          className="bg-red-600 hover:bg-red-700 text-white"
+                                          variant="destructive"
                                           onClick={() => setReviseArtworkItemId(item.id)}
                                           data-testid={`button-revise-artwork-${item.id}`}
                                         >
@@ -954,7 +967,6 @@ export default function OrderDetail() {
                                         </Button>
                                         <Button
                                           variant="outline"
-                                          className="text-green-700 border-green-300 hover:bg-green-50"
                                           onClick={() => setApprovalConfirmItemId(item.id)}
                                           disabled={approveArtworkMutation.isPending}
                                           data-testid={`button-approve-anyway-${item.id}`}
@@ -1769,11 +1781,9 @@ export default function OrderDetail() {
             {/* Action Buttons */}
             <div className="grid gap-3">
               {/* Upload New File */}
-              <Button
-                variant="outline"
-                className="w-full justify-start h-auto p-4 text-left"
+              <div 
+                className="border rounded-lg p-4 cursor-pointer hover-elevate"
                 onClick={() => revisionFileInputRef.current?.click()}
-                disabled={uploadingItemId === reviseArtworkItemId}
                 data-testid="button-upload-revision-file"
               >
                 <div className="flex items-center gap-3">
@@ -1789,7 +1799,7 @@ export default function OrderDetail() {
                     </p>
                   </div>
                 </div>
-              </Button>
+              </div>
               
               {/* Open Editor */}
               {reviseArtworkItemId && (
@@ -1803,10 +1813,7 @@ export default function OrderDetail() {
                   onClick={() => setReviseArtworkItemId(null)}
                   data-testid="button-open-editor-revision"
                 >
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4 text-left"
-                  >
+                  <div className="border rounded-lg p-4 hover-elevate">
                     <div className="flex items-center gap-3">
                       <Palette className="h-6 w-6 text-purple-600" />
                       <div>
@@ -1816,7 +1823,7 @@ export default function OrderDetail() {
                         </p>
                       </div>
                     </div>
-                  </Button>
+                  </div>
                 </Link>
               )}
             </div>

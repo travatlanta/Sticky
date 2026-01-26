@@ -181,7 +181,20 @@ export async function GET(
       })
     );
 
-    return NextResponse.json({ ...order, items: enrichedItems });
+    // Log order data for debugging
+    console.log(`[Order ${order.id}] Returning: status=${order.status}, items=${enrichedItems.length}`);
+    enrichedItems.forEach((item: any, idx: number) => {
+      console.log(`[Order ${order.id}] Item ${idx}: designId=${item.designId}, hasDesign=${!!item.design}, previewUrl=${item.design?.previewUrl?.substring(0, 50) || 'none'}`);
+    });
+    
+    // Return with no-cache headers to prevent stale data
+    return NextResponse.json({ ...order, items: enrichedItems }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
   } catch (error) {
     console.error('Error fetching order:', error);
     return NextResponse.json({ message: 'Failed to fetch order' }, { status: 500 });

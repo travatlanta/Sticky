@@ -247,7 +247,21 @@ export default function OrderDetail() {
     queryFn: async () => {
       const res = await fetch(`/api/orders/${id}`);
       if (!res.ok) throw new Error("Failed to fetch order");
-      return res.json();
+      const data = await res.json();
+      // Debug logging for order data
+      console.log('[OrderDetail] API Response:', {
+        id: data.id,
+        status: data.status,
+        itemsCount: data.items?.length,
+        items: data.items?.map((item: any) => ({
+          id: item.id,
+          designId: item.designId,
+          hasDesign: !!item.design,
+          previewUrl: item.design?.previewUrl?.substring(0, 50) || null,
+          highResUrl: item.design?.highResExportUrl?.substring(0, 50) || null,
+        }))
+      });
+      return data;
     },
     enabled: isAuthenticated && !!id,
   });

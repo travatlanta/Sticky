@@ -236,17 +236,13 @@ export async function POST(
         artworkPreviewUrl: blob.url,
       }).catch(err => console.error('Failed to send admin notification:', err));
 
-      // Update any revision notifications to mark them as resolved
-      if (order.user_id) {
-        await db.execute(sql`
-          UPDATE notifications
-          SET title = ${'Artwork Updated - #' + order.order_number},
-              message = 'You have submitted new artwork for review.',
-              type = 'order',
-              is_read = false
-          WHERE order_id = ${order.id} AND user_id = ${order.user_id} AND type = 'revision_requested'
-        `).catch(err => console.error('Failed to update notification:', err));
-      }
+      // Delete revision_requested notifications since customer has submitted new artwork
+      await db.execute(sql`
+        DELETE FROM notifications
+        WHERE order_id = ${order.id} AND type = 'revision_requested'
+      `).catch(err => console.error('Failed to delete revision notification:', err));
+      
+      console.log(`[Artwork Upload] Cleared revision notifications for order ${order.id}`);
     }
 
     return NextResponse.json({

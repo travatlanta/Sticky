@@ -1026,6 +1026,41 @@ export default function OrderDetail() {
                           </div>
                         </div>
                         
+                        {/* INLINE Revision Notes - appears immediately below badge when flagged */}
+                        {(() => {
+                          const designName = item.design?.name || '';
+                          const isDesignFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
+                          const isDesignApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
+                          
+                          // Get the latest admin note for this specific item
+                          const itemSpecificNotes = artworkNotes?.notes?.filter((note: ArtworkNote) => 
+                            note.senderType === 'admin' && note.orderItemId === item.id
+                          ) || [];
+                          const orderLevelNotes = artworkNotes?.notes?.filter((note: ArtworkNote) => 
+                            note.senderType === 'admin' && !note.orderItemId
+                          ) || [];
+                          const relevantNotes = itemSpecificNotes.length > 0 ? itemSpecificNotes : orderLevelNotes;
+                          const sortedNotes = [...relevantNotes].sort((a, b) => 
+                            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                          );
+                          const latestAdminNote = sortedNotes.length > 0 ? sortedNotes[0] : null;
+                          
+                          if (!isAdmin && isDesignFlagged && !isDesignApproved && latestAdminNote) {
+                            return (
+                              <div className="mt-2 mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-xs font-medium text-red-600 mb-1 flex items-center gap-1">
+                                  <MessageCircle className="h-3 w-3" />
+                                  Admin Notes:
+                                </p>
+                                <p className="text-sm text-red-800 whitespace-pre-wrap">
+                                  {latestAdminNote.content}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                        
                         {/* Artwork Label */}
                         <p className="text-xs text-gray-500 mb-2">
                           {item.design 

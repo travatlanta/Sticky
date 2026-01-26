@@ -147,6 +147,7 @@ export default function Editor() {
   const fabricCanvasRef = useRef<any>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const previewUrlLoadedRef = useRef<string | null>(null);
+  const canvasJsonLoadedRef = useRef<boolean>(false);
 
   const [toolDockOpen, setToolDockOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("");
@@ -382,8 +383,27 @@ export default function Editor() {
     }
     if (design?.canvasJson && fabricCanvasRef.current) {
       // Load saved canvas JSON (from editor saves)
-      fabricCanvasRef.current.loadFromJSON(design.canvasJson).then(() => {
-        fabricCanvasRef.current?.renderAll();
+      // Prevent re-loading the same JSON
+      if (canvasJsonLoadedRef.current) {
+        return;
+      }
+      canvasJsonLoadedRef.current = true;
+      
+      const canvas = fabricCanvasRef.current;
+      // Remove ALL event listeners during load to prevent state update loops
+      canvas.off();
+      
+      canvas.loadFromJSON(design.canvasJson).then(() => {
+        canvas.renderAll();
+        // Re-attach event listeners after load completes
+        canvas.on("object:modified", saveCanvasState);
+        canvas.on("object:added", saveCanvasState);
+        canvas.on("object:removed", saveCanvasState);
+        if (product?.supportsCustomShape) {
+          canvas.on("object:moving", updateContourFromCanvas);
+          canvas.on("object:scaling", updateContourFromCanvas);
+        }
+        console.log("Canvas JSON loaded and events re-attached");
       });
     } else if (design?.previewUrl && fabricCanvasRef.current && fabricLoaded && fabricModule) {
       // No canvas JSON - this is a file upload, load the image onto the canvas
@@ -396,10 +416,13 @@ export default function Editor() {
       console.log("Loading uploaded image onto canvas:", design.previewUrl);
       previewUrlLoadedRef.current = design.previewUrl;
       
+      const canvas = fabricCanvasRef.current;
+      // Remove ALL event listeners during load to prevent state update loops
+      canvas.off();
+      
       fabricModule.Image.fromURL(design.previewUrl, { crossOrigin: 'anonymous' }).then((img: any) => {
         if (!fabricCanvasRef.current) return;
         
-        const canvas = fabricCanvasRef.current;
         const canvasWidth = canvas.getWidth();
         const canvasHeight = canvas.getHeight();
         
@@ -422,10 +445,23 @@ export default function Editor() {
         canvas.add(img);
         canvas.setActiveObject(img);
         canvas.renderAll();
-        console.log("Image added to canvas successfully");
+        
+        // Re-attach event listeners after load completes
+        canvas.on("object:modified", saveCanvasState);
+        canvas.on("object:added", saveCanvasState);
+        canvas.on("object:removed", saveCanvasState);
+        if (product?.supportsCustomShape) {
+          canvas.on("object:moving", updateContourFromCanvas);
+          canvas.on("object:scaling", updateContourFromCanvas);
+        }
+        console.log("Image added to canvas and events re-attached");
       }).catch((err: any) => {
         console.error("Failed to load image onto canvas:", err);
         previewUrlLoadedRef.current = null; // Reset on error so user can retry
+        // Re-attach events even on error
+        canvas.on("object:modified", saveCanvasState);
+        canvas.on("object:added", saveCanvasState);
+        canvas.on("object:removed", saveCanvasState);
       });
     }
   }, [design, fabricLoaded, fabricModule]);

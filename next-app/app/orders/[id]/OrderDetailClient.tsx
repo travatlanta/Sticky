@@ -979,10 +979,11 @@ export default function OrderDetail() {
                             }
                             
                             // Cache busting using design id and refresh key (only changes after upload)
+                            // MUST include format=preview for unauthenticated access
                             const cacheBuster = `&t=${item.design?.id || 0}-${imageRefreshKey}`;
                             return (
                               <img 
-                                src={`/api/design-download?url=${encodeURIComponent(previewUrl)}${cacheBuster}`}
+                                src={`/api/design-download?url=${encodeURIComponent(previewUrl)}&format=preview${cacheBuster}`}
                                 alt="Design preview" 
                                 className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
                                 onError={(e) => {

@@ -290,20 +290,10 @@ export default function Editor() {
         fabricCanvasRef.current = canvas;
         console.log("Canvas initialized successfully");
 
-        canvas.on("object:modified", () => {
-          saveCanvasState();
-          updateContourFromCanvas();
-        });
-        canvas.on("object:added", () => {
-          saveCanvasState();
-          updateContourFromCanvas();
-        });
-        canvas.on("object:removed", () => {
-          saveCanvasState();
-          updateContourFromCanvas();
-        });
-        canvas.on("object:moving", updateContourFromCanvas);
-        canvas.on("object:scaling", updateContourFromCanvas);
+        // Attach event listeners for undo/redo only (contour updates happen separately if needed)
+        canvas.on("object:modified", saveCanvasState);
+        canvas.on("object:added", saveCanvasState);
+        canvas.on("object:removed", saveCanvasState);
         
         setFabricLoaded(true);
       } catch (error) {

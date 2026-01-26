@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../../../../lib/db';
 import { carts, cartItems, orders, orderItems, products } from '../../../../shared/schema';
 import { getServerSession } from 'next-auth';
@@ -190,23 +190,82 @@ export async function POST(req: Request) {
         phone: shippingAddress.phone,
       } : null;
 
-      const [order] = await db
-        .insert(orders)
-        .values({
-          orderNumber: generateOrderNumber(),
-          userId: userId,
-          customerEmail: checkoutEmail || sessionEmail,
-          status: 'paid',
-          subtotal: '0',
-          shippingCost: '0',
-          taxAmount: '0',
-          discountAmount: '0',
-          totalAmount: '0',
-          shippingAddress: formattedShippingAddress,
-          stripePaymentIntentId: `free-order-${randomUUID()}`,
-          notes: buildOrderNotes({ expeditedShipping, isWholesaler, wholesaleCertificateUrl, notes }),
-        })
-        .returning();
+      // Use raw SQL with fallback to handle potential schema mismatches
+      const freeOrderNumber = generateOrderNumber();
+      const freeOrderNotes = buildOrderNotes({ expeditedShipping, isWholesaler, wholesaleCertificateUrl, notes });
+      const freeShippingJson = formattedShippingAddress ? JSON.stringify(formattedShippingAddress) : null;
+      const freeCustomerEmail = checkoutEmail || sessionEmail;
+      const freePaymentId = `free-order-${randomUUID()}`;
+      
+      let order: any;
+      try {
+        const result = await db.execute(sql`
+          INSERT INTO orders (
+            order_number,
+            user_id,
+            customer_email,
+            status,
+            subtotal,
+            shipping_cost,
+            tax_amount,
+            discount_amount,
+            total_amount,
+            shipping_address,
+            stripe_payment_intent_id,
+            notes,
+            artwork_status
+          ) VALUES (
+            ${freeOrderNumber},
+            ${userId},
+            ${freeCustomerEmail},
+            'paid',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            ${freeShippingJson}::jsonb,
+            ${freePaymentId},
+            ${freeOrderNotes},
+            'awaiting_artwork'
+          )
+          RETURNING id, order_number
+        `);
+        order = { id: result.rows[0].id, orderNumber: result.rows[0].order_number };
+      } catch (schemaError: any) {
+        console.log('[Checkout] Free order - falling back without artwork_status:', schemaError?.message);
+        const result = await db.execute(sql`
+          INSERT INTO orders (
+            order_number,
+            user_id,
+            customer_email,
+            status,
+            subtotal,
+            shipping_cost,
+            tax_amount,
+            discount_amount,
+            total_amount,
+            shipping_address,
+            stripe_payment_intent_id,
+            notes
+          ) VALUES (
+            ${freeOrderNumber},
+            ${userId},
+            ${freeCustomerEmail},
+            'paid',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            ${freeShippingJson}::jsonb,
+            ${freePaymentId},
+            ${freeOrderNotes}
+          )
+          RETURNING id, order_number
+        `);
+        order = { id: result.rows[0].id, orderNumber: result.rows[0].order_number };
+      }
 
       for (const item of items) {
         await db.insert(orderItems).values({
@@ -349,23 +408,82 @@ export async function POST(req: Request) {
     const resolvedCustomerEmail = checkoutEmail || sessionEmail || squareEmail;
 
     // Create order with all data (expeditedCost, calculatedTax, and fullTotal already calculated at top)
-    const [order] = await db
-      .insert(orders)
-      .values({
-        orderNumber: generateOrderNumber(),
-        userId: userId,
-        customerEmail: resolvedCustomerEmail,
-        status: 'paid',
-        subtotal: subtotal.toString(),
-        shippingCost: expeditedCost.toString(),
-        taxAmount: calculatedTax.toFixed(2),
-        discountAmount: '0',
-        totalAmount: fullTotal.toString(),
-        shippingAddress: formattedShippingAddress,
-        stripePaymentIntentId: payment.id,
-        notes: buildOrderNotes({ expeditedShipping, isWholesaler, wholesaleCertificateUrl, notes }),
-      })
-      .returning();
+    // Use raw SQL with fallback to handle potential schema mismatches between development and production
+    const generatedOrderNumber = generateOrderNumber();
+    const orderNotes = buildOrderNotes({ expeditedShipping, isWholesaler, wholesaleCertificateUrl, notes });
+    const shippingAddressJson = formattedShippingAddress ? JSON.stringify(formattedShippingAddress) : null;
+    
+    let order: any;
+    try {
+      // Try inserting with all schema columns (including newer ones like artwork_status)
+      const result = await db.execute(sql`
+        INSERT INTO orders (
+          order_number,
+          user_id,
+          customer_email,
+          status,
+          subtotal,
+          shipping_cost,
+          tax_amount,
+          discount_amount,
+          total_amount,
+          shipping_address,
+          stripe_payment_intent_id,
+          notes,
+          artwork_status
+        ) VALUES (
+          ${generatedOrderNumber},
+          ${userId},
+          ${resolvedCustomerEmail},
+          'paid',
+          ${subtotal.toString()},
+          ${expeditedCost.toString()},
+          ${calculatedTax.toFixed(2)},
+          '0',
+          ${fullTotal.toString()},
+          ${shippingAddressJson}::jsonb,
+          ${payment.id},
+          ${orderNotes},
+          'awaiting_artwork'
+        )
+        RETURNING id, order_number
+      `);
+      order = { id: result.rows[0].id, orderNumber: result.rows[0].order_number };
+    } catch (schemaError: any) {
+      console.log('[Checkout] Falling back to order creation without artwork_status column:', schemaError?.message);
+      // Fallback without newer columns (production may not have them yet)
+      const result = await db.execute(sql`
+        INSERT INTO orders (
+          order_number,
+          user_id,
+          customer_email,
+          status,
+          subtotal,
+          shipping_cost,
+          tax_amount,
+          discount_amount,
+          total_amount,
+          shipping_address,
+          stripe_payment_intent_id,
+          notes
+        ) VALUES (
+          ${generatedOrderNumber},
+          ${userId},
+          ${resolvedCustomerEmail},
+          'paid',
+          ${subtotal.toString()},
+          ${expeditedCost.toString()},
+          ${calculatedTax.toFixed(2)},
+          '0',
+          ${fullTotal.toString()},
+          ${shippingAddressJson}::jsonb,
+          ${payment.id},
+          ${orderNotes}
+        )
+        RETURNING id, order_number
+      `);
+      order = { id: result.rows[0].id, orderNumber: result.rows[0].order_number };
+    }
 
     // Create order items with design links
     for (const item of items) {

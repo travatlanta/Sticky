@@ -45,6 +45,7 @@ export async function POST(
     }
 
     // Fetch the order - using only columns that exist in production
+    // Production may not have: customer_email, created_by_admin_id, artwork_status
     let orderResult;
     try {
       orderResult = await db.execute(sql`
@@ -55,15 +56,27 @@ export async function POST(
         LIMIT 1
       `);
     } catch (colError: any) {
-      // created_by_admin_id might not exist in production
-      console.log('[Pay API] Fallback query without created_by_admin_id');
-      orderResult = await db.execute(sql`
-        SELECT id, order_number, user_id, status, total_amount, subtotal, shipping_cost, tax_amount, 
-               customer_email, shipping_address, notes
-        FROM orders 
-        WHERE id = ${orderId}
-        LIMIT 1
-      `);
+      console.log('[Pay API] Fallback query without new columns:', colError?.message);
+      try {
+        // Try without created_by_admin_id
+        orderResult = await db.execute(sql`
+          SELECT id, order_number, user_id, status, total_amount, subtotal, shipping_cost, tax_amount, 
+                 customer_email, shipping_address, notes
+          FROM orders 
+          WHERE id = ${orderId}
+          LIMIT 1
+        `);
+      } catch (colError2: any) {
+        console.log('[Pay API] Fallback query without customer_email:', colError2?.message);
+        // Try without customer_email (production may not have it)
+        orderResult = await db.execute(sql`
+          SELECT id, order_number, user_id, status, total_amount, subtotal, shipping_cost, tax_amount, 
+                 shipping_address, notes
+          FROM orders 
+          WHERE id = ${orderId}
+          LIMIT 1
+        `);
+      }
     }
 
     if (!orderResult.rows || orderResult.rows.length === 0) {

@@ -244,9 +244,40 @@ export default function CheckoutClient() {
         wholesaleCertificateUrl: certificateUrl || undefined,
       });
     } else {
+      // Map Square error codes to user-friendly messages
+      const getErrorMessage = (err: any) => {
+        switch (err?.code) {
+          case 'INVALID_CARD_DATA':
+            return 'Invalid card information. Please check your card details.';
+          case 'CVV_FAILURE':
+            return 'Invalid security code (CVV). Please check the 3-digit code on your card.';
+          case 'INVALID_EXPIRATION':
+          case 'INVALID_EXPIRATION_DATE':
+            return 'Invalid expiration date. Please check your card expiration.';
+          case 'GENERIC_DECLINE':
+            return 'Your card was declined. Please try a different card.';
+          case 'INSUFFICIENT_FUNDS':
+            return 'Insufficient funds. Please try a different card.';
+          case 'CARD_DECLINED':
+            return 'Your card was declined. Please contact your bank or try a different card.';
+          case 'ADDRESS_VERIFICATION_FAILURE':
+            return 'Billing address verification failed. Please check your billing address.';
+          case 'VERIFY_CVV_FAILURE':
+            return 'Security code (CVV) verification failed. Please check the code on your card.';
+          case 'VERIFY_AVS_FAILURE':
+            return 'Address verification failed. Please ensure your billing address is correct.';
+          default:
+            return err?.message || err?.detail || 'Could not process your card. Please check your details and try again.';
+        }
+      };
+      
+      const errorMessage = tokenResult.errors?.length > 0 
+        ? tokenResult.errors.map(getErrorMessage).join(' ')
+        : 'Could not process your card. Please try again.';
+      
       toast({
         title: 'Card Error',
-        description: tokenResult.errors?.[0]?.message || 'Could not process your card. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
     }

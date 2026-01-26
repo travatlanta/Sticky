@@ -685,10 +685,47 @@ export default function OrderDetail() {
   };
 
   const handleSquarePayment = async (token: any, verifiedBuyer?: any) => {
+    // Check for tokenization errors from Square SDK
+    if (token?.errors && token.errors.length > 0) {
+      const errorMessages = token.errors.map((err: any) => {
+        // Map Square error codes to user-friendly messages
+        switch (err.code) {
+          case 'INVALID_CARD_DATA':
+            return 'Invalid card information. Please check your card details.';
+          case 'CVV_FAILURE':
+            return 'Invalid security code (CVV). Please check the 3-digit code on your card.';
+          case 'INVALID_EXPIRATION':
+          case 'INVALID_EXPIRATION_DATE':
+            return 'Invalid expiration date. Please check your card expiration.';
+          case 'GENERIC_DECLINE':
+            return 'Your card was declined. Please try a different card.';
+          case 'INSUFFICIENT_FUNDS':
+            return 'Insufficient funds. Please try a different card.';
+          case 'CARD_DECLINED':
+            return 'Your card was declined. Please contact your bank or try a different card.';
+          case 'ADDRESS_VERIFICATION_FAILURE':
+            return 'Billing address verification failed. Please check your billing address matches your card.';
+          case 'VERIFY_CVV_FAILURE':
+            return 'Security code (CVV) verification failed. Please check the code on your card.';
+          case 'VERIFY_AVS_FAILURE':
+            return 'Address verification failed. Please ensure your billing address is correct.';
+          default:
+            return err.message || err.detail || 'Card validation failed. Please check your card details.';
+        }
+      });
+      
+      toast({
+        title: "Card Error",
+        description: errorMessages.join(' '),
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!token?.token) {
       toast({
         title: "Payment Error",
-        description: "Could not process card information. Please try again.",
+        description: "Could not process card information. Please check your card details and try again.",
         variant: "destructive",
       });
       return;

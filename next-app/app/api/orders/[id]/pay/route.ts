@@ -350,14 +350,62 @@ export async function POST(
 
     if (!payment || payment.status !== 'COMPLETED') {
       console.error(`[Pay API] Order ${orderId} Square payment failed:`, JSON.stringify(paymentResult, null, 2));
-      const errorDetail = paymentResult?.errors?.[0]?.detail || 
-                          paymentResult?.errors?.[0]?.code ||
-                          paymentResult?.message ||
-                          'Payment failed';
       const errorCode = paymentResult?.errors?.[0]?.code || 'UNKNOWN';
-      console.error(`[Pay API] Order ${orderId} Error: ${errorCode} - ${errorDetail}`);
+      const rawDetail = paymentResult?.errors?.[0]?.detail || paymentResult?.message || 'Payment failed';
+      
+      // Map Square error codes to user-friendly messages
+      let userFriendlyMessage: string;
+      switch (errorCode) {
+        case 'INVALID_CARD_DATA':
+          userFriendlyMessage = 'Invalid card information. Please check your card details.';
+          break;
+        case 'CVV_FAILURE':
+        case 'VERIFY_CVV_FAILURE':
+          userFriendlyMessage = 'Invalid security code (CVV). Please check the 3-digit code on the back of your card.';
+          break;
+        case 'INVALID_EXPIRATION':
+        case 'INVALID_EXPIRATION_DATE':
+          userFriendlyMessage = 'Invalid expiration date. Please check your card expiration.';
+          break;
+        case 'GENERIC_DECLINE':
+        case 'CARD_DECLINED':
+          userFriendlyMessage = 'Your card was declined. Please contact your bank or try a different card.';
+          break;
+        case 'INSUFFICIENT_FUNDS':
+          userFriendlyMessage = 'Insufficient funds. Please try a different card.';
+          break;
+        case 'ADDRESS_VERIFICATION_FAILURE':
+        case 'VERIFY_AVS_FAILURE':
+          userFriendlyMessage = 'Billing address verification failed. Please ensure your billing address matches the address on file with your card issuer.';
+          break;
+        case 'CARD_EXPIRED':
+          userFriendlyMessage = 'Your card has expired. Please use a different card.';
+          break;
+        case 'INVALID_CARD':
+          userFriendlyMessage = 'Invalid card. Please check your card number and try again.';
+          break;
+        case 'CARD_NOT_SUPPORTED':
+          userFriendlyMessage = 'This card type is not supported. Please try a different card.';
+          break;
+        case 'INVALID_POSTAL_CODE':
+          userFriendlyMessage = 'Invalid ZIP/postal code. Please check your billing address.';
+          break;
+        case 'CARD_TOKEN_EXPIRED':
+          userFriendlyMessage = 'Session expired. Please refresh the page and try again.';
+          break;
+        case 'BAD_REQUEST':
+          userFriendlyMessage = 'There was an issue processing your payment. Please check your card details and try again.';
+          break;
+        default:
+          // Use the raw detail if it's user-friendly, otherwise use a generic message
+          userFriendlyMessage = rawDetail.includes('declined') || rawDetail.includes('invalid') 
+            ? rawDetail 
+            : 'Payment could not be processed. Please check your card details and try again.';
+      }
+      
+      console.error(`[Pay API] Order ${orderId} Error: ${errorCode} - ${rawDetail} -> User message: ${userFriendlyMessage}`);
       return NextResponse.json(
-        { error: errorDetail, code: errorCode },
+        { error: userFriendlyMessage, code: errorCode },
         { status: 400 }
       );
     }

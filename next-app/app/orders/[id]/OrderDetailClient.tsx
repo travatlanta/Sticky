@@ -1415,97 +1415,6 @@ export default function OrderDetail() {
                   </div>
                 )}
 
-                {/* Notes / Communication Section */}
-                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div 
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => setShowNotes(!showNotes)}
-                    data-testid="toggle-notes-section"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium text-gray-900 dark:text-foreground">
-                        Messages {artworkNotes?.notes?.length ? `(${artworkNotes.notes.length})` : ''}
-                      </span>
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      {showNotes ? 'Hide' : 'Show'}
-                    </Button>
-                  </div>
-                  
-                  {showNotes && (
-                    <div className="mt-4 space-y-4">
-                      {/* Message History */}
-                      {artworkNotes?.notes && artworkNotes.notes.length > 0 ? (
-                        <div className="space-y-3 max-h-60 overflow-y-auto">
-                          {artworkNotes.notes.map((note) => (
-                            <div 
-                              key={note.id} 
-                              className={`p-3 rounded-lg ${
-                                note.senderType === 'admin' 
-                                  ? 'bg-blue-50 dark:bg-blue-950 ml-4' 
-                                  : 'bg-gray-100 dark:bg-gray-800 mr-4'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                                  {note.senderType === 'admin' ? 'Sticky Banditos' : 'You'}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  {new Date(note.createdAt).toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                                {note.content}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                          No messages yet. Send a message to communicate with our team about your artwork.
-                        </p>
-                      )}
-                      
-                      {/* Add Note Form */}
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newNote}
-                          onChange={(e) => setNewNote(e.target.value)}
-                          placeholder="Type a message..."
-                          className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                          data-testid="input-new-note"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && newNote.trim()) {
-                              addNoteMutation.mutate(newNote.trim());
-                            }
-                          }}
-                        />
-                        <Button
-                          onClick={() => {
-                            if (newNote.trim()) {
-                              addNoteMutation.mutate(newNote.trim());
-                            }
-                          }}
-                          disabled={addNoteMutation.isPending || !newNote.trim()}
-                          data-testid="button-send-note"
-                        >
-                          {addNoteMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Send className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </CardContent>
             </Card>
 
@@ -1777,6 +1686,22 @@ export default function OrderDetail() {
                             <span>Status:</span>
                             <Badge className="bg-green-100 text-green-700">{status.label}</Badge>
                           </div>
+                          
+                          {/* Order Notes Section - Right under status badge */}
+                          {order.notes && (() => {
+                            const cleanedNotes = order.notes
+                              .replace(/Payment Link:\s*[a-f0-9-]+/gi, '')
+                              .replace(/\n\s*\n/g, '\n')
+                              .trim();
+                            
+                            return cleanedNotes ? (
+                              <div className="mt-3 pt-3 border-t border-green-200">
+                                <p className="text-xs font-medium text-green-800 mb-1">Order Notes:</p>
+                                <p className="text-sm text-green-700 whitespace-pre-line">{cleanedNotes}</p>
+                              </div>
+                            ) : null;
+                          })()}
+                          
                           <div className="flex justify-between text-sm mt-1">
                             <span>Total Paid:</span>
                             <span className="font-bold text-green-600">${totalAmount.toFixed(2)}</span>
@@ -2044,26 +1969,6 @@ export default function OrderDetail() {
                   </CardContent>
                 </Card>
               );
-            })()}
-
-            {order.notes && (() => {
-              // Clean notes: remove payment link tokens and clean up formatting
-              const cleanedNotes = order.notes
-                .replace(/Payment Link:\s*[a-f0-9-]+/gi, '')
-                .replace(/\n\s*\n/g, '\n')
-                .trim();
-              
-              // Only show if there's actual content after cleaning
-              return cleanedNotes ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Order Notes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 dark:text-muted-foreground whitespace-pre-line">{cleanedNotes}</p>
-                  </CardContent>
-                </Card>
-              ) : null;
             })()}
 
             <Card>

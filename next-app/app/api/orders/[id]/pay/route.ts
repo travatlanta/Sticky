@@ -145,6 +145,68 @@ export async function POST(
         return NextResponse.json({ error: "Failed to update order status" }, { status: 500 });
       }
 
+      // Send confirmation email for free order
+      const customerEmail = orderRow.customer_email;
+      if (customerEmail) {
+        try {
+          // Fetch order items for email
+          const itemsResult = await db.execute(sql`
+            SELECT oi.quantity, oi.unit_price, p.name as product_name
+            FROM order_items oi
+            LEFT JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id = ${orderId}
+          `);
+          
+          const items = (itemsResult.rows || []).map((item: any) => ({
+            name: item.product_name || 'Custom Product',
+            quantity: item.quantity,
+            unitPrice: parseFloat(item.unit_price || '0'),
+          }));
+
+          const shippingAddr = typeof orderRow.shipping_address === 'string' 
+            ? JSON.parse(orderRow.shipping_address) 
+            : orderRow.shipping_address || {};
+
+          await sendOrderConfirmationEmail({
+            orderId,
+            toEmail: customerEmail,
+            orderNumber: orderRow.order_number,
+            items,
+            totals: {
+              subtotal: parseFloat(orderRow.subtotal || '0'),
+              shipping: parseFloat(orderRow.shipping_cost || '0'),
+              tax: parseFloat(orderRow.tax_amount || '0'),
+              total: 0,
+            },
+            shippingAddress: {
+              name: shippingAddr.name || `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim(),
+              address1: shippingAddr.address1 || shippingAddr.street || '',
+              address2: shippingAddr.address2 || undefined,
+              city: shippingAddr.city || '',
+              state: shippingAddr.state || '',
+              zip: shippingAddr.zip || '',
+              country: shippingAddr.country || 'USA',
+            },
+          });
+          console.log(`[Pay API] Sent order confirmation email for free order ${orderId}`);
+        } catch (emailError) {
+          console.error('Failed to send order confirmation email for free order:', emailError);
+        }
+      }
+
+      // Notify admin about free order payment
+      const shippingAddr = typeof orderRow.shipping_address === 'string' 
+        ? JSON.parse(orderRow.shipping_address) 
+        : orderRow.shipping_address || {};
+      
+      sendAdminNotificationEmail({
+        type: 'order_paid',
+        orderNumber: orderRow.order_number,
+        orderId,
+        customerName: shippingAddr.name || 'Customer',
+        customerEmail: customerEmail || undefined,
+      }).catch(err => console.error('Failed to send admin notification for free order:', err));
+
       // Update or delete "awaiting payment" notification for free order
       const notifyUserId = orderUserId || userId;
       try {

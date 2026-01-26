@@ -34,6 +34,23 @@ import { getCartSessionId, setCartSessionId } from "@/lib/cartSession";
 
 let fabricModule: any = null;
 
+async function uploadPreviewDataUrl(dataUrl: string, filenamePrefix: string): Promise<string | null> {
+  // Store large preview images in Vercel Blob to avoid 414 URI Too Long issues
+  // when other parts of the app proxy/download previews via GET URLs.
+  try {
+    const res = await fetch("/api/blob-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataUrl, filenamePrefix }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { url?: string };
+    return json.url ?? null;
+  } catch {
+    return null;
+  }
+}
+
 interface ProductOption {
   id: number;
   optionType: string;
@@ -1204,7 +1221,13 @@ export default function Editor() {
     setIsSaving(true);
     try {
       const canvasJson = canvas.toJSON();
-      const previewUrl = canvas.toDataURL({ format: 'png', quality: 0.8 });
+
+      // Generate a preview image. Store it in Vercel Blob so the DB holds a short URL,
+      // avoiding 414 URI Too Long when other pages proxy/download previews via GET.
+      const previewDataUrl = canvas.toDataURL({ format: 'png', quality: 0.8 });
+      const previewUrl =
+        (await uploadPreviewDataUrl(previewDataUrl, `design-${designId || 'new'}-${Date.now()}`)) ||
+        previewDataUrl;
 
       // For new designs from order context, create a new design
       if (isNewDesign && productIdFromUrl) {

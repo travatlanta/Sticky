@@ -95,14 +95,17 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log('[Artwork Upload] Starting upload...');
     const session = await getServerSession(authOptions);
     if (!session?.user) {
+      console.log('[Artwork Upload] Not authenticated');
       return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
     }
 
     const { id } = await params;
     const orderId = parseInt(id);
     const userId = (session.user as any).id;
+    console.log('[Artwork Upload] User:', userId, 'Order:', orderId);
 
     const orderResult = await db.execute(sql`
       SELECT id, order_number, status, user_id
@@ -155,7 +158,11 @@ export async function POST(
     const uploadTag = isAdminUpload ? '[ADMIN_DESIGN]' : '[CUSTOMER_UPLOAD]';
     const designName = `${uploadTag} Artwork for Order ${order.order_number}`;
 
+    console.log('[Artwork Upload] Blob uploaded:', blob.url);
+    console.log('[Artwork Upload] Existing designId:', designId, 'orderItemId:', orderItemId);
+
     if (designId) {
+      console.log('[Artwork Upload] Updating existing design:', designId);
       await db.execute(sql`
         UPDATE designs SET
           preview_url = ${blob.url},
@@ -165,6 +172,7 @@ export async function POST(
         WHERE id = ${designId}
       `);
     } else {
+      console.log('[Artwork Upload] Creating new design...');
       const designResult = await db.execute(sql`
         INSERT INTO designs (name, preview_url, high_res_export_url, product_id, created_at, updated_at)
         VALUES (
@@ -179,11 +187,14 @@ export async function POST(
       `);
       
       designId = (designResult.rows[0] as any).id;
+      console.log('[Artwork Upload] Created design:', designId);
 
+      console.log('[Artwork Upload] Linking design to order item:', orderItemId);
       await db.execute(sql`
         UPDATE order_items SET design_id = ${designId}
         WHERE id = ${parseInt(orderItemId)}
       `);
+      console.log('[Artwork Upload] Design linked successfully');
     }
 
     if (isAdminUpload) {

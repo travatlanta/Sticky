@@ -1173,10 +1173,10 @@ export default function AdminOrders() {
                                           <SelectValue placeholder="Format" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          <SelectItem value="pdf">PDF</SelectItem>
                                           <SelectItem value="png">PNG</SelectItem>
+                                          <SelectItem value="jpeg">JPEG</SelectItem>
+                                          <SelectItem value="pdf">PDF</SelectItem>
                                           <SelectItem value="tiff">TIFF</SelectItem>
-                                          <SelectItem value="jpg">JPG</SelectItem>
                                         </SelectContent>
                                       </Select>
                                     )}

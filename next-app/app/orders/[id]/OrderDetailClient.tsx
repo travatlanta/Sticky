@@ -28,6 +28,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -208,18 +215,29 @@ export default function OrderDetail() {
   const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [downloading, setDownloading] = useState<Record<number, boolean>>({});
+  const [downloadFormats, setDownloadFormats] = useState<Record<number, string>>({});
 
-  // Handle download for customer (direct URL download, no admin route needed)
+  // Handle download with format conversion
   const handleDownload = async (url: string, itemId: number, designName: string) => {
     if (!url) return;
+    const format = downloadFormats[itemId] || 'png';
     setDownloading(prev => ({ ...prev, [itemId]: true }));
+    
     try {
-      // Fetch directly from the URL (Vercel Blob URLs are publicly accessible)
-      const response = await fetch(url);
+      const sourceExt = url.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+      const isSpecialFormat = ['eps', 'cdr', 'ai', 'psd', 'pdf'].includes(sourceExt);
+      
+      // For special formats, download as original
+      const downloadFormat = isSpecialFormat ? 'original' : format;
+      const downloadUrl = `/api/design-download?url=${encodeURIComponent(url)}&format=${downloadFormat}&filename=${encodeURIComponent(designName)}`;
+      
+      const response = await fetch(downloadUrl);
       if (!response.ok) throw new Error('Download failed');
+      
       const blob = await response.blob();
-      const ext = url.split('.').pop()?.split('?')[0]?.toLowerCase() || 'file';
+      const ext = isSpecialFormat ? sourceExt : (format === 'jpeg' ? 'jpg' : format);
       const filename = `${designName.replace(/[^a-zA-Z0-9]/g, '_')}.${ext}`;
+      
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = filename;
@@ -994,8 +1012,25 @@ export default function OrderDetail() {
                               </div>
                             )}
                             
-                            {/* Download Button (no format dropdown for customers) */}
+                            {/* Download with format selection */}
                             <div className="flex items-center gap-2">
+                              {!isSpecialFormat && hasDesign && (
+                                <Select
+                                  value={downloadFormats[item.id] || 'png'}
+                                  onValueChange={(value) => setDownloadFormats(prev => ({ ...prev, [item.id]: value }))}
+                                  disabled={!hasDesign}
+                                >
+                                  <SelectTrigger className="w-24" data-testid={`select-format-${item.id}`}>
+                                    <SelectValue placeholder="Format" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="png">PNG</SelectItem>
+                                    <SelectItem value="jpeg">JPEG</SelectItem>
+                                    <SelectItem value="pdf">PDF</SelectItem>
+                                    <SelectItem value="tiff">TIFF</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
                               <Button
                                 onClick={() => {
                                   if (!hasDesign) return;
@@ -1014,14 +1049,14 @@ export default function OrderDetail() {
                                 ) : (
                                   <Download className="h-4 w-4 mr-2" />
                                 )}
-                                Download
+                                {isSpecialFormat && hasDesign ? `Download ${ext.toUpperCase()}` : 'Download'}
                               </Button>
                             </div>
                             
                             {/* File format info */}
                             <div className="text-xs text-gray-500 space-y-1">
                               <p>PNG/TIFF preserve transparency</p>
-                              <p className="text-amber-600">EPS, CDR, AI, PSD, PDF files download as-is (no conversion available)</p>
+                              <p className="text-amber-600">EPS, CDR, AI, PSD, PDF files download as-is (no conversion)</p>
                             </div>
                             
                             {/* Die-cut shape download if available */}

@@ -66,12 +66,18 @@ interface User {
 }
 
 interface OrderItem {
-  productId: number;
-  product: Product;
+  productId: number | null;
+  product: Product | null;
   quantity: number;
   unitPrice: number;
   selectedOptions: Record<string, string>;
   optionPriceModifiers: number;
+  isCustom?: boolean;
+  customDetails?: {
+    size: string;
+    finish: string;
+    description?: string;
+  };
 }
 
 interface CustomerInfo {
@@ -126,6 +132,16 @@ export default function CreateOrderClient() {
   const [productSearch, setProductSearch] = useState("");
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [userSearch, setUserSearch] = useState("");
+  
+  // Custom order state
+  const [showCustomOrder, setShowCustomOrder] = useState(false);
+  const [customOrderForm, setCustomOrderForm] = useState({
+    size: "",
+    finish: "",
+    quantity: 1,
+    price: "",
+    description: "",
+  });
 
   const { data: products = [], isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -236,7 +252,7 @@ export default function CreateOrderClient() {
 
     let totalModifiers = 0;
     const product = newItems[index].product;
-    if (product.options) {
+    if (product?.options) {
       for (const [type, name] of Object.entries(newItems[index].selectedOptions)) {
         const opt = product.options.find(
           (o) =>
@@ -255,6 +271,41 @@ export default function CreateOrderClient() {
 
   const removeItem = (index: number) => {
     setOrderItems(orderItems.filter((_, i) => i !== index));
+  };
+
+  const addCustomItem = () => {
+    const price = parseFloat(customOrderForm.price) || 0;
+    if (!customOrderForm.size || !customOrderForm.finish || price <= 0) {
+      toast({
+        title: "Invalid custom order",
+        description: "Please fill in size, finish, and a valid price",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const customItem: OrderItem = {
+      productId: null,
+      product: null,
+      quantity: customOrderForm.quantity || 1,
+      unitPrice: price,
+      selectedOptions: {
+        Size: customOrderForm.size,
+        Finish: customOrderForm.finish,
+      },
+      optionPriceModifiers: 0,
+      isCustom: true,
+      customDetails: {
+        size: customOrderForm.size,
+        finish: customOrderForm.finish,
+        description: customOrderForm.description || undefined,
+      },
+    };
+
+    setOrderItems([...orderItems, customItem]);
+    setCustomOrderForm({ size: "", finish: "", quantity: 1, price: "", description: "" });
+    setShowCustomOrder(false);
+    toast({ title: "Custom item added" });
   };
 
   const subtotal = orderItems.reduce((sum, item) => {
@@ -439,15 +490,27 @@ export default function CreateOrderClient() {
                   <Package className="h-5 w-5" />
                   Order Items
                 </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowProductSearch(true)}
-                  data-testid="button-add-product"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Product
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowProductSearch(true)}
+                    data-testid="button-add-product"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Product
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCustomOrder(true)}
+                    data-testid="button-custom-order"
+                    className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Custom Order
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {orderItems.length === 0 ? (
@@ -467,12 +530,16 @@ export default function CreateOrderClient() {
                     {orderItems.map((item, index) => (
                       <div
                         key={index}
-                        className="border rounded-lg p-4 space-y-3"
-                        data-testid={`order-item-${item.productId}`}
+                        className={`border rounded-lg p-4 space-y-3 ${item.isCustom ? 'border-orange-200 bg-orange-50/30' : ''}`}
+                        data-testid={`order-item-${item.productId || 'custom-' + index}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex gap-3">
-                            {item.product.thumbnailUrl && (
+                            {item.isCustom ? (
+                              <div className="w-16 h-16 flex items-center justify-center bg-orange-100 rounded">
+                                <Package className="h-8 w-8 text-orange-500" />
+                              </div>
+                            ) : item.product?.thumbnailUrl && (
                               <img
                                 src={item.product.thumbnailUrl}
                                 alt={item.product.name}
@@ -480,7 +547,16 @@ export default function CreateOrderClient() {
                               />
                             )}
                             <div>
-                              <h4 className="font-medium">{item.product.name}</h4>
+                              <h4 className="font-medium">
+                                {item.isCustom ? (
+                                  <span className="flex items-center gap-2">
+                                    Custom Order
+                                    <span className="text-xs px-2 py-0.5 bg-orange-200 text-orange-700 rounded">Custom</span>
+                                  </span>
+                                ) : (
+                                  item.product?.name || 'Unknown Product'
+                                )}
+                              </h4>
                               <div className="text-sm text-gray-600 mt-1">
                                 {Object.entries(item.selectedOptions).map(([key, val]) => (
                                   <span key={key} className="mr-2">
@@ -488,6 +564,9 @@ export default function CreateOrderClient() {
                                   </span>
                                 ))}
                               </div>
+                              {item.customDetails?.description && (
+                                <p className="text-xs text-gray-500 mt-1">{item.customDetails.description}</p>
+                              )}
                             </div>
                           </div>
                           <Button
@@ -547,10 +626,10 @@ export default function CreateOrderClient() {
                           </div>
                         </div>
 
-                        {item.product.options && item.product.options.length > 0 && (
+                        {item.product?.options && item.product.options.length > 0 && (
                           <div className="grid sm:grid-cols-3 gap-3 pt-2 border-t">
                             {["material", "coating", "cut"].map((optType) => {
-                              const options = item.product.options?.filter(
+                              const options = item.product?.options?.filter(
                                 (o) => o.optionType === optType
                               );
                               if (!options || options.length === 0) return null;
@@ -876,6 +955,116 @@ export default function CreateOrderClient() {
                 </button>
               ))
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Order Dialog */}
+      <Dialog open={showCustomOrder} onOpenChange={setShowCustomOrder}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-orange-500" />
+              Add Custom Order Item
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Enter custom billing details for items not in the product catalog.
+            </p>
+            
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="custom-size">Size *</Label>
+                <Input
+                  id="custom-size"
+                  value={customOrderForm.size}
+                  onChange={(e) => setCustomOrderForm({ ...customOrderForm, size: e.target.value })}
+                  placeholder="e.g., 3x3 inches, 4x6 inches"
+                  data-testid="input-custom-size"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="custom-finish">Finish *</Label>
+                <Select
+                  value={customOrderForm.finish}
+                  onValueChange={(value) => setCustomOrderForm({ ...customOrderForm, finish: value })}
+                >
+                  <SelectTrigger id="custom-finish" data-testid="select-custom-finish">
+                    <SelectValue placeholder="Select finish..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Matte">Matte</SelectItem>
+                    <SelectItem value="Glossy">Glossy</SelectItem>
+                    <SelectItem value="Holographic">Holographic</SelectItem>
+                    <SelectItem value="Clear">Clear</SelectItem>
+                    <SelectItem value="Metallic">Metallic</SelectItem>
+                    <SelectItem value="Kraft">Kraft</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="custom-quantity">Quantity</Label>
+                  <Input
+                    id="custom-quantity"
+                    type="number"
+                    min="1"
+                    value={customOrderForm.quantity}
+                    onChange={(e) => setCustomOrderForm({ ...customOrderForm, quantity: parseInt(e.target.value) || 1 })}
+                    data-testid="input-custom-quantity"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="custom-price">Total Price ($) *</Label>
+                  <Input
+                    id="custom-price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={customOrderForm.price}
+                    onChange={(e) => setCustomOrderForm({ ...customOrderForm, price: e.target.value })}
+                    placeholder="0.00"
+                    data-testid="input-custom-price"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="custom-description">Description (optional)</Label>
+                <Textarea
+                  id="custom-description"
+                  value={customOrderForm.description}
+                  onChange={(e) => setCustomOrderForm({ ...customOrderForm, description: e.target.value })}
+                  placeholder="Additional details about the custom order..."
+                  rows={2}
+                  data-testid="input-custom-description"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 justify-end pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCustomOrder(false);
+                  setCustomOrderForm({ size: "", finish: "", quantity: 1, price: "", description: "" });
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={addCustomItem}
+                className="bg-orange-500 hover:bg-orange-600"
+                data-testid="button-add-custom-item"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Custom Item
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

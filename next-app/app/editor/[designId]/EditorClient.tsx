@@ -414,8 +414,65 @@ export default function Editor() {
       const canvas = fabricCanvasRef.current;
       // Remove ALL event listeners during load to prevent state update loops
       canvas.off();
-      
-      fabricModule.Image.fromURL(design.previewUrl, { crossOrigin: 'anonymous' }).then((img: any) => {
+
+      // Fabric's Image.fromURL API differs between versions:
+      // - Some builds (e.g. Fabric 5) use callback style: fromURL(url, cb, options)
+      // - Others (e.g. Fabric 6+) return a Promise: fromURL(url, options?)
+      // The previous implementation assumed a Promise and crashed when fromURL
+      // returned undefined. Wrap both APIs into a single Promise-based helper.
+      const loadFabricImageFromURL = (url: string, options: any) => {
+        return new Promise<any>((resolve, reject) => {
+          const ImageCtor = (fabricModule as any)?.Image;
+          const fromURL = ImageCtor?.fromURL;
+          if (typeof fromURL !== "function") {
+            reject(new Error("Fabric Image.fromURL is not available"));
+            return;
+          }
+
+          let settled = false;
+          const safeResolve = (img: any) => {
+            if (settled) return;
+            settled = true;
+            if (!img) {
+              reject(new Error("Fabric Image.fromURL returned no image"));
+              return;
+            }
+            resolve(img);
+          };
+          const safeReject = (err: any) => {
+            if (settled) return;
+            settled = true;
+            reject(err);
+          };
+
+          const cb = (img: any) => safeResolve(img);
+
+          try {
+            // Try Promise-style first when it looks like the function supports it.
+            let maybePromise: any;
+            if (fromURL.length <= 2) {
+              maybePromise = fromURL(url, options);
+            } else {
+              maybePromise = fromURL(url, cb, options);
+            }
+
+            if (maybePromise && typeof maybePromise.then === "function") {
+              maybePromise.then(safeResolve).catch(safeReject);
+              return;
+            }
+
+            // If no Promise was returned, fall back to callback-style.
+            // (Some builds can have a different declared arity.)
+            if (!settled) {
+              fromURL(url, cb, options);
+            }
+          } catch (err) {
+            safeReject(err);
+          }
+        });
+      };
+
+      loadFabricImageFromURL(design.previewUrl, { crossOrigin: "anonymous" }).then((img: any) => {
         if (!fabricCanvasRef.current) return;
         
         const canvasWidth = canvas.getWidth();

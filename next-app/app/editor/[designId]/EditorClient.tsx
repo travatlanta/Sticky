@@ -148,6 +148,7 @@ export default function Editor() {
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const previewUrlLoadedRef = useRef<string | null>(null);
   const canvasJsonLoadedRef = useRef<boolean>(false);
+  const designDataLoadedRef = useRef<boolean>(false);
 
   const [toolDockOpen, setToolDockOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("");
@@ -372,14 +373,18 @@ export default function Editor() {
   }, [fabricLoaded, canvasDimensions]);
 
   useEffect(() => {
-    if (design?.previewUrl && !uploadedImage) {
-      setUploadedImage(design.previewUrl);
-    }
-    if (design?.selectedOptions) {
-      setSelectedOptions(design.selectedOptions as Record<string, number>);
-    }
-    if (design?.contourPath) {
-      setContourPath(design.contourPath);
+    // Only load design data once to prevent infinite re-render loops
+    if (design && !designDataLoadedRef.current) {
+      designDataLoadedRef.current = true;
+      if (design.previewUrl) {
+        setUploadedImage(design.previewUrl);
+      }
+      if (design.selectedOptions) {
+        setSelectedOptions(design.selectedOptions as Record<string, number>);
+      }
+      if (design.contourPath) {
+        setContourPath(design.contourPath);
+      }
     }
     if (design?.canvasJson && fabricCanvasRef.current) {
       // Load saved canvas JSON (from editor saves)

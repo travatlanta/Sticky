@@ -280,7 +280,10 @@ export default function AdminOrders() {
     },
     onSuccess: () => {
       setNewAdminNote("");
-      toast({ title: "Message sent to customer" });
+      toast({ 
+        title: "✓ Message Sent",
+        description: "Customer has been notified via email."
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/orders', selectedOrder?.id, 'artwork-notes'] });
     },
     onError: () => {
@@ -393,7 +396,10 @@ export default function AdminOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
-      toast({ title: "Order updated successfully" });
+      toast({ 
+        title: "✓ Order Updated",
+        description: "Changes have been saved successfully."
+      });
     },
     onError: () => toast({ title: "Failed to update order", variant: "destructive" }),
   });
@@ -436,7 +442,10 @@ export default function AdminOrders() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to approve artwork");
       
-      toast({ title: "Artwork approved successfully!" });
+      toast({ 
+        title: "✓ Artwork Approved",
+        description: "Design is now marked as ready for production."
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders", orderId] });
     } catch (error: any) {
@@ -494,7 +503,10 @@ export default function AdminOrders() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Upload failed");
       
-      toast({ title: "Design uploaded and sent for customer approval" });
+      toast({ 
+        title: "✓ Design Sent Successfully",
+        description: "Customer will receive an email to review and approve the design."
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
       setArtworkNotes("");
     } catch (error: any) {
@@ -520,7 +532,10 @@ export default function AdminOrders() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Restore failed");
       
-      toast({ title: "Original artwork restored successfully" });
+      toast({ 
+        title: "✓ Original Artwork Restored",
+        description: "The admin design has been discarded and customer's original artwork is now active."
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
     } catch (error: any) {
       toast({ title: error.message || "Failed to restore original artwork", variant: "destructive" });
@@ -551,8 +566,8 @@ export default function AdminOrders() {
         if (!res.ok) throw new Error(data.message || "Failed to flag artwork");
         
         toast({ 
-          title: "Artwork flagged for revision",
-          description: "Customer has been notified to update their design"
+          title: "✓ Revision Request Sent",
+          description: "Customer has been emailed and notified to update their design."
         });
       } else if (artworkReviewModal.action === 'upload') {
         // Admin uploads new design for customer approval
@@ -576,8 +591,8 @@ export default function AdminOrders() {
         if (!res.ok) throw new Error(data.message || "Failed to upload design");
         
         toast({ 
-          title: "Design uploaded",
-          description: "Customer has been notified to approve the design"
+          title: "✓ Design Sent Successfully",
+          description: "Customer has been emailed and notified to approve the design."
         });
       }
       

@@ -600,77 +600,103 @@ export default function OrderDetail() {
           </Badge>
         </div>
 
-        {/* Customer Notification Banners */}
+        {/* Customer Notification Banner - Shows ONE prioritized action */}
         {(() => {
           const isAdminCreatedOrder = !!order.createdByAdminId || 
             (order.notes && (order.notes.includes('Payment Link:') || order.notes.includes('Admin-created')));
           
+          // Items with admin designs needing customer approval (NOT flagged - those are revisions)
           const itemsNeedingApproval = order.items?.filter((item: any) => {
             const designName = item.design?.name || '';
             const isAdminDesign = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
             const isFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
             const isApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
-            return (isAdminDesign || isFlagged) && !isApproved && item.design;
+            // Admin uploaded design that needs approval (not flagged - flagged means revision needed)
+            return isAdminDesign && !isFlagged && !isApproved && item.design;
           }) || [];
 
+          // Items with flagged revisions (admin flagged customer's upload for revision)
+          const itemsWithRevisionRequest = order.items?.filter((item: any) => {
+            const designName = item.design?.name || '';
+            const isFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
+            const isApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
+            return isFlagged && !isApproved && item.design;
+          }) || [];
+
+          // Items missing any artwork
           const itemsNeedingArtwork = order.items?.filter((item: any) => {
             return !item.design || (!item.design.previewUrl && !item.design.highResExportUrl && !item.design.artworkUrl);
           }) || [];
 
+          // Customer uploads waiting for admin review
           const customerUploadedWaiting = order.items?.filter((item: any) => {
             const designName = item.design?.name || '';
             const isCustomerUpload = designName.includes('[CUSTOMER_UPLOAD]') || item.design?.isCustomerUpload;
             const isApproved = designName.includes('[APPROVED]') || item.design?.status === 'approved';
             const isFlagged = designName.includes('[FLAGGED]') || item.design?.isFlagged;
             const isAdminDesign = designName.includes('[ADMIN_DESIGN]') || item.design?.isAdminDesign;
-            // For admin-created orders, customer uploads need admin review
-            // Also show if there's artwork without any tag and admin hasn't approved yet
             const hasArtwork = item.design && (item.design.previewUrl || item.design.artworkUrl || item.design.highResExportUrl);
             return hasArtwork && !isApproved && !isFlagged && !isAdminDesign && (isAdminCreatedOrder || isCustomerUpload);
           }) || [];
 
-          // Extract payment token from notes (kept for potential future use)
-          let paymentToken: string | null = null;
-          if (order.notes) {
-            const tokenMatch = order.notes.match(/Payment Link:\s*([a-f0-9-]+)/i);
-            if (tokenMatch) {
-              paymentToken = tokenMatch[1];
-            }
+          // Show ALL applicable banners stacked
+          const showRevision = itemsWithRevisionRequest.length > 0;
+          const showApproval = itemsNeedingApproval.length > 0;
+          const showArtwork = itemsNeedingArtwork.length > 0 && !isAdminCreatedOrder;
+          const showWaiting = customerUploadedWaiting.length > 0;
+          const showPayment = needsPayment;
+
+          // If nothing to show, return null
+          if (!showRevision && !showApproval && !showArtwork && !showWaiting && !showPayment) {
+            return null;
           }
 
           return (
             <div className="space-y-3 mb-6">
-              {itemsNeedingApproval.length > 0 && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3" data-testid="banner-needs-approval">
-                  <Edit className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+              {showRevision && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3" data-testid="banner-revision-requested">
+                  <Edit className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-yellow-800">Artwork needs your approval</p>
-                    <p className="text-sm text-yellow-700">
-                      We've prepared {itemsNeedingApproval.length === 1 ? 'a design' : `${itemsNeedingApproval.length} designs`} for you to review. 
-                      Please approve to proceed with printing.
+                    <p className="font-medium text-red-800">Revision requested</p>
+                    <p className="text-sm text-red-700">
+                      We've flagged {itemsWithRevisionRequest.length === 1 ? 'an issue with your artwork' : `issues with ${itemsWithRevisionRequest.length} items`}. 
+                      Please review and upload revised artwork or approve the changes.
                     </p>
                   </div>
                 </div>
               )}
 
-              {itemsNeedingArtwork.length > 0 && !isAdminCreatedOrder && (
+              {showApproval && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3" data-testid="banner-needs-approval">
+                  <CheckCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-yellow-800">Approval required</p>
+                    <p className="text-sm text-yellow-700">
+                      We've prepared {itemsNeedingApproval.length === 1 ? 'a design' : `${itemsNeedingApproval.length} designs`} for you. 
+                      Please review and approve to proceed with printing.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {showArtwork && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3" data-testid="banner-needs-artwork">
                   <Upload className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-blue-800">Upload your artwork</p>
+                    <p className="font-medium text-blue-800">Artwork required</p>
                     <p className="text-sm text-blue-700">
                       {itemsNeedingArtwork.length === 1 ? '1 item needs' : `${itemsNeedingArtwork.length} items need`} artwork. 
-                      Upload your designs to complete your order.
+                      Upload or design your artwork to complete your order.
                     </p>
                   </div>
                 </div>
               )}
 
-              {customerUploadedWaiting.length > 0 && (
+              {showWaiting && (
                 <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex items-start gap-3" data-testid="banner-waiting-review">
                   <Clock className="h-5 w-5 text-indigo-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-indigo-800">Artwork waiting for review</p>
+                    <p className="font-medium text-indigo-800">Artwork under review</p>
                     <p className="text-sm text-indigo-700">
                       We're reviewing your uploaded artwork. You'll be notified once it's approved.
                     </p>
@@ -678,16 +704,14 @@ export default function OrderDetail() {
                 </div>
               )}
 
-              {needsPayment && (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4" data-testid="banner-needs-payment">
-                  <div className="flex items-start gap-3">
-                    <CreditCard className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="font-medium text-orange-800">Payment required</p>
-                      <p className="text-sm text-orange-700">
-                        Complete your payment below to start production.
-                      </p>
-                    </div>
+              {showPayment && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3" data-testid="banner-needs-payment">
+                  <CreditCard className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-orange-800">Payment required</p>
+                    <p className="text-sm text-orange-700">
+                      Complete your payment below to start production.
+                    </p>
                   </div>
                 </div>
               )}

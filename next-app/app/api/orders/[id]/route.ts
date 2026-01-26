@@ -29,26 +29,43 @@ export async function GET(
     const { id } = await params;
     const orderId = parseInt(id);
     
-    // Use raw SQL matching the working orders list endpoint - include admin_design_id
-    const result = await db.execute(sql`
-      SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
-             tax_amount, discount_amount, total_amount, shipping_address, 
-             notes, tracking_number, created_at, admin_design_id, created_by_admin_id,
-             customer_email
-      FROM orders 
-      WHERE id = ${orderId}
-    `);
+    // Try extended query first, fall back to basic query if columns don't exist
+    let row: any = null;
     
-    console.log(`[Order API] Raw query result for order ${orderId}:`, result.rows[0]);
+    try {
+      // Extended query with new columns
+      const result = await db.execute(sql`
+        SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+               tax_amount, discount_amount, total_amount, shipping_address, 
+               notes, tracking_number, created_at, admin_design_id, created_by_admin_id,
+               customer_email
+        FROM orders 
+        WHERE id = ${orderId}
+      `);
+      row = result.rows?.[0] || null;
+    } catch (extendedQueryError: any) {
+      console.log(`[Order API] Extended query failed, trying basic query:`, extendedQueryError.message);
+      
+      // Fallback to basic columns only
+      const basicResult = await db.execute(sql`
+        SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+               tax_amount, discount_amount, total_amount, shipping_address, 
+               notes, tracking_number, created_at
+        FROM orders 
+        WHERE id = ${orderId}
+      `);
+      row = basicResult.rows?.[0] || null;
+    }
     
-    if (!result.rows || result.rows.length === 0) {
+    console.log(`[Order API] Raw query result for order ${orderId}:`, row);
+    
+    if (!row) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
     }
 
-    const row = result.rows[0] as any;
     const customerInfo = parseNotesForCustomerInfo(row.notes);
     
-    // Use values from main query - all columns now included
+    // Use values from main query - handle missing columns gracefully
     const order = {
       id: row.id,
       orderNumber: row.order_number,

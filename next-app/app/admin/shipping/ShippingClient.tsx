@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * ShippingClient provides a simple form to view and update global shipping
@@ -11,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
  */
 export default function ShippingClient() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data, isLoading } = useQuery({
     queryKey: ['shippingSettings'],
@@ -48,8 +50,11 @@ export default function ShippingClient() {
       return res.json();
     },
     onSuccess: () => {
-      // Refresh cached settings
       queryClient.invalidateQueries({ queryKey: ['shippingSettings'] });
+      toast({ title: "Shipping settings updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message || "Failed to save shipping settings", variant: "destructive" });
     },
   });
 

@@ -461,6 +461,7 @@ export default function Editor() {
     }
   }, [design, fabricLoaded, fabricModule]);
 
+  // Set default options only once when product loads and options are empty
   useEffect(() => {
     if (product?.options && Object.keys(selectedOptions).length === 0) {
       const defaults: Record<string, number> = {};
@@ -469,9 +470,13 @@ export default function Editor() {
           defaults[opt.optionType] = opt.id;
         }
       });
-      setSelectedOptions(defaults);
+      // Only set if we actually have defaults to prevent unnecessary re-renders
+      if (Object.keys(defaults).length > 0) {
+        setSelectedOptions(defaults);
+      }
     }
-  }, [product]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   // Update canvas background based on product type (checkerboard for die-cut/custom shape)
   useEffect(() => {
@@ -536,21 +541,26 @@ export default function Editor() {
     }
   }, [product?.id, quantity, selectedOptions]);
 
+  // Debounced price calculation - only depends on actual values, not function reference
   useEffect(() => {
     if (priceCalculationTimeoutRef.current) {
       clearTimeout(priceCalculationTimeoutRef.current);
     }
+    
+    // Only calculate if we have a valid product
+    if (!product?.id) return;
+    
     priceCalculationTimeoutRef.current = setTimeout(() => {
-      if (product?.id) {
-        calculatePrice();
-      }
+      calculatePrice();
     }, 300);
+    
     return () => {
       if (priceCalculationTimeoutRef.current) {
         clearTimeout(priceCalculationTimeoutRef.current);
       }
     };
-  }, [product?.id, quantity, selectedOptions, calculatePrice]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, quantity, JSON.stringify(selectedOptions)]);
 
   const updateContourFromCanvas = useCallback(() => {
     const canvas = fabricCanvasRef.current;

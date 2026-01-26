@@ -7,7 +7,7 @@ const FROM_EMAIL = 'Sticky Banditos <noreply@stickybanditos.com>';
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://stickybanditos.com';
 
 export interface EmailOptions {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   text?: string;

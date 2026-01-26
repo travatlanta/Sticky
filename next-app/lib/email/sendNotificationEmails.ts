@@ -1,10 +1,17 @@
 import { generateEmailHtml, generatePlainText } from './template';
 
-const ADMIN_EMAIL = 'mhobbs.stickybanditos@gmail.com';
+// Comma-separated list supported via env. Falls back to the official main admin email.
+const ADMIN_EMAILS = (process.env.ADMIN_ORDER_NOTIFICATION_EMAILS ||
+  process.env.ADMIN_NOTIFICATION_EMAILS ||
+  process.env.ADMIN_EMAIL ||
+  'mhobbs.stickybanditos@gmail.com')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 const FROM_EMAIL = process.env.ORDER_EMAIL_FROM || 'Sticky Banditos <donotreply@stickybanditos.com>';
 const SITE_URL = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://stickybanditos.com';
 
-async function sendEmail(to: string, subject: string, html: string, text?: string): Promise<boolean> {
+async function sendEmail(to: string | string[], subject: string, html: string, text?: string): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn('RESEND_API_KEY not configured - emails will not be sent');
@@ -226,7 +233,7 @@ export async function sendAdminNotificationEmail(params: AdminNotificationParams
     },
   });
 
-  const success = await sendEmail(ADMIN_EMAIL, subject, html, text);
+      const success = await sendEmail(ADMIN_EMAILS.length === 1 ? ADMIN_EMAILS[0] : ADMIN_EMAILS, subject, html, text);
   if (success) {
     console.log(`Admin notification (${type}) sent for order ${orderNumber}`);
   }

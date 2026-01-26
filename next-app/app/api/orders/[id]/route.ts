@@ -28,14 +28,29 @@ export async function GET(
   try {
     const { id } = await params;
     
-    // Use raw SQL to only query columns that exist
-    const result = await db.execute(sql`
-      SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
-             tax_amount, discount_amount, total_amount, shipping_address, 
-             notes, tracking_number, created_at, admin_design_id, created_by_admin_id
-      FROM orders 
-      WHERE id = ${parseInt(id)}
-    `);
+    // Use raw SQL with fallback for columns that may not exist in production
+    let result;
+    let hasAdminDesignId = true;
+    try {
+      result = await db.execute(sql`
+        SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+               tax_amount, discount_amount, total_amount, shipping_address, 
+               notes, tracking_number, created_at, admin_design_id, created_by_admin_id
+        FROM orders 
+        WHERE id = ${parseInt(id)}
+      `);
+    } catch (colErr) {
+      // Fallback without admin_design_id column (production may not have it)
+      console.log('[Order API] Falling back to query without admin_design_id column');
+      hasAdminDesignId = false;
+      result = await db.execute(sql`
+        SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
+               tax_amount, discount_amount, total_amount, shipping_address, 
+               notes, tracking_number, created_at
+        FROM orders 
+        WHERE id = ${parseInt(id)}
+      `);
+    }
 
     if (!result.rows || result.rows.length === 0) {
       return NextResponse.json({ message: 'Order not found' }, { status: 404 });
@@ -61,8 +76,8 @@ export async function GET(
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
       customerPhone: customerInfo.phone,
-      adminDesignId: row.admin_design_id,
-      createdByAdminId: row.created_by_admin_id,
+      adminDesignId: hasAdminDesignId ? (row.admin_design_id || null) : null,
+      createdByAdminId: hasAdminDesignId ? (row.created_by_admin_id || null) : null,
     };
     
     // Fetch admin design if exists (order-level design uploaded by admin)

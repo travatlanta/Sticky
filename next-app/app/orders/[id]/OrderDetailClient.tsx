@@ -505,13 +505,13 @@ export default function OrderDetail() {
     },
   });
 
-  // Initialize shipping form when order data loads
+  // Initialize shipping and billing forms when order data loads
   useEffect(() => {
     if (order?.shippingAddress) {
       const addr = typeof order.shippingAddress === 'string' 
         ? JSON.parse(order.shippingAddress) 
         : order.shippingAddress;
-      setShippingForm({
+      const formData = {
         name: addr.name || "",
         street: addr.street || "",
         street2: addr.street2 || "",
@@ -520,9 +520,22 @@ export default function OrderDetail() {
         zip: addr.zip || "",
         country: addr.country || "USA",
         phone: addr.phone || "",
-      });
+      };
+      setShippingForm(formData);
+      // Also sync billing form when billing is same as shipping
+      if (billingSameAsShipping) {
+        setBillingForm({
+          name: formData.name,
+          street: formData.street,
+          street2: formData.street2,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          country: formData.country,
+        });
+      }
     }
-  }, [order?.shippingAddress]);
+  }, [order?.shippingAddress, billingSameAsShipping]);
 
   const handleFileSelect = (orderItemId: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -1936,6 +1949,24 @@ export default function OrderDetail() {
                                     label: `Order ${order.orderNumber}`,
                                   },
                                 })}
+                                createVerificationDetails={() => {
+                                  const billingAddr = billingSameAsShipping ? shippingForm : billingForm;
+                                  const nameParts = (billingAddr.name || '').split(' ');
+                                  return {
+                                    amount: totalAmount.toFixed(2),
+                                    currencyCode: 'USD',
+                                    intent: 'CHARGE',
+                                    billingContact: {
+                                      givenName: nameParts[0] || '',
+                                      familyName: nameParts.slice(1).join(' ') || '',
+                                      addressLines: [billingAddr.street || '', billingAddr.street2 || ''].filter(Boolean),
+                                      city: billingAddr.city || '',
+                                      state: billingAddr.state || '',
+                                      postalCode: billingAddr.zip || '',
+                                      countryCode: billingAddr.country === 'USA' ? 'US' : (billingAddr.country || 'US'),
+                                    },
+                                  };
+                                }}
                               >
                                 <SquareCreditCard
                                   buttonProps={{

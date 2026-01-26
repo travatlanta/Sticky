@@ -666,6 +666,20 @@ export default function CheckoutClient() {
                           label: 'Total',
                         },
                       })}
+                      createVerificationDetails={() => ({
+                        amount: total.toFixed(2),
+                        currencyCode: 'USD',
+                        intent: 'CHARGE',
+                        billingContact: {
+                          givenName: shippingAddress.firstName || '',
+                          familyName: shippingAddress.lastName || '',
+                          addressLines: [shippingAddress.address1 || '', shippingAddress.address2 || ''].filter(Boolean),
+                          city: shippingAddress.city || '',
+                          state: shippingAddress.state || '',
+                          postalCode: shippingAddress.zip || '',
+                          countryCode: 'US',
+                        },
+                      })}
                     >
                       <CreditCard
                         buttonProps={{

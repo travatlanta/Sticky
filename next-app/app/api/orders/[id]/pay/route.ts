@@ -275,7 +275,7 @@ export async function POST(
     }
 
     // Parse billing address from client request or fall back to shipping address
-    let billingAddress: any = {};
+    // Only include non-empty fields to avoid Square rejecting empty strings
     const billingSource = clientBillingAddress || 
       (orderRow.shipping_address 
         ? (typeof orderRow.shipping_address === 'string' 
@@ -283,20 +283,35 @@ export async function POST(
             : orderRow.shipping_address)
         : null);
     
+    console.log(`[Pay API] Order ${orderId} billing source:`, JSON.stringify(billingSource, null, 2));
+    
+    // Build billing address, only including non-empty values
+    const billingAddress: Record<string, string> = {};
     if (billingSource) {
-      billingAddress = {
-        first_name: billingSource.firstName || billingSource.name?.split(' ')[0] || '',
-        last_name: billingSource.lastName || billingSource.name?.split(' ').slice(1).join(' ') || '',
-        address_line_1: billingSource.address1 || billingSource.street || '',
-        address_line_2: billingSource.address2 || billingSource.street2 || '',
-        locality: billingSource.city || '',
-        administrative_district_level_1: billingSource.state || '',
-        postal_code: billingSource.zip || '',
-        country: billingSource.country || 'US',
-      };
+      const firstName = billingSource.firstName || billingSource.name?.split(' ')[0] || '';
+      const lastName = billingSource.lastName || billingSource.name?.split(' ').slice(1).join(' ') || '';
+      const addressLine1 = billingSource.address1 || billingSource.street || '';
+      const addressLine2 = billingSource.address2 || billingSource.street2 || '';
+      const city = billingSource.city || '';
+      const state = billingSource.state || '';
+      const zip = billingSource.zip || '';
+      const country = billingSource.country || 'US';
+      
+      // Only add fields with non-empty values
+      if (firstName) billingAddress.first_name = firstName;
+      if (lastName) billingAddress.last_name = lastName;
+      if (addressLine1) billingAddress.address_line_1 = addressLine1;
+      if (addressLine2) billingAddress.address_line_2 = addressLine2;
+      if (city) billingAddress.locality = city;
+      if (state) billingAddress.administrative_district_level_1 = state;
+      if (zip) billingAddress.postal_code = zip;
+      if (country) billingAddress.country = country;
     }
+    
+    console.log(`[Pay API] Order ${orderId} billing address for Square:`, JSON.stringify(billingAddress, null, 2));
 
-    const paymentPayload = {
+    // Build payment payload - only include billing_address if it has at least an address line
+    const paymentPayload: any = {
       source_id: sourceId,
       idempotency_key: randomUUID(),
       location_id: locationId,
@@ -304,9 +319,18 @@ export async function POST(
         amount: amountInCents,
         currency: 'USD',
       },
-      billing_address: billingAddress,
       note: `Order ${orderRow.order_number}`,
     };
+    
+    // Only include billing_address if we have meaningful address data
+    if (billingAddress.address_line_1 || billingAddress.postal_code) {
+      paymentPayload.billing_address = billingAddress;
+    }
+    
+    console.log(`[Pay API] Order ${orderId} payment payload:`, JSON.stringify({
+      ...paymentPayload,
+      source_id: sourceId ? `${sourceId.substring(0, 10)}...` : 'MISSING'
+    }, null, 2));
 
     const response = await fetch('https://connect.squareup.com/v2/payments', {
       method: 'POST',
@@ -320,11 +344,20 @@ export async function POST(
 
     const paymentResult = await response.json();
     const payment = paymentResult.payment;
+    
+    console.log(`[Pay API] Order ${orderId} Square response status: ${response.status}`);
+    console.log(`[Pay API] Order ${orderId} Square response:`, JSON.stringify(paymentResult, null, 2));
 
     if (!payment || payment.status !== 'COMPLETED') {
-      console.error('Square payment failed:', paymentResult);
+      console.error(`[Pay API] Order ${orderId} Square payment failed:`, JSON.stringify(paymentResult, null, 2));
+      const errorDetail = paymentResult?.errors?.[0]?.detail || 
+                          paymentResult?.errors?.[0]?.code ||
+                          paymentResult?.message ||
+                          'Payment failed';
+      const errorCode = paymentResult?.errors?.[0]?.code || 'UNKNOWN';
+      console.error(`[Pay API] Order ${orderId} Error: ${errorCode} - ${errorDetail}`);
       return NextResponse.json(
-        { error: paymentResult?.errors?.[0]?.detail || 'Payment failed' },
+        { error: errorDetail, code: errorCode },
         { status: 400 }
       );
     }

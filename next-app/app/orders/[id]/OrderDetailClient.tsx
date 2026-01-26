@@ -1127,7 +1127,6 @@ export default function OrderDetail() {
                             {/* File format info */}
                             <div className="text-xs text-gray-500 space-y-1">
                               <p>PNG/TIFF preserve transparency</p>
-                              <p className="text-amber-600">EPS, CDR, AI, PSD, PDF files download as-is (no conversion)</p>
                             </div>
                             
                             {/* Die-cut shape download if available */}

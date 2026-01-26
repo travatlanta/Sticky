@@ -33,12 +33,12 @@ export async function GET(
     let row: any = null;
     
     try {
-      // Extended query with new columns including payment_confirmed_at
+      // Query with columns that exist in production
       const result = await db.execute(sql`
         SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
                tax_amount, discount_amount, total_amount, shipping_address, 
                notes, tracking_number, created_at, admin_design_id, created_by_admin_id,
-               customer_email, payment_confirmed_at
+               customer_email
         FROM orders 
         WHERE id = ${orderId}
       `);
@@ -85,7 +85,6 @@ export async function GET(
       customerPhone: customerInfo.phone,
       adminDesignId: row.admin_design_id || null,
       createdByAdminId: row.created_by_admin_id || null,
-      paymentConfirmedAt: row.payment_confirmed_at || null, // Source of truth for payment
     };
     
     console.log(`[Order API] Order ${orderId} - status: ${order.status}, adminDesignId: ${order.adminDesignId}`);

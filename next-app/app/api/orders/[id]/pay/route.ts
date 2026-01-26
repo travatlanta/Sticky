@@ -121,22 +121,9 @@ export async function POST(
       console.log(`[Pay API] Order ${orderId} is $0 - marking as paid without Square`);
       
       try {
-        // Try to update with payment_confirmed_at, fall back to just status if column doesn't exist
-        try {
-          await db.execute(sql`
-            UPDATE orders 
-            SET status = 'paid', 
-                payment_confirmed_at = NOW(),
-                updated_at = NOW()
-            WHERE id = ${orderId}
-          `);
-          console.log(`[Pay API] Order ${orderId} status updated to 'paid' with payment_confirmed_at (free order)`);
-        } catch (colError: any) {
-          // Column might not exist in production, fall back to simpler update
-          console.log(`[Pay API] payment_confirmed_at column might not exist, using simple update`);
-          await db.execute(sql`UPDATE orders SET status = 'paid' WHERE id = ${orderId}`);
-          console.log(`[Pay API] Order ${orderId} status updated to 'paid' (free order, simple update)`);
-        }
+        // Simple status update - no complex columns
+        await db.execute(sql`UPDATE orders SET status = 'paid' WHERE id = ${orderId}`);
+        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (free order)`);
       } catch (updateError) {
         console.error(`[Pay API] Failed to update order ${orderId} status:`, updateError);
         return NextResponse.json({ error: "Failed to update order status" }, { status: 500 });
@@ -216,38 +203,26 @@ export async function POST(
       );
     }
 
-    // Update order status to paid
+    // Update order status to paid - SIMPLE AND RELIABLE
     console.log(`[Pay API] Order ${orderId} payment completed. Square payment ID: ${payment.id}`);
     try {
-      // Try with payment_confirmed_at first
-      try {
-        await db.execute(sql`
-          UPDATE orders 
-          SET status = 'paid', 
-              stripe_payment_intent_id = ${payment.id},
-              payment_confirmed_at = NOW(),
-              updated_at = NOW()
-          WHERE id = ${orderId}
-        `);
-        console.log(`[Pay API] Order ${orderId} status successfully updated to 'paid' with payment_confirmed_at`);
-      } catch (colError: any) {
-        // Column might not exist, try without it
-        console.log(`[Pay API] payment_confirmed_at might not exist, trying simpler update`);
-        await db.execute(sql`
-          UPDATE orders 
-          SET status = 'paid', stripe_payment_intent_id = ${payment.id}
-          WHERE id = ${orderId}
-        `);
-        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (without payment_confirmed_at)`);
-      }
+      // Simple update with payment ID - no complex columns
+      await db.execute(sql`
+        UPDATE orders 
+        SET status = 'paid', stripe_payment_intent_id = ${payment.id}
+        WHERE id = ${orderId}
+      `);
+      console.log(`[Pay API] Order ${orderId} status updated to 'paid' with payment ID`);
     } catch (updateError: any) {
-      console.error(`[Pay API] CRITICAL: Failed to update order ${orderId} status to paid:`, updateError.message);
-      // Last resort - just update status
+      console.error(`[Pay API] CRITICAL: Failed to update order ${orderId}:`, updateError.message);
+      // Last resort - just update status without payment ID
       try {
         await db.execute(sql`UPDATE orders SET status = 'paid' WHERE id = ${orderId}`);
-        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (minimal fallback)`);
+        console.log(`[Pay API] Order ${orderId} status updated to 'paid' (fallback)`);
       } catch (fallbackError: any) {
-        console.error(`[Pay API] CRITICAL: Even simple status update failed for order ${orderId}:`, fallbackError.message);
+        console.error(`[Pay API] CRITICAL: Even simple update failed:`, fallbackError.message);
+        // Payment succeeded with Square but DB update failed - still return success
+        // to avoid double-charging. Log this for manual intervention.
       }
     }
 

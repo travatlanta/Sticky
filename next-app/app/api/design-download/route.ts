@@ -8,18 +8,43 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const url = new URL(req.url);
-    const imageUrl = url.searchParams.get('url');
     const format = url.searchParams.get('format') || 'original';
+    
+    const imageUrl = url.searchParams.get('url');
     const filename = url.searchParams.get('filename') || 'artwork';
-
+    
     if (!imageUrl) {
       return NextResponse.json({ error: 'Missing image URL' }, { status: 400 });
+    }
+    
+    // Security: Only allow URLs from our Vercel Blob storage
+    const allowedHosts = [
+      'vercel-blob.com',
+      'blob.vercel-storage.com',
+      'public.blob.vercel-storage.com'
+    ];
+    
+    let isAllowedUrl = false;
+    try {
+      const parsedUrl = new URL(imageUrl);
+      isAllowedUrl = allowedHosts.some(host => parsedUrl.hostname.endsWith(host));
+    } catch {
+      // data: URLs are allowed for previews
+      isAllowedUrl = imageUrl.startsWith('data:');
+    }
+    
+    if (!isAllowedUrl) {
+      return NextResponse.json({ error: 'Invalid image URL - only storage URLs allowed' }, { status: 400 });
+    }
+    
+    // Preview images are public (needed for order pages with payment links)
+    // Only require auth for actual downloads (non-preview formats)
+    if (format !== 'preview') {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized - login required to download' }, { status: 401 });
+      }
     }
 
     // Handle base64 data URLs directly (only for preview, not conversion)

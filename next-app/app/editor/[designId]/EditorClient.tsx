@@ -146,6 +146,7 @@ export default function Editor() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<any>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  const previewUrlLoadedRef = useRef<string | null>(null);
 
   const [toolDockOpen, setToolDockOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("");
@@ -386,7 +387,15 @@ export default function Editor() {
       });
     } else if (design?.previewUrl && fabricCanvasRef.current && fabricLoaded && fabricModule) {
       // No canvas JSON - this is a file upload, load the image onto the canvas
+      // Prevent loading the same image multiple times
+      if (previewUrlLoadedRef.current === design.previewUrl) {
+        console.log("PreviewUrl already loaded, skipping:", design.previewUrl);
+        return;
+      }
+      
       console.log("Loading uploaded image onto canvas:", design.previewUrl);
+      previewUrlLoadedRef.current = design.previewUrl;
+      
       fabricModule.Image.fromURL(design.previewUrl, { crossOrigin: 'anonymous' }).then((img: any) => {
         if (!fabricCanvasRef.current) return;
         
@@ -416,6 +425,7 @@ export default function Editor() {
         console.log("Image added to canvas successfully");
       }).catch((err: any) => {
         console.error("Failed to load image onto canvas:", err);
+        previewUrlLoadedRef.current = null; // Reset on error so user can retry
       });
     }
   }, [design, fabricLoaded, fabricModule]);

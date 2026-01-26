@@ -686,8 +686,18 @@ export default function OrderDetail() {
   };
 
   const handleSquarePayment = async (token: any, verifiedBuyer?: any) => {
+    console.log('[OrderDetail] handleSquarePayment called:', { 
+      hasToken: !!token, 
+      tokenKeys: token ? Object.keys(token) : [],
+      hasErrors: !!token?.errors,
+      hasStatus: !!token?.status,
+      status: token?.status,
+      hasVerifiedBuyer: !!verifiedBuyer
+    });
+    
     // Check for tokenization errors from Square SDK
     if (token?.errors && token.errors.length > 0) {
+      console.log('[OrderDetail] Token has errors:', token.errors);
       const errorMessages = token.errors.map((err: any) => {
         // Map Square error codes to user-friendly messages
         switch (err.code) {
@@ -710,6 +720,9 @@ export default function OrderDetail() {
             return 'Security code (CVV) verification failed. Please check the code on your card.';
           case 'VERIFY_AVS_FAILURE':
             return 'Address verification failed. Please ensure your billing address is correct.';
+          case 'VERIFICATION_FAILED':
+          case 'BUYER_VERIFICATION_FAILED':
+            return 'Card verification failed. Please check your card details and billing address.';
           default:
             return err.message || err.detail || 'Card validation failed. Please check your card details.';
         }
@@ -723,7 +736,19 @@ export default function OrderDetail() {
       return;
     }
     
+    // Check for failed status (verification failure)
+    if (token?.status === 'FAILED' || token?.status === 'ERROR') {
+      console.log('[OrderDetail] Token status is failed/error:', token);
+      toast({
+        title: "Payment Error",
+        description: "Card verification failed. Please check your card details and billing address, then try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!token?.token) {
+      console.log('[OrderDetail] No token received:', token);
       toast({
         title: "Payment Error",
         description: "Could not process card information. Please check your card details and try again.",
@@ -2013,40 +2038,6 @@ export default function OrderDetail() {
                                       label: `Order ${order.orderNumber}`,
                                     },
                                   })}
-                                  createVerificationDetails={() => {
-                                    // Get fresh billing data at verification time
-                                    const freshBillingAddr = billingSameAsShipping ? shippingForm : billingForm;
-                                    const nameParts = (freshBillingAddr.name || 'Customer').trim().split(' ');
-                                    const addressLines = [freshBillingAddr.street].filter(Boolean);
-                                    if (freshBillingAddr.street2) addressLines.push(freshBillingAddr.street2);
-                                    
-                                    // Build contact with only non-empty values
-                                    const billingContact: Record<string, any> = {
-                                      givenName: nameParts[0] || 'Customer',
-                                      addressLines: addressLines.length > 0 ? addressLines : ['Address'],
-                                      city: freshBillingAddr.city || 'City',
-                                      postalCode: freshBillingAddr.zip || '00000',
-                                      countryCode: 'US',
-                                    };
-                                    
-                                    // Only add familyName if it exists (Square rejects empty strings)
-                                    const lastName = nameParts.slice(1).join(' ');
-                                    if (lastName) {
-                                      billingContact.familyName = lastName;
-                                    }
-                                    
-                                    // Only add state if it exists
-                                    if (freshBillingAddr.state) {
-                                      billingContact.state = freshBillingAddr.state;
-                                    }
-                                    
-                                    return {
-                                      amount: totalAmount.toFixed(2),
-                                      currencyCode: 'USD',
-                                      intent: 'CHARGE',
-                                      billingContact,
-                                    };
-                                  }}
                                 >
                                   <SquareCreditCard
                                     buttonProps={{

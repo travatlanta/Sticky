@@ -697,40 +697,6 @@ export default function CheckoutClient() {
                           label: 'Total',
                         },
                       })}
-                      createVerificationDetails={() => {
-                        // Only provide verification if we have complete address data
-                        if (!shippingAddress.firstName || !shippingAddress.address1 || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip) {
-                          return undefined as any; // Skip verification if incomplete
-                        }
-                        const addressLines = [shippingAddress.address1].filter(Boolean);
-                        if (shippingAddress.address2) addressLines.push(shippingAddress.address2);
-                        
-                        // Build contact with only non-empty values (Square rejects empty strings)
-                        const billingContact: Record<string, any> = {
-                          givenName: shippingAddress.firstName || 'Customer',
-                          addressLines: addressLines.length > 0 ? addressLines : ['Address'],
-                          city: shippingAddress.city || 'City',
-                          postalCode: shippingAddress.zip || '00000',
-                          countryCode: 'US',
-                        };
-                        
-                        // Only add familyName if it exists
-                        if (shippingAddress.lastName) {
-                          billingContact.familyName = shippingAddress.lastName;
-                        }
-                        
-                        // Only add state if it exists
-                        if (shippingAddress.state) {
-                          billingContact.state = shippingAddress.state;
-                        }
-                        
-                        return {
-                          amount: total.toFixed(2),
-                          currencyCode: 'USD',
-                          intent: 'CHARGE',
-                          billingContact,
-                        };
-                      }}
                     >
                       <CreditCard
                         buttonProps={{

@@ -562,7 +562,11 @@ export default function OrderDetail() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || json.message || "Failed to confirm order");
+      console.log('[OrderDetail] Payment API response:', { status: res.status, json });
+      if (!res.ok) {
+        console.error('[OrderDetail] Payment failed:', json);
+        throw new Error(json.details || json.error || json.message || "Failed to confirm order");
+      }
       
       toast({ 
         title: "Order Confirmed!", 

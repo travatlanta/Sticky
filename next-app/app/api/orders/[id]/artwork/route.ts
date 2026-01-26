@@ -190,11 +190,23 @@ export async function POST(
       console.log('[Artwork Upload] Created design:', designId);
 
       console.log('[Artwork Upload] Linking design to order item:', orderItemId);
-      await db.execute(sql`
-        UPDATE order_items SET design_id = ${designId}
-        WHERE id = ${parseInt(orderItemId)}
-      `);
-      console.log('[Artwork Upload] Design linked successfully');
+      try {
+        const linkResult = await db.execute(sql`
+          UPDATE order_items SET design_id = ${designId}
+          WHERE id = ${parseInt(orderItemId)}
+          RETURNING id, design_id
+        `);
+        console.log('[Artwork Upload] Link result:', linkResult.rows);
+        
+        // Verify the link worked
+        const verifyResult = await db.execute(sql`
+          SELECT id, design_id FROM order_items WHERE id = ${parseInt(orderItemId)}
+        `);
+        console.log('[Artwork Upload] Verification:', verifyResult.rows);
+      } catch (linkError: any) {
+        console.error('[Artwork Upload] FAILED to link design:', linkError.message);
+        console.error('[Artwork Upload] Error details:', linkError);
+      }
     }
 
     // NOTE: No email is sent when admin uploads artwork

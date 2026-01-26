@@ -292,10 +292,15 @@ export async function POST(
       orderId,
       message: "Payment successful! Your order is now being processed."
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error processing order payment:", error);
+    // Return detailed error for debugging
     return NextResponse.json(
-      { error: "Payment processing failed" },
+      { 
+        error: "Payment processing failed",
+        details: error?.message || String(error),
+        stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     );
   }

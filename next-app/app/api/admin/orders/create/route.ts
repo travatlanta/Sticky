@@ -299,16 +299,9 @@ export async function POST(request: Request) {
       await sendAdminNotificationEmail({
         type: "new_order",
         orderNumber,
+        orderId: newOrder.id,
         customerName: data.customer.name,
         customerEmail: data.customer.email,
-        totalAmount: data.totalAmount,
-        items: data.items.map((i) => ({
-          productName: i.productName || "Custom Order",
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          selectedOptions: i.selectedOptions || {},
-        })),
-        orderId: newOrder.id,
       });
     } catch (adminEmailError) {
       console.error("Failed to send admin new-order notification:", adminEmailError);

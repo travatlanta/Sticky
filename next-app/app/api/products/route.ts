@@ -31,8 +31,12 @@ export async function GET(request: Request) {
       console.log('[Products API] After featured filter:', result.length);
     }
 
-    // Debug: Log query results
+    // Debug: Log query results with sample data
     console.log('[Products API] Query returned', result.length, 'products');
+    // Log first 3 products for debugging
+    result.slice(0, 3).forEach((p, i) => {
+      console.log(`[Products API] Product ${i}: id=${p.id}, name=${p.name}, thumbnail=${p.thumbnailUrl?.substring(0, 40) || 'null'}`);
+    });
 
     // Fetch pricing tiers for all products to calculate display prices
     const allTiers = await db

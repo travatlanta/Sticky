@@ -23,6 +23,15 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    console.log(`[Product Update] Starting update for product ID: ${id}`);
+    console.log(`[Product Update] Incoming data:`, JSON.stringify({
+      name: body.name,
+      slug: body.slug,
+      thumbnailUrl: body.thumbnailUrl?.substring(0, 50),
+      basePrice: body.basePrice,
+      isActive: body.isActive,
+    }));
+
     // Derive shipping values.  Default shippingType to the existing value
     // ('calculated') if not provided.  Coerce empty string or undefined
     // flatShippingPrice to null.  When shippingType is 'flat', clients should
@@ -71,9 +80,16 @@ export async function PUT(
       .where(eq(products.id, parseInt(id)))
       .returning();
 
+    console.log(`[Product Update] Successfully updated product ${id}:`, JSON.stringify({
+      id: product?.id,
+      name: product?.name,
+      thumbnailUrl: product?.thumbnailUrl?.substring(0, 50),
+      updatedAt: product?.updatedAt,
+    }));
+
     return NextResponse.json(product);
   } catch (error) {
-    console.error('Error updating product:', error);
+    console.error('[Product Update] Error updating product:', error);
     return NextResponse.json({ message: 'Failed to update product' }, { status: 500 });
   }
 }

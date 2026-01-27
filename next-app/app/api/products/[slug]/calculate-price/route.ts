@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products, productOptions, pricingTiers } from '@shared/schema';
+import { products, productOptions, pricingTiers, globalPricingTiers } from '@shared/schema';
 import { eq, asc } from 'drizzle-orm';
 
 export async function POST(
@@ -27,6 +27,7 @@ export async function POST(
     }
 
     const productId = product.id;
+    const useGlobalTiers = product.useGlobalTiers ?? true;
     
     // DEAL PRODUCT ENFORCEMENT: If this is a deal product, use fixed quantity and price
     const isDealProduct = product.isDealProduct ?? false;
@@ -52,13 +53,6 @@ export async function POST(
       });
     }
 
-    // Get pricing tiers
-    const tiers = await db
-      .select()
-      .from(pricingTiers)
-      .where(eq(pricingTiers.productId, productId))
-      .orderBy(asc(pricingTiers.minQuantity));
-
     // Get product options
     const options = await db
       .select()
@@ -70,15 +64,39 @@ export async function POST(
     let pricePerUnit = basePrice;
     let appliedTierDiscount = 0; // Discount percentage to apply to options too
     
-    for (const tier of tiers) {
-      if (effectiveQuantity >= tier.minQuantity && (!tier.maxQuantity || effectiveQuantity <= tier.maxQuantity)) {
-        pricePerUnit = parseFloat(tier.pricePerUnit);
-        // Calculate discount percentage: (basePrice - tierPrice) / basePrice
-        // Clamp to >= 0 to avoid negative discounts if tier price > base price
-        if (basePrice > 0) {
-          appliedTierDiscount = Math.max(0, (basePrice - pricePerUnit) / basePrice);
+    if (useGlobalTiers) {
+      // Use global tier discount percentages
+      const globalTiers = await db
+        .select()
+        .from(globalPricingTiers)
+        .where(eq(globalPricingTiers.isActive, true))
+        .orderBy(asc(globalPricingTiers.minQuantity));
+      
+      for (const tier of globalTiers) {
+        if (effectiveQuantity >= tier.minQuantity && (!tier.maxQuantity || effectiveQuantity <= tier.maxQuantity)) {
+          // Apply discount percentage to base price
+          appliedTierDiscount = parseFloat(tier.discountPercent) / 100;
+          pricePerUnit = basePrice * (1 - appliedTierDiscount);
+          break;
         }
-        break;
+      }
+    } else {
+      // Use custom product-specific tier pricing
+      const tiers = await db
+        .select()
+        .from(pricingTiers)
+        .where(eq(pricingTiers.productId, productId))
+        .orderBy(asc(pricingTiers.minQuantity));
+      
+      for (const tier of tiers) {
+        if (effectiveQuantity >= tier.minQuantity && (!tier.maxQuantity || effectiveQuantity <= tier.maxQuantity)) {
+          pricePerUnit = parseFloat(tier.pricePerUnit);
+          // Calculate discount percentage: (basePrice - tierPrice) / basePrice
+          if (basePrice > 0) {
+            appliedTierDiscount = Math.max(0, (basePrice - pricePerUnit) / basePrice);
+          }
+          break;
+        }
       }
     }
 

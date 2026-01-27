@@ -85,6 +85,7 @@ export async function POST(request: Request) {
         minQuantity: body.minQuantity || 1,
         isActive: body.isActive ?? true,
         isFeatured: body.isFeatured ?? false,
+        useGlobalTiers: body.useGlobalTiers ?? true,
         // Canvas dimensions (pixels)
         templateWidth: templateWidth || 1200,
         templateHeight: templateHeight || 1200,

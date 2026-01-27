@@ -128,6 +128,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     tier4Price: string;
     popupX: number;
     popupY: number;
+    arrowPosition: string;
+    arrowX: number;
   } | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const [tierPricingEdits, setTierPricingEdits] = useState<{
@@ -291,17 +293,33 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     tier4Id?: number
   ) => {
     const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
     
-    // Position the popup below and to the right of the clicked element
-    let popupX = rect.left + scrollX;
-    let popupY = rect.bottom + scrollY + 8;
+    // For fixed positioning, use viewport coordinates directly
+    // Position the popup below the clicked cell, centered horizontally
+    const popupWidth = 280;
+    let popupX = rect.left + (rect.width / 2) - (popupWidth / 2);
+    let popupY = rect.bottom + 12; // 12px gap for arrow
+    let arrowPosition = 'top'; // Arrow points up to the cell
     
     // Adjust if popup would go off right edge of screen
-    if (popupX + 280 > window.innerWidth) {
-      popupX = window.innerWidth - 290;
+    if (popupX + popupWidth > window.innerWidth - 10) {
+      popupX = window.innerWidth - popupWidth - 10;
     }
+    // Adjust if popup would go off left edge
+    if (popupX < 10) {
+      popupX = 10;
+    }
+    
+    // If not enough space below, show above the cell
+    const popupHeight = 280; // Approximate height
+    if (popupY + popupHeight > window.innerHeight - 10) {
+      popupY = rect.top - popupHeight - 12;
+      arrowPosition = 'bottom'; // Arrow points down to the cell
+    }
+    
+    // Calculate arrow X position relative to popup (to point at cell center)
+    const cellCenterX = rect.left + rect.width / 2;
+    const arrowX = Math.max(20, Math.min(popupWidth - 20, cellCenterX - popupX));
     
     setTierPricingPopup({
       isOpen: true,
@@ -319,6 +337,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       tier4Price: tier4Price || '',
       popupX,
       popupY,
+      arrowPosition,
+      arrowX,
     });
     setTierPricingEdits({
       tier1: tier1Price || '0',
@@ -1315,6 +1335,24 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               overflowY: 'auto'
             }}
           >
+            {/* Arrow pointing to the cell */}
+            <div 
+              className={`absolute w-0 h-0 ${
+                tierPricingPopup.arrowPosition === 'top' 
+                  ? 'border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-white -top-[10px]'
+                  : 'border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-white -bottom-[10px]'
+              }`}
+              style={{ left: `${tierPricingPopup.arrowX - 10}px` }}
+            />
+            {/* Arrow border/shadow */}
+            <div 
+              className={`absolute w-0 h-0 ${
+                tierPricingPopup.arrowPosition === 'top' 
+                  ? 'border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-b-[11px] border-b-gray-200 -top-[11px]'
+                  : 'border-l-[11px] border-l-transparent border-r-[11px] border-r-transparent border-t-[11px] border-t-gray-200 -bottom-[11px]'
+              }`}
+              style={{ left: `${tierPricingPopup.arrowX - 11}px`, zIndex: -1 }}
+            />
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className={`font-bold text-sm ${tierPricingPopup.optionType === 'material' ? 'text-purple-800' : tierPricingPopup.optionType === 'finish' ? 'text-green-800' : 'text-blue-800'}`}>

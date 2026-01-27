@@ -53,38 +53,61 @@ export async function GET(request: Request) {
     const rawTiers = await sql`SELECT * FROM pricing_tiers ORDER BY min_quantity ASC`;
     const allTiers = rawTiers as any[];
     
+    // Transform snake_case to camelCase for frontend compatibility
+    const transformProduct = (p: any) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      categoryId: p.category_id,
+      basePrice: p.base_price,
+      thumbnailUrl: p.thumbnail_url,
+      minQuantity: p.min_quantity,
+      isActive: p.is_active,
+      isFeatured: p.is_featured,
+      isDealProduct: p.is_deal_product,
+      fixedPrice: p.fixed_price,
+      fixedQuantity: p.fixed_quantity,
+      templateWidth: p.template_width,
+      templateHeight: p.template_height,
+      printWidthInches: p.print_width_inches,
+      printHeightInches: p.print_height_inches,
+      printDpi: p.print_dpi,
+      bleedSize: p.bleed_size,
+      safeZoneSize: p.safe_zone_size,
+      supportsCustomShape: p.supports_custom_shape,
+      useGlobalTiers: p.use_global_tiers,
+      shippingType: p.shipping_type,
+      flatShippingPrice: p.flat_shipping_price,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+    });
+
     // Calculate the display price (lowest tier price for minimum quantity)
-    // Note: Raw SQL returns snake_case column names
     const productsWithDisplayPrice = result.map(product => {
-      // For deal products, use fixedPrice / fixedQuantity (snake_case from raw SQL)
-      const isDeal = product.is_deal_product || product.isDealProduct;
-      const fixedPrice = product.fixed_price || product.fixedPrice;
-      const fixedQty = product.fixed_quantity || product.fixedQuantity;
+      const transformed = transformProduct(product);
       
-      if (isDeal && fixedPrice && fixedQty) {
-        const displayPrice = parseFloat(fixedPrice) / fixedQty;
-        return { ...product, displayPricePerUnit: displayPrice.toFixed(2) };
+      // For deal products, use fixedPrice / fixedQuantity
+      if (transformed.isDealProduct && transformed.fixedPrice && transformed.fixedQuantity) {
+        const displayPrice = parseFloat(transformed.fixedPrice) / transformed.fixedQuantity;
+        return { ...transformed, displayPricePerUnit: displayPrice.toFixed(2) };
       }
       
-      // Find tiers for this product (raw SQL uses snake_case: product_id)
+      // Find tiers for this product
       const productTiers = allTiers.filter((t: any) => t.product_id === product.id);
       
-      // Get the tier for minimum quantity (snake_case: min_quantity)
-      const minQty = product.min_quantity || product.minQuantity || 1;
-      const basePrice = product.base_price || product.basePrice || '0';
-      let displayPrice = parseFloat(basePrice);
+      // Get the tier for minimum quantity
+      const minQty = transformed.minQuantity || 1;
+      let displayPrice = parseFloat(transformed.basePrice || '0');
       
       for (const tier of productTiers) {
-        const tierMin = tier.min_quantity;
-        const tierMax = tier.max_quantity;
-        const tierPrice = tier.price_per_unit;
-        if (minQty >= tierMin && (!tierMax || minQty <= tierMax)) {
-          displayPrice = parseFloat(tierPrice);
+        if (minQty >= tier.min_quantity && (!tier.max_quantity || minQty <= tier.max_quantity)) {
+          displayPrice = parseFloat(tier.price_per_unit);
           break;
         }
       }
       
-      return { ...product, displayPricePerUnit: displayPrice.toFixed(2) };
+      return { ...transformed, displayPricePerUnit: displayPrice.toFixed(2) };
     });
 
     // Return with aggressive cache control headers to ensure fresh data

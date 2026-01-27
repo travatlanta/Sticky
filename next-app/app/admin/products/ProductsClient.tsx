@@ -229,171 +229,281 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
   const materials = ['Vinyl', 'Foil', 'Holographic'];
   const finishes = ['Varnish', 'Emboss'];
 
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [showGlobalSettings, setShowGlobalSettings] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Pricing Dashboard</h2>
-        <p className="text-gray-600 text-sm">Manage all product pricing from one place - edit directly in the spreadsheet below</p>
+    <div className="space-y-4">
+      {/* Header with Instructions Toggle */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Pricing Dashboard</h2>
+          <p className="text-gray-600 text-sm">Manage all product pricing from one place</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setShowInstructions(!showInstructions)}
+          data-testid="button-toggle-instructions"
+        >
+          {showInstructions ? 'Hide' : 'Show'} Instructions
+        </Button>
       </div>
 
-      {/* Global Bulk Pricing Tiers */}
-      <div className="bg-white border rounded-xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      {/* Collapsible Instructions Panel */}
+      {showInstructions && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
+          <h3 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            How to Use the Pricing Dashboard
+          </h3>
+          <div className="grid md:grid-cols-2 gap-4 text-sm">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-blue-800">Global Settings (Apply to ALL products using Global mode)</h4>
+              <ul className="text-blue-700 space-y-1">
+                <li>1. Open "Global Settings" panel below</li>
+                <li>2. Set discount % for each tier (e.g., Tier 1 = 10% off)</li>
+                <li>3. Click "Save Global Tiers" button to apply</li>
+                <li>4. Products marked "Global" will use these discounts</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-semibold text-blue-800">Individual Product Pricing (Custom mode)</h4>
+              <ul className="text-blue-700 space-y-1">
+                <li>1. Click "Global" button next to a product to switch to "Custom"</li>
+                <li>2. Click any price in the spreadsheet to edit it directly</li>
+                <li>3. Press Enter or click away to save automatically</li>
+                <li>4. Hover over material prices to see tier-specific pricing</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-semibold text-blue-800">Quick Actions (Bulk updates)</h4>
+              <ul className="text-blue-700 space-y-1">
+                <li>Use "Quick Actions" to set material/finish prices for ALL products at once</li>
+                <li>Enter a new price and click "Set" to update every product</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-semibold text-blue-800">Understanding the Spreadsheet</h4>
+              <ul className="text-blue-700 space-y-1">
+                <li><strong>T1-T4</strong>: Quantity tier pricing (1-249, 250-999, 1000-1999, 2000+)</li>
+                <li><strong>Vinyl/Foil/Holo</strong>: Material add-on costs per sticker</li>
+                <li><strong>Varnish/Emboss</strong>: Finish add-on costs per sticker</li>
+                <li><strong>*</strong> = Has tier-specific material pricing (hover to view)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Collapsible Global Settings */}
+      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <button 
+          onClick={() => setShowGlobalSettings(!showGlobalSettings)}
+          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+          data-testid="button-toggle-global-settings"
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Layers className="h-5 w-5 text-blue-600" />
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Global Bulk Pricing Tiers</h3>
+            <div className="text-left">
+              <h3 className="font-semibold text-gray-900">Global Settings</h3>
               <p className="text-sm text-gray-500">
-                Default discounts for quantity orders • <span className="text-green-600 font-medium">{globalTierProducts.length} products</span> using global, <span className="text-orange-600 font-medium">{customTierProducts.length} custom</span>
+                Bulk discounts for products using Global mode • <span className="text-green-600 font-medium">{globalTierProducts.length} products</span>
               </p>
             </div>
           </div>
-          {Object.keys(globalTierEdits).length > 0 && (
-            <Button onClick={handleSaveGlobalTiers} disabled={savingGlobalTiers} data-testid="button-save-global-tiers">
-              {savingGlobalTiers ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Save Global Tiers
-            </Button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {globalTiers.map((tier) => {
-            const edits = globalTierEdits[tier.tierNumber] || {};
-            const minQty = edits.minQuantity ?? tier.minQuantity;
-            const maxQty = edits.maxQuantity ?? tier.maxQuantity;
-            const discount = edits.discountPercent ?? tier.discountPercent;
-            
-            return (
-              <div key={tier.tierNumber} className="border rounded-lg p-4 bg-blue-50">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-semibold text-blue-800">Tier {tier.tierNumber}</span>
-                  <span className="text-2xl font-bold text-blue-600">{discount}% off</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={minQty}
-                      onChange={(e) => setGlobalTierEdits(prev => ({
-                        ...prev,
-                        [tier.tierNumber]: { ...prev[tier.tierNumber], minQuantity: parseInt(e.target.value) || 0 }
-                      }))}
-                      className="w-24 px-2 py-1 border rounded text-sm text-center"
-                      data-testid={`input-tier-${tier.tierNumber}-min`}
-                    />
-                    <span className="text-gray-500">to</span>
-                    <input
-                      type="number"
-                      value={maxQty ?? ''}
-                      placeholder="Max"
-                      onChange={(e) => setGlobalTierEdits(prev => ({
-                        ...prev,
-                        [tier.tierNumber]: { ...prev[tier.tierNumber], maxQuantity: e.target.value ? parseInt(e.target.value) : null }
-                      }))}
-                      className="w-24 px-2 py-1 border rounded text-sm text-center"
-                      data-testid={`input-tier-${tier.tierNumber}-max`}
-                    />
-                    <span className="text-gray-500 text-sm">units</span>
+          <div className="flex items-center gap-3">
+            {Object.keys(globalTierEdits).length > 0 && (
+              <Button 
+                onClick={(e) => { e.stopPropagation(); handleSaveGlobalTiers(); }} 
+                disabled={savingGlobalTiers} 
+                data-testid="button-save-global-tiers"
+                size="sm"
+              >
+                {savingGlobalTiers ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-1" />}
+                Save Global Tiers
+              </Button>
+            )}
+            <div className={`transform transition-transform ${showGlobalSettings ? 'rotate-180' : ''}`}>
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </button>
+        
+        {showGlobalSettings && (
+          <div className="p-4 border-t bg-gray-50">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {globalTiers.map((tier) => {
+                const edits = globalTierEdits[tier.tierNumber] || {};
+                const minQty = edits.minQuantity ?? tier.minQuantity;
+                const maxQty = edits.maxQuantity ?? tier.maxQuantity;
+                const discount = edits.discountPercent ?? tier.discountPercent;
+                
+                return (
+                  <div key={tier.tierNumber} className="border rounded-lg p-3 bg-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-700 text-sm">Tier {tier.tierNumber}</span>
+                      <span className="text-lg font-bold text-blue-600">{discount}%</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1 text-xs">
+                        <input
+                          type="number"
+                          value={minQty}
+                          onChange={(e) => setGlobalTierEdits(prev => ({
+                            ...prev,
+                            [tier.tierNumber]: { ...prev[tier.tierNumber], minQuantity: parseInt(e.target.value) || 0 }
+                          }))}
+                          className="w-16 px-1 py-1 border rounded text-center"
+                          data-testid={`input-tier-${tier.tierNumber}-min`}
+                        />
+                        <span className="text-gray-400">-</span>
+                        <input
+                          type="number"
+                          value={maxQty ?? ''}
+                          placeholder="Max"
+                          onChange={(e) => setGlobalTierEdits(prev => ({
+                            ...prev,
+                            [tier.tierNumber]: { ...prev[tier.tierNumber], maxQuantity: e.target.value ? parseInt(e.target.value) : null }
+                          }))}
+                          className="w-16 px-1 py-1 border rounded text-center"
+                          data-testid={`input-tier-${tier.tierNumber}-max`}
+                        />
+                        <span className="text-gray-400 text-xs">qty</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs">
+                        <span className="text-gray-500">Off:</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={discount}
+                          onChange={(e) => setGlobalTierEdits(prev => ({
+                            ...prev,
+                            [tier.tierNumber]: { ...prev[tier.tierNumber], discountPercent: e.target.value }
+                          }))}
+                          className="w-14 px-1 py-1 border rounded text-center"
+                          data-testid={`input-tier-${tier.tierNumber}-discount`}
+                        />
+                        <span className="text-gray-400">%</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Discount:</span>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={discount}
-                      onChange={(e) => setGlobalTierEdits(prev => ({
-                        ...prev,
-                        [tier.tierNumber]: { ...prev[tier.tierNumber], discountPercent: e.target.value }
-                      }))}
-                      className="w-20 px-2 py-1 border rounded text-sm text-center"
-                      data-testid={`input-tier-${tier.tierNumber}-discount`}
-                    />
-                    <span className="text-gray-500">%</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Material & Finish Quick Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white border rounded-xl p-4 shadow-sm">
-          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <div className="p-1.5 bg-purple-100 rounded"><Layers className="h-4 w-4 text-purple-600" /></div>
-            Material Add-ons (per sticker)
-          </h4>
-          <div className="space-y-2">
-            {materials.map((material) => {
-              const data = optionPrices?.options?.[material];
-              return (
-                <div key={material} className="flex items-center gap-2">
-                  <span className="w-24 text-sm font-medium">{material}</span>
-                  <span className="text-sm text-gray-500">${data?.mostCommonPrice || '0.00'}</span>
-                  <div className="flex-1" />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="New price"
-                    value={optionInputs[material] || ''}
-                    onChange={(e) => setOptionInputs(prev => ({ ...prev, [material]: e.target.value }))}
-                    className="w-24 px-2 py-1 border rounded text-sm"
-                    data-testid={`input-option-${material.toLowerCase()}`}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleSaveOptionPrice(material)}
-                    disabled={savingOption === material || !optionInputs[material]}
-                    data-testid={`button-save-${material.toLowerCase()}`}
-                  >
-                    {savingOption === material ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set'}
-                  </Button>
-                </div>
-              );
-            })}
+      {/* Collapsible Quick Actions */}
+      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <button 
+          onClick={() => setShowQuickActions(!showQuickActions)}
+          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+          data-testid="button-toggle-quick-actions"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <DollarSign className="h-5 w-5 text-purple-600" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-semibold text-gray-900">Quick Actions</h3>
+              <p className="text-sm text-gray-500">Bulk update material and finish prices for all products</p>
+            </div>
           </div>
-        </div>
-        
-        <div className="bg-white border rounded-xl p-4 shadow-sm">
-          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <div className="p-1.5 bg-green-100 rounded"><Scissors className="h-4 w-4 text-green-600" /></div>
-            Finish Add-ons (per sticker)
-          </h4>
-          <div className="space-y-2">
-            {finishes.map((finish) => {
-              const data = optionPrices?.options?.[finish];
-              return (
-                <div key={finish} className="flex items-center gap-2">
-                  <span className="w-24 text-sm font-medium">{finish}</span>
-                  <span className="text-sm text-gray-500">${data?.mostCommonPrice || '0.00'}</span>
-                  <div className="flex-1" />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="New price"
-                    value={optionInputs[finish] || ''}
-                    onChange={(e) => setOptionInputs(prev => ({ ...prev, [finish]: e.target.value }))}
-                    className="w-24 px-2 py-1 border rounded text-sm"
-                    data-testid={`input-option-${finish.toLowerCase()}`}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleSaveOptionPrice(finish)}
-                    disabled={savingOption === finish || !optionInputs[finish]}
-                    data-testid={`button-save-${finish.toLowerCase()}`}
-                  >
-                    {savingOption === finish ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set'}
-                  </Button>
-                </div>
-              );
-            })}
+          <div className={`transform transition-transform ${showQuickActions ? 'rotate-180' : ''}`}>
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </div>
-        </div>
+        </button>
+
+        {showQuickActions && (
+          <div className="p-4 border-t bg-gray-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white border rounded-lg p-3">
+                <h4 className="font-medium text-gray-900 mb-2 text-sm flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-purple-500" />
+                  Materials (per sticker)
+                </h4>
+                <div className="space-y-2">
+                  {materials.map((material) => {
+                    const data = optionPrices?.options?.[material];
+                    return (
+                      <div key={material} className="flex items-center gap-2">
+                        <span className="w-20 text-xs font-medium">{material}</span>
+                        <span className="text-xs text-gray-400">${data?.mostCommonPrice || '0.00'}</span>
+                        <div className="flex-1" />
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="$0.00"
+                          value={optionInputs[material] || ''}
+                          onChange={(e) => setOptionInputs(prev => ({ ...prev, [material]: e.target.value }))}
+                          className="w-16 px-1 py-1 border rounded text-xs"
+                          data-testid={`input-option-${material.toLowerCase()}`}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSaveOptionPrice(material)}
+                          disabled={savingOption === material || !optionInputs[material]}
+                          data-testid={`button-save-${material.toLowerCase()}`}
+                          className="h-7 text-xs px-2"
+                        >
+                          {savingOption === material ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set All'}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div className="bg-white border rounded-lg p-3">
+                <h4 className="font-medium text-gray-900 mb-2 text-sm flex items-center gap-2">
+                  <Scissors className="h-4 w-4 text-green-500" />
+                  Finishes (per sticker)
+                </h4>
+                <div className="space-y-2">
+                  {finishes.map((finish) => {
+                    const data = optionPrices?.options?.[finish];
+                    return (
+                      <div key={finish} className="flex items-center gap-2">
+                        <span className="w-20 text-xs font-medium">{finish}</span>
+                        <span className="text-xs text-gray-400">${data?.mostCommonPrice || '0.00'}</span>
+                        <div className="flex-1" />
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="$0.00"
+                          value={optionInputs[finish] || ''}
+                          onChange={(e) => setOptionInputs(prev => ({ ...prev, [finish]: e.target.value }))}
+                          className="w-16 px-1 py-1 border rounded text-xs"
+                          data-testid={`input-option-${finish.toLowerCase()}`}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSaveOptionPrice(finish)}
+                          disabled={savingOption === finish || !optionInputs[finish]}
+                          data-testid={`button-save-${finish.toLowerCase()}`}
+                          className="h-7 text-xs px-2"
+                        >
+                          {savingOption === finish ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set All'}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Product Pricing Spreadsheet */}
@@ -422,13 +532,16 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               <tr>
                 <th className="text-left px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Product</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Base Price</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Tier Mode</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Tier 1</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Tier 2</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Tier 3</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Mode</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">T1</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">T2</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">T3</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">T4</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Vinyl</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Foil</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Holo</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Varnish</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Emboss</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -436,13 +549,17 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 const tier1 = product.tiers[0];
                 const tier2 = product.tiers[1];
                 const tier3 = product.tiers[2];
+                const tier4 = product.tiers[3];
                 const vinyl = product.materials.find(m => m.name === 'Vinyl');
                 const foil = product.materials.find(m => m.name === 'Foil');
                 const holo = product.materials.find(m => m.name === 'Holographic');
+                const varnish = product.finishes.find(f => f.name === 'Varnish');
+                const emboss = product.finishes.find(f => f.name === 'Emboss');
                 
                 const globalTier1 = globalTiers.find(t => t.tierNumber === 1);
                 const globalTier2 = globalTiers.find(t => t.tierNumber === 2);
                 const globalTier3 = globalTiers.find(t => t.tierNumber === 3);
+                const globalTier4 = globalTiers.find(t => t.tierNumber === 4);
                 
                 const basePrice = parseFloat(product.basePrice);
                 
@@ -570,6 +687,33 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <span className="text-gray-300">-</span>
                       )}
                     </td>
+                    <td className="px-3 py-2 text-center font-mono text-sm">
+                      {product.useGlobalTiers ? (
+                        <span className="text-green-600">{globalTier4?.discountPercent || 0}% off</span>
+                      ) : tier4 ? (
+                        editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier4.id ? (
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
+                            onBlur={handleCellSave}
+                            autoFocus
+                            className="w-16 px-1 py-0.5 border rounded text-center text-sm"
+                          />
+                        ) : (
+                          <button
+                            onClick={() => handleCellEdit(product.id, 'tierPrice', tier4.pricePerUnit, tier4.id)}
+                            className="px-1 py-0.5 rounded hover:bg-blue-100"
+                          >
+                            ${parseFloat(tier4.pricePerUnit).toFixed(4)}
+                          </button>
+                        )
+                      ) : (
+                        <span className="text-gray-300">-</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-center">
                       {vinyl ? (
                         <Tooltip>
@@ -651,6 +795,60 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         </Tooltip>
                       ) : '-'}
                     </td>
+                    <td className="px-3 py-2 text-center">
+                      {varnish ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleCellEdit(product.id, 'optionPrice', varnish.priceModifier, undefined, varnish.id)}
+                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              data-testid={`cell-varnish-${product.id}`}
+                            >
+                              +${parseFloat(varnish.priceModifier).toFixed(2)}
+                              {!product.useGlobalTiers && (varnish.tier2PriceModifier || varnish.tier3PriceModifier || varnish.tier4PriceModifier) && (
+                                <span className="text-orange-500 text-xs ml-0.5">*</span>
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          {!product.useGlobalTiers && (
+                            <TooltipContent className="p-2 text-xs">
+                              <div className="font-semibold mb-1">Varnish Tier Prices</div>
+                              <div>T1: ${parseFloat(varnish.priceModifier).toFixed(4)}</div>
+                              <div>T2: ${varnish.tier2PriceModifier ? parseFloat(varnish.tier2PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T3: ${varnish.tier3PriceModifier ? parseFloat(varnish.tier3PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T4: ${varnish.tier4PriceModifier ? parseFloat(varnish.tier4PriceModifier).toFixed(4) : 'base'}</div>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      ) : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {emboss ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleCellEdit(product.id, 'optionPrice', emboss.priceModifier, undefined, emboss.id)}
+                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              data-testid={`cell-emboss-${product.id}`}
+                            >
+                              +${parseFloat(emboss.priceModifier).toFixed(2)}
+                              {!product.useGlobalTiers && (emboss.tier2PriceModifier || emboss.tier3PriceModifier || emboss.tier4PriceModifier) && (
+                                <span className="text-orange-500 text-xs ml-0.5">*</span>
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          {!product.useGlobalTiers && (
+                            <TooltipContent className="p-2 text-xs">
+                              <div className="font-semibold mb-1">Emboss Tier Prices</div>
+                              <div>T1: ${parseFloat(emboss.priceModifier).toFixed(4)}</div>
+                              <div>T2: ${emboss.tier2PriceModifier ? parseFloat(emboss.tier2PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T3: ${emboss.tier3PriceModifier ? parseFloat(emboss.tier3PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T4: ${emboss.tier4PriceModifier ? parseFloat(emboss.tier4PriceModifier).toFixed(4) : 'base'}</div>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      ) : '-'}
+                    </td>
                   </tr>
                 );
               })}
@@ -665,22 +863,6 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
         )}
       </div>
 
-      {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex gap-3">
-          <AlertTriangle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="font-medium text-blue-800">How pricing works</h4>
-            <ul className="text-sm text-blue-700 mt-1 space-y-1">
-              <li>• <strong>Global Tiers</strong>: Set default discount percentages that apply to most products</li>
-              <li>• <strong>Custom Tiers</strong>: Click "Global" to switch to custom pricing for specific products</li>
-              <li>• <strong>Click any price</strong> in the spreadsheet to edit it directly</li>
-              <li>• <strong>Material/Finish add-ons</strong> are added on top of the base price per sticker</li>
-              <li>• Bulk discounts automatically apply to both base price AND add-ons</li>
-            </ul>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

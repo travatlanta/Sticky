@@ -37,8 +37,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-function BulkPriceAdjustment({ onAdjustmentApplied }: { onAdjustmentApplied: () => void }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => void }) {
   const [adjustmentType, setAdjustmentType] = useState<'percentage' | 'fixed'>('percentage');
   const [adjustmentValue, setAdjustmentValue] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | number>('all');
@@ -49,6 +48,15 @@ function BulkPriceAdjustment({ onAdjustmentApplied }: { onAdjustmentApplied: () 
   const { data: categories } = useQuery<Array<{ id: number; name: string }>>({
     queryKey: ['/api/categories'],
   });
+
+  const { data: optionPrices, refetch: refetchOptions } = useQuery<{ 
+    options: Record<string, { count: number; minPrice: string; maxPrice: string; mostCommonPrice: string }> 
+  }>({
+    queryKey: ['/api/admin/products/bulk-options'],
+  });
+
+  const [optionInputs, setOptionInputs] = useState<Record<string, string>>({});
+  const [savingOption, setSavingOption] = useState<string | null>(null);
 
   const handlePreview = async () => {
     if (!adjustmentValue || parseFloat(adjustmentValue) === 0) {
@@ -114,162 +122,331 @@ function BulkPriceAdjustment({ onAdjustmentApplied }: { onAdjustmentApplied: () 
     }
   };
 
-  return (
-    <div className="bg-blue-50 border border-blue-200 rounded-xl mb-6">
-      <button
-        type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 text-left"
-        data-testid="button-toggle-bulk-adjust"
-      >
-        <div className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-blue-600" />
-          <span className="font-semibold text-blue-800">Bulk Price Adjustment</span>
-          <span className="text-sm text-blue-600">(adjust all product base prices at once)</span>
-        </div>
-        <svg className={`w-5 h-5 text-blue-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+  const handleSaveOptionPrice = async (optionName: string) => {
+    const newPrice = optionInputs[optionName];
+    if (newPrice === undefined || newPrice === '') {
+      toast({ title: "Please enter a price", variant: "destructive" });
+      return;
+    }
+
+    const priceValue = parseFloat(newPrice);
+    if (isNaN(priceValue) || priceValue < 0) {
+      toast({ title: "Invalid price value", variant: "destructive" });
+      return;
+    }
+
+    if (!confirm(`Update all "${optionName}" options to $${priceValue.toFixed(2)} per sticker?`)) {
+      return;
+    }
+
+    setSavingOption(optionName);
+    try {
+      const res = await fetch('/api/admin/products/bulk-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ optionName, newPrice: priceValue, preview: false }),
+      });
       
-      {isExpanded && (
-        <div className="px-4 pb-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Adjustment Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Adjustment Type</label>
-              <select
-                value={adjustmentType}
-                onChange={(e) => {
-                  setAdjustmentType(e.target.value as 'percentage' | 'fixed');
-                  setPreviewData(null);
-                }}
-                className="w-full px-3 py-2 border rounded-lg text-sm"
-                data-testid="select-adjustment-type"
-              >
-                <option value="percentage">Percentage (%)</option>
-                <option value="fixed">Fixed Amount ($)</option>
-              </select>
-            </div>
-            
-            {/* Adjustment Value */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {adjustmentType === 'percentage' ? 'Percentage Change' : 'Amount to Add/Subtract'}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                  {adjustmentType === 'percentage' ? '%' : '$'}
-                </span>
-                <input
-                  type="number"
-                  step={adjustmentType === 'percentage' ? '1' : '0.01'}
-                  value={adjustmentValue}
-                  onChange={(e) => {
-                    setAdjustmentValue(e.target.value);
-                    setPreviewData(null);
-                  }}
-                  placeholder={adjustmentType === 'percentage' ? 'e.g. 5 or -10' : 'e.g. 0.05 or -0.02'}
-                  className="w-full pl-8 pr-3 py-2 border rounded-lg text-sm"
-                  data-testid="input-adjustment-value"
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {adjustmentType === 'percentage' 
-                  ? 'Positive = increase, negative = decrease' 
-                  : 'Add or subtract from each product base price'}
-              </p>
-            </div>
-            
-            {/* Category Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Apply To</label>
-              <select
-                value={categoryFilter}
-                onChange={(e) => {
-                  setCategoryFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
-                  setPreviewData(null);
-                }}
-                className="w-full px-3 py-2 border rounded-lg text-sm"
-                data-testid="select-category-filter"
-              >
-                <option value="all">All Products</option>
-                {categories?.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
+      if (!res.ok) throw new Error('Failed to update');
+      const data = await res.json();
+      toast({ title: data.message });
+      setOptionInputs(prev => ({ ...prev, [optionName]: '' }));
+      refetchOptions();
+      onAdjustmentApplied();
+    } catch (e) {
+      toast({ title: "Failed to update option prices", variant: "destructive" });
+    } finally {
+      setSavingOption(null);
+    }
+  };
+
+  const materials = ['Vinyl', 'Foil', 'Holographic'];
+  const finishes = ['Varnish', 'Emboss'];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Pricing Tools</h2>
+        <p className="text-gray-600 text-sm">Adjust product base prices and option prices across all products at once</p>
+      </div>
+
+      {/* Product Base Price Adjustment */}
+      <div className="bg-white border rounded-xl p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <DollarSign className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Product Base Prices</h3>
+            <p className="text-sm text-gray-500">Adjust the base price of all products by percentage or fixed amount</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Adjustment Type</label>
+            <select
+              value={adjustmentType}
+              onChange={(e) => {
+                setAdjustmentType(e.target.value as 'percentage' | 'fixed');
+                setPreviewData(null);
+              }}
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              data-testid="select-adjustment-type"
+            >
+              <option value="percentage">Percentage (%)</option>
+              <option value="fixed">Fixed Amount ($)</option>
+            </select>
           </div>
           
-          {/* Preview/Apply Buttons */}
-          <div className="flex flex-wrap gap-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {adjustmentType === 'percentage' ? 'Percentage Change' : 'Amount to Add/Subtract'}
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                {adjustmentType === 'percentage' ? '%' : '$'}
+              </span>
+              <input
+                type="number"
+                step={adjustmentType === 'percentage' ? '1' : '0.01'}
+                value={adjustmentValue}
+                onChange={(e) => {
+                  setAdjustmentValue(e.target.value);
+                  setPreviewData(null);
+                }}
+                placeholder={adjustmentType === 'percentage' ? 'e.g. 5 or -10' : 'e.g. 0.05 or -0.02'}
+                className="w-full pl-8 pr-3 py-2 border rounded-lg text-sm"
+                data-testid="input-adjustment-value"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {adjustmentType === 'percentage' 
+                ? 'Positive = increase, negative = decrease' 
+                : 'Add or subtract from each product base price'}
+            </p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Apply To</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
+                setPreviewData(null);
+              }}
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              data-testid="select-category-filter"
+            >
+              <option value="all">All Products</option>
+              {categories?.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePreview}
+            disabled={!adjustmentValue || parseFloat(adjustmentValue) === 0}
+            data-testid="button-preview-adjustment"
+          >
+            Preview Changes
+          </Button>
+          {previewData && (
             <Button
               type="button"
-              variant="outline"
-              onClick={handlePreview}
-              disabled={!adjustmentValue || parseFloat(adjustmentValue) === 0}
-              data-testid="button-preview-adjustment"
+              onClick={handleApply}
+              disabled={isApplying}
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="button-apply-adjustment"
             >
-              Preview Changes
+              {isApplying ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                <>Apply to {previewData.length} Products</>
+              )}
             </Button>
-            {previewData && (
-              <Button
-                type="button"
-                onClick={handleApply}
-                disabled={isApplying}
-                className="bg-blue-600 hover:bg-blue-700"
-                data-testid="button-apply-adjustment"
-              >
-                {isApplying ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Applying...
-                  </>
-                ) : (
-                  <>Apply to {previewData.length} Products</>
-                )}
-              </Button>
-            )}
-          </div>
-          
-          {/* Preview Table */}
-          {previewData && previewData.length > 0 && (
-            <div className="bg-white rounded-lg border max-h-64 overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="text-left px-3 py-2 font-medium text-gray-700">Product</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-700">Current Price</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-700">New Price</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-700">Change</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {previewData.map((item) => {
-                    const oldPrice = parseFloat(item.oldPrice);
-                    const newPrice = parseFloat(item.newPrice);
-                    const change = newPrice - oldPrice;
-                    return (
-                      <tr key={item.id}>
-                        <td className="px-3 py-2 text-gray-900">{item.name}</td>
-                        <td className="px-3 py-2 text-right text-gray-600">${oldPrice.toFixed(4)}</td>
-                        <td className="px-3 py-2 text-right font-medium text-gray-900">${newPrice.toFixed(4)}</td>
-                        <td className={`px-3 py-2 text-right font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {change >= 0 ? '+' : ''}{change.toFixed(4)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-          
-          {previewData && previewData.length === 0 && (
-            <p className="text-gray-500 text-sm">No products found matching your criteria.</p>
           )}
         </div>
-      )}
+        
+        {previewData && previewData.length > 0 && (
+          <div className="bg-gray-50 rounded-lg border max-h-64 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100 sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium text-gray-700">Product</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-700">Current Price</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-700">New Price</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-700">Change</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y bg-white">
+                {previewData.map((item) => {
+                  const oldPrice = parseFloat(item.oldPrice);
+                  const newPrice = parseFloat(item.newPrice);
+                  const change = newPrice - oldPrice;
+                  return (
+                    <tr key={item.id}>
+                      <td className="px-3 py-2 text-gray-900">{item.name}</td>
+                      <td className="px-3 py-2 text-right text-gray-600">${oldPrice.toFixed(4)}</td>
+                      <td className="px-3 py-2 text-right font-medium text-gray-900">${newPrice.toFixed(4)}</td>
+                      <td className={`px-3 py-2 text-right font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {change >= 0 ? '+' : ''}{change.toFixed(4)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        
+        {previewData && previewData.length === 0 && (
+          <p className="text-gray-500 text-sm">No products found matching your criteria.</p>
+        )}
+      </div>
+
+      {/* Material Option Prices */}
+      <div className="bg-white border rounded-xl p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <Layers className="h-5 w-5 text-purple-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Material Prices</h3>
+            <p className="text-sm text-gray-500">Set the price per sticker for each material type across all products</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {materials.map((material) => {
+            const data = optionPrices?.options?.[material];
+            const currentPrice = data?.mostCommonPrice || '0.00';
+            return (
+              <div key={material} className="border rounded-lg p-4 bg-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-gray-900">{material}</span>
+                  <span className="text-xs text-gray-500">{data?.count || 0} products</span>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">
+                  Current: <span className="font-semibold">${currentPrice}</span> per sticker
+                  {data && data.minPrice !== data.maxPrice && (
+                    <span className="text-xs text-orange-600 block">
+                      (varies: ${data.minPrice} - ${data.maxPrice})
+                    </span>
+                  )}
+                </p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={optionInputs[material] || ''}
+                      onChange={(e) => setOptionInputs(prev => ({ ...prev, [material]: e.target.value }))}
+                      placeholder={currentPrice}
+                      className="w-full pl-7 pr-3 py-2 border rounded-lg text-sm"
+                      data-testid={`input-option-${material.toLowerCase()}`}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleSaveOptionPrice(material)}
+                    disabled={savingOption === material || !optionInputs[material]}
+                    data-testid={`button-save-${material.toLowerCase()}`}
+                  >
+                    {savingOption === material ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Finish/Coating Option Prices */}
+      <div className="bg-white border rounded-xl p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-green-100 rounded-lg">
+            <Scissors className="h-5 w-5 text-green-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Finish Prices</h3>
+            <p className="text-sm text-gray-500">Set the price per sticker for each finish type across all products</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {finishes.map((finish) => {
+            const data = optionPrices?.options?.[finish];
+            const currentPrice = data?.mostCommonPrice || '0.00';
+            return (
+              <div key={finish} className="border rounded-lg p-4 bg-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-gray-900">{finish}</span>
+                  <span className="text-xs text-gray-500">{data?.count || 0} products</span>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">
+                  Current: <span className="font-semibold">${currentPrice}</span> per sticker
+                  {data && data.minPrice !== data.maxPrice && (
+                    <span className="text-xs text-orange-600 block">
+                      (varies: ${data.minPrice} - ${data.maxPrice})
+                    </span>
+                  )}
+                </p>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={optionInputs[finish] || ''}
+                      onChange={(e) => setOptionInputs(prev => ({ ...prev, [finish]: e.target.value }))}
+                      placeholder={currentPrice}
+                      className="w-full pl-7 pr-3 py-2 border rounded-lg text-sm"
+                      data-testid={`input-option-${finish.toLowerCase()}`}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleSaveOptionPrice(finish)}
+                    disabled={savingOption === finish || !optionInputs[finish]}
+                    data-testid={`button-save-${finish.toLowerCase()}`}
+                  >
+                    {savingOption === finish ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Info Box */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="flex gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-amber-800">How bulk pricing works</h4>
+            <ul className="text-sm text-amber-700 mt-1 space-y-1">
+              <li>• <strong>Base Price Adjustment</strong>: Changes the per-sticker base price for products (before options)</li>
+              <li>• <strong>Material/Finish Prices</strong>: Changes the add-on cost for each option type across ALL products</li>
+              <li>• <strong>Bulk Quantity Tiers</strong>: Set per-product in the product editor (different tier discounts per product)</li>
+              <li>• When customers order in bulk quantities, tier discounts automatically apply to both base price AND options</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -881,7 +1058,7 @@ export default function AdminProducts() {
           value={activeTab} 
           onValueChange={(v) => {
             setActiveTab(v);
-            if (v === "deals") {
+            if (v === "deals" || v === "pricing") {
               setShowCreateForm(false);
               setEditingProduct(null);
             }
@@ -892,6 +1069,10 @@ export default function AdminProducts() {
             <TabsTrigger value="products" className="gap-2" data-testid="tab-products">
               <Package className="h-4 w-4" />
               Products
+            </TabsTrigger>
+            <TabsTrigger value="pricing" className="gap-2" data-testid="tab-pricing">
+              <DollarSign className="h-4 w-4" />
+              Pricing
             </TabsTrigger>
             <TabsTrigger value="deals" className="gap-2" data-testid="tab-deals">
               <Flame className="h-4 w-4" />
@@ -917,9 +1098,6 @@ export default function AdminProducts() {
                 </TooltipContent>
               </Tooltip>
             </div>
-
-            {/* Bulk Price Adjustment */}
-            <BulkPriceAdjustment onAdjustmentApplied={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] })} />
 
             {/* Fix Options Banner - Shows when options need updating */}
         <FixOptionsButton />
@@ -1957,6 +2135,12 @@ export default function AdminProducts() {
             </div>
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="pricing">
+            {activeTab === "pricing" && (
+              <PricingToolsTab onAdjustmentApplied={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] })} />
+            )}
           </TabsContent>
 
           <TabsContent value="deals">

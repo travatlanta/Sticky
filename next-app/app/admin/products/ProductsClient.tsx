@@ -56,8 +56,8 @@ interface ProductPricingRow {
   isActive: boolean;
   useGlobalTiers: boolean;
   tiers: Array<{ id: number; minQuantity: number; maxQuantity: number | null; pricePerUnit: string }>;
-  materials: Array<{ id: number; name: string; priceModifier: string }>;
-  finishes: Array<{ id: number; name: string; priceModifier: string }>;
+  materials: Array<{ id: number; name: string; priceModifier: string; tier2PriceModifier?: string | null; tier3PriceModifier?: string | null; tier4PriceModifier?: string | null }>;
+  finishes: Array<{ id: number; name: string; priceModifier: string; tier2PriceModifier?: string | null; tier3PriceModifier?: string | null; tier4PriceModifier?: string | null }>;
 }
 
 function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => void }) {
@@ -570,14 +570,86 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <span className="text-gray-300">-</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-center font-mono text-sm text-gray-600">
-                      {vinyl ? `+$${parseFloat(vinyl.priceModifier).toFixed(2)}` : '-'}
+                    <td className="px-3 py-2 text-center">
+                      {vinyl ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleCellEdit(product.id, 'optionPrice', vinyl.priceModifier, undefined, vinyl.id)}
+                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              data-testid={`cell-vinyl-${product.id}`}
+                            >
+                              +${parseFloat(vinyl.priceModifier).toFixed(2)}
+                              {!product.useGlobalTiers && (vinyl.tier2PriceModifier || vinyl.tier3PriceModifier || vinyl.tier4PriceModifier) && (
+                                <span className="text-orange-500 text-xs ml-0.5">*</span>
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          {!product.useGlobalTiers && (
+                            <TooltipContent className="p-2 text-xs">
+                              <div className="font-semibold mb-1">Vinyl Tier Prices</div>
+                              <div>T1: ${parseFloat(vinyl.priceModifier).toFixed(4)}</div>
+                              <div>T2: ${vinyl.tier2PriceModifier ? parseFloat(vinyl.tier2PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T3: ${vinyl.tier3PriceModifier ? parseFloat(vinyl.tier3PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T4: ${vinyl.tier4PriceModifier ? parseFloat(vinyl.tier4PriceModifier).toFixed(4) : 'base'}</div>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      ) : '-'}
                     </td>
-                    <td className="px-3 py-2 text-center font-mono text-sm text-gray-600">
-                      {foil ? `+$${parseFloat(foil.priceModifier).toFixed(2)}` : '-'}
+                    <td className="px-3 py-2 text-center">
+                      {foil ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleCellEdit(product.id, 'optionPrice', foil.priceModifier, undefined, foil.id)}
+                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              data-testid={`cell-foil-${product.id}`}
+                            >
+                              +${parseFloat(foil.priceModifier).toFixed(2)}
+                              {!product.useGlobalTiers && (foil.tier2PriceModifier || foil.tier3PriceModifier || foil.tier4PriceModifier) && (
+                                <span className="text-orange-500 text-xs ml-0.5">*</span>
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          {!product.useGlobalTiers && (
+                            <TooltipContent className="p-2 text-xs">
+                              <div className="font-semibold mb-1">Foil Tier Prices</div>
+                              <div>T1: ${parseFloat(foil.priceModifier).toFixed(4)}</div>
+                              <div>T2: ${foil.tier2PriceModifier ? parseFloat(foil.tier2PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T3: ${foil.tier3PriceModifier ? parseFloat(foil.tier3PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T4: ${foil.tier4PriceModifier ? parseFloat(foil.tier4PriceModifier).toFixed(4) : 'base'}</div>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      ) : '-'}
                     </td>
-                    <td className="px-3 py-2 text-center font-mono text-sm text-gray-600">
-                      {holo ? `+$${parseFloat(holo.priceModifier).toFixed(2)}` : '-'}
+                    <td className="px-3 py-2 text-center">
+                      {holo ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleCellEdit(product.id, 'optionPrice', holo.priceModifier, undefined, holo.id)}
+                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              data-testid={`cell-holo-${product.id}`}
+                            >
+                              +${parseFloat(holo.priceModifier).toFixed(2)}
+                              {!product.useGlobalTiers && (holo.tier2PriceModifier || holo.tier3PriceModifier || holo.tier4PriceModifier) && (
+                                <span className="text-orange-500 text-xs ml-0.5">*</span>
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          {!product.useGlobalTiers && (
+                            <TooltipContent className="p-2 text-xs">
+                              <div className="font-semibold mb-1">Holographic Tier Prices</div>
+                              <div>T1: ${parseFloat(holo.priceModifier).toFixed(4)}</div>
+                              <div>T2: ${holo.tier2PriceModifier ? parseFloat(holo.tier2PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T3: ${holo.tier3PriceModifier ? parseFloat(holo.tier3PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T4: ${holo.tier4PriceModifier ? parseFloat(holo.tier4PriceModifier).toFixed(4) : 'base'}</div>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      ) : '-'}
                     </td>
                   </tr>
                 );

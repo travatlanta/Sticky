@@ -73,10 +73,13 @@ export async function GET(request: Request) {
       return { ...product, displayPricePerUnit: displayPrice.toFixed(2) };
     });
 
-    // Return with cache control headers to ensure fresh data
+    // Return with aggressive cache control headers to ensure fresh data
+    // Including Vercel-specific headers to bypass CDN caching
     return NextResponse.json(productsWithDisplayPrice, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Cache-Control': 'private, no-cache, no-store, max-age=0, must-revalidate',
+        'CDN-Cache-Control': 'no-store',
+        'Vercel-CDN-Cache-Control': 'no-store',
         'Pragma': 'no-cache',
         'Expires': '0',
       },

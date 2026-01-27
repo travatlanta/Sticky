@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const optionNames = ['Vinyl', 'Foil', 'Holographic', 'Varnish', 'Emboss'];
+    const optionNames = ['Vinyl', 'Foil', 'Holographic', 'Gloss', 'Varnish', 'Emboss'];
     
     const pricesByName: Record<string, { count: number; minPrice: string; maxPrice: string; mostCommonPrice: string }> = {};
     
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
-    const validOptions = ['Vinyl', 'Foil', 'Holographic', 'Varnish', 'Emboss'];
+    const validOptions = ['Vinyl', 'Foil', 'Holographic', 'Gloss', 'Varnish', 'Emboss'];
     if (!validOptions.includes(optionName)) {
       return NextResponse.json({ message: 'Invalid option name' }, { status: 400 });
     }
@@ -115,6 +115,95 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error updating option prices:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// PATCH - Update tier-specific option pricing for all products
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.isAdmin) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { optionName, priceModifier, tier2PriceModifier, tier3PriceModifier, tier4PriceModifier } = body;
+    
+    if (!optionName) {
+      return NextResponse.json({ message: 'Missing option name' }, { status: 400 });
+    }
+
+    const validOptions = ['Vinyl', 'Foil', 'Holographic', 'Gloss', 'Varnish', 'Emboss'];
+    if (!validOptions.includes(optionName)) {
+      return NextResponse.json({ message: 'Invalid option name' }, { status: 400 });
+    }
+
+    // Build update data
+    const updateData: Record<string, string | null> = {};
+    
+    if (priceModifier !== undefined && priceModifier !== null && priceModifier !== '') {
+      const price = parseFloat(priceModifier);
+      if (isNaN(price) || price < 0) {
+        return NextResponse.json({ message: 'Invalid tier 1 price' }, { status: 400 });
+      }
+      updateData.priceModifier = price.toFixed(2);
+    }
+    
+    if (tier2PriceModifier !== undefined && tier2PriceModifier !== null && tier2PriceModifier !== '') {
+      const price = parseFloat(tier2PriceModifier);
+      if (isNaN(price) || price < 0) {
+        return NextResponse.json({ message: 'Invalid tier 2 price' }, { status: 400 });
+      }
+      updateData.tier2PriceModifier = price.toFixed(4);
+    }
+    
+    if (tier3PriceModifier !== undefined && tier3PriceModifier !== null && tier3PriceModifier !== '') {
+      const price = parseFloat(tier3PriceModifier);
+      if (isNaN(price) || price < 0) {
+        return NextResponse.json({ message: 'Invalid tier 3 price' }, { status: 400 });
+      }
+      updateData.tier3PriceModifier = price.toFixed(4);
+    }
+    
+    if (tier4PriceModifier !== undefined && tier4PriceModifier !== null && tier4PriceModifier !== '') {
+      const price = parseFloat(tier4PriceModifier);
+      if (isNaN(price) || price < 0) {
+        return NextResponse.json({ message: 'Invalid tier 4 price' }, { status: 400 });
+      }
+      updateData.tier4PriceModifier = price.toFixed(4);
+    }
+    
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ message: 'No price values provided' }, { status: 400 });
+    }
+
+    // Count affected options
+    const existingOptions = await db
+      .select({ id: productOptions.id })
+      .from(productOptions)
+      .where(eq(productOptions.name, optionName));
+
+    // Update all options with this name
+    await db
+      .update(productOptions)
+      .set(updateData)
+      .where(eq(productOptions.name, optionName));
+
+    const tierUpdates = Object.keys(updateData).map(k => {
+      if (k === 'priceModifier') return 'Tier 1';
+      if (k === 'tier2PriceModifier') return 'Tier 2';
+      if (k === 'tier3PriceModifier') return 'Tier 3';
+      if (k === 'tier4PriceModifier') return 'Tier 4';
+      return k;
+    });
+
+    return NextResponse.json({
+      message: `Updated ${existingOptions.length} "${optionName}" options (${tierUpdates.join(', ')})`,
+      updatedCount: existingOptions.length,
+    });
+  } catch (error) {
+    console.error('Error updating option tier prices:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

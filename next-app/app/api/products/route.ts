@@ -10,6 +10,9 @@ export async function GET(request: Request) {
     const categoryId = searchParams.get('categoryId');
     const featured = searchParams.get('featured');
 
+    // Debug: Log database connection status
+    console.log('[Products API] Starting query, DATABASE_URL exists:', !!process.env.DATABASE_URL);
+
     let conditions = [eq(products.isActive, true)];
 
     if (categoryId) {
@@ -24,6 +27,9 @@ export async function GET(request: Request) {
       .select()
       .from(products)
       .where(and(...conditions));
+
+    // Debug: Log query results
+    console.log('[Products API] Query returned', result.length, 'products');
 
     // Fetch pricing tiers for all products to calculate display prices
     const allTiers = await db

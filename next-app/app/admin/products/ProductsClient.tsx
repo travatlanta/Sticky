@@ -67,6 +67,12 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
   const [editingCell, setEditingCell] = useState<{ productId: number; field: string; tierId?: number; optionId?: number } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [savingCell, setSavingCell] = useState<string | null>(null);
+  const [showSavedIndicator, setShowSavedIndicator] = useState(false);
+  
+  const showSavedNotification = () => {
+    setShowSavedIndicator(true);
+    setTimeout(() => setShowSavedIndicator(false), 2000);
+  };
   
   const { data: categories } = useQuery<Array<{ id: number; name: string }>>({
     queryKey: ['/api/categories'],
@@ -153,7 +159,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       });
       
       if (!res.ok) throw new Error('Failed to save');
-      toast({ title: 'Global tiers updated!' });
+      showSavedNotification();
       setGlobalTierEdits({});
       refetchGlobalTiers();
       onAdjustmentApplied();
@@ -190,7 +196,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       });
       
       if (!res.ok) throw new Error('Failed to save');
-      toast({ title: 'Updated!' });
+      showSavedNotification();
       refetchProducts();
       onAdjustmentApplied();
     } catch (e) {
@@ -229,7 +235,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       
       if (!res.ok) throw new Error('Failed to update');
       const data = await res.json();
-      toast({ title: data.message });
+      showSavedNotification();
       setOptionInputs(prev => ({ ...prev, [optionName]: '' }));
       refetchOptions();
       refetchProducts();
@@ -255,7 +261,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       });
       
       if (!res.ok) throw new Error('Failed to update');
-      toast({ title: useGlobal ? 'Now using global tiers' : 'Now using custom tiers' });
+      showSavedNotification();
       refetchProducts();
     } catch (e) {
       toast({ title: 'Failed to update', variant: 'destructive' });
@@ -388,7 +394,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
         throw new Error(`Failed to update tier(s): ${failedTiers.join(', ')}`);
       }
       
-      toast({ title: `${tierPricingPopup.optionName} tier pricing updated` });
+      showSavedNotification();
       refetchProducts();
       setTierPricingPopup(null);
     } catch (e) {
@@ -469,7 +475,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
         throw new Error(errData.error || 'Failed to update');
       }
       
-      toast({ title: `${optionName} tier pricing updated for all products` });
+      showSavedNotification();
       refetchProducts();
       refetchOptions();
       onAdjustmentApplied();
@@ -820,6 +826,18 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 </TooltipContent>
               </Tooltip>
               <span className="text-sm text-gray-500">({filteredProducts.length} products)</span>
+              
+              {/* Saved Indicator */}
+              <div 
+                className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-all duration-300 ${
+                  showSavedIndicator 
+                    ? 'opacity-100 translate-y-0 bg-green-100 text-green-700 border border-green-200' 
+                    : 'opacity-0 -translate-y-2 pointer-events-none'
+                }`}
+              >
+                <Check className="w-4 h-4" />
+                Saved
+              </div>
             </div>
             <Tooltip>
               <TooltipTrigger asChild>

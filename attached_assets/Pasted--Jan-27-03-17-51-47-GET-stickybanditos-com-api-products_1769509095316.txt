@@ -1,0 +1,281 @@
+
+Jan 27 03:17:51.47
+GET
+---
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:17:49.17
+POST
+200
+stickybanditos.com
+/api/products/2-5-inch-circle-stickers/calculate-price
+Jan 27 03:17:49.17
+POST
+---
+stickybanditos.com
+/api/products/2-5-inch-circle-stickers/calculate-price
+Jan 27 03:17:48.94
+GET
+200
+stickybanditos.com
+/api/products/2-5-inch-circle-stickers
+Jan 27 03:17:46.31
+GET
+200
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:17:42.79
+GET
+200
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:17:42.64
+GET
+200
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:17:42.64
+GET
+200
+stickybanditos.com
+/api/deals/homepage
+Jan 27 03:17:42.64
+GET
+200
+stickybanditos.com
+/api/settings/homepage
+Jan 27 03:17:36.11
+GET
+200
+stickybanditos.com
+/api/notifications
+Jan 27 03:17:35.76
+GET
+200
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:17:35.17
+GET
+---
+stickybanditos.com
+/api/admin/products
+Jan 27 03:17:35.17
+GET
+200
+stickybanditos.com
+/api/admin/products/271/pricing-tiers
+Jan 27 03:17:35.17
+GET
+200
+stickybanditos.com
+/api/admin/products/271/options
+Jan 27 03:17:35.17
+GET
+200
+stickybanditos.com
+/api/admin/products/271/templates
+Jan 27 03:17:34.91
+PUT
+200
+stickybanditos.com
+/api/admin/products/271
+Jan 27 03:17:27.19
+POST
+200
+stickybanditos.com
+/api/admin/upload/product-image
+Jan 27 03:17:19.06
+GET
+200
+stickybanditos.com
+/api/admin/products/271/pricing-tiers
+Jan 27 03:17:19.05
+GET
+200
+stickybanditos.com
+/api/admin/products/271/options
+Jan 27 03:17:19.05
+GET
+200
+stickybanditos.com
+/api/admin/products/271/templates
+Jan 27 03:17:16.31
+GET
+---
+stickybanditos.com
+/api/admin/products/271/options
+Jan 27 03:17:16.31
+GET
+200
+stickybanditos.com
+/api/admin/products
+Jan 27 03:17:16.02
+GET
+200
+stickybanditos.com
+/api/admin/products
+Jan 27 03:17:11.18
+GET
+200
+stickybanditos.com
+/api/admin/stats
+5
+Failed to fetch orders: NeonDbError: column "customer_artwork_url" does not exist at execute (/var/task/next-app/.next/server/chunks/5356.js:11:7842) at process.processTicksAndRejections (node:internal/process/task_queues:103:5) at async p.execute (/var/task/next-app/.next/server/chunks/5356.js:16:7435) at async u (/var/task/next-app/.next/server/app/api/admin/stats/route.js:1:2613) at async /var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:38411 at async e_.execute (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:27880) at async e_.handle (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:39943) at async en (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:16:25561) at async ea.responseCache.get.routeKind (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:1028) at async r9.renderToResponseWithComponentsImpl (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:508) { severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '360', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3716', routine: 'errorMissingColumn', sourceError: undefined }
+Jan 27 03:17:05.09
+GET
+---
+stickybanditos.com
+/api/notifications
+Jan 27 03:17:05.09
+GET
+200
+stickybanditos.com
+/api/categories
+Jan 27 03:17:05.09
+GET
+---
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:17:05.09
+GET
+---
+stickybanditos.com
+/api/auth/session
+Jan 27 03:17:05.09
+GET
+200
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:16:08.65
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:16:07.08
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/deals
+Jan 27 03:16:07.08
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/cart
+Jan 27 03:16:07.08
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/login
+Jan 27 03:16:07.08
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/products
+Jan 27 03:16:07.05
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/auth/session
+Jan 27 03:16:07.04
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/settings/theme
+Jan 27 03:16:07.04
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:16:07.04
+GET
+---
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/deals/homepage
+Jan 27 03:16:07.04
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/settings/homepage
+Jan 27 03:16:06.73
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/login
+Jan 27 03:16:06.73
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/deals
+Jan 27 03:16:06.73
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/products
+Jan 27 03:16:06.73
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/cart
+Jan 27 03:16:06.73
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/settings/homepage
+Jan 27 03:16:06.73
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/auth/session
+Jan 27 03:16:06.72
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:16:06.72
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/settings/theme
+Jan 27 03:16:06.72
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/api/deals/homepage
+Jan 27 03:16:06.57
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:16:06.04
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:16:05.40
+GET
+200
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:16:05.40
+GET
+---
+sticky-5s2nxfmah-travmcmichael-5435s-projects.vercel.app
+/

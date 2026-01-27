@@ -7,7 +7,12 @@ import ThemeApplier from '@/components/ThemeApplier';
 
 async function defaultQueryFn({ queryKey }: { queryKey: readonly unknown[] }) {
   const url = queryKey[0] as string;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+    },
+  });
   if (!res.ok) {
     throw new Error(`API error: ${res.status}`);
   }

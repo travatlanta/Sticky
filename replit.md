@@ -83,11 +83,17 @@ Preferred communication style: Simple, everyday language.
   - When customers order in bulk (e.g., 1000+), they get the same percentage discount on options
   - Product page shows a green "Bulk Discount" box with total savings breakdown
   - Add-ons display original price with strikethrough when discounted
-- **Pricing Tools Tab**: Admin products page has a dedicated "Pricing" tab with all pricing adjustment tools:
-  - **Product Base Prices**: Apply percentage or fixed amount adjustments to all products at once, with category filtering and preview functionality
+- **Pricing Dashboard**: Admin products page has a dedicated "Pricing" tab with spreadsheet-style pricing management:
+  - **Global Bulk Pricing Tiers**: Set default discount percentages (e.g., 10%, 15%, 20% off) that apply to all products by default
+    - Products can toggle between "Global" (uses global tier discounts) and "Custom" (uses product-specific tier prices)
+    - Global tier discounts automatically apply to both base price AND material/finish options
+  - **Spreadsheet-Style Product Table**: View and edit all products' pricing in one place
+    - Inline editing: Click any price to edit it directly
+    - Shows base price, tier mode (Global/Custom), tier discounts or prices, and material add-on prices
+    - Search/filter products by name or category
   - **Material Prices**: Set per-sticker prices for Vinyl, Foil, Holographic across all products
   - **Finish Prices**: Set per-sticker prices for Varnish, Emboss across all products
-  - Note: Per-product quantity tier discounts are still set individually in each product's edit form
+  - Database: `global_pricing_tiers` table stores tier configs, products.`useGlobalTiers` boolean controls tier mode
 
 ## External Dependencies
 

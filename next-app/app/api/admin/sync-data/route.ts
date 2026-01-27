@@ -143,15 +143,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const catCount = await db.select().from(categories);
-  const prodCount = await db.select().from(products);
+  const allCats = await db.select().from(categories);
+  const allProds = await db.select().from(products);
   const tierCount = await db.select().from(pricingTiers);
   const optCount = await db.select().from(productOptions);
 
+  // Check active vs inactive products
+  const activeProducts = allProds.filter(p => p.isActive === true);
+  const inactiveProducts = allProds.filter(p => p.isActive !== true);
+
   return NextResponse.json({
-    categories: catCount.length,
-    products: prodCount.length,
+    categories: allCats.length,
+    products: allProds.length,
+    activeProducts: activeProducts.length,
+    inactiveProducts: inactiveProducts.length,
     pricingTiers: tierCount.length,
-    productOptions: optCount.length
+    productOptions: optCount.length,
+    sampleProducts: allProds.slice(0, 3).map(p => ({ id: p.id, name: p.name, isActive: p.isActive, categoryId: p.categoryId }))
   });
 }

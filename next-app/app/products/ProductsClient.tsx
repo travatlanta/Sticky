@@ -25,6 +25,7 @@ interface Product {
   isDealProduct?: boolean;
   fixedPrice?: string | null;
   fixedQuantity?: number | null;
+  displayPricePerUnit?: string;
 }
 
 interface Category {
@@ -177,7 +178,10 @@ export default function ProductsClient() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {regularProducts.map((product) => {
                 const ProductIcon = getProductIcon(product.name);
-                const price = parseFloat(product.basePrice);
+                // Use displayPricePerUnit (tier-based) if available, fallback to basePrice
+                const price = product.displayPricePerUnit 
+                  ? parseFloat(product.displayPricePerUnit) 
+                  : parseFloat(product.basePrice);
                 
                 return (
                   <Link
@@ -242,7 +246,12 @@ export default function ProductsClient() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {dealProducts.map((product) => {
                 const ProductIcon = getProductIcon(product.name);
-                const price = product.fixedPrice ? parseFloat(product.fixedPrice) : parseFloat(product.basePrice);
+                // For deals, show total fixed price (not per unit)
+                const price = product.fixedPrice 
+                  ? parseFloat(product.fixedPrice) 
+                  : (product.displayPricePerUnit 
+                      ? parseFloat(product.displayPricePerUnit) 
+                      : parseFloat(product.basePrice));
                 
                 return (
                   <Link

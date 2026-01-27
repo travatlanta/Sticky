@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products, productOptions, pricingTiers, productImages, productTemplates, designs, cartItems, orderItems } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { products, productOptions, pricingTiers, productImages, productTemplates, designs, cartItems, orderItems, artworkNotes } from '@shared/schema';
+import { eq, inArray } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -121,10 +121,31 @@ export async function DELETE(
       });
     }
     
-    // If force delete with orders, delete order items first
+    // If force delete with orders, delete artwork notes and order items first
     if (existingOrderItems.length > 0 && forceDelete) {
-      console.log(`Force deleting product ${productId} - removing order items...`);
+      console.log(`Force deleting product ${productId} - removing related order data...`);
+      
+      // Get all order item IDs for this product
+      const orderItemsToDelete = await db
+        .select({ id: orderItems.id })
+        .from(orderItems)
+        .where(eq(orderItems.productId, productId));
+      
+      const orderItemIds = orderItemsToDelete.map(item => item.id);
+      
+      // Delete artwork notes that reference these order items first
+      if (orderItemIds.length > 0) {
+        try {
+          await db.delete(artworkNotes).where(inArray(artworkNotes.orderItemId, orderItemIds));
+          console.log(`Deleted artwork notes for ${orderItemIds.length} order items`);
+        } catch (e) {
+          console.error('Error deleting artwork notes:', e);
+        }
+      }
+      
+      // Now delete the order items
       await db.delete(orderItems).where(eq(orderItems.productId, productId));
+      console.log(`Deleted order items for product ${productId}`);
     }
 
     // Delete related records first to avoid foreign key constraint violations

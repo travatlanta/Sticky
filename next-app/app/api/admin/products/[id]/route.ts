@@ -22,15 +22,57 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
+    const productId = parseInt(id);
 
-    console.log(`[Product Update] Starting update for product ID: ${id}`);
-    console.log(`[Product Update] Incoming data:`, JSON.stringify({
-      name: body.name,
-      slug: body.slug,
-      thumbnailUrl: body.thumbnailUrl?.substring(0, 50),
-      basePrice: body.basePrice,
-      isActive: body.isActive,
-    }));
+    // STEP 1: Fetch BEFORE state for comparison
+    const [beforeProduct] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, productId));
+
+    console.log(`\n========== PRODUCT UPDATE LOG (ID: ${id}) ==========`);
+    console.log(`[UPDATE] Timestamp: ${new Date().toISOString()}`);
+    console.log(`[UPDATE] Admin: ${(session.user as any).email || 'unknown'}`);
+    
+    // Log all incoming changes with BEFORE/AFTER comparison
+    const changes: string[] = [];
+    const compareField = (field: string, before: any, after: any) => {
+      const beforeVal = before === null || before === undefined ? 'NULL' : 
+        typeof before === 'string' && before.length > 60 ? before.substring(0, 60) + '...' : before;
+      const afterVal = after === null || after === undefined ? 'NULL' : 
+        typeof after === 'string' && after.length > 60 ? after.substring(0, 60) + '...' : after;
+      
+      if (String(beforeVal) !== String(afterVal)) {
+        changes.push(`  ${field}: "${beforeVal}" → "${afterVal}"`);
+        return true;
+      }
+      return false;
+    };
+
+    compareField('name', beforeProduct?.name, body.name);
+    compareField('slug', beforeProduct?.slug, body.slug);
+    compareField('description', beforeProduct?.description, body.description);
+    compareField('categoryId', beforeProduct?.categoryId, body.categoryId);
+    compareField('basePrice', beforeProduct?.basePrice, body.basePrice);
+    compareField('thumbnailUrl', beforeProduct?.thumbnailUrl, body.thumbnailUrl);
+    compareField('minQuantity', beforeProduct?.minQuantity, body.minQuantity);
+    compareField('isActive', beforeProduct?.isActive, body.isActive);
+    compareField('isFeatured', beforeProduct?.isFeatured, body.isFeatured);
+    compareField('printWidthInches', beforeProduct?.printWidthInches, body.printWidthInches);
+    compareField('printHeightInches', beforeProduct?.printHeightInches, body.printHeightInches);
+    compareField('printDpi', beforeProduct?.printDpi, body.printDpi);
+    compareField('bleedSize', beforeProduct?.bleedSize, body.bleedSize);
+    compareField('safeZoneSize', beforeProduct?.safeZoneSize, body.safeZoneSize);
+    compareField('supportsCustomShape', beforeProduct?.supportsCustomShape, body.supportsCustomShape);
+    compareField('shippingType', beforeProduct?.shippingType, body.shippingType);
+    compareField('flatShippingPrice', beforeProduct?.flatShippingPrice, body.flatShippingPrice);
+
+    if (changes.length > 0) {
+      console.log(`[UPDATE] CHANGES DETECTED (${changes.length} fields):`);
+      changes.forEach(c => console.log(c));
+    } else {
+      console.log(`[UPDATE] NO CHANGES DETECTED - all values match`);
+    }
 
     // Derive shipping values.  Default shippingType to the existing value
     // ('calculated') if not provided.  Coerce empty string or undefined
@@ -80,24 +122,53 @@ export async function PUT(
       .where(eq(products.id, parseInt(id)))
       .returning();
 
-    console.log(`[Product Update] Successfully updated product ${id}:`, JSON.stringify({
-      id: product?.id,
-      name: product?.name,
-      thumbnailUrl: product?.thumbnailUrl?.substring(0, 50),
-      updatedAt: product?.updatedAt,
-    }));
-
-    // Verify the update by re-fetching
-    const [verifyProduct] = await db
+    // STEP 3: Verify by re-fetching immediately after update
+    const [afterProduct] = await db
       .select()
       .from(products)
-      .where(eq(products.id, parseInt(id)));
+      .where(eq(products.id, productId));
     
-    console.log(`[Product Update] VERIFY after save - product ${id}:`, JSON.stringify({
-      id: verifyProduct?.id,
-      name: verifyProduct?.name,
-      thumbnailUrl: verifyProduct?.thumbnailUrl?.substring(0, 50) || 'NULL',
-    }));
+    // Log verification with ALL editable fields (using normalized values)
+    console.log(`[UPDATE] VERIFICATION - Confirming all fields saved correctly:`);
+    const verifyFields = [
+      { name: 'name', expected: body.name, actual: afterProduct?.name },
+      { name: 'slug', expected: body.slug, actual: afterProduct?.slug },
+      { name: 'description', expected: body.description?.substring(0, 40), actual: afterProduct?.description?.substring(0, 40) },
+      { name: 'categoryId', expected: body.categoryId, actual: afterProduct?.categoryId },
+      { name: 'basePrice', expected: body.basePrice, actual: afterProduct?.basePrice },
+      { name: 'thumbnailUrl', expected: body.thumbnailUrl?.substring(0, 60), actual: afterProduct?.thumbnailUrl?.substring(0, 60) },
+      { name: 'minQuantity', expected: body.minQuantity, actual: afterProduct?.minQuantity },
+      { name: 'isActive', expected: body.isActive, actual: afterProduct?.isActive },
+      { name: 'isFeatured', expected: body.isFeatured, actual: afterProduct?.isFeatured },
+      { name: 'printWidthInches', expected: body.printWidthInches, actual: afterProduct?.printWidthInches },
+      { name: 'printHeightInches', expected: body.printHeightInches, actual: afterProduct?.printHeightInches },
+      { name: 'printDpi', expected: body.printDpi, actual: afterProduct?.printDpi },
+      { name: 'templateWidth', expected: templateWidth, actual: afterProduct?.templateWidth },
+      { name: 'templateHeight', expected: templateHeight, actual: afterProduct?.templateHeight },
+      { name: 'bleedSize', expected: body.bleedSize, actual: afterProduct?.bleedSize },
+      { name: 'safeZoneSize', expected: body.safeZoneSize, actual: afterProduct?.safeZoneSize },
+      { name: 'supportsCustomShape', expected: body.supportsCustomShape, actual: afterProduct?.supportsCustomShape },
+      { name: 'shippingType', expected: shippingType, actual: afterProduct?.shippingType },
+      { name: 'flatShippingPrice', expected: flatShippingPrice, actual: afterProduct?.flatShippingPrice },
+    ];
+
+    let allVerified = true;
+    verifyFields.forEach(({ name, expected, actual }) => {
+      const match = String(expected ?? 'NULL') === String(actual ?? 'NULL');
+      if (!match) {
+        console.log(`  ❌ ${name}: MISMATCH! Expected "${expected}", Got "${actual}"`);
+        allVerified = false;
+      } else {
+        console.log(`  ✓ ${name}: verified`);
+      }
+    });
+
+    if (allVerified) {
+      console.log(`[UPDATE] ✓ SUCCESS - All fields saved and verified correctly`);
+    } else {
+      console.log(`[UPDATE] ⚠ WARNING - Some fields may not have saved correctly`);
+    }
+    console.log(`========== END UPDATE LOG ==========\n`);
 
     return NextResponse.json(product);
   } catch (error) {

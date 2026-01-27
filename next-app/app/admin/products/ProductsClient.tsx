@@ -27,6 +27,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Loader2,
+  Info,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -542,35 +543,178 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border rounded-lg">
           <table className="w-full text-sm">
-            <thead className="bg-gray-100 sticky top-0">
-              <tr>
-                <th className="text-left px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Product</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Base Price</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Mode</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
-                  <div>T1</div>
-                  <div className="text-[10px] text-gray-500 font-normal">1-249</div>
-                </th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
-                  <div>T2</div>
-                  <div className="text-[10px] text-gray-500 font-normal">250-999</div>
-                </th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
-                  <div>T3</div>
-                  <div className="text-[10px] text-gray-500 font-normal">1000-1999</div>
-                </th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
-                  <div>T4</div>
-                  <div className="text-[10px] text-gray-500 font-normal">2000+</div>
-                </th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-purple-50">Vinyl</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-purple-50">Foil</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-purple-50">Holo</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-green-50">Gloss</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-green-50">Varnish</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-green-50">Emboss</th>
+            <thead className="bg-gradient-to-b from-gray-50 to-gray-100 sticky top-0 z-10">
+              <tr className="border-b-2 border-gray-200">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help">
+                      <div className="flex items-center gap-1">
+                        Product
+                        <Info className="w-3 h-3 text-gray-400" />
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Product Name</p>
+                    <p className="text-xs text-gray-600">Row colors indicate sticker size (1", 2", 3", etc.) based on the first dimension.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help border-l border-gray-200">
+                      <div className="flex items-center justify-center gap-1">
+                        Base Price
+                        <Info className="w-3 h-3 text-gray-400" />
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Base Price per Sticker</p>
+                    <p className="text-xs text-gray-600">The starting price for one sticker. Click to edit. This is the foundation for tier pricing.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help bg-blue-50/50 border-l border-gray-200">
+                      <div className="flex flex-col items-center">
+                        <div className="flex items-center gap-1">T1 <Info className="w-3 h-3 text-gray-400" /></div>
+                        <div className="text-[10px] text-gray-500 font-normal">1-249 units</div>
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Tier 1: Small Orders (1-249)</p>
+                    <p className="text-xs text-gray-600">Price per sticker for orders of 1-249 units. Click to set a custom price for this product.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help bg-blue-50/50 border-l border-gray-200">
+                      <div className="flex flex-col items-center">
+                        <div className="flex items-center gap-1">T2 <Info className="w-3 h-3 text-gray-400" /></div>
+                        <div className="text-[10px] text-gray-500 font-normal">250-999</div>
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Tier 2: Medium Orders (250-999)</p>
+                    <p className="text-xs text-gray-600">Price per sticker for orders of 250-999 units. Bulk discount tier.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help bg-blue-50/50 border-l border-gray-200">
+                      <div className="flex flex-col items-center">
+                        <div className="flex items-center gap-1">T3 <Info className="w-3 h-3 text-gray-400" /></div>
+                        <div className="text-[10px] text-gray-500 font-normal">1000-1999</div>
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Tier 3: Large Orders (1000-1999)</p>
+                    <p className="text-xs text-gray-600">Price per sticker for orders of 1000-1999 units. Larger bulk discount.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help bg-blue-50/50 border-l border-gray-200">
+                      <div className="flex flex-col items-center">
+                        <div className="flex items-center gap-1">T4 <Info className="w-3 h-3 text-gray-400" /></div>
+                        <div className="text-[10px] text-gray-500 font-normal">2000+</div>
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Tier 4: Wholesale Orders (2000+)</p>
+                    <p className="text-xs text-gray-600">Price per sticker for orders of 2000+ units. Best bulk discount.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-purple-700 whitespace-nowrap cursor-help bg-purple-100 border-l-2 border-purple-300">
+                      <div className="flex items-center justify-center gap-1">
+                        Vinyl
+                        <Info className="w-3 h-3 text-purple-400" />
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Vinyl Material Add-on</p>
+                    <p className="text-xs text-gray-600">Extra cost per sticker for vinyl material. Standard durable material for most stickers.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-purple-700 whitespace-nowrap cursor-help bg-purple-100 border-l border-purple-200">
+                      <div className="flex items-center justify-center gap-1">
+                        Foil
+                        <Info className="w-3 h-3 text-purple-400" />
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Foil Material Add-on</p>
+                    <p className="text-xs text-gray-600">Extra cost per sticker for metallic foil material. Premium shiny finish.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-purple-700 whitespace-nowrap cursor-help bg-purple-100 border-l border-purple-200">
+                      <div className="flex items-center justify-center gap-1">
+                        Holo
+                        <Info className="w-3 h-3 text-purple-400" />
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Holographic Material Add-on</p>
+                    <p className="text-xs text-gray-600">Extra cost per sticker for holographic material. Rainbow reflective effect.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-green-700 whitespace-nowrap cursor-help bg-green-100 border-l-2 border-green-300">
+                      <div className="flex items-center justify-center gap-1">
+                        Gloss
+                        <Info className="w-3 h-3 text-green-400" />
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Gloss Finish Add-on</p>
+                    <p className="text-xs text-gray-600">Extra cost per sticker for glossy finish. Shiny, smooth protective coating.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-green-700 whitespace-nowrap cursor-help bg-green-100 border-l border-green-200">
+                      <div className="flex items-center justify-center gap-1">
+                        Varnish
+                        <Info className="w-3 h-3 text-green-400" />
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Varnish Finish Add-on</p>
+                    <p className="text-xs text-gray-600">Extra cost per sticker for spot varnish finish. Adds texture and visual pop.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <th className="text-center px-4 py-3 font-semibold text-green-700 whitespace-nowrap cursor-help bg-green-100 border-l border-green-200">
+                      <div className="flex items-center justify-center gap-1">
+                        Emboss
+                        <Info className="w-3 h-3 text-green-400" />
+                      </div>
+                    </th>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold mb-1">Emboss Finish Add-on</p>
+                    <p className="text-xs text-gray-600">Extra cost per sticker for embossed finish. Raised texture for premium feel.</p>
+                  </TooltipContent>
+                </Tooltip>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -625,11 +769,22 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 
                 return (
                   <tr key={product.id} className={`${rowColor} hover:brightness-95 transition-all ${!product.isActive ? 'opacity-50' : ''}`}>
-                    <td className="px-3 py-2">
-                      <div className="font-medium text-gray-900 truncate max-w-48">{product.name}</div>
-                      <div className="text-xs text-gray-500">{product.categoryName}</div>
+                    <td className="px-4 py-3">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="cursor-help">
+                            <div className="font-semibold text-gray-900 truncate max-w-52">{product.name}</div>
+                            <div className="text-xs text-gray-500">{product.categoryName}</div>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p className="font-semibold">{product.name}</p>
+                          <p className="text-xs text-gray-600">Category: {product.categoryName}</p>
+                          <p className="text-xs text-gray-600 mt-1">Row color indicates size group based on first dimension.</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-3 text-center border-l border-gray-200">
                       {editingCell?.productId === product.id && editingCell.field === 'basePrice' ? (
                         <div className="flex items-center gap-1 justify-center">
                           <input
@@ -640,37 +795,26 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                             onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
                             onBlur={handleCellSave}
                             autoFocus
-                            className="w-20 px-1 py-0.5 border rounded text-center text-sm"
+                            className="w-24 px-2 py-1 border-2 border-blue-400 rounded text-center text-sm font-mono"
                           />
                         </div>
                       ) : (
-                        <button
-                          onClick={() => handleCellEdit(product.id, 'basePrice', product.basePrice)}
-                          className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 font-mono text-sm shadow-sm cursor-pointer transition-all"
-                          data-testid={`cell-base-price-${product.id}`}
-                          title="Click to edit"
-                        >
-                          ${parseFloat(product.basePrice).toFixed(4)}
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleCellEdit(product.id, 'basePrice', product.basePrice)}
+                              className="px-3 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-mono text-sm shadow-sm cursor-pointer transition-all font-medium"
+                              data-testid={`cell-base-price-${product.id}`}
+                            >
+                              ${parseFloat(product.basePrice).toFixed(4)}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Click to edit base price per sticker</TooltipContent>
+                        </Tooltip>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-center">
-                      <button
-                        onClick={() => handleToggleGlobalTiers(product.id, !product.useGlobalTiers)}
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          product.useGlobalTiers 
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                            : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                        }`}
-                        data-testid={`toggle-global-${product.id}`}
-                      >
-                        {product.useGlobalTiers ? 'Global' : 'Custom'}
-                      </button>
-                    </td>
-                    <td className="px-3 py-2 text-center font-mono text-sm">
-                      {product.useGlobalTiers ? (
-                        <span className="text-green-600">{globalTier1?.discountPercent || 0}% off</span>
-                      ) : tier1 ? (
+                    <td className="px-4 py-2 text-center font-mono text-sm bg-blue-50/30 border-l border-gray-200">
+                      {tier1 ? (
                         editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier1.id ? (
                           <input
                             type="number"
@@ -680,25 +824,28 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                             onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
                             onBlur={handleCellSave}
                             autoFocus
-                            className="w-16 px-1 py-0.5 border rounded text-center text-sm"
+                            className="w-20 px-1 py-0.5 border-2 border-blue-400 rounded text-center text-sm"
                           />
                         ) : (
-                          <button
-                            onClick={() => handleCellEdit(product.id, 'tierPrice', tier1.pricePerUnit, tier1.id)}
-                            className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 shadow-sm cursor-pointer transition-all"
-                            title="Click to edit"
-                          >
-                            ${parseFloat(tier1.pricePerUnit).toFixed(4)}
-                          </button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => handleCellEdit(product.id, 'tierPrice', tier1.pricePerUnit, tier1.id)}
+                                className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
+                                data-testid={`cell-tier1-${product.id}`}
+                              >
+                                ${parseFloat(tier1.pricePerUnit).toFixed(4)}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Click to edit T1 price (1-249 units)</TooltipContent>
+                          </Tooltip>
                         )
                       ) : (
                         <span className="text-gray-300">-</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-center font-mono text-sm">
-                      {product.useGlobalTiers ? (
-                        <span className="text-green-600">{globalTier2?.discountPercent || 0}% off</span>
-                      ) : tier2 ? (
+                    <td className="px-4 py-2 text-center font-mono text-sm bg-blue-50/30 border-l border-gray-200">
+                      {tier2 ? (
                         editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier2.id ? (
                           <input
                             type="number"
@@ -708,25 +855,28 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                             onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
                             onBlur={handleCellSave}
                             autoFocus
-                            className="w-16 px-1 py-0.5 border rounded text-center text-sm"
+                            className="w-20 px-1 py-0.5 border-2 border-blue-400 rounded text-center text-sm"
                           />
                         ) : (
-                          <button
-                            onClick={() => handleCellEdit(product.id, 'tierPrice', tier2.pricePerUnit, tier2.id)}
-                            className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 shadow-sm cursor-pointer transition-all"
-                            title="Click to edit"
-                          >
-                            ${parseFloat(tier2.pricePerUnit).toFixed(4)}
-                          </button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => handleCellEdit(product.id, 'tierPrice', tier2.pricePerUnit, tier2.id)}
+                                className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
+                                data-testid={`cell-tier2-${product.id}`}
+                              >
+                                ${parseFloat(tier2.pricePerUnit).toFixed(4)}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Click to edit T2 price (250-999 units)</TooltipContent>
+                          </Tooltip>
                         )
                       ) : (
                         <span className="text-gray-300">-</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-center font-mono text-sm">
-                      {product.useGlobalTiers ? (
-                        <span className="text-green-600">{globalTier3?.discountPercent || 0}% off</span>
-                      ) : tier3 ? (
+                    <td className="px-4 py-2 text-center font-mono text-sm bg-blue-50/30 border-l border-gray-200">
+                      {tier3 ? (
                         editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier3.id ? (
                           <input
                             type="number"
@@ -736,25 +886,28 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                             onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
                             onBlur={handleCellSave}
                             autoFocus
-                            className="w-16 px-1 py-0.5 border rounded text-center text-sm"
+                            className="w-20 px-1 py-0.5 border-2 border-blue-400 rounded text-center text-sm"
                           />
                         ) : (
-                          <button
-                            onClick={() => handleCellEdit(product.id, 'tierPrice', tier3.pricePerUnit, tier3.id)}
-                            className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 shadow-sm cursor-pointer transition-all"
-                            title="Click to edit"
-                          >
-                            ${parseFloat(tier3.pricePerUnit).toFixed(4)}
-                          </button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => handleCellEdit(product.id, 'tierPrice', tier3.pricePerUnit, tier3.id)}
+                                className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
+                                data-testid={`cell-tier3-${product.id}`}
+                              >
+                                ${parseFloat(tier3.pricePerUnit).toFixed(4)}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Click to edit T3 price (1000-1999 units)</TooltipContent>
+                          </Tooltip>
                         )
                       ) : (
                         <span className="text-gray-300">-</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-center font-mono text-sm">
-                      {product.useGlobalTiers ? (
-                        <span className="text-green-600">{globalTier4?.discountPercent || 0}% off</span>
-                      ) : tier4 ? (
+                    <td className="px-4 py-2 text-center font-mono text-sm bg-blue-50/30 border-l border-gray-200">
+                      {tier4 ? (
                         editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier4.id ? (
                           <input
                             type="number"
@@ -764,188 +917,145 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                             onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
                             onBlur={handleCellSave}
                             autoFocus
-                            className="w-16 px-1 py-0.5 border rounded text-center text-sm"
+                            className="w-20 px-1 py-0.5 border-2 border-blue-400 rounded text-center text-sm"
                           />
                         ) : (
-                          <button
-                            onClick={() => handleCellEdit(product.id, 'tierPrice', tier4.pricePerUnit, tier4.id)}
-                            className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 shadow-sm cursor-pointer transition-all"
-                            title="Click to edit"
-                          >
-                            ${parseFloat(tier4.pricePerUnit).toFixed(4)}
-                          </button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => handleCellEdit(product.id, 'tierPrice', tier4.pricePerUnit, tier4.id)}
+                                className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
+                                data-testid={`cell-tier4-${product.id}`}
+                              >
+                                ${parseFloat(tier4.pricePerUnit).toFixed(4)}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Click to edit T4 price (2000+ units)</TooltipContent>
+                          </Tooltip>
                         )
                       ) : (
                         <span className="text-gray-300">-</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-2 text-center bg-purple-50/30 border-l-2 border-purple-300">
                       {vinyl ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', vinyl.priceModifier, undefined, vinyl.id)}
-                              className="font-mono text-sm px-2 py-1 rounded bg-purple-50 border border-purple-200 hover:border-purple-400 hover:bg-purple-100 shadow-sm cursor-pointer transition-all"
+                              className="font-mono text-sm px-2 py-1.5 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-vinyl-${product.id}`}
-                              title="Click to edit"
                             >
                               +${parseFloat(vinyl.priceModifier).toFixed(2)}
-                              {!product.useGlobalTiers && (vinyl.tier2PriceModifier || vinyl.tier3PriceModifier || vinyl.tier4PriceModifier) && (
-                                <span className="text-orange-500 text-xs ml-0.5">*</span>
-                              )}
                             </button>
                           </TooltipTrigger>
-                          {!product.useGlobalTiers && (
-                            <TooltipContent className="p-2 text-xs">
-                              <div className="font-semibold mb-1">Vinyl Tier Prices</div>
-                              <div>T1: ${parseFloat(vinyl.priceModifier).toFixed(4)}</div>
-                              <div>T2: ${vinyl.tier2PriceModifier ? parseFloat(vinyl.tier2PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T3: ${vinyl.tier3PriceModifier ? parseFloat(vinyl.tier3PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T4: ${vinyl.tier4PriceModifier ? parseFloat(vinyl.tier4PriceModifier).toFixed(4) : 'base'}</div>
-                            </TooltipContent>
-                          )}
+                          <TooltipContent className="p-2 text-xs">
+                            <div className="font-semibold mb-1">Vinyl Material Add-on</div>
+                            <div>Extra cost per sticker for vinyl material</div>
+                            <div className="mt-1 text-gray-500">Click to edit</div>
+                          </TooltipContent>
                         </Tooltip>
-                      ) : '-'}
+                      ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-2 text-center bg-purple-50/30 border-l border-purple-200">
                       {foil ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', foil.priceModifier, undefined, foil.id)}
-                              className="font-mono text-sm px-2 py-1 rounded bg-purple-50 border border-purple-200 hover:border-purple-400 hover:bg-purple-100 shadow-sm cursor-pointer transition-all"
+                              className="font-mono text-sm px-2 py-1.5 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-foil-${product.id}`}
-                              title="Click to edit"
                             >
                               +${parseFloat(foil.priceModifier).toFixed(2)}
-                              {!product.useGlobalTiers && (foil.tier2PriceModifier || foil.tier3PriceModifier || foil.tier4PriceModifier) && (
-                                <span className="text-orange-500 text-xs ml-0.5">*</span>
-                              )}
                             </button>
                           </TooltipTrigger>
-                          {!product.useGlobalTiers && (
-                            <TooltipContent className="p-2 text-xs">
-                              <div className="font-semibold mb-1">Foil Tier Prices</div>
-                              <div>T1: ${parseFloat(foil.priceModifier).toFixed(4)}</div>
-                              <div>T2: ${foil.tier2PriceModifier ? parseFloat(foil.tier2PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T3: ${foil.tier3PriceModifier ? parseFloat(foil.tier3PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T4: ${foil.tier4PriceModifier ? parseFloat(foil.tier4PriceModifier).toFixed(4) : 'base'}</div>
-                            </TooltipContent>
-                          )}
+                          <TooltipContent className="p-2 text-xs">
+                            <div className="font-semibold mb-1">Foil Material Add-on</div>
+                            <div>Extra cost per sticker for metallic foil</div>
+                            <div className="mt-1 text-gray-500">Click to edit</div>
+                          </TooltipContent>
                         </Tooltip>
-                      ) : '-'}
+                      ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-2 text-center bg-purple-50/30 border-l border-purple-200">
                       {holo ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', holo.priceModifier, undefined, holo.id)}
-                              className="font-mono text-sm px-2 py-1 rounded bg-purple-50 border border-purple-200 hover:border-purple-400 hover:bg-purple-100 shadow-sm cursor-pointer transition-all"
+                              className="font-mono text-sm px-2 py-1.5 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-holo-${product.id}`}
-                              title="Click to edit"
                             >
                               +${parseFloat(holo.priceModifier).toFixed(2)}
-                              {!product.useGlobalTiers && (holo.tier2PriceModifier || holo.tier3PriceModifier || holo.tier4PriceModifier) && (
-                                <span className="text-orange-500 text-xs ml-0.5">*</span>
-                              )}
                             </button>
                           </TooltipTrigger>
-                          {!product.useGlobalTiers && (
-                            <TooltipContent className="p-2 text-xs">
-                              <div className="font-semibold mb-1">Holographic Tier Prices</div>
-                              <div>T1: ${parseFloat(holo.priceModifier).toFixed(4)}</div>
-                              <div>T2: ${holo.tier2PriceModifier ? parseFloat(holo.tier2PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T3: ${holo.tier3PriceModifier ? parseFloat(holo.tier3PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T4: ${holo.tier4PriceModifier ? parseFloat(holo.tier4PriceModifier).toFixed(4) : 'base'}</div>
-                            </TooltipContent>
-                          )}
+                          <TooltipContent className="p-2 text-xs">
+                            <div className="font-semibold mb-1">Holographic Material Add-on</div>
+                            <div>Extra cost per sticker for rainbow holographic</div>
+                            <div className="mt-1 text-gray-500">Click to edit</div>
+                          </TooltipContent>
                         </Tooltip>
-                      ) : '-'}
+                      ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-2 text-center bg-green-50/30 border-l-2 border-green-300">
                       {gloss ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', gloss.priceModifier, undefined, gloss.id)}
-                              className="font-mono text-sm px-2 py-1 rounded bg-green-50 border border-green-200 hover:border-green-400 hover:bg-green-100 shadow-sm cursor-pointer transition-all"
+                              className="font-mono text-sm px-2 py-1.5 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-gloss-${product.id}`}
-                              title="Click to edit"
                             >
                               +${parseFloat(gloss.priceModifier).toFixed(2)}
-                              {!product.useGlobalTiers && (gloss.tier2PriceModifier || gloss.tier3PriceModifier || gloss.tier4PriceModifier) && (
-                                <span className="text-orange-500 text-xs ml-0.5">*</span>
-                              )}
                             </button>
                           </TooltipTrigger>
-                          {!product.useGlobalTiers && (
-                            <TooltipContent className="p-2 text-xs">
-                              <div className="font-semibold mb-1">Gloss Tier Prices</div>
-                              <div>T1: ${parseFloat(gloss.priceModifier).toFixed(4)}</div>
-                              <div>T2: ${gloss.tier2PriceModifier ? parseFloat(gloss.tier2PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T3: ${gloss.tier3PriceModifier ? parseFloat(gloss.tier3PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T4: ${gloss.tier4PriceModifier ? parseFloat(gloss.tier4PriceModifier).toFixed(4) : 'base'}</div>
-                            </TooltipContent>
-                          )}
+                          <TooltipContent className="p-2 text-xs">
+                            <div className="font-semibold mb-1">Gloss Finish Add-on</div>
+                            <div>Extra cost per sticker for glossy coating</div>
+                            <div className="mt-1 text-gray-500">Click to edit</div>
+                          </TooltipContent>
                         </Tooltip>
-                      ) : '-'}
+                      ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-2 text-center bg-green-50/30 border-l border-green-200">
                       {varnish ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', varnish.priceModifier, undefined, varnish.id)}
-                              className="font-mono text-sm px-2 py-1 rounded bg-green-50 border border-green-200 hover:border-green-400 hover:bg-green-100 shadow-sm cursor-pointer transition-all"
+                              className="font-mono text-sm px-2 py-1.5 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-varnish-${product.id}`}
-                              title="Click to edit"
                             >
                               +${parseFloat(varnish.priceModifier).toFixed(2)}
-                              {!product.useGlobalTiers && (varnish.tier2PriceModifier || varnish.tier3PriceModifier || varnish.tier4PriceModifier) && (
-                                <span className="text-orange-500 text-xs ml-0.5">*</span>
-                              )}
                             </button>
                           </TooltipTrigger>
-                          {!product.useGlobalTiers && (
-                            <TooltipContent className="p-2 text-xs">
-                              <div className="font-semibold mb-1">Varnish Tier Prices</div>
-                              <div>T1: ${parseFloat(varnish.priceModifier).toFixed(4)}</div>
-                              <div>T2: ${varnish.tier2PriceModifier ? parseFloat(varnish.tier2PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T3: ${varnish.tier3PriceModifier ? parseFloat(varnish.tier3PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T4: ${varnish.tier4PriceModifier ? parseFloat(varnish.tier4PriceModifier).toFixed(4) : 'base'}</div>
-                            </TooltipContent>
-                          )}
+                          <TooltipContent className="p-2 text-xs">
+                            <div className="font-semibold mb-1">Varnish Finish Add-on</div>
+                            <div>Extra cost per sticker for spot varnish</div>
+                            <div className="mt-1 text-gray-500">Click to edit</div>
+                          </TooltipContent>
                         </Tooltip>
-                      ) : '-'}
+                      ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-2 text-center bg-green-50/30 border-l border-green-200">
                       {emboss ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', emboss.priceModifier, undefined, emboss.id)}
-                              className="font-mono text-sm px-2 py-1 rounded bg-green-50 border border-green-200 hover:border-green-400 hover:bg-green-100 shadow-sm cursor-pointer transition-all"
+                              className="font-mono text-sm px-2 py-1.5 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-emboss-${product.id}`}
-                              title="Click to edit"
                             >
                               +${parseFloat(emboss.priceModifier).toFixed(2)}
-                              {!product.useGlobalTiers && (emboss.tier2PriceModifier || emboss.tier3PriceModifier || emboss.tier4PriceModifier) && (
-                                <span className="text-orange-500 text-xs ml-0.5">*</span>
-                              )}
                             </button>
                           </TooltipTrigger>
-                          {!product.useGlobalTiers && (
-                            <TooltipContent className="p-2 text-xs">
-                              <div className="font-semibold mb-1">Emboss Tier Prices</div>
-                              <div>T1: ${parseFloat(emboss.priceModifier).toFixed(4)}</div>
-                              <div>T2: ${emboss.tier2PriceModifier ? parseFloat(emboss.tier2PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T3: ${emboss.tier3PriceModifier ? parseFloat(emboss.tier3PriceModifier).toFixed(4) : 'base'}</div>
-                              <div>T4: ${emboss.tier4PriceModifier ? parseFloat(emboss.tier4PriceModifier).toFixed(4) : 'base'}</div>
-                            </TooltipContent>
-                          )}
+                          <TooltipContent className="p-2 text-xs">
+                            <div className="font-semibold mb-1">Emboss Finish Add-on</div>
+                            <div>Extra cost per sticker for raised embossing</div>
+                            <div className="mt-1 text-gray-500">Click to edit</div>
+                          </TooltipContent>
                         </Tooltip>
-                      ) : '-'}
+                      ) : <span className="text-gray-400">-</span>}
                     </td>
                   </tr>
                 );

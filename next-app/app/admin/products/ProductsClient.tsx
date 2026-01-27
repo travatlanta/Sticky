@@ -300,12 +300,13 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     
     setSavingTierPricing(true);
     try {
-      const updates: Promise<Response>[] = [];
+      const updates: { tier: number; promise: Promise<Response> }[] = [];
       
       // Update tier 1 (base priceModifier)
       if (tierPricingEdits.tier1 !== tierPricingPopup.tier1Price) {
-        updates.push(
-          fetch('/api/admin/pricing/products', {
+        updates.push({
+          tier: 1,
+          promise: fetch('/api/admin/pricing/products', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -316,13 +317,14 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               optionId: tierPricingPopup.optionId,
             }),
           })
-        );
+        });
       }
       
       // Update tier 2
       if (tierPricingEdits.tier2 !== tierPricingPopup.tier2Price) {
-        updates.push(
-          fetch('/api/admin/pricing/products', {
+        updates.push({
+          tier: 2,
+          promise: fetch('/api/admin/pricing/products', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -334,13 +336,14 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               tierNumber: 2,
             }),
           })
-        );
+        });
       }
       
       // Update tier 3
       if (tierPricingEdits.tier3 !== tierPricingPopup.tier3Price) {
-        updates.push(
-          fetch('/api/admin/pricing/products', {
+        updates.push({
+          tier: 3,
+          promise: fetch('/api/admin/pricing/products', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -352,13 +355,14 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               tierNumber: 3,
             }),
           })
-        );
+        });
       }
       
       // Update tier 4
       if (tierPricingEdits.tier4 !== tierPricingPopup.tier4Price) {
-        updates.push(
-          fetch('/api/admin/pricing/products', {
+        updates.push({
+          tier: 4,
+          promise: fetch('/api/admin/pricing/products', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -370,15 +374,26 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               tierNumber: 4,
             }),
           })
-        );
+        });
       }
       
-      await Promise.all(updates);
+      // Wait for all updates and check each response
+      const responses = await Promise.all(updates.map(u => u.promise));
+      const failedTiers: number[] = [];
+      responses.forEach((res, i) => {
+        if (!res.ok) failedTiers.push(updates[i].tier);
+      });
+      
+      if (failedTiers.length > 0) {
+        throw new Error(`Failed to update tier(s): ${failedTiers.join(', ')}`);
+      }
+      
       toast({ title: `${tierPricingPopup.optionName} tier pricing updated` });
       refetchProducts();
       setTierPricingPopup(null);
     } catch (e) {
-      toast({ title: 'Failed to update tier pricing', variant: 'destructive' });
+      const msg = e instanceof Error ? e.message : 'Failed to update tier pricing';
+      toast({ title: msg, variant: 'destructive' });
     } finally {
       setSavingTierPricing(false);
     }
@@ -398,27 +413,44 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
   const saveBulkTierPricing = async () => {
     if (!bulkTierPricingPopup) return;
     
+    // Validate numeric inputs before processing
+    const validatePrice = (value: string, tierName: string): number | null => {
+      if (!value.trim()) return null;
+      const num = parseFloat(value);
+      if (isNaN(num) || num < 0) {
+        throw new Error(`Invalid price for ${tierName}: "${value}"`);
+      }
+      return num;
+    };
+    
     setSavingBulkTierPricing(true);
     try {
       const optionName = bulkTierPricingPopup.optionName;
       
+      // Validate all inputs first
+      const tier1Val = validatePrice(bulkTierPricingEdits.tier1, 'Tier 1 (1-249)');
+      const tier2Val = validatePrice(bulkTierPricingEdits.tier2, 'Tier 2 (250-999)');
+      const tier3Val = validatePrice(bulkTierPricingEdits.tier3, 'Tier 3 (1000-1999)');
+      const tier4Val = validatePrice(bulkTierPricingEdits.tier4, 'Tier 4 (2000+)');
+      
       // Build the update payload
       const updateData: Record<string, string | null> = {};
-      if (bulkTierPricingEdits.tier1) {
-        updateData.priceModifier = parseFloat(bulkTierPricingEdits.tier1).toFixed(2);
+      if (tier1Val !== null) {
+        updateData.priceModifier = tier1Val.toFixed(2);
       }
-      if (bulkTierPricingEdits.tier2) {
-        updateData.tier2PriceModifier = parseFloat(bulkTierPricingEdits.tier2).toFixed(4);
+      if (tier2Val !== null) {
+        updateData.tier2PriceModifier = tier2Val.toFixed(4);
       }
-      if (bulkTierPricingEdits.tier3) {
-        updateData.tier3PriceModifier = parseFloat(bulkTierPricingEdits.tier3).toFixed(4);
+      if (tier3Val !== null) {
+        updateData.tier3PriceModifier = tier3Val.toFixed(4);
       }
-      if (bulkTierPricingEdits.tier4) {
-        updateData.tier4PriceModifier = parseFloat(bulkTierPricingEdits.tier4).toFixed(4);
+      if (tier4Val !== null) {
+        updateData.tier4PriceModifier = tier4Val.toFixed(4);
       }
       
       if (Object.keys(updateData).length === 0) {
         toast({ title: 'No values to update', variant: 'destructive' });
+        setSavingBulkTierPricing(false);
         return;
       }
       
@@ -432,7 +464,10 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
         }),
       });
       
-      if (!res.ok) throw new Error('Failed to update');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to update');
+      }
       
       toast({ title: `${optionName} tier pricing updated for all products` });
       refetchProducts();
@@ -440,7 +475,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       onAdjustmentApplied();
       setBulkTierPricingPopup(null);
     } catch (e) {
-      toast({ title: 'Failed to update bulk tier pricing', variant: 'destructive' });
+      const msg = e instanceof Error ? e.message : 'Failed to update bulk tier pricing';
+      toast({ title: msg, variant: 'destructive' });
     } finally {
       setSavingBulkTierPricing(false);
     }

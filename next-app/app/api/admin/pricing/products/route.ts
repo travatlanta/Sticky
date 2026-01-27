@@ -63,11 +63,17 @@ export async function GET(request: NextRequest) {
           id: m.id,
           name: m.name,
           priceModifier: m.priceModifier,
+          tier2PriceModifier: m.tier2PriceModifier,
+          tier3PriceModifier: m.tier3PriceModifier,
+          tier4PriceModifier: m.tier4PriceModifier,
         })),
         finishes: productFinishes.map((f) => ({
           id: f.id,
           name: f.name,
           priceModifier: f.priceModifier,
+          tier2PriceModifier: f.tier2PriceModifier,
+          tier3PriceModifier: f.tier3PriceModifier,
+          tier4PriceModifier: f.tier4PriceModifier,
         })),
       };
     });
@@ -112,6 +118,30 @@ export async function PATCH(request: NextRequest) {
       await db
         .update(productOptions)
         .set({ priceModifier: parseFloat(value).toFixed(2) })
+        .where(eq(productOptions.id, optionId));
+    } else if (field === 'optionTierPrice' && optionId) {
+      // Update tier-specific option pricing
+      const { tierNumber } = body;
+      
+      // Validate tier number
+      if (![2, 3, 4].includes(tierNumber)) {
+        return NextResponse.json({ message: 'Invalid tier number. Must be 2, 3, or 4.' }, { status: 400 });
+      }
+      
+      const updateData: Record<string, string | null> = {};
+      const priceValue = value === '' || value === null ? null : parseFloat(value).toFixed(4);
+      
+      if (tierNumber === 2) {
+        updateData.tier2PriceModifier = priceValue;
+      } else if (tierNumber === 3) {
+        updateData.tier3PriceModifier = priceValue;
+      } else if (tierNumber === 4) {
+        updateData.tier4PriceModifier = priceValue;
+      }
+      
+      await db
+        .update(productOptions)
+        .set(updateData)
         .where(eq(productOptions.id, optionId));
     } else {
       return NextResponse.json({ message: 'Invalid field' }, { status: 400 });

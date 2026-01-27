@@ -100,8 +100,29 @@ export async function POST(
       }
     }
 
+    // Determine which tier number applies (for tier-specific option pricing)
+    let appliedTierNumber = 1; // Default to tier 1
+    
+    if (!useGlobalTiers) {
+      // For custom tiers, find which tier number applies
+      const tiers = await db
+        .select()
+        .from(pricingTiers)
+        .where(eq(pricingTiers.productId, productId))
+        .orderBy(asc(pricingTiers.minQuantity));
+      
+      for (let i = 0; i < tiers.length; i++) {
+        const tier = tiers[i];
+        if (effectiveQuantity >= tier.minQuantity && (!tier.maxQuantity || effectiveQuantity <= tier.maxQuantity)) {
+          appliedTierNumber = i + 1; // 1-indexed tier number
+          break;
+        }
+      }
+    }
+
     // Add option modifiers and collect itemized add-ons
-    // Apply the same tier discount percentage to option prices
+    // For custom tiers: Use tier-specific option pricing if available
+    // For global tiers: Apply the discount percentage to option prices
     let optionsCost = 0;
     let optionsSavings = 0; // Track how much customer saves on options
     const addOns: { type: string; name: string; pricePerUnit: number; originalPrice: number; totalCost: number; savings: number }[] = [];
@@ -109,22 +130,38 @@ export async function POST(
     if (selectedOptions) {
       for (const [optionType, optionId] of Object.entries(selectedOptions)) {
         const option = options.find((o) => o.id === optionId);
-        if (option && option.priceModifier) {
-          const originalModifier = parseFloat(option.priceModifier);
-          if (originalModifier > 0) {
-            // Apply tier discount to option price
-            const discountedModifier = originalModifier * (1 - appliedTierDiscount);
-            const savingsPerUnit = originalModifier - discountedModifier;
+        if (option) {
+          const originalModifier = parseFloat(option.priceModifier || '0');
+          let effectiveModifier = originalModifier;
+          
+          if (!useGlobalTiers) {
+            // Use tier-specific option pricing if available (independent of base modifier)
+            if (appliedTierNumber === 2 && option.tier2PriceModifier !== null) {
+              effectiveModifier = parseFloat(option.tier2PriceModifier);
+            } else if (appliedTierNumber === 3 && option.tier3PriceModifier !== null) {
+              effectiveModifier = parseFloat(option.tier3PriceModifier);
+            } else if (appliedTierNumber === 4 && option.tier4PriceModifier !== null) {
+              effectiveModifier = parseFloat(option.tier4PriceModifier);
+            }
+            // Otherwise falls back to base priceModifier
+          } else {
+            // For global tiers, apply discount percentage
+            effectiveModifier = originalModifier * (1 - appliedTierDiscount);
+          }
+          
+          // Only add to cost if there's an actual price
+          if (effectiveModifier > 0 || originalModifier > 0) {
+            const savingsPerUnit = Math.max(0, originalModifier - effectiveModifier);
             
-            optionsCost += discountedModifier;
+            optionsCost += effectiveModifier;
             optionsSavings += savingsPerUnit * effectiveQuantity;
             
             addOns.push({
               type: option.optionType,
               name: option.name,
-              pricePerUnit: discountedModifier,
+              pricePerUnit: effectiveModifier,
               originalPrice: originalModifier,
-              totalCost: discountedModifier * effectiveQuantity,
+              totalCost: effectiveModifier * effectiveQuantity,
               savings: savingsPerUnit * effectiveQuantity,
             });
           }

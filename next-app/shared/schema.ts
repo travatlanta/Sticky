@@ -181,6 +181,7 @@ export const globalPricingTiers = pgTable("global_pricing_tiers", {
 });
 
 // Product Options (sizes, materials, coatings)
+// Each option can have tier-specific pricing that's independent of base price discounts
 export const productOptions = pgTable("product_options", {
   id: serial("id").primaryKey(),
   productId: integer("product_id")
@@ -191,7 +192,12 @@ export const productOptions = pgTable("product_options", {
   value: varchar("value", { length: 100 }),
   priceModifier: decimal("price_modifier", { precision: 10, scale: 2 }).default(
     "0"
-  ),
+  ), // Default price modifier (per unit) for tier 1
+  // Tier-specific price modifiers (per unit) - independent of base price discounts
+  // If null, uses the base priceModifier value
+  tier2PriceModifier: decimal("tier2_price_modifier", { precision: 10, scale: 4 }),
+  tier3PriceModifier: decimal("tier3_price_modifier", { precision: 10, scale: 4 }),
+  tier4PriceModifier: decimal("tier4_price_modifier", { precision: 10, scale: 4 }),
   isDefault: boolean("is_default").default(false),
   isActive: boolean("is_active").default(true),
   displayOrder: integer("display_order").default(0),

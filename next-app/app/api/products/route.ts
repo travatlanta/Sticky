@@ -33,10 +33,14 @@ export async function GET(request: Request) {
 
     // Debug: Log query results with sample data
     console.log('[Products API] Query returned', result.length, 'products');
-    // Log first 3 products for debugging
-    result.slice(0, 3).forEach((p, i) => {
-      console.log(`[Products API] Product ${i}: id=${p.id}, name=${p.name}, thumbnail=${p.thumbnailUrl?.substring(0, 40) || 'null'}`);
+    // Log ALL products with thumbnails to debug update issue
+    const withThumbnails = result.filter(p => p.thumbnailUrl);
+    console.log(`[Products API] Products WITH thumbnails: ${withThumbnails.length}`);
+    withThumbnails.forEach((p) => {
+      console.log(`[Products API] HAS THUMB: id=${p.id}, name=${p.name}, url=${p.thumbnailUrl?.substring(0, 50)}`);
     });
+    const withoutThumbnails = result.filter(p => !p.thumbnailUrl).slice(0, 5);
+    console.log(`[Products API] Sample NO THUMB: ${withoutThumbnails.map(p => `${p.id}:${p.name}`).join(', ')}`);
 
     // Fetch pricing tiers for all products to calculate display prices
     const allTiers = await db

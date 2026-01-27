@@ -37,16 +37,46 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface GlobalTier {
+  id: number;
+  tierNumber: number;
+  minQuantity: number;
+  maxQuantity: number | null;
+  discountPercent: string;
+  isActive: boolean;
+}
+
+interface ProductPricingRow {
+  id: number;
+  name: string;
+  slug: string;
+  categoryId: number | null;
+  categoryName: string;
+  basePrice: string;
+  isActive: boolean;
+  useGlobalTiers: boolean;
+  tiers: Array<{ id: number; minQuantity: number; maxQuantity: number | null; pricePerUnit: string }>;
+  materials: Array<{ id: number; name: string; priceModifier: string }>;
+  finishes: Array<{ id: number; name: string; priceModifier: string }>;
+}
+
 function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => void }) {
-  const [adjustmentType, setAdjustmentType] = useState<'percentage' | 'fixed'>('percentage');
-  const [adjustmentValue, setAdjustmentValue] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | number>('all');
-  const [isApplying, setIsApplying] = useState(false);
-  const [previewData, setPreviewData] = useState<Array<{ id: number; name: string; oldPrice: string; newPrice: string }> | null>(null);
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editingCell, setEditingCell] = useState<{ productId: number; field: string; tierId?: number; optionId?: number } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [savingCell, setSavingCell] = useState<string | null>(null);
   
   const { data: categories } = useQuery<Array<{ id: number; name: string }>>({
     queryKey: ['/api/categories'],
+  });
+
+  const { data: globalTiersData, refetch: refetchGlobalTiers } = useQuery<{ tiers: GlobalTier[] }>({
+    queryKey: ['/api/admin/pricing/global-tiers'],
+  });
+
+  const { data: productsData, refetch: refetchProducts } = useQuery<{ products: ProductPricingRow[] }>({
+    queryKey: ['/api/admin/pricing/products'],
   });
 
   const { data: optionPrices, refetch: refetchOptions } = useQuery<{ 
@@ -55,70 +85,83 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     queryKey: ['/api/admin/products/bulk-options'],
   });
 
+  const [globalTierEdits, setGlobalTierEdits] = useState<Record<number, Partial<GlobalTier>>>({});
+  const [savingGlobalTiers, setSavingGlobalTiers] = useState(false);
   const [optionInputs, setOptionInputs] = useState<Record<string, string>>({});
   const [savingOption, setSavingOption] = useState<string | null>(null);
 
-  const handlePreview = async () => {
-    if (!adjustmentValue || parseFloat(adjustmentValue) === 0) {
-      toast({ title: "Please enter an adjustment value", variant: "destructive" });
-      return;
-    }
-    
+  const globalTiers = globalTiersData?.tiers || [];
+  const products = productsData?.products || [];
+
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.categoryName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const globalTierProducts = products.filter(p => p.useGlobalTiers);
+  const customTierProducts = products.filter(p => !p.useGlobalTiers);
+
+  const handleSaveGlobalTiers = async () => {
+    const tiersToSave = globalTiers.map(tier => ({
+      ...tier,
+      ...globalTierEdits[tier.tierNumber],
+    }));
+
+    setSavingGlobalTiers(true);
     try {
-      const res = await fetch('/api/admin/products/bulk-adjust', {
-        method: 'POST',
+      const res = await fetch('/api/admin/pricing/global-tiers', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          adjustmentType,
-          adjustmentValue: parseFloat(adjustmentValue),
-          categoryId: categoryFilter === 'all' ? null : categoryFilter,
-          preview: true,
-        }),
+        body: JSON.stringify({ tiers: tiersToSave }),
       });
       
-      if (!res.ok) throw new Error('Failed to preview');
-      const data = await res.json();
-      setPreviewData(data.products);
+      if (!res.ok) throw new Error('Failed to save');
+      toast({ title: 'Global tiers updated!' });
+      setGlobalTierEdits({});
+      refetchGlobalTiers();
+      onAdjustmentApplied();
     } catch (e) {
-      toast({ title: "Failed to preview adjustment", variant: "destructive" });
+      toast({ title: 'Failed to save global tiers', variant: 'destructive' });
+    } finally {
+      setSavingGlobalTiers(false);
     }
   };
 
-  const handleApply = async () => {
-    if (!adjustmentValue || parseFloat(adjustmentValue) === 0) {
-      toast({ title: "Please enter an adjustment value", variant: "destructive" });
-      return;
-    }
+  const handleCellEdit = (productId: number, field: string, currentValue: string, tierId?: number, optionId?: number) => {
+    setEditingCell({ productId, field, tierId, optionId });
+    setEditValue(currentValue);
+  };
+
+  const handleCellSave = async () => {
+    if (!editingCell) return;
     
-    if (!confirm(`Are you sure you want to apply this price adjustment to ${previewData?.length || 'all'} products?`)) {
-      return;
-    }
-    
-    setIsApplying(true);
+    const cellKey = `${editingCell.productId}-${editingCell.field}-${editingCell.tierId || ''}-${editingCell.optionId || ''}`;
+    setSavingCell(cellKey);
+
     try {
-      const res = await fetch('/api/admin/products/bulk-adjust', {
-        method: 'POST',
+      const res = await fetch('/api/admin/pricing/products', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          adjustmentType,
-          adjustmentValue: parseFloat(adjustmentValue),
-          categoryId: categoryFilter === 'all' ? null : categoryFilter,
-          preview: false,
+          productId: editingCell.productId,
+          field: editingCell.field,
+          value: editValue,
+          tierId: editingCell.tierId,
+          optionId: editingCell.optionId,
         }),
       });
       
-      if (!res.ok) throw new Error('Failed to apply');
-      const data = await res.json();
-      toast({ title: `Updated ${data.updatedCount} product${data.updatedCount !== 1 ? 's' : ''}!` });
-      setPreviewData(null);
-      setAdjustmentValue('');
+      if (!res.ok) throw new Error('Failed to save');
+      toast({ title: 'Updated!' });
+      refetchProducts();
       onAdjustmentApplied();
     } catch (e) {
-      toast({ title: "Failed to apply adjustment", variant: "destructive" });
+      toast({ title: 'Failed to update', variant: 'destructive' });
     } finally {
-      setIsApplying(false);
+      setSavingCell(null);
+      setEditingCell(null);
     }
   };
 
@@ -153,6 +196,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       toast({ title: data.message });
       setOptionInputs(prev => ({ ...prev, [optionName]: '' }));
       refetchOptions();
+      refetchProducts();
       onAdjustmentApplied();
     } catch (e) {
       toast({ title: "Failed to update option prices", variant: "destructive" });
@@ -161,288 +205,406 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     }
   };
 
+  const handleToggleGlobalTiers = async (productId: number, useGlobal: boolean) => {
+    try {
+      const res = await fetch('/api/admin/pricing/products', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          productId,
+          field: 'useGlobalTiers',
+          value: useGlobal,
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to update');
+      toast({ title: useGlobal ? 'Now using global tiers' : 'Now using custom tiers' });
+      refetchProducts();
+    } catch (e) {
+      toast({ title: 'Failed to update', variant: 'destructive' });
+    }
+  };
+
   const materials = ['Vinyl', 'Foil', 'Holographic'];
   const finishes = ['Varnish', 'Emboss'];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Pricing Tools</h2>
-        <p className="text-gray-600 text-sm">Adjust product base prices and option prices across all products at once</p>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Pricing Dashboard</h2>
+        <p className="text-gray-600 text-sm">Manage all product pricing from one place - edit directly in the spreadsheet below</p>
       </div>
 
-      {/* Product Base Price Adjustment */}
+      {/* Global Bulk Pricing Tiers */}
       <div className="bg-white border rounded-xl p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <DollarSign className="h-5 w-5 text-blue-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Product Base Prices</h3>
-            <p className="text-sm text-gray-500">Adjust the base price of all products by percentage or fixed amount</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Adjustment Type</label>
-            <select
-              value={adjustmentType}
-              onChange={(e) => {
-                setAdjustmentType(e.target.value as 'percentage' | 'fixed');
-                setPreviewData(null);
-              }}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-              data-testid="select-adjustment-type"
-            >
-              <option value="percentage">Percentage (%)</option>
-              <option value="fixed">Fixed Amount ($)</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {adjustmentType === 'percentage' ? 'Percentage Change' : 'Amount to Add/Subtract'}
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                {adjustmentType === 'percentage' ? '%' : '$'}
-              </span>
-              <input
-                type="number"
-                step={adjustmentType === 'percentage' ? '1' : '0.01'}
-                value={adjustmentValue}
-                onChange={(e) => {
-                  setAdjustmentValue(e.target.value);
-                  setPreviewData(null);
-                }}
-                placeholder={adjustmentType === 'percentage' ? 'e.g. 5 or -10' : 'e.g. 0.05 or -0.02'}
-                className="w-full pl-8 pr-3 py-2 border rounded-lg text-sm"
-                data-testid="input-adjustment-value"
-              />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Layers className="h-5 w-5 text-blue-600" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {adjustmentType === 'percentage' 
-                ? 'Positive = increase, negative = decrease' 
-                : 'Add or subtract from each product base price'}
-            </p>
+            <div>
+              <h3 className="font-semibold text-gray-900">Global Bulk Pricing Tiers</h3>
+              <p className="text-sm text-gray-500">
+                Default discounts for quantity orders • <span className="text-green-600 font-medium">{globalTierProducts.length} products</span> using global, <span className="text-orange-600 font-medium">{customTierProducts.length} custom</span>
+              </p>
+            </div>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Apply To</label>
-            <select
-              value={categoryFilter}
-              onChange={(e) => {
-                setCategoryFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
-                setPreviewData(null);
-              }}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-              data-testid="select-category-filter"
-            >
-              <option value="all">All Products</option>
-              {categories?.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handlePreview}
-            disabled={!adjustmentValue || parseFloat(adjustmentValue) === 0}
-            data-testid="button-preview-adjustment"
-          >
-            Preview Changes
-          </Button>
-          {previewData && (
-            <Button
-              type="button"
-              onClick={handleApply}
-              disabled={isApplying}
-              className="bg-blue-600 hover:bg-blue-700"
-              data-testid="button-apply-adjustment"
-            >
-              {isApplying ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Applying...
-                </>
-              ) : (
-                <>Apply to {previewData.length} Products</>
-              )}
+          {Object.keys(globalTierEdits).length > 0 && (
+            <Button onClick={handleSaveGlobalTiers} disabled={savingGlobalTiers} data-testid="button-save-global-tiers">
+              {savingGlobalTiers ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Global Tiers
             </Button>
           )}
         </div>
-        
-        {previewData && previewData.length > 0 && (
-          <div className="bg-gray-50 rounded-lg border max-h-64 overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 sticky top-0">
-                <tr>
-                  <th className="text-left px-3 py-2 font-medium text-gray-700">Product</th>
-                  <th className="text-right px-3 py-2 font-medium text-gray-700">Current Price</th>
-                  <th className="text-right px-3 py-2 font-medium text-gray-700">New Price</th>
-                  <th className="text-right px-3 py-2 font-medium text-gray-700">Change</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y bg-white">
-                {previewData.map((item) => {
-                  const oldPrice = parseFloat(item.oldPrice);
-                  const newPrice = parseFloat(item.newPrice);
-                  const change = newPrice - oldPrice;
-                  return (
-                    <tr key={item.id}>
-                      <td className="px-3 py-2 text-gray-900">{item.name}</td>
-                      <td className="px-3 py-2 text-right text-gray-600">${oldPrice.toFixed(4)}</td>
-                      <td className="px-3 py-2 text-right font-medium text-gray-900">${newPrice.toFixed(4)}</td>
-                      <td className={`px-3 py-2 text-right font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {change >= 0 ? '+' : ''}{change.toFixed(4)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        
-        {previewData && previewData.length === 0 && (
-          <p className="text-gray-500 text-sm">No products found matching your criteria.</p>
-        )}
-      </div>
-
-      {/* Material Option Prices */}
-      <div className="bg-white border rounded-xl p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-purple-100 rounded-lg">
-            <Layers className="h-5 w-5 text-purple-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Material Prices</h3>
-            <p className="text-sm text-gray-500">Set the price per sticker for each material type across all products</p>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {materials.map((material) => {
-            const data = optionPrices?.options?.[material];
-            const currentPrice = data?.mostCommonPrice || '0.00';
+          {globalTiers.map((tier) => {
+            const edits = globalTierEdits[tier.tierNumber] || {};
+            const minQty = edits.minQuantity ?? tier.minQuantity;
+            const maxQty = edits.maxQuantity ?? tier.maxQuantity;
+            const discount = edits.discountPercent ?? tier.discountPercent;
+            
             return (
-              <div key={material} className="border rounded-lg p-4 bg-gray-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900">{material}</span>
-                  <span className="text-xs text-gray-500">{data?.count || 0} products</span>
+              <div key={tier.tierNumber} className="border rounded-lg p-4 bg-blue-50">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-semibold text-blue-800">Tier {tier.tierNumber}</span>
+                  <span className="text-2xl font-bold text-blue-600">{discount}% off</span>
                 </div>
-                <p className="text-sm text-gray-600 mb-3">
-                  Current: <span className="font-semibold">${currentPrice}</span> per sticker
-                  {data && data.minPrice !== data.maxPrice && (
-                    <span className="text-xs text-orange-600 block">
-                      (varies: ${data.minPrice} - ${data.maxPrice})
-                    </span>
-                  )}
-                </p>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
                     <input
                       type="number"
-                      step="0.01"
-                      min="0"
-                      value={optionInputs[material] || ''}
-                      onChange={(e) => setOptionInputs(prev => ({ ...prev, [material]: e.target.value }))}
-                      placeholder={currentPrice}
-                      className="w-full pl-7 pr-3 py-2 border rounded-lg text-sm"
-                      data-testid={`input-option-${material.toLowerCase()}`}
+                      value={minQty}
+                      onChange={(e) => setGlobalTierEdits(prev => ({
+                        ...prev,
+                        [tier.tierNumber]: { ...prev[tier.tierNumber], minQuantity: parseInt(e.target.value) || 0 }
+                      }))}
+                      className="w-24 px-2 py-1 border rounded text-sm text-center"
+                      data-testid={`input-tier-${tier.tierNumber}-min`}
                     />
+                    <span className="text-gray-500">to</span>
+                    <input
+                      type="number"
+                      value={maxQty ?? ''}
+                      placeholder="Max"
+                      onChange={(e) => setGlobalTierEdits(prev => ({
+                        ...prev,
+                        [tier.tierNumber]: { ...prev[tier.tierNumber], maxQuantity: e.target.value ? parseInt(e.target.value) : null }
+                      }))}
+                      className="w-24 px-2 py-1 border rounded text-sm text-center"
+                      data-testid={`input-tier-${tier.tierNumber}-max`}
+                    />
+                    <span className="text-gray-500 text-sm">units</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Discount:</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={discount}
+                      onChange={(e) => setGlobalTierEdits(prev => ({
+                        ...prev,
+                        [tier.tierNumber]: { ...prev[tier.tierNumber], discountPercent: e.target.value }
+                      }))}
+                      className="w-20 px-2 py-1 border rounded text-sm text-center"
+                      data-testid={`input-tier-${tier.tierNumber}-discount`}
+                    />
+                    <span className="text-gray-500">%</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Material & Finish Quick Settings */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white border rounded-xl p-4 shadow-sm">
+          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <div className="p-1.5 bg-purple-100 rounded"><Layers className="h-4 w-4 text-purple-600" /></div>
+            Material Add-ons (per sticker)
+          </h4>
+          <div className="space-y-2">
+            {materials.map((material) => {
+              const data = optionPrices?.options?.[material];
+              return (
+                <div key={material} className="flex items-center gap-2">
+                  <span className="w-24 text-sm font-medium">{material}</span>
+                  <span className="text-sm text-gray-500">${data?.mostCommonPrice || '0.00'}</span>
+                  <div className="flex-1" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="New price"
+                    value={optionInputs[material] || ''}
+                    onChange={(e) => setOptionInputs(prev => ({ ...prev, [material]: e.target.value }))}
+                    className="w-24 px-2 py-1 border rounded text-sm"
+                    data-testid={`input-option-${material.toLowerCase()}`}
+                  />
                   <Button
                     size="sm"
+                    variant="outline"
                     onClick={() => handleSaveOptionPrice(material)}
                     disabled={savingOption === material || !optionInputs[material]}
                     data-testid={`button-save-${material.toLowerCase()}`}
                   >
-                    {savingOption === material ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                    {savingOption === material ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set'}
                   </Button>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Finish/Coating Option Prices */}
-      <div className="bg-white border rounded-xl p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-green-100 rounded-lg">
-            <Scissors className="h-5 w-5 text-green-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Finish Prices</h3>
-            <p className="text-sm text-gray-500">Set the price per sticker for each finish type across all products</p>
+              );
+            })}
           </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {finishes.map((finish) => {
-            const data = optionPrices?.options?.[finish];
-            const currentPrice = data?.mostCommonPrice || '0.00';
-            return (
-              <div key={finish} className="border rounded-lg p-4 bg-gray-50">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900">{finish}</span>
-                  <span className="text-xs text-gray-500">{data?.count || 0} products</span>
-                </div>
-                <p className="text-sm text-gray-600 mb-3">
-                  Current: <span className="font-semibold">${currentPrice}</span> per sticker
-                  {data && data.minPrice !== data.maxPrice && (
-                    <span className="text-xs text-orange-600 block">
-                      (varies: ${data.minPrice} - ${data.maxPrice})
-                    </span>
-                  )}
-                </p>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={optionInputs[finish] || ''}
-                      onChange={(e) => setOptionInputs(prev => ({ ...prev, [finish]: e.target.value }))}
-                      placeholder={currentPrice}
-                      className="w-full pl-7 pr-3 py-2 border rounded-lg text-sm"
-                      data-testid={`input-option-${finish.toLowerCase()}`}
-                    />
-                  </div>
+        
+        <div className="bg-white border rounded-xl p-4 shadow-sm">
+          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <div className="p-1.5 bg-green-100 rounded"><Scissors className="h-4 w-4 text-green-600" /></div>
+            Finish Add-ons (per sticker)
+          </h4>
+          <div className="space-y-2">
+            {finishes.map((finish) => {
+              const data = optionPrices?.options?.[finish];
+              return (
+                <div key={finish} className="flex items-center gap-2">
+                  <span className="w-24 text-sm font-medium">{finish}</span>
+                  <span className="text-sm text-gray-500">${data?.mostCommonPrice || '0.00'}</span>
+                  <div className="flex-1" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="New price"
+                    value={optionInputs[finish] || ''}
+                    onChange={(e) => setOptionInputs(prev => ({ ...prev, [finish]: e.target.value }))}
+                    className="w-24 px-2 py-1 border rounded text-sm"
+                    data-testid={`input-option-${finish.toLowerCase()}`}
+                  />
                   <Button
                     size="sm"
+                    variant="outline"
                     onClick={() => handleSaveOptionPrice(finish)}
                     disabled={savingOption === finish || !optionInputs[finish]}
                     data-testid={`button-save-${finish.toLowerCase()}`}
                   >
-                    {savingOption === finish ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                    {savingOption === finish ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set'}
                   </Button>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
+      {/* Product Pricing Spreadsheet */}
+      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <div className="p-4 border-b bg-gray-50 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h3 className="font-semibold text-gray-900">Product Pricing Spreadsheet</h3>
+            <span className="text-sm text-gray-500">({filteredProducts.length} products)</span>
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 pr-4 py-2 border rounded-lg text-sm w-64"
+              data-testid="input-search-products"
+            />
+            <Package className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 sticky top-0">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Product</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Base Price</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Tier Mode</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Tier 1</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Tier 2</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Tier 3</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Vinyl</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Foil</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Holo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {filteredProducts.map((product) => {
+                const tier1 = product.tiers[0];
+                const tier2 = product.tiers[1];
+                const tier3 = product.tiers[2];
+                const vinyl = product.materials.find(m => m.name === 'Vinyl');
+                const foil = product.materials.find(m => m.name === 'Foil');
+                const holo = product.materials.find(m => m.name === 'Holographic');
+                
+                const globalTier1 = globalTiers.find(t => t.tierNumber === 1);
+                const globalTier2 = globalTiers.find(t => t.tierNumber === 2);
+                const globalTier3 = globalTiers.find(t => t.tierNumber === 3);
+                
+                const basePrice = parseFloat(product.basePrice);
+                
+                return (
+                  <tr key={product.id} className={`hover:bg-gray-50 ${!product.isActive ? 'opacity-50' : ''}`}>
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-gray-900 truncate max-w-48">{product.name}</div>
+                      <div className="text-xs text-gray-500">{product.categoryName}</div>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {editingCell?.productId === product.id && editingCell.field === 'basePrice' ? (
+                        <div className="flex items-center gap-1 justify-center">
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
+                            onBlur={handleCellSave}
+                            autoFocus
+                            className="w-20 px-1 py-0.5 border rounded text-center text-sm"
+                          />
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleCellEdit(product.id, 'basePrice', product.basePrice)}
+                          className="px-2 py-0.5 rounded hover:bg-blue-100 font-mono"
+                          data-testid={`cell-base-price-${product.id}`}
+                        >
+                          ${parseFloat(product.basePrice).toFixed(4)}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <button
+                        onClick={() => handleToggleGlobalTiers(product.id, !product.useGlobalTiers)}
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          product.useGlobalTiers 
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                            : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                        }`}
+                        data-testid={`toggle-global-${product.id}`}
+                      >
+                        {product.useGlobalTiers ? 'Global' : 'Custom'}
+                      </button>
+                    </td>
+                    <td className="px-3 py-2 text-center font-mono text-sm">
+                      {product.useGlobalTiers ? (
+                        <span className="text-green-600">{globalTier1?.discountPercent || 0}% off</span>
+                      ) : tier1 ? (
+                        editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier1.id ? (
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
+                            onBlur={handleCellSave}
+                            autoFocus
+                            className="w-16 px-1 py-0.5 border rounded text-center text-sm"
+                          />
+                        ) : (
+                          <button
+                            onClick={() => handleCellEdit(product.id, 'tierPrice', tier1.pricePerUnit, tier1.id)}
+                            className="px-1 py-0.5 rounded hover:bg-blue-100"
+                          >
+                            ${parseFloat(tier1.pricePerUnit).toFixed(4)}
+                          </button>
+                        )
+                      ) : (
+                        <span className="text-gray-300">-</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center font-mono text-sm">
+                      {product.useGlobalTiers ? (
+                        <span className="text-green-600">{globalTier2?.discountPercent || 0}% off</span>
+                      ) : tier2 ? (
+                        editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier2.id ? (
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
+                            onBlur={handleCellSave}
+                            autoFocus
+                            className="w-16 px-1 py-0.5 border rounded text-center text-sm"
+                          />
+                        ) : (
+                          <button
+                            onClick={() => handleCellEdit(product.id, 'tierPrice', tier2.pricePerUnit, tier2.id)}
+                            className="px-1 py-0.5 rounded hover:bg-blue-100"
+                          >
+                            ${parseFloat(tier2.pricePerUnit).toFixed(4)}
+                          </button>
+                        )
+                      ) : (
+                        <span className="text-gray-300">-</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center font-mono text-sm">
+                      {product.useGlobalTiers ? (
+                        <span className="text-green-600">{globalTier3?.discountPercent || 0}% off</span>
+                      ) : tier3 ? (
+                        editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier3.id ? (
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
+                            onBlur={handleCellSave}
+                            autoFocus
+                            className="w-16 px-1 py-0.5 border rounded text-center text-sm"
+                          />
+                        ) : (
+                          <button
+                            onClick={() => handleCellEdit(product.id, 'tierPrice', tier3.pricePerUnit, tier3.id)}
+                            className="px-1 py-0.5 rounded hover:bg-blue-100"
+                          >
+                            ${parseFloat(tier3.pricePerUnit).toFixed(4)}
+                          </button>
+                        )
+                      ) : (
+                        <span className="text-gray-300">-</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center font-mono text-sm text-gray-600">
+                      {vinyl ? `+$${parseFloat(vinyl.priceModifier).toFixed(2)}` : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-center font-mono text-sm text-gray-600">
+                      {foil ? `+$${parseFloat(foil.priceModifier).toFixed(2)}` : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-center font-mono text-sm text-gray-600">
+                      {holo ? `+$${parseFloat(holo.priceModifier).toFixed(2)}` : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        
+        {filteredProducts.length === 0 && (
+          <div className="p-8 text-center text-gray-500">
+            {searchTerm ? 'No products match your search' : 'No products found'}
+          </div>
+        )}
+      </div>
+
       {/* Info Box */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-medium text-amber-800">How bulk pricing works</h4>
-            <ul className="text-sm text-amber-700 mt-1 space-y-1">
-              <li>• <strong>Base Price Adjustment</strong>: Changes the per-sticker base price for products (before options)</li>
-              <li>• <strong>Material/Finish Prices</strong>: Changes the add-on cost for each option type across ALL products</li>
-              <li>• <strong>Bulk Quantity Tiers</strong>: Set per-product in the product editor (different tier discounts per product)</li>
-              <li>• When customers order in bulk quantities, tier discounts automatically apply to both base price AND options</li>
+            <h4 className="font-medium text-blue-800">How pricing works</h4>
+            <ul className="text-sm text-blue-700 mt-1 space-y-1">
+              <li>• <strong>Global Tiers</strong>: Set default discount percentages that apply to most products</li>
+              <li>• <strong>Custom Tiers</strong>: Click "Global" to switch to custom pricing for specific products</li>
+              <li>• <strong>Click any price</strong> in the spreadsheet to edit it directly</li>
+              <li>• <strong>Material/Finish add-ons</strong> are added on top of the base price per sticker</li>
+              <li>• Bulk discounts automatically apply to both base price AND add-ons</li>
             </ul>
           </div>
         </div>

@@ -164,8 +164,20 @@ export const products = pgTable("products", {
   fixedQuantity: integer("fixed_quantity"), // Locked quantity for deal products
   fixedPrice: decimal("fixed_price", { precision: 10, scale: 2 }), // Locked total price for deal products
   sourceProductId: integer("source_product_id"), // The template product this was duplicated from
+  // Global pricing tiers flag - when true, product uses global tier discounts instead of custom tiers
+  useGlobalTiers: boolean("use_global_tiers").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Global Pricing Tiers - default discount percentages applied to all products using global tiers
+export const globalPricingTiers = pgTable("global_pricing_tiers", {
+  id: serial("id").primaryKey(),
+  tierNumber: integer("tier_number").notNull().unique(), // 1, 2, or 3
+  minQuantity: integer("min_quantity").notNull(),
+  maxQuantity: integer("max_quantity"), // null means unlimited
+  discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }).notNull(), // e.g., 10.00 for 10% off
+  isActive: boolean("is_active").default(true),
 });
 
 // Product Options (sizes, materials, coatings)
@@ -564,6 +576,7 @@ export type InsertProduct = typeof products.$inferInsert;
 export type ProductOption = typeof productOptions.$inferSelect;
 export type InsertProductOption = typeof productOptions.$inferInsert;
 export type PricingTier = typeof pricingTiers.$inferSelect;
+export type GlobalPricingTier = typeof globalPricingTiers.$inferSelect;
 export type Design = typeof designs.$inferSelect;
 export type InsertDesign = typeof designs.$inferInsert;
 export type Cart = typeof carts.$inferSelect;

@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextResponse, NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { products, pricingTiers, productOptions, categories } from '@shared/schema';

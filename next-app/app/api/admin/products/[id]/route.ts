@@ -87,6 +87,18 @@ export async function PUT(
       updatedAt: product?.updatedAt,
     }));
 
+    // Verify the update by re-fetching
+    const [verifyProduct] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, parseInt(id)));
+    
+    console.log(`[Product Update] VERIFY after save - product ${id}:`, JSON.stringify({
+      id: verifyProduct?.id,
+      name: verifyProduct?.name,
+      thumbnailUrl: verifyProduct?.thumbnailUrl?.substring(0, 50) || 'NULL',
+    }));
+
     return NextResponse.json(product);
   } catch (error) {
     console.error('[Product Update] Error updating product:', error);

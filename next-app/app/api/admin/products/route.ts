@@ -35,6 +35,14 @@ export async function GET() {
     }
 
     const allProducts = await db.select().from(products);
+    
+    // Debug: Log products with thumbnails
+    const withThumbs = allProducts.filter(p => p.thumbnailUrl);
+    console.log(`[Admin Products GET] Total: ${allProducts.length}, With thumbnails: ${withThumbs.length}`);
+    withThumbs.forEach(p => {
+      console.log(`[Admin Products GET] HAS THUMB: id=${p.id}, name=${p.name}, url=${p.thumbnailUrl?.substring(0, 50)}`);
+    });
+    
     return NextResponse.json(allProducts, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate',

@@ -231,6 +231,97 @@ export async function GET(request: Request) {
     }
   }
 
+  // Handle fix-categories action - assign all products to "Stickers" category
+  if (action === 'fix-categories') {
+    try {
+      // First, find or create the "Stickers" category
+      let stickersCategory = await db.select().from(categories).where(eq(categories.name, 'Stickers'));
+      let stickersCategoryId: number;
+      
+      if (stickersCategory.length === 0) {
+        // Create "Stickers" category
+        const newCat = await db.insert(categories).values({
+          name: 'Stickers',
+          slug: 'stickers',
+          description: 'Custom stickers in various shapes and sizes',
+          displayOrder: 1,
+          isActive: true
+        }).returning();
+        stickersCategoryId = newCat[0].id;
+      } else {
+        stickersCategoryId = stickersCategory[0].id;
+        // Make sure it's active
+        await db.update(categories)
+          .set({ isActive: true })
+          .where(eq(categories.id, stickersCategoryId));
+      }
+      
+      // Find or create "Labels" category
+      let labelsCategory = await db.select().from(categories).where(eq(categories.name, 'Labels'));
+      let labelsCategoryId: number;
+      
+      if (labelsCategory.length === 0) {
+        const newCat = await db.insert(categories).values({
+          name: 'Labels',
+          slug: 'labels',
+          description: 'Custom labels for products and packaging',
+          displayOrder: 2,
+          isActive: true
+        }).returning();
+        labelsCategoryId = newCat[0].id;
+      } else {
+        labelsCategoryId = labelsCategory[0].id;
+        await db.update(categories)
+          .set({ isActive: true })
+          .where(eq(categories.id, labelsCategoryId));
+      }
+      
+      // Get all products and assign them to Stickers category
+      const allProducts = await db.select().from(products);
+      let updatedCount = 0;
+      
+      for (const product of allProducts) {
+        // Assign all products to Stickers category (since the business focuses on stickers)
+        if (product.categoryId !== stickersCategoryId) {
+          await db.update(products)
+            .set({ categoryId: stickersCategoryId })
+            .where(eq(products.id, product.id));
+          updatedCount++;
+        }
+      }
+      
+      // Deactivate old categories that aren't Stickers or Labels
+      await db.update(categories)
+        .set({ isActive: false })
+        .where(
+          eq(categories.isActive, true)
+        );
+      
+      // Re-activate only Stickers and Labels
+      await db.update(categories)
+        .set({ isActive: true })
+        .where(eq(categories.id, stickersCategoryId));
+      await db.update(categories)
+        .set({ isActive: true })
+        .where(eq(categories.id, labelsCategoryId));
+      
+      return NextResponse.json({
+        success: true,
+        message: `Fixed categories - ${updatedCount} products assigned to Stickers`,
+        stickersCategoryId,
+        labelsCategoryId,
+        productsUpdated: updatedCount,
+        totalProducts: allProducts.length
+      });
+    } catch (error) {
+      console.error('Fix categories error:', error);
+      return NextResponse.json({ 
+        error: 'Failed to fix categories', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 500 });
+    }
+  }
+
   const allCats = await db.select().from(categories);
   const allProds = await db.select().from(products);
   const tierCount = await db.select().from(pricingTiers);

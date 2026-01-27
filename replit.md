@@ -83,12 +83,11 @@ Preferred communication style: Simple, everyday language.
   - When customers order in bulk (e.g., 1000+), they get the same percentage discount on options
   - Product page shows a green "Bulk Discount" box with total savings breakdown
   - Add-ons display original price with strikethrough when discounted
-- **Bulk Price Adjustment Tool**: Admin products page has a collapsible "Bulk Price Adjustment" section:
-  - Apply percentage or fixed amount adjustments to all products at once
-  - Filter by category to adjust only specific product types
-  - Preview changes before applying to verify the adjustment
-  - Applies to both active and inactive products
-  - Useful for material cost increases (ink, paper, etc.)
+- **Pricing Tools Tab**: Admin products page has a dedicated "Pricing" tab with all pricing adjustment tools:
+  - **Product Base Prices**: Apply percentage or fixed amount adjustments to all products at once, with category filtering and preview functionality
+  - **Material Prices**: Set per-sticker prices for Vinyl, Foil, Holographic across all products
+  - **Finish Prices**: Set per-sticker prices for Varnish, Emboss across all products
+  - Note: Per-product quantity tier discounts are still set individually in each product's edit form
 
 ## External Dependencies
 

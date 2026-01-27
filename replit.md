@@ -79,6 +79,16 @@ Preferred communication style: Simple, everyday language.
   - **Artwork**: Required before checkout (upload or design)
   - These are added automatically when creating new products via admin panel.
   - For existing products without options, use POST `/api/admin/seed-options` to backfill.
+- **Bulk Pricing Discounts**: Quantity tier discounts apply to BOTH base price AND material/finish options:
+  - When customers order in bulk (e.g., 1000+), they get the same percentage discount on options
+  - Product page shows a green "Bulk Discount" box with total savings breakdown
+  - Add-ons display original price with strikethrough when discounted
+- **Bulk Price Adjustment Tool**: Admin products page has a collapsible "Bulk Price Adjustment" section:
+  - Apply percentage or fixed amount adjustments to all products at once
+  - Filter by category to adjust only specific product types
+  - Preview changes before applying to verify the adjustment
+  - Applies to both active and inactive products
+  - Useful for material cost increases (ink, paper, etc.)
 
 ## External Dependencies
 

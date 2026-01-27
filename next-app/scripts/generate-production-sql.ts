@@ -23,6 +23,10 @@ ADD COLUMN IF NOT EXISTS tier4_price_modifier DECIMAL(10, 4);
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS use_global_tiers BOOLEAN DEFAULT true;
 
+-- Add order columns for admin-created orders
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS created_by_admin_id VARCHAR(255);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS artwork_status VARCHAR(50) DEFAULT 'approved';
+
 CREATE TABLE IF NOT EXISTS global_pricing_tiers (
   id SERIAL PRIMARY KEY,
   tier_number INTEGER NOT NULL UNIQUE,

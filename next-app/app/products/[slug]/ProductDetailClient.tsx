@@ -482,7 +482,7 @@ export default function ProductDetail() {
                   Bulk Pricing Discounts
                 </h3>
                 <div className="grid gap-2">
-                  {product.pricingTiers.slice(0, 3).map((tier, idx) => (
+                  {product.pricingTiers.map((tier, idx) => (
                     <button 
                       key={tier.id}
                       type="button"

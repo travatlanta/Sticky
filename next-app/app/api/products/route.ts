@@ -1,8 +1,10 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
 import { products, pricingTiers } from '@shared/schema';
 import { eq, and, asc } from 'drizzle-orm';
+import * as schema from '@shared/schema';
 
 export async function GET(request: Request) {
   try {
@@ -10,11 +12,15 @@ export async function GET(request: Request) {
     const categoryId = searchParams.get('categoryId');
     const featured = searchParams.get('featured');
 
+    // Create a fresh database connection for each request to avoid stale reads
+    const sql = neon(process.env.DATABASE_URL!);
+    const freshDb = drizzle(sql as any, { schema });
+    
     // Debug: Log database connection status
-    console.log('[Products API] Starting query, DATABASE_URL exists:', !!process.env.DATABASE_URL);
+    console.log('[Products API] Fresh connection created, timestamp:', Date.now());
 
     // Get all products first, then filter in JavaScript
-    const allProducts = await db.select().from(products);
+    const allProducts = await freshDb.select().from(products);
     console.log('[Products API] Total products in DB:', allProducts.length);
     
     // Filter in JavaScript instead of SQL to debug the issue
@@ -43,7 +49,7 @@ export async function GET(request: Request) {
     console.log(`[Products API] Sample NO THUMB: ${withoutThumbnails.map(p => `${p.id}:${p.name}`).join(', ')}`);
 
     // Fetch pricing tiers for all products to calculate display prices
-    const allTiers = await db
+    const allTiers = await freshDb
       .select()
       .from(pricingTiers)
       .orderBy(asc(pricingTiers.minQuantity));

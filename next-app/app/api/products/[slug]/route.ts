@@ -1,8 +1,10 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
 import { products, productOptions, pricingTiers } from '@shared/schema';
 import { eq, asc } from 'drizzle-orm';
+import * as schema from '@shared/schema';
 
 export async function GET(
   request: Request,
@@ -11,10 +13,14 @@ export async function GET(
   try {
     const { slug } = await params;
     
+    // Create a fresh database connection for each request to avoid stale reads
+    const sql = neon(process.env.DATABASE_URL!);
+    const freshDb = drizzle(sql as any, { schema });
+    
     // Check if slug is numeric (productId) or string (actual slug)
     const isNumeric = /^\d+$/.test(slug);
     
-    const [product] = await db
+    const [product] = await freshDb
       .select()
       .from(products)
       .where(isNumeric ? eq(products.id, parseInt(slug)) : eq(products.slug, slug));
@@ -24,14 +30,14 @@ export async function GET(
     }
 
     // Get product options
-    const options = await db
+    const options = await freshDb
       .select()
       .from(productOptions)
       .where(eq(productOptions.productId, product.id))
       .orderBy(asc(productOptions.displayOrder));
 
     // Get pricing tiers
-    const tiers = await db
+    const tiers = await freshDb
       .select()
       .from(pricingTiers)
       .where(eq(pricingTiers.productId, product.id))

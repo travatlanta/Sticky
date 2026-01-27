@@ -594,21 +594,31 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 const basePrice = parseFloat(product.basePrice);
                 
                 // Extract size from product name for color coding
+                // Look for the FIRST dimension number (e.g., "1x2" = 1 inch, "2x3" = 2 inch)
                 const getSizeColor = (name: string) => {
                   const lowerName = name.toLowerCase();
-                  if (lowerName.includes('1"') || lowerName.includes('1 inch') || lowerName.includes('1x1')) 
-                    return 'bg-blue-50 border-l-4 border-l-blue-400';
-                  if (lowerName.includes('2"') || lowerName.includes('2 inch') || lowerName.includes('2x2')) 
-                    return 'bg-green-50 border-l-4 border-l-green-400';
-                  if (lowerName.includes('3"') || lowerName.includes('3 inch') || lowerName.includes('3x3')) 
-                    return 'bg-purple-50 border-l-4 border-l-purple-400';
-                  if (lowerName.includes('4"') || lowerName.includes('4 inch') || lowerName.includes('4x4')) 
-                    return 'bg-orange-50 border-l-4 border-l-orange-400';
-                  if (lowerName.includes('5"') || lowerName.includes('5 inch') || lowerName.includes('5x5')) 
-                    return 'bg-pink-50 border-l-4 border-l-pink-400';
-                  if (lowerName.includes('6"') || lowerName.includes('6 inch') || lowerName.includes('6x6')) 
-                    return 'bg-cyan-50 border-l-4 border-l-cyan-400';
-                  return 'bg-gray-50 border-l-4 border-l-gray-300';
+                  
+                  // Match patterns like "1"", "1.5"", "1x2", "1 inch", etc.
+                  // We want the FIRST number to determine the size group
+                  const inchMatch = lowerName.match(/^(\d+(?:\.\d+)?)["\s]/);
+                  const dimensionMatch = lowerName.match(/(\d+(?:\.\d+)?)x\d/);
+                  
+                  let size = 0;
+                  if (inchMatch) {
+                    size = Math.floor(parseFloat(inchMatch[1]));
+                  } else if (dimensionMatch) {
+                    size = Math.floor(parseFloat(dimensionMatch[1]));
+                  }
+                  
+                  switch(size) {
+                    case 1: return 'bg-blue-50 border-l-4 border-l-blue-400';
+                    case 2: return 'bg-green-50 border-l-4 border-l-green-400';
+                    case 3: return 'bg-purple-50 border-l-4 border-l-purple-400';
+                    case 4: return 'bg-orange-50 border-l-4 border-l-orange-400';
+                    case 5: return 'bg-pink-50 border-l-4 border-l-pink-400';
+                    case 6: return 'bg-cyan-50 border-l-4 border-l-cyan-400';
+                    default: return 'bg-gray-50 border-l-4 border-l-gray-300';
+                  }
                 };
                 
                 const rowColor = getSizeColor(product.name);

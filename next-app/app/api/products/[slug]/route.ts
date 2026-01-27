@@ -37,6 +37,8 @@ const transformOption = (o: any) => ({
   productId: o.product_id,
   optionGroup: o.option_group,
   optionName: o.option_name,
+  optionType: o.option_group,
+  name: o.option_name,
   priceModifier: o.price_modifier,
   isDefault: o.is_default,
   displayOrder: o.display_order,

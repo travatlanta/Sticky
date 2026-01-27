@@ -860,7 +860,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                               className="px-3 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-mono text-sm shadow-sm cursor-pointer transition-all font-medium"
                               data-testid={`cell-base-price-${product.id}`}
                             >
-                              ${parseFloat(product.basePrice).toFixed(4)}
+                              ${parseFloat(product.basePrice).toFixed(2)}
                             </button>
                           </TooltipTrigger>
                           <TooltipContent>Click to edit base price per sticker</TooltipContent>
@@ -888,7 +888,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                                 className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
                                 data-testid={`cell-tier1-${product.id}`}
                               >
-                                ${parseFloat(tier1.pricePerUnit).toFixed(4)}
+                                ${parseFloat(tier1.pricePerUnit).toFixed(2)}
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>Click to edit T1 price (1-249 units)</TooltipContent>
@@ -919,7 +919,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                                 className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
                                 data-testid={`cell-tier2-${product.id}`}
                               >
-                                ${parseFloat(tier2.pricePerUnit).toFixed(4)}
+                                ${parseFloat(tier2.pricePerUnit).toFixed(2)}
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>Click to edit T2 price (250-999 units)</TooltipContent>
@@ -950,7 +950,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                                 className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
                                 data-testid={`cell-tier3-${product.id}`}
                               >
-                                ${parseFloat(tier3.pricePerUnit).toFixed(4)}
+                                ${parseFloat(tier3.pricePerUnit).toFixed(2)}
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>Click to edit T3 price (1000-1999 units)</TooltipContent>
@@ -981,7 +981,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                                 className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
                                 data-testid={`cell-tier4-${product.id}`}
                               >
-                                ${parseFloat(tier4.pricePerUnit).toFixed(4)}
+                                ${parseFloat(tier4.pricePerUnit).toFixed(2)}
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>Click to edit T4 price (2000+ units)</TooltipContent>

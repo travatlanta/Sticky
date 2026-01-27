@@ -13,27 +13,23 @@ export async function GET(request: Request) {
     // Debug: Log database connection status
     console.log('[Products API] Starting query, DATABASE_URL exists:', !!process.env.DATABASE_URL);
 
-    // Debug: First check total products without filter
-    const totalProducts = await db.select({ id: products.id, name: products.name, isActive: products.isActive }).from(products);
-    console.log('[Products API] Total products in DB (no filter):', totalProducts.length);
-    if (totalProducts.length > 0) {
-      console.log('[Products API] First 3 products:', JSON.stringify(totalProducts.slice(0, 3)));
-    }
-
-    let conditions = [eq(products.isActive, true)];
-
+    // Get all products first, then filter in JavaScript
+    const allProducts = await db.select().from(products);
+    console.log('[Products API] Total products in DB:', allProducts.length);
+    
+    // Filter in JavaScript instead of SQL to debug the issue
+    let result = allProducts.filter(p => p.isActive === true);
+    console.log('[Products API] After isActive filter:', result.length);
+    
     if (categoryId) {
-      conditions.push(eq(products.categoryId, parseInt(categoryId)));
+      result = result.filter(p => p.categoryId === parseInt(categoryId));
+      console.log('[Products API] After category filter:', result.length);
     }
 
     if (featured === 'true') {
-      conditions.push(eq(products.isFeatured, true));
+      result = result.filter(p => p.isFeatured === true);
+      console.log('[Products API] After featured filter:', result.length);
     }
-
-    const result = await db
-      .select()
-      .from(products)
-      .where(and(...conditions));
 
     // Debug: Log query results
     console.log('[Products API] Query returned', result.length, 'products');

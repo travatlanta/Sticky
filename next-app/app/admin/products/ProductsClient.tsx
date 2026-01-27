@@ -2013,6 +2013,8 @@ export default function AdminProducts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pricing/products"] });
       setShowCreateForm(false);
       // Reset form data including shipping and print dimension fields
       setFormData({
@@ -2052,6 +2054,8 @@ export default function AdminProducts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pricing/products"] });
       setEditingProduct(null);
       toast({ title: "Product updated successfully" });
     },
@@ -2081,6 +2085,8 @@ export default function AdminProducts() {
       console.log(`Delete success:`, data);
       setDeletingProductId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/pricing/products"] });
       if (data.softDeleted && data.hasOrders) {
         // Ask if they want to force delete
         if (confirm("This product has existing orders and was deactivated. Do you want to PERMANENTLY delete it along with its order history? This cannot be undone.")) {
@@ -2156,6 +2162,7 @@ export default function AdminProducts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products", editingProduct?.id, "options"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({ title: "Option prices updated successfully" });
     },
     onError: () => toast({ title: "Failed to update option prices", variant: "destructive" }),
@@ -2174,6 +2181,7 @@ export default function AdminProducts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products", editingProduct?.id, "pricing-tiers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({ title: "Bulk pricing tiers updated successfully" });
     },
     onError: () => toast({ title: "Failed to update pricing tiers", variant: "destructive" }),

@@ -186,9 +186,49 @@ export async function PATCH(request: Request) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const secretKey = searchParams.get('key');
+  const action = searchParams.get('action');
   
   if (secretKey !== 'sync-sticky-data-2026') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Handle add-gloss action
+  if (action === 'add-gloss') {
+    try {
+      const allProducts = await db.select().from(products);
+      let glossAdded = 0;
+
+      for (const product of allProducts) {
+        const existingOptions = await db.select()
+          .from(productOptions)
+          .where(eq(productOptions.productId, product.id));
+        
+        const hasGloss = existingOptions.some(opt => opt.name === 'Gloss' && opt.optionType === 'coating');
+        
+        if (!hasGloss) {
+          await db.insert(productOptions).values({
+            productId: product.id,
+            name: 'Gloss',
+            optionType: 'coating',
+            priceModifier: '0.00'
+          });
+          glossAdded++;
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Added Gloss option to ${glossAdded} products`,
+        glossAdded,
+        totalProducts: allProducts.length
+      });
+    } catch (error) {
+      console.error('Add Gloss error:', error);
+      return NextResponse.json({ 
+        error: 'Failed to add Gloss options', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 500 });
+    }
   }
 
   const allCats = await db.select().from(categories);

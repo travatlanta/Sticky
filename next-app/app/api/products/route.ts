@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
-import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import { products, pricingTiers } from '@shared/schema';
-import { eq, and, asc } from 'drizzle-orm';
+import { pricingTiers } from '@shared/schema';
+import { asc } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from '@shared/schema';
 
 export async function GET(request: Request) {
@@ -12,66 +12,74 @@ export async function GET(request: Request) {
     const categoryId = searchParams.get('categoryId');
     const featured = searchParams.get('featured');
 
-    // Create a fresh database connection for each request to avoid stale reads
+    // Use raw SQL query to bypass any ORM caching
     const sql = neon(process.env.DATABASE_URL!);
-    const freshDb = drizzle(sql as any, { schema });
+    const timestamp = Date.now();
     
     // Debug: Log database connection status
-    console.log('[Products API] Fresh connection created, timestamp:', Date.now());
+    console.log('[Products API] Raw SQL query, timestamp:', timestamp);
 
-    // Get all products first, then filter in JavaScript
-    const allProducts = await freshDb.select().from(products);
+    // Use raw SQL to get fresh data - bypassing Drizzle ORM entirely
+    const rawProducts = await sql`SELECT * FROM products WHERE ${timestamp} = ${timestamp}`;
+    const allProducts = rawProducts as any[];
     console.log('[Products API] Total products in DB:', allProducts.length);
     
-    // Filter in JavaScript instead of SQL to debug the issue
-    let result = allProducts.filter(p => p.isActive === true);
+    // Filter in JavaScript - raw SQL returns snake_case column names
+    let result = allProducts.filter(p => p.is_active === true);
     console.log('[Products API] After isActive filter:', result.length);
     
     if (categoryId) {
-      result = result.filter(p => p.categoryId === parseInt(categoryId));
+      result = result.filter(p => p.category_id === parseInt(categoryId));
       console.log('[Products API] After category filter:', result.length);
     }
 
     if (featured === 'true') {
-      result = result.filter(p => p.isFeatured === true);
+      result = result.filter(p => p.is_featured === true);
       console.log('[Products API] After featured filter:', result.length);
     }
 
-    // Debug: Log query results with sample data
+    // Debug: Log query results with sample data (raw SQL uses snake_case)
     console.log('[Products API] Query returned', result.length, 'products');
     // Log ALL products with thumbnails to debug update issue
-    const withThumbnails = result.filter(p => p.thumbnailUrl);
+    const withThumbnails = result.filter(p => p.thumbnail_url);
     console.log(`[Products API] Products WITH thumbnails: ${withThumbnails.length}`);
     withThumbnails.forEach((p) => {
-      console.log(`[Products API] HAS THUMB: id=${p.id}, name=${p.name}, url=${p.thumbnailUrl?.substring(0, 50)}`);
+      console.log(`[Products API] HAS THUMB: id=${p.id}, name=${p.name}, url=${p.thumbnail_url?.substring(0, 50)}`);
     });
-    const withoutThumbnails = result.filter(p => !p.thumbnailUrl).slice(0, 5);
+    const withoutThumbnails = result.filter(p => !p.thumbnail_url).slice(0, 5);
     console.log(`[Products API] Sample NO THUMB: ${withoutThumbnails.map(p => `${p.id}:${p.name}`).join(', ')}`);
 
-    // Fetch pricing tiers for all products to calculate display prices
-    const allTiers = await freshDb
-      .select()
-      .from(pricingTiers)
-      .orderBy(asc(pricingTiers.minQuantity));
+    // Fetch pricing tiers for all products to calculate display prices using raw SQL
+    const rawTiers = await sql`SELECT * FROM pricing_tiers ORDER BY min_quantity ASC`;
+    const allTiers = rawTiers as any[];
     
     // Calculate the display price (lowest tier price for minimum quantity)
+    // Note: Raw SQL returns snake_case column names
     const productsWithDisplayPrice = result.map(product => {
-      // For deal products, use fixedPrice / fixedQuantity
-      if (product.isDealProduct && product.fixedPrice && product.fixedQuantity) {
-        const displayPrice = parseFloat(product.fixedPrice) / product.fixedQuantity;
+      // For deal products, use fixedPrice / fixedQuantity (snake_case from raw SQL)
+      const isDeal = product.is_deal_product || product.isDealProduct;
+      const fixedPrice = product.fixed_price || product.fixedPrice;
+      const fixedQty = product.fixed_quantity || product.fixedQuantity;
+      
+      if (isDeal && fixedPrice && fixedQty) {
+        const displayPrice = parseFloat(fixedPrice) / fixedQty;
         return { ...product, displayPricePerUnit: displayPrice.toFixed(2) };
       }
       
-      // Find tiers for this product
-      const productTiers = allTiers.filter(t => t.productId === product.id);
+      // Find tiers for this product (raw SQL uses snake_case: product_id)
+      const productTiers = allTiers.filter((t: any) => t.product_id === product.id);
       
-      // Get the tier for minimum quantity
-      const minQty = product.minQuantity || 1;
-      let displayPrice = parseFloat(product.basePrice);
+      // Get the tier for minimum quantity (snake_case: min_quantity)
+      const minQty = product.min_quantity || product.minQuantity || 1;
+      const basePrice = product.base_price || product.basePrice || '0';
+      let displayPrice = parseFloat(basePrice);
       
       for (const tier of productTiers) {
-        if (minQty >= tier.minQuantity && (!tier.maxQuantity || minQty <= tier.maxQuantity)) {
-          displayPrice = parseFloat(tier.pricePerUnit);
+        const tierMin = tier.min_quantity;
+        const tierMax = tier.max_quantity;
+        const tierPrice = tier.price_per_unit;
+        if (minQty >= tierMin && (!tierMax || minQty <= tierMax)) {
+          displayPrice = parseFloat(tierPrice);
           break;
         }
       }

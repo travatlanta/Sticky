@@ -1,0 +1,551 @@
+
+Jan 27 03:54:15.61
+GET
+---
+stickybanditos.com
+/api/products
+6
+[Products API] Sample NO THUMB: 274:4" Circle Stickers, 270:2" Circle Stickers, 271:2.5" Circle Stickers, 272:3" Circle Stickers, 275:4.5" Circle Stickers
+Jan 27 03:54:10.82
+GET
+200
+stickybanditos.com
+/products
+Jan 27 03:54:10.77
+GET
+200
+stickybanditos.com
+/products
+Jan 27 03:54:10.77
+GET
+---
+stickybanditos.com
+/register
+Jan 27 03:54:10.69
+GET
+---
+stickybanditos.com
+/login
+Jan 27 03:54:10.12
+GET
+200
+stickybanditos.com
+/products/1x3-square-stickers
+Jan 27 03:54:10.12
+GET
+---
+stickybanditos.com
+/products/1x1-square-stickers
+Jan 27 03:54:10.12
+GET
+200
+stickybanditos.com
+/products/1x5-square-stickers
+Jan 27 03:54:10.12
+GET
+---
+stickybanditos.com
+/products/1x4-square-stickers
+Jan 27 03:54:09.70
+GET
+---
+stickybanditos.com
+/products/1-inch-circle-stickers
+Jan 27 03:54:09.70
+GET
+---
+stickybanditos.com
+/products/1x2-square-stickers
+Jan 27 03:54:09.70
+GET
+---
+stickybanditos.com
+/products/6x6-square-stickers
+Jan 27 03:54:09.70
+GET
+200
+stickybanditos.com
+/products/5x6-square-stickers
+Jan 27 03:54:09.30
+GET
+200
+stickybanditos.com
+/products/5x5-square-stickers
+Jan 27 03:54:09.29
+GET
+---
+stickybanditos.com
+/products/4x6-square-stickers
+Jan 27 03:54:09.29
+GET
+---
+stickybanditos.com
+/products/4x5-square-stickers
+Jan 27 03:54:09.29
+GET
+200
+stickybanditos.com
+/products/4x4-square-stickers
+Jan 27 03:54:08.88
+GET
+200
+stickybanditos.com
+/products/3x4-square-stickers
+Jan 27 03:54:08.88
+GET
+200
+stickybanditos.com
+/products/3x3-square-stickers
+Jan 27 03:54:08.88
+GET
+---
+stickybanditos.com
+/products/3x6-square-stickers
+Jan 27 03:54:08.88
+GET
+200
+stickybanditos.com
+/products/3x5-square-stickers
+Jan 27 03:54:08.49
+GET
+200
+stickybanditos.com
+/products/2x6-square-stickers
+Jan 27 03:54:08.49
+GET
+200
+stickybanditos.com
+/products/2x5-square-stickers
+Jan 27 03:54:08.48
+GET
+---
+stickybanditos.com
+/products/2x4-square-stickers
+Jan 27 03:54:08.48
+GET
+---
+stickybanditos.com
+/products/2x3-square-stickers
+Jan 27 03:54:07.83
+GET
+---
+stickybanditos.com
+/products/2x2-square-stickers
+Jan 27 03:54:07.82
+GET
+200
+stickybanditos.com
+/products/1-5-inch-circle-stickers
+Jan 27 03:54:07.82
+GET
+---
+stickybanditos.com
+/products/1x6-square-stickers
+Jan 27 03:54:07.82
+GET
+---
+stickybanditos.com
+/products/3-5-inch-circle-stickers
+Jan 27 03:54:07.07
+GET
+200
+stickybanditos.com
+/products/6-inch-circle-stickers
+Jan 27 03:54:07.06
+GET
+---
+stickybanditos.com
+/products/5-5-inch-circle-stickers
+Jan 27 03:54:07.03
+GET
+---
+stickybanditos.com
+/products/5-inch-circle-stickers
+Jan 27 03:54:06.80
+GET
+200
+stickybanditos.com
+/products/4-inch-circle-stickers
+Jan 27 03:54:06.80
+GET
+200
+stickybanditos.com
+/products/3-inch-circle-stickers
+Jan 27 03:54:06.80
+GET
+200
+stickybanditos.com
+/products/2-5-inch-circle-stickers
+Jan 27 03:54:06.80
+GET
+200
+stickybanditos.com
+/products/2-inch-circle-stickers
+Jan 27 03:54:06.80
+GET
+---
+stickybanditos.com
+/products/4-5-inch-circle-stickers
+Jan 27 03:54:06.77
+GET
+200
+stickybanditos.com
+/api/categories
+Jan 27 03:54:06.76
+GET
+---
+stickybanditos.com
+/api/products
+6
+[Products API] Sample NO THUMB: 274:4" Circle Stickers, 270:2" Circle Stickers, 271:2.5" Circle Stickers, 272:3" Circle Stickers, 275:4.5" Circle Stickers
+Jan 27 03:54:06.45
+GET
+---
+stickybanditos.com
+/products
+Jan 27 03:54:05.25
+GET
+---
+stickybanditos.com
+/account
+Jan 27 03:54:05.25
+GET
+---
+stickybanditos.com
+/deals
+Jan 27 03:54:05.25
+GET
+200
+stickybanditos.com
+/orders
+Jan 27 03:54:05.25
+GET
+200
+stickybanditos.com
+/products
+Jan 27 03:54:05.25
+GET
+200
+stickybanditos.com
+/api/settings/homepage
+Jan 27 03:54:05.25
+GET
+200
+stickybanditos.com
+/api/products
+6
+[Products API] Sample NO THUMB: 274:4" Circle Stickers, 270:2" Circle Stickers, 271:2.5" Circle Stickers, 272:3" Circle Stickers, 275:4.5" Circle Stickers
+Jan 27 03:54:05.25
+GET
+---
+stickybanditos.com
+/api/products
+6
+[Products API] Sample NO THUMB: 274:4" Circle Stickers, 270:2" Circle Stickers, 271:2.5" Circle Stickers, 272:3" Circle Stickers, 275:4.5" Circle Stickers
+Jan 27 03:54:05.25
+GET
+---
+stickybanditos.com
+/api/deals/homepage
+Jan 27 03:54:05.05
+GET
+---
+stickybanditos.com
+/
+Jan 27 03:54:02.29
+GET
+200
+stickybanditos.com
+/api/admin/products/278/options
+Jan 27 03:54:02.28
+GET
+200
+stickybanditos.com
+/api/admin/products/278/pricing-tiers
+Jan 27 03:54:02.28
+GET
+200
+stickybanditos.com
+/api/admin/products/278/templates
+Jan 27 03:54:02.28
+GET
+---
+stickybanditos.com
+/api/admin/products
+5
+[Admin Products GET] HAS THUMB: id=278, name=6" Circle Stickers, url=https://uugvgz3j25yqk5be.public.blob.vercel-storag
+Jan 27 03:54:02.00
+PUT
+200
+stickybanditos.com
+/api/admin/products/278
+4
+[Product Update] VERIFY after save - product 278: {"id":278,"name":"6\" Circle Stickers","thumbnailUrl":"https://uugvgz3j25yqk5be.public.blob.vercel-storag"}
+Jan 27 03:54:00.19
+POST
+---
+stickybanditos.com
+/api/admin/upload/product-image
+Jan 27 03:53:54.45
+GET
+200
+stickybanditos.com
+/api/admin/products/278/options
+Jan 27 03:53:54.45
+GET
+---
+stickybanditos.com
+/api/admin/products/278/templates
+Jan 27 03:53:54.45
+GET
+---
+stickybanditos.com
+/api/admin/products/278/pricing-tiers
+Jan 27 03:53:53.15
+GET
+---
+stickybanditos.com
+/
+Jan 27 03:53:52.99
+GET
+200
+stickybanditos.com
+/admin/guide
+Jan 27 03:53:52.94
+GET
+---
+stickybanditos.com
+/admin/settings
+Jan 27 03:53:52.79
+GET
+200
+stickybanditos.com
+/admin/seo
+Jan 27 03:53:52.77
+GET
+---
+stickybanditos.com
+/admin/customize
+Jan 27 03:53:52.76
+GET
+---
+stickybanditos.com
+/admin/analytics
+Jan 27 03:53:52.72
+GET
+200
+stickybanditos.com
+/admin/promotions
+Jan 27 03:53:52.70
+GET
+---
+stickybanditos.com
+/admin/deals
+Jan 27 03:53:52.48
+GET
+200
+stickybanditos.com
+/api/admin/products/278/options
+Jan 27 03:53:52.48
+GET
+200
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:53:52.48
+GET
+200
+stickybanditos.com
+/api/notifications
+Jan 27 03:53:52.45
+GET
+---
+stickybanditos.com
+/admin/finances
+Jan 27 03:53:52.45
+GET
+---
+stickybanditos.com
+/admin/users
+Jan 27 03:53:52.45
+GET
+---
+stickybanditos.com
+/admin/orders
+Jan 27 03:53:52.45
+GET
+200
+stickybanditos.com
+/admin
+Jan 27 03:53:52.45
+GET
+---
+stickybanditos.com
+/admin/inbox
+Jan 27 03:53:52.31
+GET
+200
+stickybanditos.com
+/api/admin/products
+4
+[Admin Products GET] HAS THUMB: id=274, name=4" Circle Stickers, url=https://uugvgz3j25yqk5be.public.blob.vercel-storag
+Jan 27 03:53:52.31
+GET
+200
+stickybanditos.com
+/api/auth/session
+Jan 27 03:53:52.31
+GET
+---
+stickybanditos.com
+/api/admin/products
+4
+[Admin Products GET] HAS THUMB: id=274, name=4" Circle Stickers, url=https://uugvgz3j25yqk5be.public.blob.vercel-storag
+Jan 27 03:53:52.31
+GET
+---
+stickybanditos.com
+/api/settings/theme
+Jan 27 03:53:51.44
+GET
+---
+stickybanditos.com
+/admin/products
+Jan 27 03:53:48.96
+GET
+---
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:53:48.96
+GET
+200
+stickybanditos.com
+/api/notifications
+Jan 27 03:53:48.96
+GET
+200
+stickybanditos.com
+/api/auth/session
+Jan 27 03:53:48.96
+GET
+200
+stickybanditos.com
+/api/admin/products
+4
+[Admin Products GET] HAS THUMB: id=274, name=4" Circle Stickers, url=https://uugvgz3j25yqk5be.public.blob.vercel-storag
+Jan 27 03:52:55.95
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/login
+Jan 27 03:52:55.95
+GET
+---
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/deals
+Jan 27 03:52:55.94
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/products
+Jan 27 03:52:55.89
+GET
+---
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/auth/session
+Jan 27 03:52:55.89
+GET
+---
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/settings/homepage
+Jan 27 03:52:55.89
+GET
+---
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/deals/homepage
+Jan 27 03:52:55.89
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/products
+6
+[Products API] Sample NO THUMB: 274:4" Circle Stickers, 270:2" Circle Stickers, 271:2.5" Circle Stickers, 272:3" Circle Stickers, 275:4.5" Circle Stickers
+Jan 27 03:52:55.89
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/products
+6
+[Products API] Sample NO THUMB: 274:4" Circle Stickers, 270:2" Circle Stickers, 271:2.5" Circle Stickers, 272:3" Circle Stickers, 275:4.5" Circle Stickers
+Jan 27 03:52:55.88
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/settings/theme
+Jan 27 03:52:55.72
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/products
+Jan 27 03:52:55.72
+GET
+---
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/login
+Jan 27 03:52:55.72
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/deals
+Jan 27 03:52:55.72
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/auth/session
+Jan 27 03:52:55.72
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/settings/homepage
+Jan 27 03:52:55.71
+GET
+---
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/products
+6
+[Products API] Sample NO THUMB: 274:4" Circle Stickers, 270:2" Circle Stickers, 271:2.5" Circle Stickers, 272:3" Circle Stickers, 275:4.5" Circle Stickers
+Jan 27 03:52:55.71
+GET
+---
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/settings/theme
+Jan 27 03:52:55.71
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/api/products
+6
+[Products API] Sample NO THUMB: 274:4" Circle Stickers, 270:2" Circle Stickers, 271:2.5" Circle Stickers, 272:3" Circle Stickers, 275:4.5" Circle Stickers
+Jan 27 03:52:55.46
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:52:54.87
+GET
+---
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:52:54.43
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:52:54.25
+GET
+200
+sticky-jd3cob1jh-travmcmichael-5435s-projects.vercel.app
+/

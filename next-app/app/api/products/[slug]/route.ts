@@ -35,17 +35,16 @@ const transformProduct = (p: any) => ({
 const transformOption = (o: any) => ({
   id: o.id,
   productId: o.product_id,
-  optionGroup: o.option_group,
-  optionName: o.option_name,
-  optionType: o.option_group,
-  name: o.option_name,
+  optionType: o.option_type,
+  name: o.name,
+  value: o.value,
   priceModifier: o.price_modifier,
   isDefault: o.is_default,
+  isActive: o.is_active,
   displayOrder: o.display_order,
-  tier1Price: o.tier1_price,
-  tier2Price: o.tier2_price,
-  tier3Price: o.tier3_price,
-  tier4Price: o.tier4_price,
+  tier2PriceModifier: o.tier2_price_modifier,
+  tier3PriceModifier: o.tier3_price_modifier,
+  tier4PriceModifier: o.tier4_price_modifier,
 });
 
 const transformTier = (t: any) => ({

@@ -13,6 +13,13 @@ export async function GET(request: Request) {
     // Debug: Log database connection status
     console.log('[Products API] Starting query, DATABASE_URL exists:', !!process.env.DATABASE_URL);
 
+    // Debug: First check total products without filter
+    const totalProducts = await db.select({ id: products.id, name: products.name, isActive: products.isActive }).from(products);
+    console.log('[Products API] Total products in DB (no filter):', totalProducts.length);
+    if (totalProducts.length > 0) {
+      console.log('[Products API] First 3 products:', JSON.stringify(totalProducts.slice(0, 3)));
+    }
+
     let conditions = [eq(products.isActive, true)];
 
     if (categoryId) {

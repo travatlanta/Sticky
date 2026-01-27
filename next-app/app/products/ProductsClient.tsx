@@ -55,6 +55,8 @@ export default function ProductsClient() {
 
   const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ['/api/products'],
+    staleTime: 0, // Always fetch fresh product data
+    gcTime: 0, // Don't cache stale data
   });
 
   const { data: categories } = useQuery<Category[]>({

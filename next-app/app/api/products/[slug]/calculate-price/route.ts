@@ -66,30 +66,48 @@ export async function POST(
       .where(eq(productOptions.productId, productId));
 
     // Find applicable pricing tier
-    let pricePerUnit = parseFloat(product.basePrice);
+    const basePrice = parseFloat(product.basePrice);
+    let pricePerUnit = basePrice;
+    let appliedTierDiscount = 0; // Discount percentage to apply to options too
+    
     for (const tier of tiers) {
       if (effectiveQuantity >= tier.minQuantity && (!tier.maxQuantity || effectiveQuantity <= tier.maxQuantity)) {
         pricePerUnit = parseFloat(tier.pricePerUnit);
+        // Calculate discount percentage: (basePrice - tierPrice) / basePrice
+        // Clamp to >= 0 to avoid negative discounts if tier price > base price
+        if (basePrice > 0) {
+          appliedTierDiscount = Math.max(0, (basePrice - pricePerUnit) / basePrice);
+        }
         break;
       }
     }
 
     // Add option modifiers and collect itemized add-ons
+    // Apply the same tier discount percentage to option prices
     let optionsCost = 0;
-    const addOns: { type: string; name: string; pricePerUnit: number; totalCost: number }[] = [];
+    let optionsSavings = 0; // Track how much customer saves on options
+    const addOns: { type: string; name: string; pricePerUnit: number; originalPrice: number; totalCost: number; savings: number }[] = [];
     
     if (selectedOptions) {
       for (const [optionType, optionId] of Object.entries(selectedOptions)) {
         const option = options.find((o) => o.id === optionId);
         if (option && option.priceModifier) {
-          const modifier = parseFloat(option.priceModifier);
-          if (modifier > 0) {
-            optionsCost += modifier;
+          const originalModifier = parseFloat(option.priceModifier);
+          if (originalModifier > 0) {
+            // Apply tier discount to option price
+            const discountedModifier = originalModifier * (1 - appliedTierDiscount);
+            const savingsPerUnit = originalModifier - discountedModifier;
+            
+            optionsCost += discountedModifier;
+            optionsSavings += savingsPerUnit * effectiveQuantity;
+            
             addOns.push({
               type: option.optionType,
               name: option.name,
-              pricePerUnit: modifier,
-              totalCost: modifier * effectiveQuantity,
+              pricePerUnit: discountedModifier,
+              originalPrice: originalModifier,
+              totalCost: discountedModifier * effectiveQuantity,
+              savings: savingsPerUnit * effectiveQuantity,
             });
           }
         }
@@ -98,6 +116,10 @@ export async function POST(
 
     const subtotal = (pricePerUnit + optionsCost) * effectiveQuantity;
     const baseSubtotal = pricePerUnit * effectiveQuantity;
+    
+    // Calculate total savings (base price savings + options savings)
+    const baseSavings = (basePrice - pricePerUnit) * effectiveQuantity;
+    const totalSavings = baseSavings + optionsSavings;
 
     return NextResponse.json({
       pricePerUnit,
@@ -109,6 +131,11 @@ export async function POST(
       isDealProduct,
       fixedQuantity: isDealProduct ? effectiveQuantity : null,
       fixedPrice: isDealProduct ? fixedPrice : null,
+      // New fields for showing savings
+      discountPercentage: appliedTierDiscount > 0 ? Math.round(appliedTierDiscount * 100) : 0,
+      baseSavings,
+      optionsSavings,
+      totalSavings,
     });
   } catch (error) {
     console.error('Error calculating price:', error);

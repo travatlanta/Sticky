@@ -37,6 +37,243 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+function BulkPriceAdjustment({ onAdjustmentApplied }: { onAdjustmentApplied: () => void }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [adjustmentType, setAdjustmentType] = useState<'percentage' | 'fixed'>('percentage');
+  const [adjustmentValue, setAdjustmentValue] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | number>('all');
+  const [isApplying, setIsApplying] = useState(false);
+  const [previewData, setPreviewData] = useState<Array<{ id: number; name: string; oldPrice: string; newPrice: string }> | null>(null);
+  const { toast } = useToast();
+  
+  const { data: categories } = useQuery<Array<{ id: number; name: string }>>({
+    queryKey: ['/api/categories'],
+  });
+
+  const handlePreview = async () => {
+    if (!adjustmentValue || parseFloat(adjustmentValue) === 0) {
+      toast({ title: "Please enter an adjustment value", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/admin/products/bulk-adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          adjustmentType,
+          adjustmentValue: parseFloat(adjustmentValue),
+          categoryId: categoryFilter === 'all' ? null : categoryFilter,
+          preview: true,
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to preview');
+      const data = await res.json();
+      setPreviewData(data.products);
+    } catch (e) {
+      toast({ title: "Failed to preview adjustment", variant: "destructive" });
+    }
+  };
+
+  const handleApply = async () => {
+    if (!adjustmentValue || parseFloat(adjustmentValue) === 0) {
+      toast({ title: "Please enter an adjustment value", variant: "destructive" });
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to apply this price adjustment to ${previewData?.length || 'all'} products?`)) {
+      return;
+    }
+    
+    setIsApplying(true);
+    try {
+      const res = await fetch('/api/admin/products/bulk-adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          adjustmentType,
+          adjustmentValue: parseFloat(adjustmentValue),
+          categoryId: categoryFilter === 'all' ? null : categoryFilter,
+          preview: false,
+        }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to apply');
+      const data = await res.json();
+      toast({ title: `Updated ${data.updatedCount} product${data.updatedCount !== 1 ? 's' : ''}!` });
+      setPreviewData(null);
+      setAdjustmentValue('');
+      onAdjustmentApplied();
+    } catch (e) {
+      toast({ title: "Failed to apply adjustment", variant: "destructive" });
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-xl mb-6">
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-4 text-left"
+        data-testid="button-toggle-bulk-adjust"
+      >
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-blue-600" />
+          <span className="font-semibold text-blue-800">Bulk Price Adjustment</span>
+          <span className="text-sm text-blue-600">(adjust all product base prices at once)</span>
+        </div>
+        <svg className={`w-5 h-5 text-blue-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      
+      {isExpanded && (
+        <div className="px-4 pb-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Adjustment Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Adjustment Type</label>
+              <select
+                value={adjustmentType}
+                onChange={(e) => {
+                  setAdjustmentType(e.target.value as 'percentage' | 'fixed');
+                  setPreviewData(null);
+                }}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+                data-testid="select-adjustment-type"
+              >
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Amount ($)</option>
+              </select>
+            </div>
+            
+            {/* Adjustment Value */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {adjustmentType === 'percentage' ? 'Percentage Change' : 'Amount to Add/Subtract'}
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                  {adjustmentType === 'percentage' ? '%' : '$'}
+                </span>
+                <input
+                  type="number"
+                  step={adjustmentType === 'percentage' ? '1' : '0.01'}
+                  value={adjustmentValue}
+                  onChange={(e) => {
+                    setAdjustmentValue(e.target.value);
+                    setPreviewData(null);
+                  }}
+                  placeholder={adjustmentType === 'percentage' ? 'e.g. 5 or -10' : 'e.g. 0.05 or -0.02'}
+                  className="w-full pl-8 pr-3 py-2 border rounded-lg text-sm"
+                  data-testid="input-adjustment-value"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {adjustmentType === 'percentage' 
+                  ? 'Positive = increase, negative = decrease' 
+                  : 'Add or subtract from each product base price'}
+              </p>
+            </div>
+            
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Apply To</label>
+              <select
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
+                  setPreviewData(null);
+                }}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+                data-testid="select-category-filter"
+              >
+                <option value="all">All Products</option>
+                {categories?.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          {/* Preview/Apply Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePreview}
+              disabled={!adjustmentValue || parseFloat(adjustmentValue) === 0}
+              data-testid="button-preview-adjustment"
+            >
+              Preview Changes
+            </Button>
+            {previewData && (
+              <Button
+                type="button"
+                onClick={handleApply}
+                disabled={isApplying}
+                className="bg-blue-600 hover:bg-blue-700"
+                data-testid="button-apply-adjustment"
+              >
+                {isApplying ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Applying...
+                  </>
+                ) : (
+                  <>Apply to {previewData.length} Products</>
+                )}
+              </Button>
+            )}
+          </div>
+          
+          {/* Preview Table */}
+          {previewData && previewData.length > 0 && (
+            <div className="bg-white rounded-lg border max-h-64 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium text-gray-700">Product</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-700">Current Price</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-700">New Price</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-700">Change</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {previewData.map((item) => {
+                    const oldPrice = parseFloat(item.oldPrice);
+                    const newPrice = parseFloat(item.newPrice);
+                    const change = newPrice - oldPrice;
+                    return (
+                      <tr key={item.id}>
+                        <td className="px-3 py-2 text-gray-900">{item.name}</td>
+                        <td className="px-3 py-2 text-right text-gray-600">${oldPrice.toFixed(4)}</td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900">${newPrice.toFixed(4)}</td>
+                        <td className={`px-3 py-2 text-right font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {change >= 0 ? '+' : ''}{change.toFixed(4)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          
+          {previewData && previewData.length === 0 && (
+            <p className="text-gray-500 text-sm">No products found matching your criteria.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FixOptionsButton() {
   const [needsUpdate, setNeedsUpdate] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
@@ -680,6 +917,9 @@ export default function AdminProducts() {
                 </TooltipContent>
               </Tooltip>
             </div>
+
+            {/* Bulk Price Adjustment */}
+            <BulkPriceAdjustment onAdjustmentApplied={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] })} />
 
             {/* Fix Options Banner - Shows when options need updating */}
         <FixOptionsButton />

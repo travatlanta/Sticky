@@ -583,17 +583,47 @@ export default function ProductDetail() {
               
               {!isDeal && calculatedPrice?.addOns && calculatedPrice.addOns.length > 0 && (
                 <div className="border-t border-gray-200 pt-2 mt-2 space-y-1">
-                  {calculatedPrice.addOns.map((addOn: { type: string; name: string; pricePerUnit: number; totalCost: number }, index: number) => (
+                  {calculatedPrice.addOns.map((addOn: { type: string; name: string; pricePerUnit: number; originalPrice?: number; totalCost: number; savings?: number }, index: number) => (
                     <div key={index} className="flex justify-between items-center text-sm">
                       <span className="text-gray-600 capitalize">
                         {addOn.type}: {addOn.name}
-                        <span className="text-gray-400 ml-1">(+{formatPrice(addOn.pricePerUnit)}/ea)</span>
+                        <span className="text-gray-400 ml-1">
+                          {addOn.originalPrice && addOn.originalPrice !== addOn.pricePerUnit ? (
+                            <>
+                              (<span className="line-through">{formatPrice(addOn.originalPrice)}</span> → {formatPrice(addOn.pricePerUnit)}/ea)
+                            </>
+                          ) : (
+                            <>(+{formatPrice(addOn.pricePerUnit)}/ea)</>
+                          )}
+                        </span>
                       </span>
                       <span className="font-medium text-gray-700">
                         +{formatPrice(addOn.totalCost)}
                       </span>
                     </div>
                   ))}
+                </div>
+              )}
+              
+              {/* Bulk Discount Savings */}
+              {!isDeal && calculatedPrice?.totalSavings > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-green-700 font-medium text-sm flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                      </svg>
+                      Bulk Discount ({calculatedPrice.discountPercentage}% off)
+                    </span>
+                    <span className="text-green-700 font-bold text-sm">
+                      You save {formatPrice(calculatedPrice.totalSavings)}
+                    </span>
+                  </div>
+                  {calculatedPrice.optionsSavings > 0 && (
+                    <p className="text-green-600 text-xs mt-1">
+                      Includes {formatPrice(calculatedPrice.optionsSavings)} savings on material/finish
+                    </p>
+                  )}
                 </div>
               )}
               

@@ -48,10 +48,14 @@ export default function HomeClient() {
 
   const { data: allProducts } = useQuery<Product[]>({
     queryKey: ['/api/products'],
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const { data: featuredProducts } = useQuery<Product[]>({
     queryKey: ['/api/products', { featured: true }],
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const { data: homepageSettings } = useQuery<HomepageSettings>({

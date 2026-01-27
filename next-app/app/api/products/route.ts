@@ -56,7 +56,14 @@ export async function GET(request: Request) {
       return { ...product, displayPricePerUnit: displayPrice.toFixed(2) };
     });
 
-    return NextResponse.json(productsWithDisplayPrice);
+    // Return with cache control headers to ensure fresh data
+    return NextResponse.json(productsWithDisplayPrice, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error) {
     console.error('Error fetching products:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

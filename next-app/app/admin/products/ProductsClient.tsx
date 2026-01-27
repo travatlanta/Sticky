@@ -549,15 +549,27 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 <th className="text-left px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Product</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Base Price</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Mode</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">T1</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">T2</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">T3</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">T4</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Vinyl</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Foil</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Holo</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Varnish</th>
-                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">Emboss</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
+                  <div>T1</div>
+                  <div className="text-[10px] text-gray-500 font-normal">1-249</div>
+                </th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
+                  <div>T2</div>
+                  <div className="text-[10px] text-gray-500 font-normal">250-999</div>
+                </th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
+                  <div>T3</div>
+                  <div className="text-[10px] text-gray-500 font-normal">1000-1999</div>
+                </th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
+                  <div>T4</div>
+                  <div className="text-[10px] text-gray-500 font-normal">2000+</div>
+                </th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-purple-50">Vinyl</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-purple-50">Foil</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-purple-50">Holo</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-green-50">Varnish</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-green-50">Emboss</th>
               </tr>
             </thead>
             <tbody className="divide-y">

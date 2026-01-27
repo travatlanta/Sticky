@@ -88,8 +88,10 @@ Preferred communication style: Simple, everyday language.
     - Products can toggle between "Global" (uses global tier discounts) and "Custom" (uses product-specific tier prices)
     - Global tier discounts automatically apply to both base price AND material/finish options
   - **Spreadsheet-Style Product Table**: View and edit all products' pricing in one place
-    - Inline editing: Click any price to edit it directly
-    - Shows base price, tier mode (Global/Custom), tier discounts or prices, and material add-on prices
+    - Consolidated "Price" column (blue): Shows Tier 1 price, click to open inline popover for all 4 tiers
+    - Material columns (purple): Vinyl, Foil, Holographic - each opens tier pricing popover
+    - Finish columns (green): Gloss, Varnish, Emboss - each opens tier pricing popover
+    - Inline popovers: Positioned near clicked cell (not full-screen modal) for fast editing workflow
     - Search/filter products by name or category
   - **Material Prices**: Set per-sticker prices for Vinyl, Foil, Holographic across all products
   - **Finish Prices**: Set per-sticker prices for Varnish, Emboss across all products

@@ -111,19 +111,25 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
   }>({ tier1: '', tier2: '', tier3: '', tier4: '' });
   const [savingBulkTierPricing, setSavingBulkTierPricing] = useState(false);
   
-  // Tier pricing popup state
+  // Tier pricing popup state (inline popover)
   const [tierPricingPopup, setTierPricingPopup] = useState<{
     isOpen: boolean;
     productId: number;
     productName: string;
-    optionType: 'material' | 'finish';
+    optionType: 'material' | 'finish' | 'base';
     optionName: string;
     optionId: number;
+    tier2Id?: number;
+    tier3Id?: number;
+    tier4Id?: number;
     tier1Price: string;
     tier2Price: string;
     tier3Price: string;
     tier4Price: string;
+    popupX: number;
+    popupY: number;
   } | null>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const [tierPricingEdits, setTierPricingEdits] = useState<{
     tier1: string;
     tier2: string;
@@ -270,16 +276,33 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
 
   // Open tier pricing popup for an add-on option
   const openTierPricingPopup = (
+    e: React.MouseEvent,
     productId: number,
     productName: string,
-    optionType: 'material' | 'finish',
+    optionType: 'material' | 'finish' | 'base',
     optionName: string,
     optionId: number,
     tier1Price: string,
     tier2Price: string | null | undefined,
     tier3Price: string | null | undefined,
-    tier4Price: string | null | undefined
+    tier4Price: string | null | undefined,
+    tier2Id?: number,
+    tier3Id?: number,
+    tier4Id?: number
   ) => {
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    
+    // Position the popup below and to the right of the clicked element
+    let popupX = rect.left + scrollX;
+    let popupY = rect.bottom + scrollY + 8;
+    
+    // Adjust if popup would go off right edge of screen
+    if (popupX + 280 > window.innerWidth) {
+      popupX = window.innerWidth - 290;
+    }
+    
     setTierPricingPopup({
       isOpen: true,
       productId,
@@ -287,10 +310,15 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       optionType,
       optionName,
       optionId,
+      tier2Id,
+      tier3Id,
+      tier4Id,
       tier1Price: tier1Price || '0',
       tier2Price: tier2Price || '',
       tier3Price: tier3Price || '',
       tier4Price: tier4Price || '',
+      popupX,
+      popupY,
     });
     setTierPricingEdits({
       tier1: tier1Price || '0',
@@ -300,15 +328,16 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     });
   };
 
-  // Save tier pricing for an add-on option
+  // Save tier pricing for an add-on option OR base tier pricing
   const saveTierPricing = async () => {
     if (!tierPricingPopup) return;
     
     setSavingTierPricing(true);
     try {
       const updates: { tier: number; promise: Promise<Response> }[] = [];
+      const isBasePricing = tierPricingPopup.optionType === 'base';
       
-      // Update tier 1 (base priceModifier)
+      // Update tier 1
       if (tierPricingEdits.tier1 !== tierPricingPopup.tier1Price) {
         updates.push({
           tier: 1,
@@ -316,7 +345,12 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({
+            body: JSON.stringify(isBasePricing ? {
+              productId: tierPricingPopup.productId,
+              field: 'tierPrice',
+              value: tierPricingEdits.tier1 || '0',
+              tierId: tierPricingPopup.optionId,
+            } : {
               productId: tierPricingPopup.productId,
               field: 'optionPrice',
               value: tierPricingEdits.tier1 || '0',
@@ -328,59 +362,83 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       
       // Update tier 2
       if (tierPricingEdits.tier2 !== tierPricingPopup.tier2Price) {
-        updates.push({
-          tier: 2,
-          promise: fetch('/api/admin/pricing/products', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              productId: tierPricingPopup.productId,
-              field: 'optionTierPrice',
-              value: tierPricingEdits.tier2,
-              optionId: tierPricingPopup.optionId,
-              tierNumber: 2,
-            }),
-          })
-        });
+        // For base pricing, only update if we have the tier ID
+        if (!isBasePricing || tierPricingPopup.tier2Id) {
+          updates.push({
+            tier: 2,
+            promise: fetch('/api/admin/pricing/products', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify(isBasePricing ? {
+                productId: tierPricingPopup.productId,
+                field: 'tierPrice',
+                value: tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0',
+                tierId: tierPricingPopup.tier2Id,
+              } : {
+                productId: tierPricingPopup.productId,
+                field: 'optionTierPrice',
+                value: tierPricingEdits.tier2,
+                optionId: tierPricingPopup.optionId,
+                tierNumber: 2,
+              }),
+            })
+          });
+        }
       }
       
       // Update tier 3
       if (tierPricingEdits.tier3 !== tierPricingPopup.tier3Price) {
-        updates.push({
-          tier: 3,
-          promise: fetch('/api/admin/pricing/products', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              productId: tierPricingPopup.productId,
-              field: 'optionTierPrice',
-              value: tierPricingEdits.tier3,
-              optionId: tierPricingPopup.optionId,
-              tierNumber: 3,
-            }),
-          })
-        });
+        // For base pricing, only update if we have the tier ID
+        if (!isBasePricing || tierPricingPopup.tier3Id) {
+          updates.push({
+            tier: 3,
+            promise: fetch('/api/admin/pricing/products', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify(isBasePricing ? {
+                productId: tierPricingPopup.productId,
+                field: 'tierPrice',
+                value: tierPricingEdits.tier3 || tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0',
+                tierId: tierPricingPopup.tier3Id,
+              } : {
+                productId: tierPricingPopup.productId,
+                field: 'optionTierPrice',
+                value: tierPricingEdits.tier3,
+                optionId: tierPricingPopup.optionId,
+                tierNumber: 3,
+              }),
+            })
+          });
+        }
       }
       
       // Update tier 4
       if (tierPricingEdits.tier4 !== tierPricingPopup.tier4Price) {
-        updates.push({
-          tier: 4,
-          promise: fetch('/api/admin/pricing/products', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              productId: tierPricingPopup.productId,
-              field: 'optionTierPrice',
-              value: tierPricingEdits.tier4,
-              optionId: tierPricingPopup.optionId,
-              tierNumber: 4,
-            }),
-          })
-        });
+        // For base pricing, only update if we have the tier ID
+        if (!isBasePricing || tierPricingPopup.tier4Id) {
+          updates.push({
+            tier: 4,
+            promise: fetch('/api/admin/pricing/products', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify(isBasePricing ? {
+                productId: tierPricingPopup.productId,
+                field: 'tierPrice',
+                value: tierPricingEdits.tier4 || tierPricingEdits.tier3 || tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0',
+                tierId: tierPricingPopup.tier4Id,
+              } : {
+                productId: tierPricingPopup.productId,
+                field: 'optionTierPrice',
+                value: tierPricingEdits.tier4,
+                optionId: tierPricingPopup.optionId,
+                tierNumber: 4,
+              }),
+            })
+          });
+        }
       }
       
       // Wait for all updates and check each response
@@ -906,73 +964,17 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     </TooltipContent>
                   </Tooltip>
                 </th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-800 border-l border-gray-200">
+                <th className="text-center px-4 py-3 font-semibold text-blue-800 bg-blue-50 border-l-2 border-blue-300">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center justify-center gap-1 cursor-help">
-                        Base Price
-                        <Info className="w-3 h-3 text-gray-400" />
+                        Price
+                        <Info className="w-3 h-3 text-blue-400" />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs z-[100]">
-                      <p className="font-semibold mb-1">Base Price per Sticker</p>
-                      <p className="text-xs text-gray-600">The starting price for one sticker. Click to edit. This is the foundation for tier pricing.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-800 bg-blue-50/50 border-l border-gray-200">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center cursor-help">
-                        <div className="flex items-center gap-1">T1 <Info className="w-3 h-3 text-gray-400" /></div>
-                        <div className="text-[10px] text-gray-500 font-normal">1-249</div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
-                      <p className="font-semibold mb-1">Tier 1: Small Orders (1-249)</p>
-                      <p className="text-xs text-gray-600">Price per sticker for orders of 1-249 units. Click to set a custom price.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-800 bg-blue-50/50 border-l border-gray-200">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center cursor-help">
-                        <div className="flex items-center gap-1">T2 <Info className="w-3 h-3 text-gray-400" /></div>
-                        <div className="text-[10px] text-gray-500 font-normal">250-999</div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
-                      <p className="font-semibold mb-1">Tier 2: Medium Orders (250-999)</p>
-                      <p className="text-xs text-gray-600">Price per sticker for orders of 250-999 units. Bulk discount tier.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-800 bg-blue-50/50 border-l border-gray-200">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center cursor-help">
-                        <div className="flex items-center gap-1">T3 <Info className="w-3 h-3 text-gray-400" /></div>
-                        <div className="text-[10px] text-gray-500 font-normal">1000-1999</div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
-                      <p className="font-semibold mb-1">Tier 3: Large Orders (1000-1999)</p>
-                      <p className="text-xs text-gray-600">Price per sticker for orders of 1000-1999 units. Larger bulk discount.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-800 bg-blue-50/50 border-l border-gray-200">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center cursor-help">
-                        <div className="flex items-center gap-1">T4 <Info className="w-3 h-3 text-gray-400" /></div>
-                        <div className="text-[10px] text-gray-500 font-normal">2000+</div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
-                      <p className="font-semibold mb-1">Tier 4: Wholesale Orders (2000+)</p>
-                      <p className="text-xs text-gray-600">Price per sticker for orders of 2000+ units. Best bulk discount.</p>
+                      <p className="font-semibold mb-1">Tier Pricing</p>
+                      <p className="text-xs text-gray-600">Click to edit all 4 quantity tiers (1-249, 250-999, 1000-1999, 2000+). Shows Tier 1 price.</p>
                     </TooltipContent>
                   </Tooltip>
                 </th>
@@ -1129,155 +1131,34 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         </TooltipContent>
                       </Tooltip>
                     </td>
-                    <td className="px-4 py-3 text-center border-l border-gray-200">
-                      {editingCell?.productId === product.id && editingCell.field === 'basePrice' ? (
-                        <div className="flex items-center gap-1 justify-center">
-                          <input
-                            type="number"
-                            step="0.0001"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
-                            onBlur={handleCellSave}
-                            autoFocus
-                            className="w-24 px-2 py-1 border-2 border-blue-400 rounded text-center text-sm font-mono"
-                          />
-                        </div>
-                      ) : (
+                    <td className="px-4 py-2 text-center border-l-2 border-blue-300 bg-blue-50/30">
+                      {tier1 ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={() => handleCellEdit(product.id, 'basePrice', product.basePrice)}
-                              className="px-3 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 font-mono text-sm shadow-sm cursor-pointer transition-all font-medium"
-                              data-testid={`cell-base-price-${product.id}`}
+                              onClick={(e) => openTierPricingPopup(
+                                e,
+                                product.id,
+                                product.name,
+                                'base',
+                                'Price',
+                                tier1.id,
+                                tier1.pricePerUnit,
+                                tier2?.pricePerUnit,
+                                tier3?.pricePerUnit,
+                                tier4?.pricePerUnit,
+                                tier2?.id,
+                                tier3?.id,
+                                tier4?.id
+                              )}
+                              className="font-mono text-sm px-3 py-1.5 rounded bg-blue-100 border border-blue-300 hover:border-blue-500 hover:bg-blue-200 shadow-sm cursor-pointer transition-all font-medium text-blue-800"
+                              data-testid={`cell-price-${product.id}`}
                             >
-                              ${parseFloat(product.basePrice).toFixed(2)}
+                              ${parseFloat(tier1.pricePerUnit).toFixed(2)}
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent>Click to edit base price per sticker</TooltipContent>
+                          <TooltipContent>Click to edit all 4 tier prices</TooltipContent>
                         </Tooltip>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-sm bg-blue-50/30 border-l border-gray-200">
-                      {tier1 ? (
-                        editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier1.id ? (
-                          <input
-                            type="number"
-                            step="0.0001"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
-                            onBlur={handleCellSave}
-                            autoFocus
-                            className="w-20 px-1 py-0.5 border-2 border-blue-400 rounded text-center text-sm"
-                          />
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                onClick={() => handleCellEdit(product.id, 'tierPrice', tier1.pricePerUnit, tier1.id)}
-                                className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
-                                data-testid={`cell-tier1-${product.id}`}
-                              >
-                                ${parseFloat(tier1.pricePerUnit).toFixed(2)}
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>Click to edit T1 price (1-249 units)</TooltipContent>
-                          </Tooltip>
-                        )
-                      ) : (
-                        <span className="text-gray-300">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-sm bg-blue-50/30 border-l border-gray-200">
-                      {tier2 ? (
-                        editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier2.id ? (
-                          <input
-                            type="number"
-                            step="0.0001"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
-                            onBlur={handleCellSave}
-                            autoFocus
-                            className="w-20 px-1 py-0.5 border-2 border-blue-400 rounded text-center text-sm"
-                          />
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                onClick={() => handleCellEdit(product.id, 'tierPrice', tier2.pricePerUnit, tier2.id)}
-                                className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
-                                data-testid={`cell-tier2-${product.id}`}
-                              >
-                                ${parseFloat(tier2.pricePerUnit).toFixed(2)}
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>Click to edit T2 price (250-999 units)</TooltipContent>
-                          </Tooltip>
-                        )
-                      ) : (
-                        <span className="text-gray-300">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-sm bg-blue-50/30 border-l border-gray-200">
-                      {tier3 ? (
-                        editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier3.id ? (
-                          <input
-                            type="number"
-                            step="0.0001"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
-                            onBlur={handleCellSave}
-                            autoFocus
-                            className="w-20 px-1 py-0.5 border-2 border-blue-400 rounded text-center text-sm"
-                          />
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                onClick={() => handleCellEdit(product.id, 'tierPrice', tier3.pricePerUnit, tier3.id)}
-                                className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
-                                data-testid={`cell-tier3-${product.id}`}
-                              >
-                                ${parseFloat(tier3.pricePerUnit).toFixed(2)}
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>Click to edit T3 price (1000-1999 units)</TooltipContent>
-                          </Tooltip>
-                        )
-                      ) : (
-                        <span className="text-gray-300">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-center font-mono text-sm bg-blue-50/30 border-l border-gray-200">
-                      {tier4 ? (
-                        editingCell?.productId === product.id && editingCell.field === 'tierPrice' && editingCell.tierId === tier4.id ? (
-                          <input
-                            type="number"
-                            step="0.0001"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleCellSave()}
-                            onBlur={handleCellSave}
-                            autoFocus
-                            className="w-20 px-1 py-0.5 border-2 border-blue-400 rounded text-center text-sm"
-                          />
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                onClick={() => handleCellEdit(product.id, 'tierPrice', tier4.pricePerUnit, tier4.id)}
-                                className="px-2 py-1.5 rounded bg-white border border-gray-300 hover:border-blue-500 hover:bg-blue-50 shadow-sm cursor-pointer transition-all font-medium"
-                                data-testid={`cell-tier4-${product.id}`}
-                              >
-                                ${parseFloat(tier4.pricePerUnit).toFixed(2)}
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>Click to edit T4 price (2000+ units)</TooltipContent>
-                          </Tooltip>
-                        )
                       ) : (
                         <span className="text-gray-300">-</span>
                       )}
@@ -1287,7 +1168,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={() => openTierPricingPopup(product.id, product.name, 'material', 'Vinyl', vinyl.id, vinyl.priceModifier, vinyl.tier2PriceModifier, vinyl.tier3PriceModifier, vinyl.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Vinyl', vinyl.id, vinyl.priceModifier, vinyl.tier2PriceModifier, vinyl.tier3PriceModifier, vinyl.tier4PriceModifier)}
                               className="font-mono text-sm px-2 py-1.5 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-vinyl-${product.id}`}
                             >
@@ -1307,7 +1188,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={() => openTierPricingPopup(product.id, product.name, 'material', 'Foil', foil.id, foil.priceModifier, foil.tier2PriceModifier, foil.tier3PriceModifier, foil.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Foil', foil.id, foil.priceModifier, foil.tier2PriceModifier, foil.tier3PriceModifier, foil.tier4PriceModifier)}
                               className="font-mono text-sm px-2 py-1.5 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-foil-${product.id}`}
                             >
@@ -1327,7 +1208,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={() => openTierPricingPopup(product.id, product.name, 'material', 'Holographic', holo.id, holo.priceModifier, holo.tier2PriceModifier, holo.tier3PriceModifier, holo.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Holographic', holo.id, holo.priceModifier, holo.tier2PriceModifier, holo.tier3PriceModifier, holo.tier4PriceModifier)}
                               className="font-mono text-sm px-2 py-1.5 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-holo-${product.id}`}
                             >
@@ -1347,7 +1228,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={() => openTierPricingPopup(product.id, product.name, 'finish', 'Gloss', gloss.id, gloss.priceModifier, gloss.tier2PriceModifier, gloss.tier3PriceModifier, gloss.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Gloss', gloss.id, gloss.priceModifier, gloss.tier2PriceModifier, gloss.tier3PriceModifier, gloss.tier4PriceModifier)}
                               className="font-mono text-sm px-2 py-1.5 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-gloss-${product.id}`}
                             >
@@ -1367,7 +1248,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={() => openTierPricingPopup(product.id, product.name, 'finish', 'Varnish', varnish.id, varnish.priceModifier, varnish.tier2PriceModifier, varnish.tier3PriceModifier, varnish.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Varnish', varnish.id, varnish.priceModifier, varnish.tier2PriceModifier, varnish.tier3PriceModifier, varnish.tier4PriceModifier)}
                               className="font-mono text-sm px-2 py-1.5 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-varnish-${product.id}`}
                             >
@@ -1387,7 +1268,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={() => openTierPricingPopup(product.id, product.name, 'finish', 'Emboss', emboss.id, emboss.priceModifier, emboss.tier2PriceModifier, emboss.tier3PriceModifier, emboss.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Emboss', emboss.id, emboss.priceModifier, emboss.tier2PriceModifier, emboss.tier3PriceModifier, emboss.tier4PriceModifier)}
                               className="font-mono text-sm px-2 py-1.5 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-emboss-${product.id}`}
                             >
@@ -1416,17 +1297,30 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
         )}
       </div>
 
-      {/* Tier Pricing Popup */}
+      {/* Tier Pricing Inline Popover */}
       {tierPricingPopup && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200]" onClick={() => setTierPricingPopup(null)}>
+        <>
+          {/* Invisible overlay to close popover on click outside */}
           <div 
-            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[199]" 
+            onClick={() => setTierPricingPopup(null)}
+          />
+          <div 
+            ref={popupRef}
+            className="fixed bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-72 z-[200]"
+            style={{ 
+              left: `${tierPricingPopup.popupX}px`, 
+              top: `${tierPricingPopup.popupY}px`,
+              maxHeight: 'calc(100vh - 100px)',
+              overflowY: 'auto'
+            }}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="font-bold text-lg text-gray-900">{tierPricingPopup.optionName} Tier Pricing</h3>
-                <p className="text-sm text-gray-500">{tierPricingPopup.productName}</p>
+                <h3 className={`font-bold text-sm ${tierPricingPopup.optionType === 'material' ? 'text-purple-800' : tierPricingPopup.optionType === 'finish' ? 'text-green-800' : 'text-blue-800'}`}>
+                  {tierPricingPopup.optionType === 'base' ? 'Base Price Tiers' : `${tierPricingPopup.optionName} Tiers`}
+                </h3>
+                <p className="text-xs text-gray-500">{tierPricingPopup.productName}</p>
               </div>
               <button 
                 onClick={() => setTierPricingPopup(null)}
@@ -1436,25 +1330,19 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               </button>
             </div>
 
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-800">
-                Set different prices for each quantity tier. Leave blank to inherit from Tier 1 price.
-              </p>
-            </div>
-
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Tier 1: 1-249 */}
-              <div className="flex items-center gap-3">
-                <div className="w-24 text-sm font-medium text-gray-600">1-249</div>
+              <div className="flex items-center gap-2">
+                <div className="w-16 text-xs font-medium text-gray-600">1-249</div>
                 <div className="flex-1 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+$</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{tierPricingPopup.optionType === 'base' ? '$' : '+$'}</span>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     value={tierPricingEdits.tier1}
                     onChange={(e) => setTierPricingEdits(prev => ({ ...prev, tier1: e.target.value }))}
-                    className={`w-full pl-8 pr-3 py-2 border rounded-lg text-sm font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-200' : 'border-green-300 focus:border-green-500 focus:ring-green-200'} focus:ring-2 focus:outline-none`}
+                    className={`w-full pl-6 pr-2 py-1.5 border rounded text-xs font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500' : tierPricingPopup.optionType === 'finish' ? 'border-green-300 focus:border-green-500' : 'border-blue-300 focus:border-blue-500'} focus:ring-1 focus:outline-none`}
                     placeholder="0.00"
                     data-testid="input-tier1-price"
                   />
@@ -1462,17 +1350,17 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               </div>
 
               {/* Tier 2: 250-999 */}
-              <div className="flex items-center gap-3">
-                <div className="w-24 text-sm font-medium text-gray-600">250-999</div>
+              <div className="flex items-center gap-2">
+                <div className="w-16 text-xs font-medium text-gray-600">250-999</div>
                 <div className="flex-1 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+$</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{tierPricingPopup.optionType === 'base' ? '$' : '+$'}</span>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     value={tierPricingEdits.tier2}
                     onChange={(e) => setTierPricingEdits(prev => ({ ...prev, tier2: e.target.value }))}
-                    className={`w-full pl-8 pr-3 py-2 border rounded-lg text-sm font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-200' : 'border-green-300 focus:border-green-500 focus:ring-green-200'} focus:ring-2 focus:outline-none`}
+                    className={`w-full pl-6 pr-2 py-1.5 border rounded text-xs font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500' : tierPricingPopup.optionType === 'finish' ? 'border-green-300 focus:border-green-500' : 'border-blue-300 focus:border-blue-500'} focus:ring-1 focus:outline-none`}
                     placeholder={tierPricingEdits.tier1 || '0.00'}
                     data-testid="input-tier2-price"
                   />
@@ -1480,17 +1368,17 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               </div>
 
               {/* Tier 3: 1000-1999 */}
-              <div className="flex items-center gap-3">
-                <div className="w-24 text-sm font-medium text-gray-600">1000-1999</div>
+              <div className="flex items-center gap-2">
+                <div className="w-16 text-xs font-medium text-gray-600">1K-2K</div>
                 <div className="flex-1 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+$</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{tierPricingPopup.optionType === 'base' ? '$' : '+$'}</span>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     value={tierPricingEdits.tier3}
                     onChange={(e) => setTierPricingEdits(prev => ({ ...prev, tier3: e.target.value }))}
-                    className={`w-full pl-8 pr-3 py-2 border rounded-lg text-sm font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-200' : 'border-green-300 focus:border-green-500 focus:ring-green-200'} focus:ring-2 focus:outline-none`}
+                    className={`w-full pl-6 pr-2 py-1.5 border rounded text-xs font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500' : tierPricingPopup.optionType === 'finish' ? 'border-green-300 focus:border-green-500' : 'border-blue-300 focus:border-blue-500'} focus:ring-1 focus:outline-none`}
                     placeholder={tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0.00'}
                     data-testid="input-tier3-price"
                   />
@@ -1498,17 +1386,17 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               </div>
 
               {/* Tier 4: 2000+ */}
-              <div className="flex items-center gap-3">
-                <div className="w-24 text-sm font-medium text-gray-600">2000+</div>
+              <div className="flex items-center gap-2">
+                <div className="w-16 text-xs font-medium text-gray-600">2000+</div>
                 <div className="flex-1 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+$</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{tierPricingPopup.optionType === 'base' ? '$' : '+$'}</span>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     value={tierPricingEdits.tier4}
                     onChange={(e) => setTierPricingEdits(prev => ({ ...prev, tier4: e.target.value }))}
-                    className={`w-full pl-8 pr-3 py-2 border rounded-lg text-sm font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-200' : 'border-green-300 focus:border-green-500 focus:ring-green-200'} focus:ring-2 focus:outline-none`}
+                    className={`w-full pl-6 pr-2 py-1.5 border rounded text-xs font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500' : tierPricingPopup.optionType === 'finish' ? 'border-green-300 focus:border-green-500' : 'border-blue-300 focus:border-blue-500'} focus:ring-1 focus:outline-none`}
                     placeholder={tierPricingEdits.tier3 || tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0.00'}
                     data-testid="input-tier4-price"
                   />
@@ -1516,33 +1404,32 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-2 mt-3">
               <Button
+                size="sm"
                 variant="outline"
-                className="flex-1"
+                className="flex-1 h-8 text-xs"
                 onClick={() => setTierPricingPopup(null)}
                 data-testid="button-cancel-tier-pricing"
               >
                 Cancel
               </Button>
               <Button
-                className={`flex-1 ${tierPricingPopup.optionType === 'material' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'}`}
+                size="sm"
+                className={`flex-1 h-8 text-xs ${tierPricingPopup.optionType === 'material' ? 'bg-purple-600 hover:bg-purple-700' : tierPricingPopup.optionType === 'finish' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 onClick={saveTierPricing}
                 disabled={savingTierPricing}
                 data-testid="button-save-tier-pricing"
               >
                 {savingTierPricing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
+                  <Loader2 className="w-3 h-3 animate-spin" />
                 ) : (
-                  'Save Tier Prices'
+                  'Save'
                 )}
               </Button>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Bulk Tier Pricing Popup (for Quick Actions) */}

@@ -227,7 +227,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
   };
 
   const materials = ['Vinyl', 'Foil', 'Holographic'];
-  const finishes = ['Varnish', 'Emboss'];
+  const finishes = ['Gloss', 'Varnish', 'Emboss'];
 
   const [showInstructions, setShowInstructions] = useState(false);
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
@@ -568,6 +568,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-purple-50">Vinyl</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-purple-50">Foil</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-purple-50">Holo</th>
+                <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-green-50">Gloss</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-green-50">Varnish</th>
                 <th className="text-center px-3 py-2 font-medium text-gray-700 whitespace-nowrap bg-green-50">Emboss</th>
               </tr>
@@ -581,6 +582,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 const vinyl = product.materials.find(m => m.name === 'Vinyl');
                 const foil = product.materials.find(m => m.name === 'Foil');
                 const holo = product.materials.find(m => m.name === 'Holographic');
+                const gloss = product.finishes.find(f => f.name === 'Gloss');
                 const varnish = product.finishes.find(f => f.name === 'Varnish');
                 const emboss = product.finishes.find(f => f.name === 'Emboss');
                 
@@ -846,6 +848,34 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                               <div>T2: ${holo.tier2PriceModifier ? parseFloat(holo.tier2PriceModifier).toFixed(4) : 'base'}</div>
                               <div>T3: ${holo.tier3PriceModifier ? parseFloat(holo.tier3PriceModifier).toFixed(4) : 'base'}</div>
                               <div>T4: ${holo.tier4PriceModifier ? parseFloat(holo.tier4PriceModifier).toFixed(4) : 'base'}</div>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      ) : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {gloss ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleCellEdit(product.id, 'optionPrice', gloss.priceModifier, undefined, gloss.id)}
+                              className="font-mono text-sm px-2 py-1 rounded bg-green-50 border border-green-200 hover:border-green-400 hover:bg-green-100 shadow-sm cursor-pointer transition-all"
+                              data-testid={`cell-gloss-${product.id}`}
+                              title="Click to edit"
+                            >
+                              +${parseFloat(gloss.priceModifier).toFixed(2)}
+                              {!product.useGlobalTiers && (gloss.tier2PriceModifier || gloss.tier3PriceModifier || gloss.tier4PriceModifier) && (
+                                <span className="text-orange-500 text-xs ml-0.5">*</span>
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          {!product.useGlobalTiers && (
+                            <TooltipContent className="p-2 text-xs">
+                              <div className="font-semibold mb-1">Gloss Tier Prices</div>
+                              <div>T1: ${parseFloat(gloss.priceModifier).toFixed(4)}</div>
+                              <div>T2: ${gloss.tier2PriceModifier ? parseFloat(gloss.tier2PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T3: ${gloss.tier3PriceModifier ? parseFloat(gloss.tier3PriceModifier).toFixed(4) : 'base'}</div>
+                              <div>T4: ${gloss.tier4PriceModifier ? parseFloat(gloss.tier4PriceModifier).toFixed(4) : 'base'}</div>
                             </TooltipContent>
                           )}
                         </Tooltip>

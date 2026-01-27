@@ -1,0 +1,960 @@
+
+Jan 27 03:08:02.29
+GET
+---
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:08:02.21
+GET
+200
+stickybanditos.com
+/api/notifications
+Jan 27 03:07:32.14
+GET
+200
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:07:32.08
+GET
+200
+stickybanditos.com
+/api/notifications
+Jan 27 03:07:28.91
+POST
+200
+stickybanditos.com
+/api/products/2-inch-circle-stickers/calculate-price
+Jan 27 03:07:28.91
+POST
+200
+stickybanditos.com
+/api/products/2-inch-circle-stickers/calculate-price
+Jan 27 03:07:28.71
+GET
+200
+stickybanditos.com
+/register
+Jan 27 03:07:28.68
+GET
+200
+stickybanditos.com
+/products
+Jan 27 03:07:28.68
+GET
+200
+stickybanditos.com
+/contact
+Jan 27 03:07:28.68
+GET
+200
+stickybanditos.com
+/products
+Jan 27 03:07:28.68
+GET
+200
+stickybanditos.com
+/shipping
+Jan 27 03:07:28.68
+GET
+200
+stickybanditos.com
+/faq
+Jan 27 03:07:28.68
+GET
+200
+stickybanditos.com
+/api/products/2-inch-circle-stickers
+Jan 27 03:07:28.35
+GET
+200
+stickybanditos.com
+/products/2-inch-circle-stickers
+Jan 27 03:07:25.14
+GET
+---
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:07:24.82
+GET
+---
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:07:24.68
+GET
+---
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:07:24.43
+GET
+---
+stickybanditos.com
+/api/admin/products/271/options
+Jan 27 03:07:24.30
+GET
+---
+stickybanditos.com
+/api/admin/products
+Jan 27 03:07:18.90
+GET
+200
+stickybanditos.com
+/api/admin/products/271/options
+Jan 27 03:07:18.76
+GET
+200
+stickybanditos.com
+/api/admin/products
+Jan 27 03:07:18.10
+GET
+200
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:07:17.97
+GET
+200
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:07:14.03
+GET
+200
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:07:13.89
+GET
+200
+stickybanditos.com
+/products
+Jan 27 03:07:12.93
+GET
+---
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:07:12.77
+GET
+200
+stickybanditos.com
+/api/settings/homepage
+Jan 27 03:07:12.77
+GET
+200
+stickybanditos.com
+/api/deals/homepage
+Jan 27 03:07:12.77
+GET
+200
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:07:12.62
+GET
+200
+stickybanditos.com
+/
+Jan 27 03:07:02.00
+GET
+200
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:07:01.94
+GET
+---
+stickybanditos.com
+/api/notifications
+Jan 27 03:06:59.33
+GET
+200
+stickybanditos.com
+/api/admin/products/270/options
+Jan 27 03:06:59.33
+GET
+---
+stickybanditos.com
+/api/admin/products/270/templates
+Jan 27 03:06:59.33
+GET
+200
+stickybanditos.com
+/api/admin/products/270/pricing-tiers
+Jan 27 03:06:59.33
+GET
+200
+stickybanditos.com
+/api/admin/products
+Jan 27 03:06:59.01
+PUT
+---
+stickybanditos.com
+/api/admin/products/270
+Jan 27 03:06:54.76
+POST
+200
+stickybanditos.com
+/api/admin/upload/product-image
+Jan 27 03:06:47.30
+GET
+200
+stickybanditos.com
+/api/admin/products/270/options
+Jan 27 03:06:47.27
+GET
+200
+stickybanditos.com
+/api/admin/products/270/templates
+Jan 27 03:06:47.27
+GET
+200
+stickybanditos.com
+/api/admin/products/270/pricing-tiers
+Jan 27 03:06:44.27
+GET
+200
+stickybanditos.com
+/api/admin/products/270/options
+Jan 27 03:06:44.26
+GET
+200
+stickybanditos.com
+/api/admin/products
+Jan 27 03:06:44.10
+GET
+200
+stickybanditos.com
+/api/admin/products
+Jan 27 03:06:43.95
+GET
+---
+stickybanditos.com
+/admin/products
+Jan 27 03:06:41.72
+GET
+200
+stickybanditos.com
+/admin/seo
+Jan 27 03:06:41.72
+GET
+200
+stickybanditos.com
+/admin/settings
+Jan 27 03:06:41.67
+GET
+200
+stickybanditos.com
+/admin/customize
+Jan 27 03:06:41.61
+GET
+200
+stickybanditos.com
+/admin/analytics
+Jan 27 03:06:41.61
+GET
+200
+stickybanditos.com
+/admin/promotions
+Jan 27 03:06:41.60
+GET
+200
+stickybanditos.com
+/admin/deals
+Jan 27 03:06:41.49
+GET
+200
+stickybanditos.com
+/admin/products
+Jan 27 03:06:41.49
+GET
+200
+stickybanditos.com
+/admin/users
+Jan 27 03:06:41.49
+GET
+200
+stickybanditos.com
+/admin/orders
+Jan 27 03:06:41.49
+GET
+---
+stickybanditos.com
+/admin/finances
+Jan 27 03:06:41.49
+GET
+200
+stickybanditos.com
+/admin/inbox
+Jan 27 03:06:41.45
+GET
+200
+stickybanditos.com
+/api/admin/stats
+5
+Failed to fetch orders: NeonDbError: column "customer_artwork_url" does not exist at execute (/var/task/next-app/.next/server/chunks/5356.js:11:7842) at process.processTicksAndRejections (node:internal/process/task_queues:103:5) at async p.execute (/var/task/next-app/.next/server/chunks/5356.js:16:7435) at async u (/var/task/next-app/.next/server/app/api/admin/stats/route.js:1:2613) at async /var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:38411 at async e_.execute (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:27880) at async e_.handle (/var/task/next-app/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js:6:39943) at async en (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:16:25561) at async ea.responseCache.get.routeKind (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:1028) at async r9.renderToResponseWithComponentsImpl (/var/task/next-app/node_modules/next/dist/compiled/next-server/server.runtime.prod.js:17:508) { severity: 'ERROR', code: '42703', detail: undefined, hint: undefined, position: '360', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, column: undefined, dataType: undefined, constraint: undefined, file: 'parse_relation.c', line: '3716', routine: 'errorMissingColumn', sourceError: undefined }
+Jan 27 03:06:41.14
+GET
+200
+stickybanditos.com
+/admin
+Jan 27 03:06:31.87
+GET
+200
+stickybanditos.com
+/admin
+Jan 27 03:06:31.77
+GET
+200
+stickybanditos.com
+/account
+Jan 27 03:06:31.77
+GET
+200
+stickybanditos.com
+/orders
+Jan 27 03:06:31.77
+GET
+200
+stickybanditos.com
+/api/notifications
+Jan 27 03:06:31.76
+GET
+200
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:06:31.76
+GET
+200
+stickybanditos.com
+/api/auth/session
+Jan 27 03:06:31.76
+GET
+200
+stickybanditos.com
+/products/5-inch-circle-stickers
+Jan 27 03:06:31.76
+GET
+200
+stickybanditos.com
+/products/5-5-inch-circle-stickers
+Jan 27 03:06:31.76
+GET
+---
+stickybanditos.com
+/products/6-inch-circle-stickers
+Jan 27 03:06:31.47
+GET
+200
+stickybanditos.com
+/products/2-inch-circle-stickers
+Jan 27 03:06:31.47
+GET
+200
+stickybanditos.com
+/products/4-5-inch-circle-stickers
+Jan 27 03:06:31.47
+GET
+200
+stickybanditos.com
+/products/3-inch-circle-stickers
+Jan 27 03:06:31.46
+GET
+---
+stickybanditos.com
+/products/4-inch-circle-stickers
+Jan 27 03:06:31.46
+GET
+200
+stickybanditos.com
+/products/2-5-inch-circle-stickers
+Jan 27 03:06:31.30
+GET
+200
+stickybanditos.com
+/login
+Jan 27 03:06:31.30
+GET
+---
+stickybanditos.com
+/
+Jan 27 03:06:31.30
+GET
+200
+stickybanditos.com
+/cart
+Jan 27 03:06:31.30
+GET
+200
+stickybanditos.com
+/deals
+Jan 27 03:06:31.27
+GET
+---
+stickybanditos.com
+/api/auth/session
+Jan 27 03:06:31.27
+GET
+200
+stickybanditos.com
+/api/categories
+Jan 27 03:06:31.27
+GET
+200
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:06:31.27
+GET
+200
+stickybanditos.com
+/api/settings/theme
+Jan 27 03:06:30.49
+GET
+200
+stickybanditos.com
+/products
+Jan 27 03:06:26.51
+GET
+200
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:06:26.51
+GET
+200
+stickybanditos.com
+/api/notifications
+Jan 27 03:06:19.05
+GET
+200
+stickybanditos.com
+/refunds
+Jan 27 03:06:18.93
+GET
+200
+stickybanditos.com
+/products
+Jan 27 03:06:18.92
+GET
+200
+stickybanditos.com
+/shipping
+Jan 27 03:06:18.80
+GET
+200
+stickybanditos.com
+/register
+Jan 27 03:06:18.80
+GET
+200
+stickybanditos.com
+/contact
+Jan 27 03:06:18.80
+GET
+200
+stickybanditos.com
+/login
+Jan 27 03:06:18.80
+GET
+---
+stickybanditos.com
+/products
+Jan 27 03:06:18.31
+GET
+---
+stickybanditos.com
+/products/1x5-square-stickers
+Jan 27 03:06:18.31
+GET
+---
+stickybanditos.com
+/products/1x3-square-stickers
+Jan 27 03:06:18.31
+GET
+---
+stickybanditos.com
+/products/1x1-square-stickers
+Jan 27 03:06:18.31
+GET
+200
+stickybanditos.com
+/products/1x4-square-stickers
+Jan 27 03:06:17.88
+GET
+200
+stickybanditos.com
+/products/6x6-square-stickers
+Jan 27 03:06:17.88
+GET
+---
+stickybanditos.com
+/products/1-inch-circle-stickers
+Jan 27 03:06:17.88
+GET
+---
+stickybanditos.com
+/products/1x2-square-stickers
+Jan 27 03:06:17.88
+GET
+200
+stickybanditos.com
+/products/5x6-square-stickers
+Jan 27 03:06:17.48
+GET
+200
+stickybanditos.com
+/products/5x5-square-stickers
+Jan 27 03:06:17.47
+GET
+200
+stickybanditos.com
+/products/4x5-square-stickers
+Jan 27 03:06:17.45
+GET
+200
+stickybanditos.com
+/products/4x4-square-stickers
+Jan 27 03:06:17.36
+GET
+200
+stickybanditos.com
+/products/3x5-square-stickers
+Jan 27 03:06:17.36
+GET
+200
+stickybanditos.com
+/products/3x6-square-stickers
+Jan 27 03:06:17.36
+GET
+200
+stickybanditos.com
+/products/3x4-square-stickers
+Jan 27 03:06:17.36
+GET
+200
+stickybanditos.com
+/products/3x3-square-stickers
+Jan 27 03:06:10.87
+GET
+---
+stickybanditos.com
+/products/2x4-square-stickers
+Jan 27 03:06:10.87
+GET
+200
+stickybanditos.com
+/products/2x5-square-stickers
+Jan 27 03:06:10.87
+GET
+200
+stickybanditos.com
+/products/2x6-square-stickers
+Jan 27 03:06:10.87
+GET
+---
+stickybanditos.com
+/products/2x3-square-stickers
+Jan 27 03:06:10.55
+GET
+200
+stickybanditos.com
+/products/2x2-square-stickers
+Jan 27 03:06:10.55
+GET
+200
+stickybanditos.com
+/products/1-5-inch-circle-stickers
+Jan 27 03:06:10.55
+GET
+---
+stickybanditos.com
+/products/1x6-square-stickers
+Jan 27 03:06:10.54
+GET
+200
+stickybanditos.com
+/products/3-5-inch-circle-stickers
+Jan 27 03:06:09.57
+GET
+---
+stickybanditos.com
+/products/5-5-inch-circle-stickers
+Jan 27 03:06:09.55
+GET
+200
+stickybanditos.com
+/products/6-inch-circle-stickers
+Jan 27 03:06:09.53
+GET
+200
+stickybanditos.com
+/products/5-inch-circle-stickers
+Jan 27 03:06:09.31
+GET
+200
+stickybanditos.com
+/products/4-5-inch-circle-stickers
+Jan 27 03:06:09.31
+GET
+---
+stickybanditos.com
+/products/2-5-inch-circle-stickers
+Jan 27 03:06:09.31
+GET
+200
+stickybanditos.com
+/products/2-inch-circle-stickers
+Jan 27 03:06:09.31
+GET
+---
+stickybanditos.com
+/products/3-inch-circle-stickers
+Jan 27 03:06:09.31
+GET
+200
+stickybanditos.com
+/products/4-inch-circle-stickers
+Jan 27 03:06:09.30
+GET
+---
+stickybanditos.com
+/api/categories
+Jan 27 03:06:09.30
+GET
+---
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:06:08.86
+GET
+200
+stickybanditos.com
+/products
+Jan 27 03:06:07.46
+GET
+200
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:06:07.32
+GET
+---
+stickybanditos.com
+/deals
+Jan 27 03:06:07.32
+GET
+---
+stickybanditos.com
+/account
+Jan 27 03:06:07.32
+GET
+200
+stickybanditos.com
+/cart
+Jan 27 03:06:07.31
+GET
+---
+stickybanditos.com
+/products
+Jan 27 03:06:07.31
+GET
+---
+stickybanditos.com
+/orders
+Jan 27 03:06:07.31
+GET
+200
+stickybanditos.com
+/api/settings/homepage
+Jan 27 03:06:07.31
+GET
+200
+stickybanditos.com
+/api/deals/homepage
+Jan 27 03:06:07.31
+GET
+---
+stickybanditos.com
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:06:07.15
+GET
+---
+stickybanditos.com
+/
+Jan 27 03:05:59.44
+GET
+---
+stickybanditos.com
+/api/admin/products/274/options
+Jan 27 03:05:59.44
+GET
+---
+stickybanditos.com
+/api/admin/products/274/pricing-tiers
+Jan 27 03:05:59.44
+GET
+---
+stickybanditos.com
+/api/admin/products/274/templates
+Jan 27 03:05:57.07
+GET
+---
+stickybanditos.com
+/
+Jan 27 03:05:57.07
+GET
+200
+stickybanditos.com
+/admin/guide
+Jan 27 03:05:56.83
+GET
+---
+stickybanditos.com
+/admin/settings
+Jan 27 03:05:56.64
+GET
+200
+stickybanditos.com
+/admin/seo
+Jan 27 03:05:56.59
+GET
+---
+stickybanditos.com
+/admin/customize
+Jan 27 03:05:56.58
+GET
+200
+stickybanditos.com
+/admin/promotions
+Jan 27 03:05:56.58
+GET
+200
+stickybanditos.com
+/admin/analytics
+Jan 27 03:05:56.58
+GET
+200
+stickybanditos.com
+/admin/deals
+Jan 27 03:05:56.35
+GET
+200
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:05:56.35
+GET
+---
+stickybanditos.com
+/api/notifications
+Jan 27 03:05:56.34
+GET
+---
+stickybanditos.com
+/api/auth/session
+Jan 27 03:05:56.34
+GET
+200
+stickybanditos.com
+/api/admin/products/270/options
+Jan 27 03:05:56.32
+GET
+200
+stickybanditos.com
+/admin/finances
+Jan 27 03:05:56.31
+GET
+---
+stickybanditos.com
+/api/admin/products
+Jan 27 03:05:56.17
+GET
+200
+stickybanditos.com
+/api/settings/theme
+Jan 27 03:05:56.17
+GET
+200
+stickybanditos.com
+/api/auth/session
+Jan 27 03:05:56.17
+GET
+200
+stickybanditos.com
+/api/admin/products
+Jan 27 03:05:55.35
+GET
+200
+stickybanditos.com
+/admin/products
+Jan 27 03:05:54.76
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:05:54.09
+GET
+200
+stickybanditos.com
+/api/auth/session
+Jan 27 03:05:53.86
+GET
+---
+stickybanditos.com
+/api/admin/products
+Jan 27 03:05:53.86
+GET
+200
+stickybanditos.com
+/api/cart
+3
+[Cart GET] Using cart ID: 42 | Cart userId: 6dad2b29-802d-462f-b6b8-2de3f99c2e29 | Cart sessionId: 125ca0b6-2996-434f-a18f-f415eef3c6b8
+Jan 27 03:05:53.86
+GET
+200
+stickybanditos.com
+/api/auth/session
+Jan 27 03:05:53.86
+GET
+---
+stickybanditos.com
+/api/notifications
+Jan 27 03:05:37.70
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/cron/retry-email-deliveries
+Jan 27 03:04:59.37
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/login
+Jan 27 03:04:59.36
+GET
+---
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/deals
+Jan 27 03:04:59.36
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/products
+Jan 27 03:04:59.36
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/settings/homepage
+Jan 27 03:04:59.36
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/auth/session
+Jan 27 03:04:59.36
+GET
+---
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/settings/theme
+Jan 27 03:04:59.36
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:04:59.36
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/deals/homepage
+Jan 27 03:04:59.17
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/login
+Jan 27 03:04:59.17
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/cart
+Jan 27 03:04:59.17
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/products
+Jan 27 03:04:59.17
+GET
+---
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/deals
+Jan 27 03:04:59.17
+GET
+---
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/auth/session
+Jan 27 03:04:59.17
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/settings/homepage
+Jan 27 03:04:59.16
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/products
+4
+[Products API] Query returned 32 products
+Jan 27 03:04:59.16
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/settings/theme
+Jan 27 03:04:59.16
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/api/deals/homepage
+Jan 27 03:04:58.95
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:04:58.44
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:04:57.87
+GET
+---
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/
+Jan 27 03:04:57.82
+GET
+200
+sticky-8lev4b7yb-travmcmichael-5435s-projects.vercel.app
+/

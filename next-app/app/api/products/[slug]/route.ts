@@ -37,7 +37,13 @@ export async function GET(
       .where(eq(pricingTiers.productId, product.id))
       .orderBy(asc(pricingTiers.minQuantity));
 
-    return NextResponse.json({ ...product, options, pricingTiers: tiers });
+    return NextResponse.json({ ...product, options, pricingTiers: tiers }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error) {
     console.error('Error fetching product:', error);
     return NextResponse.json({ message: 'Failed to fetch product' }, { status: 500 });

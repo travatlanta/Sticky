@@ -35,7 +35,13 @@ export async function GET() {
     }
 
     const allProducts = await db.select().from(products);
-    return NextResponse.json(allProducts);
+    return NextResponse.json(allProducts, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json({ message: 'Failed to fetch products' }, { status: 500 });

@@ -97,6 +97,10 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
   const [optionInputs, setOptionInputs] = useState<Record<string, string>>({});
   const [savingOption, setSavingOption] = useState<string | null>(null);
   
+  // Track which product row is currently being edited (for highlighting)
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  
   // Bulk tier pricing popup state (for Quick Actions)
   const [bulkTierPricingPopup, setBulkTierPricingPopup] = useState<{
     isOpen: boolean;
@@ -321,6 +325,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     const cellCenterX = rect.left + rect.width / 2;
     const arrowX = Math.max(20, Math.min(popupWidth - 20, cellCenterX - popupX));
     
+    setEditingProductId(productId);
     setTierPricingPopup({
       isOpen: true,
       productId,
@@ -347,6 +352,32 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       tier4: tier4Price || '',
     });
   };
+  
+  // Close popup and clear editing state
+  const closeTierPricingPopup = () => {
+    setTierPricingPopup(null);
+    setEditingProductId(null);
+  };
+  
+  // Close popup on scroll
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      if (tierPricingPopup) {
+        closeTierPricingPopup();
+      }
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [tierPricingPopup]);
 
   // Save tier pricing for an add-on option OR base tier pricing
   const saveTierPricing = async () => {
@@ -474,7 +505,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       
       showSavedNotification();
       refetchProducts();
-      setTierPricingPopup(null);
+      closeTierPricingPopup();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to update tier pricing';
       toast({ title: msg, variant: 'destructive' });
@@ -888,14 +919,14 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
 
       {/* Product Pricing Spreadsheet */}
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b bg-gray-50">
-          <div className="flex items-center justify-between gap-4 mb-3">
-            <div className="flex items-center gap-3">
+        <div className="p-2 sm:p-4 border-b bg-gray-50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <h3 className="font-semibold text-gray-900 cursor-help flex items-center gap-1">
+                  <h3 className="font-semibold text-gray-900 cursor-help flex items-center gap-1 text-sm sm:text-base">
                     Product Pricing Spreadsheet
-                    <Info className="w-3.5 h-3.5 text-gray-400" />
+                    <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400" />
                   </h3>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-sm z-[100]">
@@ -903,7 +934,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                   <p className="text-xs text-gray-600">View and edit all product prices. Click any value to edit. Rows are color-coded by sticker size. Purple = materials, Green = finishes.</p>
                 </TooltipContent>
               </Tooltip>
-              <span className="text-sm text-gray-500">({filteredProducts.length} products)</span>
+              <span className="text-xs sm:text-sm text-gray-500">({filteredProducts.length} products)</span>
               
               {/* Saved Indicator */}
               <div 
@@ -925,10 +956,10 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     placeholder="Search products..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 pr-4 py-2 border rounded-lg text-sm w-64"
+                    className="pl-7 pr-3 py-1.5 border rounded-lg text-xs sm:text-sm w-40 sm:w-64"
                     data-testid="input-search-products"
                   />
-                  <Package className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Package className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="left" className="z-[100]">
@@ -936,41 +967,37 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
               </TooltipContent>
             </Tooltip>
           </div>
-          {/* Color Legend */}
-          <div className="flex flex-wrap items-center gap-3 text-xs">
-            <span className="text-gray-500 font-medium">Size Colors:</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-400"></span>1"</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-400"></span>2"</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-400"></span>3"</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-400"></span>4"</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-pink-400"></span>5"</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-cyan-400"></span>6"</span>
-            <span className="text-gray-400 mx-2">|</span>
-            <span className="flex items-center gap-1"><span className="px-1 py-0.5 bg-white border border-gray-200 rounded text-[10px]">$0.00</span> Base/Tier</span>
-            <span className="flex items-center gap-1"><span className="px-1 py-0.5 bg-purple-50 border border-purple-200 rounded text-[10px]">+$0.00</span> Material</span>
-            <span className="flex items-center gap-1"><span className="px-1 py-0.5 bg-green-50 border border-green-200 rounded text-[10px]">+$0.00</span> Finish</span>
+          {/* Color Legend - hidden on mobile, shown on larger screens */}
+          <div className="hidden sm:flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-gray-500 font-medium">Size:</span>
+            <span className="flex items-center gap-0.5"><span className="w-2.5 h-2.5 rounded bg-blue-400"></span>1"</span>
+            <span className="flex items-center gap-0.5"><span className="w-2.5 h-2.5 rounded bg-green-400"></span>2"</span>
+            <span className="flex items-center gap-0.5"><span className="w-2.5 h-2.5 rounded bg-purple-400"></span>3"</span>
+            <span className="flex items-center gap-0.5"><span className="w-2.5 h-2.5 rounded bg-orange-400"></span>4"</span>
+            <span className="flex items-center gap-0.5"><span className="w-2.5 h-2.5 rounded bg-pink-400"></span>5"</span>
+            <span className="flex items-center gap-0.5"><span className="w-2.5 h-2.5 rounded bg-cyan-400"></span>6"</span>
+            <span className="text-gray-400 mx-1">|</span>
+            <span className="flex items-center gap-0.5"><span className="px-0.5 py-0.5 bg-white border border-gray-200 rounded text-[9px]">$0</span> Base</span>
+            <span className="flex items-center gap-0.5"><span className="px-0.5 py-0.5 bg-purple-50 border border-purple-200 rounded text-[9px]">+$</span> Mat</span>
+            <span className="flex items-center gap-0.5"><span className="px-0.5 py-0.5 bg-green-50 border border-green-200 rounded text-[9px]">+$</span> Fin</span>
           </div>
         </div>
 
-        <div className="overflow-x-auto border rounded-lg">
-          <table className="w-full text-sm table-fixed">
+        <div ref={tableContainerRef} className="overflow-x-auto max-h-[70vh]">
+          <table className="w-full text-sm">
             <colgroup>
-              <col className="w-[180px]" />
-              <col className="w-[100px]" />
-              <col className="w-[90px]" />
-              <col className="w-[90px]" />
-              <col className="w-[90px]" />
-              <col className="w-[90px]" />
-              <col className="w-[80px]" />
-              <col className="w-[80px]" />
-              <col className="w-[80px]" />
-              <col className="w-[80px]" />
-              <col className="w-[80px]" />
-              <col className="w-[80px]" />
+              <col className="min-w-[130px]" />
+              <col className="min-w-[65px]" />
+              <col className="min-w-[62px]" />
+              <col className="min-w-[62px]" />
+              <col className="min-w-[62px]" />
+              <col className="min-w-[62px]" />
+              <col className="min-w-[62px]" />
+              <col className="min-w-[62px]" />
             </colgroup>
             <thead className="bg-gradient-to-b from-gray-50 to-gray-100 sticky top-0 z-10">
               <tr className="border-b-2 border-gray-200">
-                <th className="text-left px-4 py-3 font-semibold text-gray-800">
+                <th className="text-left px-2 py-2 font-semibold text-gray-800 text-xs sm:text-sm">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-1 cursor-help">
@@ -984,7 +1011,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     </TooltipContent>
                   </Tooltip>
                 </th>
-                <th className="text-center px-4 py-3 font-semibold text-blue-800 bg-blue-50 border-l-2 border-blue-300">
+                <th className="text-center px-1 py-2 font-semibold text-blue-800 bg-blue-50 border-l-2 border-blue-300 text-xs sm:text-sm">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center justify-center gap-1 cursor-help">
@@ -998,7 +1025,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     </TooltipContent>
                   </Tooltip>
                 </th>
-                <th className="text-center px-3 py-3 font-semibold text-purple-700 bg-purple-100 border-l-2 border-purple-300">
+                <th className="text-center px-1 py-2 font-semibold text-purple-700 bg-purple-100 border-l-2 border-purple-300 text-xs sm:text-sm">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center justify-center gap-1 cursor-help">
@@ -1012,10 +1039,10 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     </TooltipContent>
                   </Tooltip>
                 </th>
-                <th className="text-center px-3 py-3 font-semibold text-purple-700 bg-purple-100 border-l border-purple-200">
+                <th className="text-center px-1 py-2 font-semibold text-purple-700 bg-purple-100 border-l border-purple-200 text-xs sm:text-sm">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center gap-1 cursor-help">
+                      <div className="flex items-center justify-center gap-0.5 cursor-help">
                         Foil
                         <Info className="w-3 h-3 text-purple-400" />
                       </div>
@@ -1026,10 +1053,10 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     </TooltipContent>
                   </Tooltip>
                 </th>
-                <th className="text-center px-3 py-3 font-semibold text-purple-700 bg-purple-100 border-l border-purple-200">
+                <th className="text-center px-1 py-2 font-semibold text-purple-700 bg-purple-100 border-l border-purple-200 text-xs sm:text-sm">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center gap-1 cursor-help">
+                      <div className="flex items-center justify-center gap-0.5 cursor-help">
                         Holo
                         <Info className="w-3 h-3 text-purple-400" />
                       </div>
@@ -1040,10 +1067,10 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     </TooltipContent>
                   </Tooltip>
                 </th>
-                <th className="text-center px-3 py-3 font-semibold text-green-700 bg-green-100 border-l-2 border-green-300">
+                <th className="text-center px-1 py-2 font-semibold text-green-700 bg-green-100 border-l-2 border-green-300 text-xs sm:text-sm">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center gap-1 cursor-help">
+                      <div className="flex items-center justify-center gap-0.5 cursor-help">
                         Gloss
                         <Info className="w-3 h-3 text-green-400" />
                       </div>
@@ -1054,10 +1081,10 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     </TooltipContent>
                   </Tooltip>
                 </th>
-                <th className="text-center px-3 py-3 font-semibold text-green-700 bg-green-100 border-l border-green-200">
+                <th className="text-center px-1 py-2 font-semibold text-green-700 bg-green-100 border-l border-green-200 text-xs sm:text-sm">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center gap-1 cursor-help">
+                      <div className="flex items-center justify-center gap-0.5 cursor-help">
                         Varnish
                         <Info className="w-3 h-3 text-green-400" />
                       </div>
@@ -1068,10 +1095,10 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     </TooltipContent>
                   </Tooltip>
                 </th>
-                <th className="text-center px-3 py-3 font-semibold text-green-700 bg-green-100 border-l border-green-200">
+                <th className="text-center px-1 py-2 font-semibold text-green-700 bg-green-100 border-l border-green-200 text-xs sm:text-sm">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center gap-1 cursor-help">
+                      <div className="flex items-center justify-center gap-0.5 cursor-help">
                         Emboss
                         <Info className="w-3 h-3 text-green-400" />
                       </div>
@@ -1134,14 +1161,16 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 
                 const rowColor = getSizeColor(product.name);
                 
+                const isEditing = editingProductId === product.id;
+                
                 return (
-                  <tr key={product.id} className={`${rowColor} hover:brightness-95 transition-all ${!product.isActive ? 'opacity-50' : ''}`}>
-                    <td className="px-4 py-3">
+                  <tr key={product.id} className={`${rowColor} hover:brightness-95 transition-all ${!product.isActive ? 'opacity-50' : ''} ${isEditing ? 'ring-2 ring-blue-500 ring-inset bg-blue-100/50 relative z-10' : ''}`}>
+                    <td className="px-2 py-1.5">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="cursor-help">
-                            <div className="font-semibold text-gray-900 truncate max-w-52">{product.name}</div>
-                            <div className="text-xs text-gray-500">{product.categoryName}</div>
+                            <div className="font-semibold text-gray-900 truncate max-w-[120px] text-xs sm:text-sm">{product.name}</div>
+                            <div className="text-[10px] sm:text-xs text-gray-500 truncate">{product.categoryName}</div>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="max-w-xs">
@@ -1151,7 +1180,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         </TooltipContent>
                       </Tooltip>
                     </td>
-                    <td className="px-4 py-2 text-center border-l-2 border-blue-300 bg-blue-50/30">
+                    <td className="px-1 py-1 text-center border-l-2 border-blue-300 bg-blue-50/30">
                       {tier1 ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1171,7 +1200,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                                 tier3?.id,
                                 tier4?.id
                               )}
-                              className="font-mono text-sm px-3 py-1.5 rounded bg-blue-100 border border-blue-300 hover:border-blue-500 hover:bg-blue-200 shadow-sm cursor-pointer transition-all font-medium text-blue-800"
+                              className="font-mono text-[11px] sm:text-xs px-1.5 sm:px-2 py-1 rounded bg-blue-100 border border-blue-300 hover:border-blue-500 hover:bg-blue-200 shadow-sm cursor-pointer transition-all font-medium text-blue-800"
                               data-testid={`cell-price-${product.id}`}
                             >
                               ${parseFloat(tier1.pricePerUnit).toFixed(2)}
@@ -1183,13 +1212,13 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <span className="text-gray-300">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-center bg-purple-50/30 border-l-2 border-purple-300">
+                    <td className="px-1 py-1 text-center bg-purple-50/30 border-l-2 border-purple-300">
                       {vinyl ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Vinyl', vinyl.id, vinyl.priceModifier, vinyl.tier2PriceModifier, vinyl.tier3PriceModifier, vinyl.tier4PriceModifier)}
-                              className="font-mono text-sm px-2 py-1.5 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
+                              className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-vinyl-${product.id}`}
                             >
                               +${parseFloat(vinyl.priceModifier).toFixed(2)}
@@ -1203,13 +1232,13 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         </Tooltip>
                       ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-4 py-2 text-center bg-purple-50/30 border-l border-purple-200">
+                    <td className="px-1 py-1 text-center bg-purple-50/30 border-l border-purple-200">
                       {foil ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Foil', foil.id, foil.priceModifier, foil.tier2PriceModifier, foil.tier3PriceModifier, foil.tier4PriceModifier)}
-                              className="font-mono text-sm px-2 py-1.5 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
+                              className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-foil-${product.id}`}
                             >
                               +${parseFloat(foil.priceModifier).toFixed(2)}
@@ -1223,13 +1252,13 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         </Tooltip>
                       ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-4 py-2 text-center bg-purple-50/30 border-l border-purple-200">
+                    <td className="px-1 py-1 text-center bg-purple-50/30 border-l border-purple-200">
                       {holo ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Holographic', holo.id, holo.priceModifier, holo.tier2PriceModifier, holo.tier3PriceModifier, holo.tier4PriceModifier)}
-                              className="font-mono text-sm px-2 py-1.5 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
+                              className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-holo-${product.id}`}
                             >
                               +${parseFloat(holo.priceModifier).toFixed(2)}
@@ -1243,13 +1272,13 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         </Tooltip>
                       ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-4 py-2 text-center bg-green-50/30 border-l-2 border-green-300">
+                    <td className="px-1 py-1 text-center bg-green-50/30 border-l-2 border-green-300">
                       {gloss ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Gloss', gloss.id, gloss.priceModifier, gloss.tier2PriceModifier, gloss.tier3PriceModifier, gloss.tier4PriceModifier)}
-                              className="font-mono text-sm px-2 py-1.5 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
+                              className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-gloss-${product.id}`}
                             >
                               +${parseFloat(gloss.priceModifier).toFixed(2)}
@@ -1263,13 +1292,13 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         </Tooltip>
                       ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-4 py-2 text-center bg-green-50/30 border-l border-green-200">
+                    <td className="px-1 py-1 text-center bg-green-50/30 border-l border-green-200">
                       {varnish ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Varnish', varnish.id, varnish.priceModifier, varnish.tier2PriceModifier, varnish.tier3PriceModifier, varnish.tier4PriceModifier)}
-                              className="font-mono text-sm px-2 py-1.5 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
+                              className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-varnish-${product.id}`}
                             >
                               +${parseFloat(varnish.priceModifier).toFixed(2)}
@@ -1283,13 +1312,13 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         </Tooltip>
                       ) : <span className="text-gray-400">-</span>}
                     </td>
-                    <td className="px-4 py-2 text-center bg-green-50/30 border-l border-green-200">
+                    <td className="px-1 py-1 text-center bg-green-50/30 border-l border-green-200">
                       {emboss ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Emboss', emboss.id, emboss.priceModifier, emboss.tier2PriceModifier, emboss.tier3PriceModifier, emboss.tier4PriceModifier)}
-                              className="font-mono text-sm px-2 py-1.5 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
+                              className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-emboss-${product.id}`}
                             >
                               +${parseFloat(emboss.priceModifier).toFixed(2)}
@@ -1323,7 +1352,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
           {/* Invisible overlay to close popover on click outside */}
           <div 
             className="fixed inset-0 z-[199]" 
-            onClick={() => setTierPricingPopup(null)}
+            onClick={closeTierPricingPopup}
           />
           <div 
             ref={popupRef}
@@ -1361,7 +1390,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 <p className="text-xs text-gray-500">{tierPricingPopup.productName}</p>
               </div>
               <button 
-                onClick={() => setTierPricingPopup(null)}
+                onClick={closeTierPricingPopup}
                 className="text-gray-400 hover:text-gray-600 p-1"
               >
                 <X className="w-5 h-5" />
@@ -1447,7 +1476,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 size="sm"
                 variant="outline"
                 className="flex-1 h-8 text-xs"
-                onClick={() => setTierPricingPopup(null)}
+                onClick={closeTierPricingPopup}
                 data-testid="button-cancel-tier-pricing"
               >
                 Cancel

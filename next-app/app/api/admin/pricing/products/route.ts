@@ -29,6 +29,18 @@ export async function GET(request: NextRequest) {
     const allTiers = await db.select().from(pricingTiers);
     const allOptions = await db.select().from(productOptions);
     const allCategories = await db.select().from(categories);
+    
+    // Debug: Check coating options
+    const coatingOptions = allOptions.filter(o => o.optionType === 'coating');
+    const uniqueCoatingNames = [...new Set(coatingOptions.map(o => o.name))];
+    console.log('[API DEBUG] Coating option names:', JSON.stringify(uniqueCoatingNames));
+    console.log('[API DEBUG] Total coating options:', coatingOptions.length);
+    console.log('[API DEBUG] Total all options:', allOptions.length);
+    
+    // Check first product's finishes
+    const firstProductOptions = allOptions.filter(o => o.productId === 268);
+    const firstProductFinishes = firstProductOptions.filter(o => o.optionType === 'coating');
+    console.log('[API DEBUG] Product 268 finishes:', JSON.stringify(firstProductFinishes.map(f => ({ name: f.name, id: f.id }))));
 
     const productPricingData = allProducts.map((product) => {
       const productTiers = allTiers

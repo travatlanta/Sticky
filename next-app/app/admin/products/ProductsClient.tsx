@@ -239,17 +239,35 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       {/* Header with Instructions Toggle */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Pricing Dashboard</h2>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <h2 className="text-xl font-bold text-gray-900 cursor-help flex items-center gap-2">
+                Pricing Dashboard
+                <Info className="w-4 h-4 text-gray-400" />
+              </h2>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-sm z-[100]">
+              <p className="font-semibold mb-1">Pricing Dashboard</p>
+              <p className="text-xs text-gray-600">This is where you manage all product prices. Click any price cell in the table to edit it. Use the collapsible panels below for global settings and bulk updates.</p>
+            </TooltipContent>
+          </Tooltip>
           <p className="text-gray-600 text-sm">Manage all product pricing from one place</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => setShowInstructions(!showInstructions)}
-          data-testid="button-toggle-instructions"
-        >
-          {showInstructions ? 'Hide' : 'Show'} Instructions
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowInstructions(!showInstructions)}
+              data-testid="button-toggle-instructions"
+            >
+              {showInstructions ? 'Hide' : 'Show'} Instructions
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="max-w-xs z-[100]">
+            <p className="text-xs">Click to show/hide the detailed instructions panel with step-by-step guidance</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Collapsible Instructions Panel */}
@@ -300,41 +318,34 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
 
       {/* Collapsible Global Settings */}
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-        <button 
-          onClick={() => setShowGlobalSettings(!showGlobalSettings)}
-          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-          data-testid="button-toggle-global-settings"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Layers className="h-5 w-5 text-blue-600" />
-            </div>
-            <div className="text-left">
-              <h3 className="font-semibold text-gray-900">Global Settings</h3>
-              <p className="text-sm text-gray-500">
-                Bulk discounts for products using Global mode • <span className="text-green-600 font-medium">{globalTierProducts.length} products</span>
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {Object.keys(globalTierEdits).length > 0 && (
-              <Button 
-                onClick={(e) => { e.stopPropagation(); handleSaveGlobalTiers(); }} 
-                disabled={savingGlobalTiers} 
-                data-testid="button-save-global-tiers"
-                size="sm"
-              >
-                {savingGlobalTiers ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-1" />}
-                Save Global Tiers
-              </Button>
-            )}
-            <div className={`transform transition-transform ${showGlobalSettings ? 'rotate-180' : ''}`}>
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button 
+              onClick={() => setShowGlobalSettings(!showGlobalSettings)}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+              data-testid="button-toggle-global-settings"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Layers className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-1">
+                    Global Settings
+                    <Info className="w-3 h-3 text-gray-400" />
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Bulk discounts for products using Global mode • <span className="text-green-600 font-medium">{globalTierProducts.length} products</span>
+                  </p>
+                </div>
+              </div>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-sm z-[100]">
+            <p className="font-semibold mb-1">Global Tier Settings</p>
+            <p className="text-xs text-gray-600">Set quantity tiers and discount percentages that apply to ALL products using Global mode. Click to expand/collapse.</p>
+          </TooltipContent>
+        </Tooltip>
         
         {showGlobalSettings && (
           <div className="p-4 border-t bg-gray-50">
@@ -403,26 +414,37 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
 
       {/* Collapsible Quick Actions */}
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-        <button 
-          onClick={() => setShowQuickActions(!showQuickActions)}
-          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-          data-testid="button-toggle-quick-actions"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <DollarSign className="h-5 w-5 text-purple-600" />
-            </div>
-            <div className="text-left">
-              <h3 className="font-semibold text-gray-900">Quick Actions</h3>
-              <p className="text-sm text-gray-500">Bulk update material and finish prices for all products</p>
-            </div>
-          </div>
-          <div className={`transform transition-transform ${showQuickActions ? 'rotate-180' : ''}`}>
-            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button 
+              onClick={() => setShowQuickActions(!showQuickActions)}
+              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+              data-testid="button-toggle-quick-actions"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-purple-600" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-1">
+                    Quick Actions
+                    <Info className="w-3 h-3 text-gray-400" />
+                  </h3>
+                  <p className="text-sm text-gray-500">Bulk update material and finish prices for all products</p>
+                </div>
+              </div>
+              <div className={`transform transition-transform ${showQuickActions ? 'rotate-180' : ''}`}>
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-sm z-[100]">
+            <p className="font-semibold mb-1">Quick Bulk Actions</p>
+            <p className="text-xs text-gray-600">Set material (Vinyl, Foil, Holo) and finish (Gloss, Varnish, Emboss) prices for ALL products at once. Click to expand/collapse.</p>
+          </TooltipContent>
+        </Tooltip>
 
         {showQuickActions && (
           <div className="p-4 border-t bg-gray-50">
@@ -512,20 +534,38 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
         <div className="p-4 border-b bg-gray-50">
           <div className="flex items-center justify-between gap-4 mb-3">
             <div className="flex items-center gap-3">
-              <h3 className="font-semibold text-gray-900">Product Pricing Spreadsheet</h3>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <h3 className="font-semibold text-gray-900 cursor-help flex items-center gap-1">
+                    Product Pricing Spreadsheet
+                    <Info className="w-3.5 h-3.5 text-gray-400" />
+                  </h3>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-sm z-[100]">
+                  <p className="font-semibold mb-1">Pricing Spreadsheet</p>
+                  <p className="text-xs text-gray-600">View and edit all product prices. Click any value to edit. Rows are color-coded by sticker size. Purple = materials, Green = finishes.</p>
+                </TooltipContent>
+              </Tooltip>
               <span className="text-sm text-gray-500">({filteredProducts.length} products)</span>
             </div>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-4 py-2 border rounded-lg text-sm w-64"
-                data-testid="input-search-products"
-              />
-              <Package className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 pr-4 py-2 border rounded-lg text-sm w-64"
+                    data-testid="input-search-products"
+                  />
+                  <Package className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="z-[100]">
+                <p className="text-xs">Type to filter products by name or category</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           {/* Color Legend */}
           <div className="flex flex-wrap items-center gap-3 text-xs">
@@ -544,177 +584,191 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
         </div>
 
         <div className="overflow-x-auto border rounded-lg">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[180px]" />
+              <col className="w-[100px]" />
+              <col className="w-[90px]" />
+              <col className="w-[90px]" />
+              <col className="w-[90px]" />
+              <col className="w-[90px]" />
+              <col className="w-[80px]" />
+              <col className="w-[80px]" />
+              <col className="w-[80px]" />
+              <col className="w-[80px]" />
+              <col className="w-[80px]" />
+              <col className="w-[80px]" />
+            </colgroup>
             <thead className="bg-gradient-to-b from-gray-50 to-gray-100 sticky top-0 z-10">
               <tr className="border-b-2 border-gray-200">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help">
-                      <div className="flex items-center gap-1">
+                <th className="text-left px-4 py-3 font-semibold text-gray-800">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 cursor-help">
                         Product
                         <Info className="w-3 h-3 text-gray-400" />
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Product Name</p>
-                    <p className="text-xs text-gray-600">Row colors indicate sticker size (1", 2", 3", etc.) based on the first dimension.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help border-l border-gray-200">
-                      <div className="flex items-center justify-center gap-1">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Product Name</p>
+                      <p className="text-xs text-gray-600">Row colors indicate sticker size (1", 2", 3", etc.) based on the first dimension.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-800 border-l border-gray-200">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center gap-1 cursor-help">
                         Base Price
                         <Info className="w-3 h-3 text-gray-400" />
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Base Price per Sticker</p>
-                    <p className="text-xs text-gray-600">The starting price for one sticker. Click to edit. This is the foundation for tier pricing.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help bg-blue-50/50 border-l border-gray-200">
-                      <div className="flex flex-col items-center">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Base Price per Sticker</p>
+                      <p className="text-xs text-gray-600">The starting price for one sticker. Click to edit. This is the foundation for tier pricing.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-800 bg-blue-50/50 border-l border-gray-200">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center cursor-help">
                         <div className="flex items-center gap-1">T1 <Info className="w-3 h-3 text-gray-400" /></div>
-                        <div className="text-[10px] text-gray-500 font-normal">1-249 units</div>
+                        <div className="text-[10px] text-gray-500 font-normal">1-249</div>
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Tier 1: Small Orders (1-249)</p>
-                    <p className="text-xs text-gray-600">Price per sticker for orders of 1-249 units. Click to set a custom price for this product.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help bg-blue-50/50 border-l border-gray-200">
-                      <div className="flex flex-col items-center">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Tier 1: Small Orders (1-249)</p>
+                      <p className="text-xs text-gray-600">Price per sticker for orders of 1-249 units. Click to set a custom price.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-800 bg-blue-50/50 border-l border-gray-200">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center cursor-help">
                         <div className="flex items-center gap-1">T2 <Info className="w-3 h-3 text-gray-400" /></div>
                         <div className="text-[10px] text-gray-500 font-normal">250-999</div>
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Tier 2: Medium Orders (250-999)</p>
-                    <p className="text-xs text-gray-600">Price per sticker for orders of 250-999 units. Bulk discount tier.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help bg-blue-50/50 border-l border-gray-200">
-                      <div className="flex flex-col items-center">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Tier 2: Medium Orders (250-999)</p>
+                      <p className="text-xs text-gray-600">Price per sticker for orders of 250-999 units. Bulk discount tier.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-800 bg-blue-50/50 border-l border-gray-200">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center cursor-help">
                         <div className="flex items-center gap-1">T3 <Info className="w-3 h-3 text-gray-400" /></div>
                         <div className="text-[10px] text-gray-500 font-normal">1000-1999</div>
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Tier 3: Large Orders (1000-1999)</p>
-                    <p className="text-xs text-gray-600">Price per sticker for orders of 1000-1999 units. Larger bulk discount.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-gray-800 whitespace-nowrap cursor-help bg-blue-50/50 border-l border-gray-200">
-                      <div className="flex flex-col items-center">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Tier 3: Large Orders (1000-1999)</p>
+                      <p className="text-xs text-gray-600">Price per sticker for orders of 1000-1999 units. Larger bulk discount.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-800 bg-blue-50/50 border-l border-gray-200">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center cursor-help">
                         <div className="flex items-center gap-1">T4 <Info className="w-3 h-3 text-gray-400" /></div>
                         <div className="text-[10px] text-gray-500 font-normal">2000+</div>
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Tier 4: Wholesale Orders (2000+)</p>
-                    <p className="text-xs text-gray-600">Price per sticker for orders of 2000+ units. Best bulk discount.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-purple-700 whitespace-nowrap cursor-help bg-purple-100 border-l-2 border-purple-300">
-                      <div className="flex items-center justify-center gap-1">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Tier 4: Wholesale Orders (2000+)</p>
+                      <p className="text-xs text-gray-600">Price per sticker for orders of 2000+ units. Best bulk discount.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-3 py-3 font-semibold text-purple-700 bg-purple-100 border-l-2 border-purple-300">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center gap-1 cursor-help">
                         Vinyl
                         <Info className="w-3 h-3 text-purple-400" />
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Vinyl Material Add-on</p>
-                    <p className="text-xs text-gray-600">Extra cost per sticker for vinyl material. Standard durable material for most stickers.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-purple-700 whitespace-nowrap cursor-help bg-purple-100 border-l border-purple-200">
-                      <div className="flex items-center justify-center gap-1">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Vinyl Material Add-on</p>
+                      <p className="text-xs text-gray-600">Extra cost per sticker for vinyl material. Standard durable material for most stickers.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-3 py-3 font-semibold text-purple-700 bg-purple-100 border-l border-purple-200">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center gap-1 cursor-help">
                         Foil
                         <Info className="w-3 h-3 text-purple-400" />
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Foil Material Add-on</p>
-                    <p className="text-xs text-gray-600">Extra cost per sticker for metallic foil material. Premium shiny finish.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-purple-700 whitespace-nowrap cursor-help bg-purple-100 border-l border-purple-200">
-                      <div className="flex items-center justify-center gap-1">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Foil Material Add-on</p>
+                      <p className="text-xs text-gray-600">Extra cost per sticker for metallic foil material. Premium shiny finish.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-3 py-3 font-semibold text-purple-700 bg-purple-100 border-l border-purple-200">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center gap-1 cursor-help">
                         Holo
                         <Info className="w-3 h-3 text-purple-400" />
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Holographic Material Add-on</p>
-                    <p className="text-xs text-gray-600">Extra cost per sticker for holographic material. Rainbow reflective effect.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-green-700 whitespace-nowrap cursor-help bg-green-100 border-l-2 border-green-300">
-                      <div className="flex items-center justify-center gap-1">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Holographic Material Add-on</p>
+                      <p className="text-xs text-gray-600">Extra cost per sticker for holographic material. Rainbow reflective effect.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-3 py-3 font-semibold text-green-700 bg-green-100 border-l-2 border-green-300">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center gap-1 cursor-help">
                         Gloss
                         <Info className="w-3 h-3 text-green-400" />
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Gloss Finish Add-on</p>
-                    <p className="text-xs text-gray-600">Extra cost per sticker for glossy finish. Shiny, smooth protective coating.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-green-700 whitespace-nowrap cursor-help bg-green-100 border-l border-green-200">
-                      <div className="flex items-center justify-center gap-1">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Gloss Finish Add-on</p>
+                      <p className="text-xs text-gray-600">Extra cost per sticker for glossy finish. Shiny, smooth protective coating.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-3 py-3 font-semibold text-green-700 bg-green-100 border-l border-green-200">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center gap-1 cursor-help">
                         Varnish
                         <Info className="w-3 h-3 text-green-400" />
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Varnish Finish Add-on</p>
-                    <p className="text-xs text-gray-600">Extra cost per sticker for spot varnish finish. Adds texture and visual pop.</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <th className="text-center px-4 py-3 font-semibold text-green-700 whitespace-nowrap cursor-help bg-green-100 border-l border-green-200">
-                      <div className="flex items-center justify-center gap-1">
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Varnish Finish Add-on</p>
+                      <p className="text-xs text-gray-600">Extra cost per sticker for spot varnish finish. Adds texture and visual pop.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
+                <th className="text-center px-3 py-3 font-semibold text-green-700 bg-green-100 border-l border-green-200">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center justify-center gap-1 cursor-help">
                         Emboss
                         <Info className="w-3 h-3 text-green-400" />
                       </div>
-                    </th>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold mb-1">Emboss Finish Add-on</p>
-                    <p className="text-xs text-gray-600">Extra cost per sticker for embossed finish. Raised texture for premium feel.</p>
-                  </TooltipContent>
-                </Tooltip>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs z-[100]">
+                      <p className="font-semibold mb-1">Emboss Finish Add-on</p>
+                      <p className="text-xs text-gray-600">Extra cost per sticker for embossed finish. Raised texture for premium feel.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y">

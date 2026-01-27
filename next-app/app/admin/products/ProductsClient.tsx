@@ -508,21 +508,37 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
 
       {/* Product Pricing Spreadsheet */}
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b bg-gray-50 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h3 className="font-semibold text-gray-900">Product Pricing Spreadsheet</h3>
-            <span className="text-sm text-gray-500">({filteredProducts.length} products)</span>
+        <div className="p-4 border-b bg-gray-50">
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <div className="flex items-center gap-3">
+              <h3 className="font-semibold text-gray-900">Product Pricing Spreadsheet</h3>
+              <span className="text-sm text-gray-500">({filteredProducts.length} products)</span>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 pr-4 py-2 border rounded-lg text-sm w-64"
+                data-testid="input-search-products"
+              />
+              <Package className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            </div>
           </div>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-4 py-2 border rounded-lg text-sm w-64"
-              data-testid="input-search-products"
-            />
-            <Package className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          {/* Color Legend */}
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span className="text-gray-500 font-medium">Size Colors:</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-400"></span>1"</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-400"></span>2"</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-400"></span>3"</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-400"></span>4"</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-pink-400"></span>5"</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-cyan-400"></span>6"</span>
+            <span className="text-gray-400 mx-2">|</span>
+            <span className="flex items-center gap-1"><span className="px-1 py-0.5 bg-white border border-gray-200 rounded text-[10px]">$0.00</span> Base/Tier</span>
+            <span className="flex items-center gap-1"><span className="px-1 py-0.5 bg-purple-50 border border-purple-200 rounded text-[10px]">+$0.00</span> Material</span>
+            <span className="flex items-center gap-1"><span className="px-1 py-0.5 bg-green-50 border border-green-200 rounded text-[10px]">+$0.00</span> Finish</span>
           </div>
         </div>
 
@@ -563,8 +579,28 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 
                 const basePrice = parseFloat(product.basePrice);
                 
+                // Extract size from product name for color coding
+                const getSizeColor = (name: string) => {
+                  const lowerName = name.toLowerCase();
+                  if (lowerName.includes('1"') || lowerName.includes('1 inch') || lowerName.includes('1x1')) 
+                    return 'bg-blue-50 border-l-4 border-l-blue-400';
+                  if (lowerName.includes('2"') || lowerName.includes('2 inch') || lowerName.includes('2x2')) 
+                    return 'bg-green-50 border-l-4 border-l-green-400';
+                  if (lowerName.includes('3"') || lowerName.includes('3 inch') || lowerName.includes('3x3')) 
+                    return 'bg-purple-50 border-l-4 border-l-purple-400';
+                  if (lowerName.includes('4"') || lowerName.includes('4 inch') || lowerName.includes('4x4')) 
+                    return 'bg-orange-50 border-l-4 border-l-orange-400';
+                  if (lowerName.includes('5"') || lowerName.includes('5 inch') || lowerName.includes('5x5')) 
+                    return 'bg-pink-50 border-l-4 border-l-pink-400';
+                  if (lowerName.includes('6"') || lowerName.includes('6 inch') || lowerName.includes('6x6')) 
+                    return 'bg-cyan-50 border-l-4 border-l-cyan-400';
+                  return 'bg-gray-50 border-l-4 border-l-gray-300';
+                };
+                
+                const rowColor = getSizeColor(product.name);
+                
                 return (
-                  <tr key={product.id} className={`hover:bg-gray-50 ${!product.isActive ? 'opacity-50' : ''}`}>
+                  <tr key={product.id} className={`${rowColor} hover:brightness-95 transition-all ${!product.isActive ? 'opacity-50' : ''}`}>
                     <td className="px-3 py-2">
                       <div className="font-medium text-gray-900 truncate max-w-48">{product.name}</div>
                       <div className="text-xs text-gray-500">{product.categoryName}</div>
@@ -586,8 +622,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                       ) : (
                         <button
                           onClick={() => handleCellEdit(product.id, 'basePrice', product.basePrice)}
-                          className="px-2 py-0.5 rounded hover:bg-blue-100 font-mono"
+                          className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 font-mono text-sm shadow-sm cursor-pointer transition-all"
                           data-testid={`cell-base-price-${product.id}`}
+                          title="Click to edit"
                         >
                           ${parseFloat(product.basePrice).toFixed(4)}
                         </button>
@@ -624,7 +661,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         ) : (
                           <button
                             onClick={() => handleCellEdit(product.id, 'tierPrice', tier1.pricePerUnit, tier1.id)}
-                            className="px-1 py-0.5 rounded hover:bg-blue-100"
+                            className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 shadow-sm cursor-pointer transition-all"
+                            title="Click to edit"
                           >
                             ${parseFloat(tier1.pricePerUnit).toFixed(4)}
                           </button>
@@ -651,7 +689,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         ) : (
                           <button
                             onClick={() => handleCellEdit(product.id, 'tierPrice', tier2.pricePerUnit, tier2.id)}
-                            className="px-1 py-0.5 rounded hover:bg-blue-100"
+                            className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 shadow-sm cursor-pointer transition-all"
+                            title="Click to edit"
                           >
                             ${parseFloat(tier2.pricePerUnit).toFixed(4)}
                           </button>
@@ -678,7 +717,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         ) : (
                           <button
                             onClick={() => handleCellEdit(product.id, 'tierPrice', tier3.pricePerUnit, tier3.id)}
-                            className="px-1 py-0.5 rounded hover:bg-blue-100"
+                            className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 shadow-sm cursor-pointer transition-all"
+                            title="Click to edit"
                           >
                             ${parseFloat(tier3.pricePerUnit).toFixed(4)}
                           </button>
@@ -705,7 +745,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         ) : (
                           <button
                             onClick={() => handleCellEdit(product.id, 'tierPrice', tier4.pricePerUnit, tier4.id)}
-                            className="px-1 py-0.5 rounded hover:bg-blue-100"
+                            className="px-2 py-1 rounded bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50 shadow-sm cursor-pointer transition-all"
+                            title="Click to edit"
                           >
                             ${parseFloat(tier4.pricePerUnit).toFixed(4)}
                           </button>
@@ -720,8 +761,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', vinyl.priceModifier, undefined, vinyl.id)}
-                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              className="font-mono text-sm px-2 py-1 rounded bg-purple-50 border border-purple-200 hover:border-purple-400 hover:bg-purple-100 shadow-sm cursor-pointer transition-all"
                               data-testid={`cell-vinyl-${product.id}`}
+                              title="Click to edit"
                             >
                               +${parseFloat(vinyl.priceModifier).toFixed(2)}
                               {!product.useGlobalTiers && (vinyl.tier2PriceModifier || vinyl.tier3PriceModifier || vinyl.tier4PriceModifier) && (
@@ -747,8 +789,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', foil.priceModifier, undefined, foil.id)}
-                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              className="font-mono text-sm px-2 py-1 rounded bg-purple-50 border border-purple-200 hover:border-purple-400 hover:bg-purple-100 shadow-sm cursor-pointer transition-all"
                               data-testid={`cell-foil-${product.id}`}
+                              title="Click to edit"
                             >
                               +${parseFloat(foil.priceModifier).toFixed(2)}
                               {!product.useGlobalTiers && (foil.tier2PriceModifier || foil.tier3PriceModifier || foil.tier4PriceModifier) && (
@@ -774,8 +817,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', holo.priceModifier, undefined, holo.id)}
-                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              className="font-mono text-sm px-2 py-1 rounded bg-purple-50 border border-purple-200 hover:border-purple-400 hover:bg-purple-100 shadow-sm cursor-pointer transition-all"
                               data-testid={`cell-holo-${product.id}`}
+                              title="Click to edit"
                             >
                               +${parseFloat(holo.priceModifier).toFixed(2)}
                               {!product.useGlobalTiers && (holo.tier2PriceModifier || holo.tier3PriceModifier || holo.tier4PriceModifier) && (
@@ -801,8 +845,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', varnish.priceModifier, undefined, varnish.id)}
-                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              className="font-mono text-sm px-2 py-1 rounded bg-green-50 border border-green-200 hover:border-green-400 hover:bg-green-100 shadow-sm cursor-pointer transition-all"
                               data-testid={`cell-varnish-${product.id}`}
+                              title="Click to edit"
                             >
                               +${parseFloat(varnish.priceModifier).toFixed(2)}
                               {!product.useGlobalTiers && (varnish.tier2PriceModifier || varnish.tier3PriceModifier || varnish.tier4PriceModifier) && (
@@ -828,8 +873,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                           <TooltipTrigger asChild>
                             <button
                               onClick={() => handleCellEdit(product.id, 'optionPrice', emboss.priceModifier, undefined, emboss.id)}
-                              className="font-mono text-sm text-gray-600 px-1 py-0.5 rounded hover:bg-blue-100"
+                              className="font-mono text-sm px-2 py-1 rounded bg-green-50 border border-green-200 hover:border-green-400 hover:bg-green-100 shadow-sm cursor-pointer transition-all"
                               data-testid={`cell-emboss-${product.id}`}
+                              title="Click to edit"
                             >
                               +${parseFloat(emboss.priceModifier).toFixed(2)}
                               {!product.useGlobalTiers && (emboss.tier2PriceModifier || emboss.tier3PriceModifier || emboss.tier4PriceModifier) && (

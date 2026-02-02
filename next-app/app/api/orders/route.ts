@@ -43,9 +43,25 @@ export async function GET(request: NextRequest) {
     }
     
     const userId = String(session.user.id);
-    const userEmail = session.user.email?.toLowerCase() || '';
+    const userEmail = session.user.email?.toLowerCase().trim() || '';
 
     console.log(`[Orders API] Fetching orders for userId=${userId}, email=${userEmail}`);
+    
+    // Debug: Check what orders exist for this email
+    const debugResult = await db.execute(sql`
+      SELECT id, order_number, user_id, customer_email, 
+             LEFT(notes, 200) as notes_preview
+      FROM orders 
+      WHERE LOWER(customer_email) = ${userEmail}
+         OR (notes ILIKE ${'%Email: ' + userEmail + '%'})
+      LIMIT 5
+    `);
+    console.log(`[Orders API] Debug - Found ${debugResult.rows?.length || 0} orders matching email directly`);
+    if (debugResult.rows?.length) {
+      debugResult.rows.forEach((row: any) => {
+        console.log(`[Orders API] Debug - Order ${row.order_number}: user_id=${row.user_id}, customer_email=${row.customer_email}`);
+      });
+    }
     
     const result = await db.execute(sql`
       SELECT id, order_number, user_id, status, subtotal, shipping_cost, 

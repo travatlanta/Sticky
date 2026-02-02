@@ -93,6 +93,10 @@ export const authOptions: NextAuthOptions = {
           // For Google sign-in, use dbId (database user ID), otherwise use user.id
           token.id = (user as any).dbId || user.id;
           token.isAdmin = (user as any).isAdmin || false;
+          // Explicitly store email in token to ensure it's available in session
+          if (user.email) {
+            token.email = user.email.toLowerCase().trim();
+          }
         }
         return token;
       } catch (error) {
@@ -105,6 +109,10 @@ export const authOptions: NextAuthOptions = {
         if (session.user) {
           (session.user as any).id = token.id;
           (session.user as any).isAdmin = token.isAdmin || false;
+          // Ensure email is always lowercase for consistent matching
+          if (token.email) {
+            session.user.email = token.email as string;
+          }
         }
         return session;
       } catch (error) {

@@ -36,6 +36,8 @@ import {
   ArrowLeft,
   UserPlus,
   X,
+  Truck,
+  Store,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -124,6 +126,7 @@ export default function CreateOrderClient() {
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState("");
+  const [deliveryMethod, setDeliveryMethod] = useState<"shipping" | "pickup">("shipping");
   const [shippingCost, setShippingCost] = useState(15);
   // Phoenix, AZ default tax rate: 8.6% (state 5.6% + Maricopa County 0.7% + Phoenix 2.3%)
   const [taxRate, setTaxRate] = useState(8.6);
@@ -367,7 +370,8 @@ export default function CreateOrderClient() {
 
     createOrderMutation.mutate({
       customer: customerInfo,
-      shippingAddress,
+      shippingAddress: deliveryMethod === "shipping" ? shippingAddress : null,
+      deliveryMethod,
       items: orderItems.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -487,6 +491,55 @@ export default function CreateOrderClient() {
                       data-testid="input-customer-phone"
                     />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Delivery Method
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setDeliveryMethod("shipping");
+                      setShippingCost(15);
+                    }}
+                    className={`flex-1 h-auto py-4 toggle-elevate ${
+                      deliveryMethod === "shipping" ? "toggle-elevated border-primary" : ""
+                    }`}
+                    data-testid="button-delivery-shipping"
+                  >
+                    <Truck className="h-6 w-6 mr-3" />
+                    <div className="text-left">
+                      <div className="font-medium">Ship to Customer</div>
+                      <div className="text-sm text-muted-foreground">Standard shipping</div>
+                    </div>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setDeliveryMethod("pickup");
+                      setShippingCost(0);
+                    }}
+                    className={`flex-1 h-auto py-4 toggle-elevate ${
+                      deliveryMethod === "pickup" ? "toggle-elevated border-primary" : ""
+                    }`}
+                    data-testid="button-delivery-pickup"
+                  >
+                    <Store className="h-6 w-6 mr-3" />
+                    <div className="text-left">
+                      <div className="font-medium">Customer Pickup</div>
+                      <div className="text-sm text-muted-foreground">2 N 35th Ave, Phoenix</div>
+                    </div>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

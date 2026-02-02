@@ -32,18 +32,26 @@ export async function GET(request: Request) {
     }
     
     const userId = String(session.user.id);
-    const userEmail = session.user.email?.toLowerCase();
+    const userEmail = session.user.email?.toLowerCase() || '';
 
-    // Use raw SQL to query orders - match by user_id OR by email in notes
+    // Use raw SQL to query orders - match by:
+    // 1. user_id matches logged-in user, OR
+    // 2. customer_email column matches (case-insensitive), OR
+    // 3. email in notes field matches (legacy fallback)
+    console.log(`[Orders API] Fetching orders for userId=${userId}, email=${userEmail}`);
+    
     const result = await db.execute(sql`
       SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
              tax_amount, discount_amount, total_amount, shipping_address, 
-             notes, tracking_number, created_at
+             notes, tracking_number, created_at, customer_email
       FROM orders 
       WHERE user_id = ${userId}
+         OR LOWER(customer_email) = ${userEmail}
          OR (notes ILIKE ${'%Email: ' + userEmail + '%'})
       ORDER BY created_at DESC
     `);
+    
+    console.log(`[Orders API] Found ${result.rows?.length || 0} orders for user`);
 
     const userOrders = (result.rows || []).map((row: any) => {
       const customerInfo = parseNotesForCustomerInfo(row.notes);

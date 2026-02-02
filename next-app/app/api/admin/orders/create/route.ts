@@ -39,7 +39,9 @@ const createOrderSchema = z.object({
       zipCode: z.string().optional(),
       country: z.string().optional(),
     })
-    .optional(),
+    .optional()
+    .nullable(),
+  deliveryMethod: z.enum(["shipping", "pickup"]).default("shipping"),
   items: z.array(
     z.object({
       // Custom items may not map to a catalog product.
@@ -83,16 +85,19 @@ export async function POST(request: Request) {
     const paymentLinkToken = generatePaymentToken();
 
     let customerId = data.customer.userId;
+    const customerEmail = data.customer.email.toLowerCase().trim();
 
-    if (!customerId && data.customer.email) {
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, data.customer.email))
-        .limit(1);
-
-      if (existingUser) {
-        customerId = existingUser.id;
+    if (!customerId && customerEmail) {
+      // Use case-insensitive email lookup to find existing user
+      const existingUserResult = await db.execute(sql`
+        SELECT id FROM users WHERE LOWER(email) = ${customerEmail} LIMIT 1
+      `);
+      
+      if (existingUserResult.rows && existingUserResult.rows.length > 0) {
+        customerId = existingUserResult.rows[0].id as string;
+        console.log(`[Admin Order] Found existing user by email (case-insensitive): ${customerId}`);
+      } else {
+        console.log(`[Admin Order] No existing user found for email: ${customerEmail}`);
       }
     }
 
@@ -100,9 +105,10 @@ export async function POST(request: Request) {
     
     // Use only core columns that definitely exist in all database versions
     // Store customer info and payment token in the notes field as backup
+    // Use normalized (lowercase) email for consistent matching
     const notesContent = [
       `Customer: ${data.customer.name}`,
-      `Email: ${data.customer.email}`,
+      `Email: ${customerEmail}`,
       data.customer.phone ? `Phone: ${data.customer.phone}` : null,
       `Payment Link: ${paymentLinkToken}`,
       data.notes ? `Admin Notes: ${data.notes}` : null,
@@ -118,11 +124,15 @@ export async function POST(request: Request) {
       
       // Try with artwork_status and created_by_admin_id columns first
       let result;
+      const deliveryMethod = data.deliveryMethod || 'shipping';
       try {
         result = await db.execute(sql`
           INSERT INTO orders (
             order_number,
             user_id,
+            customer_email,
+            customer_name,
+            customer_phone,
             status,
             subtotal,
             shipping_cost,
@@ -132,10 +142,14 @@ export async function POST(request: Request) {
             shipping_address,
             notes,
             artwork_status,
-            created_by_admin_id
+            created_by_admin_id,
+            delivery_method
           ) VALUES (
             ${orderNumber},
             ${customerId},
+            ${customerEmail},
+            ${data.customer.name},
+            ${data.customer.phone || null},
             'pending',
             ${data.subtotal.toFixed(2)},
             ${data.shippingCost.toFixed(2)},
@@ -145,39 +159,80 @@ export async function POST(request: Request) {
             ${shippingAddressJson}::jsonb,
             ${notesContent},
             'awaiting_artwork',
-            ${adminId}
+            ${adminId},
+            ${deliveryMethod}
           )
-          RETURNING id, order_number, status, total_amount
+          RETURNING id, order_number, status, total_amount, delivery_method
         `);
       } catch (colErr) {
-        // Fallback without new columns (production may not have them)
+        // Fallback without artwork_status/created_by_admin_id columns
+        // Try with customer_email first, then minimal fallback
         console.log('Falling back to order creation without artwork_status/created_by_admin_id columns');
-        result = await db.execute(sql`
-          INSERT INTO orders (
-            order_number,
-            user_id,
-            status,
-            subtotal,
-            shipping_cost,
-            tax_amount,
-            discount_amount,
-            total_amount,
-            shipping_address,
-            notes
-          ) VALUES (
-            ${orderNumber},
-            ${customerId},
-            'pending',
-            ${data.subtotal.toFixed(2)},
-            ${data.shippingCost.toFixed(2)},
-            ${data.taxAmount.toFixed(2)},
-            ${data.discountAmount.toFixed(2)},
-            ${data.totalAmount.toFixed(2)},
-            ${shippingAddressJson}::jsonb,
-            ${notesContent}
-          )
-          RETURNING id, order_number, status, total_amount
-        `);
+        try {
+          result = await db.execute(sql`
+            INSERT INTO orders (
+              order_number,
+              user_id,
+              customer_email,
+              customer_name,
+              customer_phone,
+              status,
+              subtotal,
+              shipping_cost,
+              tax_amount,
+              discount_amount,
+              total_amount,
+              shipping_address,
+              notes,
+              delivery_method
+            ) VALUES (
+              ${orderNumber},
+              ${customerId},
+              ${customerEmail},
+              ${data.customer.name},
+              ${data.customer.phone || null},
+              'pending',
+              ${data.subtotal.toFixed(2)},
+              ${data.shippingCost.toFixed(2)},
+              ${data.taxAmount.toFixed(2)},
+              ${data.discountAmount.toFixed(2)},
+              ${data.totalAmount.toFixed(2)},
+              ${shippingAddressJson}::jsonb,
+              ${notesContent},
+              ${deliveryMethod}
+            )
+            RETURNING id, order_number, status, total_amount, delivery_method
+          `);
+        } catch (colErr2) {
+          // Minimal fallback - only core columns guaranteed to exist
+          console.log('Falling back to minimal order creation (core columns only)');
+          result = await db.execute(sql`
+            INSERT INTO orders (
+              order_number,
+              user_id,
+              status,
+              subtotal,
+              shipping_cost,
+              tax_amount,
+              discount_amount,
+              total_amount,
+              shipping_address,
+              notes
+            ) VALUES (
+              ${orderNumber},
+              ${customerId},
+              'pending',
+              ${data.subtotal.toFixed(2)},
+              ${data.shippingCost.toFixed(2)},
+              ${data.taxAmount.toFixed(2)},
+              ${data.discountAmount.toFixed(2)},
+              ${data.totalAmount.toFixed(2)},
+              ${shippingAddressJson}::jsonb,
+              ${notesContent}
+            )
+            RETURNING id, order_number, status, total_amount
+          `);
+        }
       }
       
       newOrder = {
@@ -185,6 +240,7 @@ export async function POST(request: Request) {
         orderNumber: result.rows[0].order_number as string,
         status: result.rows[0].status as string,
         totalAmount: result.rows[0].total_amount as string,
+        deliveryMethod: (result.rows[0].delivery_method as string) || deliveryMethod,
       };
     } catch (dbError: any) {
       console.error("Order creation failed:", dbError.message);

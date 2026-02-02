@@ -24,7 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw, Check } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw, Check, Store } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,9 @@ interface Order {
   totalAmount: string;
   trackingNumber: string | null;
   trackingCarrier?: string | null;
+  deliveryMethod?: "shipping" | "pickup" | null;
+  pickupReadyAt?: string | null;
+  pickupInstructions?: string | null;
   notes?: string | null;
   artworkStatus?: string;
   customerArtworkUrl?: string;
@@ -74,6 +77,7 @@ const statusOptions = [
   "paid",
   "in_production",
   "printed",
+  "ready_for_pickup",
   "shipped",
   "delivered",
   "cancelled",
@@ -85,6 +89,7 @@ const statusColors: Record<string, string> = {
   paid: "bg-blue-100 text-blue-800",
   in_production: "bg-purple-100 text-purple-800",
   printed: "bg-indigo-100 text-indigo-800",
+  ready_for_pickup: "bg-teal-100 text-teal-800",
   shipped: "bg-cyan-100 text-cyan-800",
   delivered: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
@@ -478,6 +483,36 @@ export default function AdminOrders() {
     }
   };
 
+  // Mark order as ready for pickup mutation
+  const markReadyForPickupMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/orders/${id}/ready-for-pickup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to mark ready for pickup");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      toast({ 
+        title: "Order Ready for Pickup",
+        description: "Customer has been notified via email with pickup instructions."
+      });
+    },
+    onError: (error: any) => toast({ title: error.message || "Failed to update status", variant: "destructive" }),
+  });
+
+  const handleMarkReadyForPickup = (orderId: number) => {
+    if (window.confirm("Mark this order as READY FOR PICKUP? This will send an email to the customer with pickup instructions.")) {
+      markReadyForPickupMutation.mutate(orderId);
+    }
+  };
+
   // Approve artwork function
   const handleApproveArtwork = async (orderId: number, orderItemId: number) => {
     try {
@@ -810,6 +845,27 @@ export default function AdminOrders() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Manually mark this order as paid</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {/* Ready for Pickup button - only show for pickup orders */}
+                      {order.deliveryMethod === 'pickup' && !['ready_for_pickup', 'delivered', 'cancelled'].includes(order.status) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleMarkReadyForPickup(order.id)}
+                              disabled={markReadyForPickupMutation.isPending}
+                              className="text-teal-600 border-teal-300 hover:bg-teal-50"
+                              data-testid={`button-ready-pickup-${order.id}`}
+                            >
+                              <Store className="h-3 w-3 mr-1" />
+                              Ready for Pickup
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Mark order ready and notify customer for pickup</p>
                           </TooltipContent>
                         </Tooltip>
                       )}

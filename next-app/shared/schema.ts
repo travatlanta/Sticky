@@ -21,9 +21,15 @@ export const orderStatusEnum = pgEnum("order_status", [
   "paid",
   "in_production",
   "printed",
+  "ready_for_pickup",
   "shipped",
   "delivered",
   "cancelled",
+]);
+
+export const deliveryMethodEnum = pgEnum("delivery_method", [
+  "shipping",
+  "pickup",
 ]);
 
 export const notificationTypeEnum = pgEnum("notification_type", [
@@ -314,6 +320,9 @@ export const orders = pgTable("orders", {
   stripePaymentIntentId: varchar("stripe_payment_intent_id"),
   trackingNumber: varchar("tracking_number"),
   trackingCarrier: varchar("tracking_carrier"),
+  deliveryMethod: deliveryMethodEnum("delivery_method").default("shipping"),
+  pickupReadyAt: timestamp("pickup_ready_at"),
+  pickupInstructions: text("pickup_instructions"),
   notes: text("notes"),
   createdByAdminId: varchar("created_by_admin_id").references(() => users.id),
   paymentLinkToken: varchar("payment_link_token", { length: 64 }),

@@ -37,14 +37,15 @@ export async function GET() {
 
     let allOrders: any[] = [];
     try {
-      // Try with created_by_admin_id column first
+      // Try with created_by_admin_id and delivery_method columns first
       let result;
       let hasCreatedByAdminId = true;
       try {
         result = await db.execute(sql`
           SELECT id, order_number, user_id, status, subtotal, shipping_cost, 
                  tax_amount, discount_amount, total_amount, shipping_address, 
-                 notes, tracking_number, created_at, artwork_status, created_by_admin_id
+                 notes, tracking_number, created_at, artwork_status, created_by_admin_id,
+                 delivery_method, pickup_ready_at, pickup_instructions
           FROM orders 
           ORDER BY created_at DESC
         `);
@@ -81,6 +82,9 @@ export async function GET() {
           createdAt: row.created_at,
           artworkStatus: row.artwork_status || null,
           createdByAdminId: hasCreatedByAdminId ? (row.created_by_admin_id || null) : null,
+          deliveryMethod: row.delivery_method || 'shipping',
+          pickupReadyAt: row.pickup_ready_at || null,
+          pickupInstructions: row.pickup_instructions || null,
           // Parse customer info from notes for display
           ...parseNotesForCustomerInfo(row.notes),
         };

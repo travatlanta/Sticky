@@ -118,6 +118,8 @@ export const authOptions: NextAuthOptions = {
           where: eq(users.googleId, user.id),
         });
 
+        const isNewUser = !existingUser;
+        
         if (!existingUser) {
           const [newUser] = await db.insert(users).values({
             googleId: user.id,
@@ -138,7 +140,7 @@ export const authOptions: NextAuthOptions = {
           user.email || null,
           existingUser.id,
           `Google login successful for ${user.email}`,
-          { provider: 'google', isNewUser: !existingUser }
+          { provider: 'google', isNewUser }
         );
       } else {
         // Credentials login success

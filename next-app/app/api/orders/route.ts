@@ -107,6 +107,17 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching orders:', error);
+    
+    await logActivity({
+      eventType: 'api_error',
+      eventMessage: `Orders API error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      eventDetails: { error: String(error), stack: error instanceof Error ? error.stack : undefined },
+      ipAddress,
+      userAgent,
+      requestPath: '/api/orders',
+      statusCode: 500,
+    });
+    
     return NextResponse.json({ message: 'Failed to fetch orders' }, { status: 500 });
   }
 }

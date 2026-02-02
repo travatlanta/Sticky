@@ -241,6 +241,12 @@ export default function CreateOrderClient() {
     setOrderItems(newItems);
   };
 
+  const setItemQuantity = (index: number, quantity: number) => {
+    const newItems = [...orderItems];
+    newItems[index].quantity = Math.max(1, quantity || 1);
+    setOrderItems(newItems);
+  };
+
   const updateItemPrice = (index: number, price: number) => {
     const newItems = [...orderItems];
     newItems[index].unitPrice = price;
@@ -589,15 +595,24 @@ export default function CreateOrderClient() {
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => updateItemQuantity(index, -1)}
+                                data-testid={`button-quantity-decrease-${index}`}
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="w-8 text-center">{item.quantity}</span>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => setItemQuantity(index, parseInt(e.target.value) || 1)}
+                                className="w-16 h-8 text-center"
+                                data-testid={`input-quantity-${index}`}
+                              />
                               <Button
                                 variant="outline"
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => updateItemQuantity(index, 1)}
+                                data-testid={`button-quantity-increase-${index}`}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>

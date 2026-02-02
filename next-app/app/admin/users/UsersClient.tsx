@@ -1,8 +1,8 @@
 "use client";
 
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ interface User {
 }
 
 export default function AdminUsers() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
@@ -205,7 +206,12 @@ export default function AdminUsers() {
             ) : (
               <div className="space-y-3">
                 {filteredUsers.map((user) => (
-                  <Card key={user.id} className="p-4" data-testid={`card-user-${user.id}`}>
+                  <Card 
+                    key={user.id} 
+                    className="p-4 hover-elevate cursor-pointer" 
+                    data-testid={`card-user-${user.id}`}
+                    onClick={() => router.push(`/admin/users/${user.id}`)}
+                  >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white font-bold">
@@ -244,12 +250,19 @@ export default function AdminUsers() {
                         </span>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Link href={`/admin/orders/create?userId=${user.id}`}>
-                              <Button size="sm" variant="outline" className="border-orange-200 text-orange-600 hover:bg-orange-50" data-testid={`button-create-order-${user.id}`}>
-                                <Plus className="h-3 w-3 mr-1" />
-                                Create Order
-                              </Button>
-                            </Link>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-orange-200 text-orange-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/admin/orders/create?userId=${user.id}`);
+                              }}
+                              data-testid={`button-create-order-${user.id}`}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Create Order
+                            </Button>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Create a manual order for this customer</p>

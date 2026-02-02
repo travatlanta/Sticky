@@ -4,7 +4,24 @@ import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 import { db } from './db';
 import { users } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+
+async function logAuthEvent(
+  eventType: 'login_success' | 'login_failed',
+  email: string | null,
+  userId: string | null,
+  message: string,
+  details?: Record<string, any>
+) {
+  try {
+    await db.execute(sql`
+      INSERT INTO activity_logs (user_email, user_id, event_type, event_message, event_details)
+      VALUES (${email}, ${userId}, ${eventType}, ${message}, ${details ? JSON.stringify(details) : null}::jsonb)
+    `);
+  } catch (e) {
+    console.error('Failed to log auth event:', e);
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -18,6 +35,7 @@ export const authOptions: NextAuthOptions = {
         try {
           if (!credentials?.email || !credentials?.password) {
             console.log('Auth: Missing credentials');
+            await logAuthEvent('login_failed', null, null, 'Login attempt with missing credentials');
             return null;
           }
 
@@ -28,17 +46,20 @@ export const authOptions: NextAuthOptions = {
 
           if (!user) {
             console.log('Auth: User not found');
+            await logAuthEvent('login_failed', credentials.email, null, `Login failed - user not found: ${credentials.email}`);
             return null;
           }
 
           if (!user.passwordHash) {
             console.log('Auth: No password hash for user');
+            await logAuthEvent('login_failed', credentials.email, user.id, `Login failed - no password set for: ${credentials.email}`);
             return null;
           }
 
           const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
           if (!isValid) {
             console.log('Auth: Invalid password');
+            await logAuthEvent('login_failed', credentials.email, user.id, `Login failed - incorrect password for: ${credentials.email}`);
             return null;
           }
 
@@ -51,6 +72,7 @@ export const authOptions: NextAuthOptions = {
           };
         } catch (error) {
           console.error('Auth error:', error);
+          await logAuthEvent('login_failed', credentials?.email || null, null, `Login error: ${error}`);
           return null;
         }
       },
@@ -110,6 +132,23 @@ export const authOptions: NextAuthOptions = {
         // Set the database user ID on the user object so it flows to the JWT
         (user as any).dbId = existingUser.id;
         (user as any).isAdmin = existingUser.isAdmin || false;
+        
+        await logAuthEvent(
+          'login_success',
+          user.email || null,
+          existingUser.id,
+          `Google login successful for ${user.email}`,
+          { provider: 'google', isNewUser: !existingUser }
+        );
+      } else {
+        // Credentials login success
+        await logAuthEvent(
+          'login_success',
+          user.email || null,
+          user.id,
+          `Email login successful for ${user.email}`,
+          { provider: 'credentials' }
+        );
       }
       return true;
     },

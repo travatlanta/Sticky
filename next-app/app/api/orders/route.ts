@@ -1,10 +1,11 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { sql } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { logActivity, getClientInfo } from '@/lib/activity-logger';
 
 // Parse customer info from notes field
 function parseNotesForCustomerInfo(notes: string | null): { name?: string; email?: string; phone?: string } {
@@ -23,21 +24,27 @@ function parseNotesForCustomerInfo(notes: string | null): { name?: string; email
   return result;
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const { ipAddress, userAgent } = getClientInfo(request);
+  
   try {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
+      await logActivity({
+        eventType: 'order_lookup',
+        eventMessage: 'Unauthenticated order lookup attempt',
+        ipAddress,
+        userAgent,
+        requestPath: '/api/orders',
+        statusCode: 401,
+      });
       return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
     }
     
     const userId = String(session.user.id);
     const userEmail = session.user.email?.toLowerCase() || '';
 
-    // Use raw SQL to query orders - match by:
-    // 1. user_id matches logged-in user, OR
-    // 2. customer_email column matches (case-insensitive), OR
-    // 3. email in notes field matches (legacy fallback)
     console.log(`[Orders API] Fetching orders for userId=${userId}, email=${userEmail}`);
     
     const result = await db.execute(sql`
@@ -51,7 +58,22 @@ export async function GET(request: Request) {
       ORDER BY created_at DESC
     `);
     
-    console.log(`[Orders API] Found ${result.rows?.length || 0} orders for user`);
+    const ordersFound = result.rows?.length || 0;
+    console.log(`[Orders API] Found ${ordersFound} orders for user`);
+    
+    await logActivity({
+      userEmail,
+      userId,
+      eventType: ordersFound > 0 ? 'order_lookup' : 'order_not_found',
+      eventMessage: ordersFound > 0 
+        ? `Customer viewed ${ordersFound} orders` 
+        : 'Customer looked up orders but found none',
+      eventDetails: { ordersFound, matchedBy: 'userId/email/notes' },
+      ipAddress,
+      userAgent,
+      requestPath: '/api/orders',
+      statusCode: 200,
+    });
 
     const userOrders = (result.rows || []).map((row: any) => {
       const customerInfo = parseNotesForCustomerInfo(row.notes);

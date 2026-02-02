@@ -23,6 +23,7 @@ import {
   BarChart3,
   Paintbrush,
   HelpCircle,
+  FileWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/customize", label: "Site Customization", icon: Paintbrush },
   { href: "/admin/seo", label: "SEO", icon: Search },
+  { href: "/admin/logs", label: "Troubleshooting", icon: FileWarning },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/guide", label: "Help Guide", icon: HelpCircle },
 

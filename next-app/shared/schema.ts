@@ -581,6 +581,37 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+// Activity log type enum for troubleshooting
+export const activityLogTypeEnum = pgEnum("activity_log_type", [
+  "login_success",
+  "login_failed",
+  "order_lookup",
+  "order_not_found",
+  "page_error",
+  "api_error",
+  "checkout_started",
+  "checkout_completed",
+  "checkout_failed",
+  "session_started",
+  "general",
+]);
+
+// Activity logs table for customer troubleshooting
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  userEmail: varchar("user_email"),
+  userId: varchar("user_id"),
+  eventType: activityLogTypeEnum("event_type").notNull().default("general"),
+  eventMessage: text("event_message").notNull(),
+  eventDetails: jsonb("event_details"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  requestPath: varchar("request_path"),
+  statusCode: integer("status_code"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -610,3 +641,5 @@ export type ProductTemplate = typeof productTemplates.$inferSelect;
 export type InsertProductTemplate = typeof productTemplates.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type InsertActivityLog = typeof activityLogs.$inferInsert;

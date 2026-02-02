@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -64,13 +65,34 @@ export default function Register() {
         const error = await response.json();
         throw new Error(error.message || "Registration failed");
       }
-      return response.json();
+      
+      const userData = await response.json();
+      
+      // Automatically log the user in right after registration
+      const signInResult = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+      
+      return { userData, signInSuccess: !signInResult?.error };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      
+      if (!result.signInSuccess) {
+        // Registration succeeded but auto-login failed - redirect to login page
+        toast({
+          title: "Account created!",
+          description: "Please log in with your new credentials.",
+        });
+        router.push("/login");
+        return;
+      }
+      
       toast({
         title: "Welcome!",
-        description: "Your account has been created successfully.",
+        description: "Your account has been created and you're now signed in.",
       });
       router.push("/account");
     },

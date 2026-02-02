@@ -16,6 +16,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
+    // Check if activity_logs table exists
+    const tableCheck = await db.execute(sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'activity_logs'
+      ) as exists
+    `);
+    
+    const tableExists = (tableCheck.rows[0] as any)?.exists === true;
+    
+    if (!tableExists) {
+      // Table doesn't exist yet - return empty result with setup message
+      return NextResponse.json({
+        logs: [],
+        total: 0,
+        limit: 100,
+        offset: 0,
+        setupRequired: true,
+        message: 'Activity logging table not yet created. Database sync required.',
+      });
+    }
+
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');
     const eventType = searchParams.get('eventType');

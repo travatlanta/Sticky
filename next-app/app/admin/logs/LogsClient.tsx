@@ -49,6 +49,8 @@ interface LogsResponse {
   total: number;
   limit: number;
   offset: number;
+  setupRequired?: boolean;
+  message?: string;
 }
 
 function getEventIcon(eventType: string) {
@@ -217,6 +219,14 @@ export default function LogsClient() {
               </Card>
             ))}
           </div>
+        ) : data?.setupRequired ? (
+          <Card className="p-8 text-center border-orange-200 bg-orange-50">
+            <AlertCircle className="h-12 w-12 text-orange-400 mx-auto mb-3" />
+            <p className="text-orange-800 font-medium mb-2">Database Setup Required</p>
+            <p className="text-orange-600 text-sm">
+              The activity logging table needs to be created. A database sync is needed to enable this feature.
+            </p>
+          </Card>
         ) : !data?.logs?.length ? (
           <Card className="p-8 text-center">
             <FileWarning className="h-12 w-12 text-gray-300 mx-auto mb-3" />

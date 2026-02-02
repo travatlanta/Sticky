@@ -128,6 +128,13 @@ export default function CreateOrderClient() {
   const [notes, setNotes] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState<"shipping" | "pickup">("shipping");
   const [shippingCost, setShippingCost] = useState(15);
+  
+  // Pickup details
+  const [showPickupDialog, setShowPickupDialog] = useState(false);
+  const [pickupDetails, setPickupDetails] = useState({
+    address: "2 N 35th Ave, Phoenix, AZ 85009",
+    notes: "",
+  });
   // Phoenix, AZ default tax rate: 8.6% (state 5.6% + Maricopa County 0.7% + Phoenix 2.3%)
   const [taxRate, setTaxRate] = useState(8.6);
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -368,6 +375,17 @@ export default function CreateOrderClient() {
       return;
     }
 
+    // Build notes with pickup details if pickup is selected
+    let orderNotes = notes;
+    if (deliveryMethod === "pickup") {
+      const pickupInfo = [
+        `\n--- PICKUP ORDER ---`,
+        `Pickup Address: ${pickupDetails.address}`,
+        pickupDetails.notes ? `Pickup Instructions: ${pickupDetails.notes}` : null,
+      ].filter(Boolean).join('\n');
+      orderNotes = notes ? `${notes}\n${pickupInfo}` : pickupInfo;
+    }
+
     createOrderMutation.mutate({
       customer: customerInfo,
       shippingAddress: deliveryMethod === "shipping" ? shippingAddress : null,
@@ -383,7 +401,7 @@ export default function CreateOrderClient() {
       taxAmount,
       discountAmount,
       totalAmount,
-      notes,
+      notes: orderNotes,
     });
   };
 
@@ -528,6 +546,7 @@ export default function CreateOrderClient() {
                     onClick={() => {
                       setDeliveryMethod("pickup");
                       setShippingCost(0);
+                      setShowPickupDialog(true);
                     }}
                     className={`flex-1 h-auto py-4 toggle-elevate ${
                       deliveryMethod === "pickup" ? "toggle-elevated border-primary" : ""
@@ -537,10 +556,38 @@ export default function CreateOrderClient() {
                     <Store className="h-6 w-6 mr-3" />
                     <div className="text-left">
                       <div className="font-medium">Customer Pickup</div>
-                      <div className="text-sm text-muted-foreground">2 N 35th Ave, Phoenix</div>
+                      <div className="text-sm text-muted-foreground truncate max-w-[150px]">
+                        {pickupDetails.address.split(",")[0]}
+                      </div>
                     </div>
                   </Button>
                 </div>
+                
+                {deliveryMethod === "pickup" && (
+                  <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-orange-800">Pickup Location:</p>
+                        <p className="text-sm text-orange-700">{pickupDetails.address}</p>
+                        {pickupDetails.notes && (
+                          <p className="text-sm text-orange-600 mt-1">
+                            <span className="font-medium">Notes:</span> {pickupDetails.notes}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowPickupDialog(true)}
+                        className="text-orange-600 hover:text-orange-800"
+                        data-testid="button-edit-pickup"
+                      >
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1132,6 +1179,59 @@ export default function CreateOrderClient() {
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Add Custom Item
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pickup Details Dialog */}
+      <Dialog open={showPickupDialog} onOpenChange={setShowPickupDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Store className="h-5 w-5" />
+              Pickup Details
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label htmlFor="pickup-address">Pickup Address</Label>
+              <Textarea
+                id="pickup-address"
+                value={pickupDetails.address}
+                onChange={(e) => setPickupDetails({ ...pickupDetails, address: e.target.value })}
+                placeholder="Enter pickup address..."
+                rows={2}
+                data-testid="input-pickup-address"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="pickup-notes">Additional Pickup Instructions (optional)</Label>
+              <Textarea
+                id="pickup-notes"
+                value={pickupDetails.notes}
+                onChange={(e) => setPickupDetails({ ...pickupDetails, notes: e.target.value })}
+                placeholder="e.g., Call when arriving, pickup hours, gate code..."
+                rows={3}
+                data-testid="input-pickup-notes"
+              />
+            </div>
+            
+            <div className="flex gap-3 justify-end pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowPickupDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => setShowPickupDialog(false)}
+                className="bg-orange-500 hover:bg-orange-600"
+                data-testid="button-save-pickup"
+              >
+                Save Pickup Details
               </Button>
             </div>
           </div>

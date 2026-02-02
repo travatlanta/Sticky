@@ -106,7 +106,7 @@ export default function UserDetailClient({ userId }: { userId: string }) {
 
   if (isLoading) {
     return (
-      <AdminLayout title="User Details">
+      <AdminLayout>
         <div className="animate-pulse space-y-6">
           <div className="h-8 w-32 bg-gray-200 rounded" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -121,7 +121,7 @@ export default function UserDetailClient({ userId }: { userId: string }) {
 
   if (error || !user) {
     return (
-      <AdminLayout title="User Details">
+      <AdminLayout>
         <div className="text-center py-12">
           <p className="text-red-500 mb-4">Failed to load user details</p>
           <Button onClick={() => router.back()}>
@@ -136,7 +136,7 @@ export default function UserDetailClient({ userId }: { userId: string }) {
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "No Name";
 
   return (
-    <AdminLayout title="User Details">
+    <AdminLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

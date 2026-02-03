@@ -12,7 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles, Image, Upload, X, Power } from "lucide-react";
+import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles, Image, Upload, X, Power, AlertTriangle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { generateEmailHtml } from "@/lib/email/template";
@@ -58,11 +66,19 @@ function sanitizePreviewHtml(html: string): string {
 export default function EmailTemplatesClient() {
   const [selectedType, setSelectedType] = useState<EmailType>('order_confirmation');
   const [formData, setFormData] = useState<EmailTemplate | null>(null);
+  const [originalFormData, setOriginalFormData] = useState<EmailTemplate | null>(null);
   const [siteUrl, setSiteUrl] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [pendingTypeChange, setPendingTypeChange] = useState<EmailType | null>(null);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!formData || !originalFormData) return false;
+    return JSON.stringify(formData) !== JSON.stringify(originalFormData);
+  }, [formData, originalFormData]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -76,9 +92,39 @@ export default function EmailTemplatesClient() {
 
   useEffect(() => {
     if (data?.templates && selectedType) {
-      setFormData(data.templates[selectedType]);
+      const template = data.templates[selectedType];
+      setFormData(template);
+      setOriginalFormData(template);
     }
   }, [data, selectedType]);
+
+  const handleTypeChange = (newType: EmailType) => {
+    if (hasUnsavedChanges) {
+      setPendingTypeChange(newType);
+      setShowUnsavedDialog(true);
+    } else {
+      setSelectedType(newType);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    if (pendingTypeChange) {
+      setSelectedType(pendingTypeChange);
+      setPendingTypeChange(null);
+    }
+    setShowUnsavedDialog(false);
+  };
+
+  const handleSaveAndSwitch = async () => {
+    if (formData) {
+      await saveMutation.mutateAsync({ emailType: selectedType, template: formData });
+      if (pendingTypeChange) {
+        setSelectedType(pendingTypeChange);
+        setPendingTypeChange(null);
+      }
+    }
+    setShowUnsavedDialog(false);
+  };
 
   const saveMutation = useMutation({
     mutationFn: async ({ emailType, template }: { emailType: EmailType; template: EmailTemplate }) => {
@@ -230,25 +276,80 @@ export default function EmailTemplatesClient() {
         </div>
 
         <Card className="p-4 mb-6">
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium whitespace-nowrap">Email Type:</label>
-            <Select
-              value={selectedType}
-              onValueChange={(v) => setSelectedType(v as EmailType)}
-            >
-              <SelectTrigger className="w-[300px]" data-testid="select-email-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {emailTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {emailTypeLabels[type] || type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium whitespace-nowrap">Email Type:</label>
+              <Select
+                value={selectedType}
+                onValueChange={(v) => handleTypeChange(v as EmailType)}
+              >
+                <SelectTrigger className="w-[300px]" data-testid="select-email-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {emailTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {emailTypeLabels[type] || type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3">
+              {hasUnsavedChanges && (
+                <span className="text-sm text-orange-600 flex items-center gap-1">
+                  <AlertTriangle className="h-4 w-4" />
+                  Unsaved changes
+                </span>
+              )}
+              <Button 
+                onClick={handleSave} 
+                disabled={saveMutation.isPending || !hasUnsavedChanges}
+                className="bg-orange-500"
+                data-testid="button-save-top"
+              >
+                {saveMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Changes
+              </Button>
+            </div>
           </div>
         </Card>
+
+        <Dialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                Unsaved Changes
+              </DialogTitle>
+              <DialogDescription>
+                You have unsaved changes to this email template. Would you like to save them before switching?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={handleDiscardChanges} data-testid="button-discard">
+                Discard Changes
+              </Button>
+              <Button 
+                onClick={handleSaveAndSwitch} 
+                disabled={saveMutation.isPending}
+                className="bg-orange-500"
+                data-testid="button-save-and-switch"
+              >
+                {saveMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save & Continue
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {formData && (
           <div className="grid lg:grid-cols-2 gap-6">

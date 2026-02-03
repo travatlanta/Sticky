@@ -221,3 +221,172 @@ export async function sendAdminNotificationEmail(params: AdminNotificationParams
   }
   return success;
 }
+
+interface CustomerNotificationParams {
+  customerEmail: string;
+  customerName: string;
+  orderNumber: string;
+  orderId: number;
+  trackingNumber?: string;
+  trackingUrl?: string;
+}
+
+export async function sendOrderShippedEmail(params: CustomerNotificationParams): Promise<boolean> {
+  const { customerEmail, customerName, orderNumber, orderId, trackingNumber, trackingUrl } = params;
+  const orderUrl = `${SITE_URL}/orders/${orderId}`;
+  
+  const template = await getEmailTemplate('order_shipped');
+  const vars = { orderNumber, customerName: customerName || 'there' };
+
+  const subject = replaceTemplateVariables(template.subject, vars);
+  const headline = replaceTemplateVariables(template.headline, vars);
+  const message = replaceTemplateVariables(template.bodyMessage, vars);
+
+  const bodyContent = `
+    <p style="margin: 0 0 20px 0;">${message}</p>
+    
+    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;">
+      <p style="margin: 0 0 16px 0; color: #22c55e; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Order #${orderNumber}</p>
+      ${trackingNumber ? `
+      <p style="margin: 8px 0; color: #d1d5db; font-size: 14px;">
+        Tracking Number: <strong style="color: #ffffff;">${trackingNumber}</strong>
+      </p>
+      ` : ''}
+    </div>
+  `;
+
+  const html = generateEmailHtml({
+    preheaderText: `Your order #${orderNumber} has shipped!`,
+    headline,
+    subheadline: template.subheadline ? replaceTemplateVariables(template.subheadline, vars) : undefined,
+    greeting: template.greeting ? replaceTemplateVariables(template.greeting, vars) : `Hi ${customerName || 'there'},`,
+    bodyContent,
+    ctaButton: {
+      text: template.ctaButtonText,
+      url: trackingUrl || orderUrl,
+      color: template.ctaButtonColor,
+    },
+    customFooterNote: template.footerMessage ? replaceTemplateVariables(template.footerMessage, vars) : undefined,
+  });
+
+  const text = generatePlainText({
+    headline,
+    greeting: template.greeting ? replaceTemplateVariables(template.greeting, vars) : `Hi ${customerName || 'there'},`,
+    bodyContent: `${message}\n\nOrder #${orderNumber}${trackingNumber ? `\nTracking: ${trackingNumber}` : ''}`,
+    ctaButton: {
+      text: template.ctaButtonText,
+      url: trackingUrl || orderUrl,
+    },
+  });
+
+  const success = await sendEmail(customerEmail, subject, html, text);
+  if (success) {
+    console.log(`Order shipped email sent to ${customerEmail} for order ${orderNumber}`);
+  }
+  return success;
+}
+
+export async function sendOrderIssueFlaggedEmail(params: Omit<CustomerNotificationParams, 'trackingNumber' | 'trackingUrl'>): Promise<boolean> {
+  const { customerEmail, customerName, orderNumber, orderId } = params;
+  const orderUrl = `${SITE_URL}/orders/${orderId}`;
+  
+  const template = await getEmailTemplate('order_issue_flagged');
+  const vars = { orderNumber, customerName: customerName || 'there' };
+
+  const subject = replaceTemplateVariables(template.subject, vars);
+  const headline = replaceTemplateVariables(template.headline, vars);
+  const message = replaceTemplateVariables(template.bodyMessage, vars);
+
+  const bodyContent = `
+    <p style="margin: 0 0 20px 0;">${message}</p>
+    
+    <div style="background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;">
+      <p style="margin: 0; color: #f97316; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Order #${orderNumber}</p>
+    </div>
+    
+    <p style="margin: 0; color: #9ca3af;">
+      Please click the button below to review the changes and approve them so we can continue with your order.
+    </p>
+  `;
+
+  const html = generateEmailHtml({
+    preheaderText: `Action needed for your order #${orderNumber}`,
+    headline,
+    subheadline: template.subheadline ? replaceTemplateVariables(template.subheadline, vars) : undefined,
+    greeting: template.greeting ? replaceTemplateVariables(template.greeting, vars) : `Hi ${customerName || 'there'},`,
+    bodyContent,
+    ctaButton: {
+      text: template.ctaButtonText,
+      url: orderUrl,
+      color: template.ctaButtonColor,
+    },
+    customFooterNote: template.footerMessage ? replaceTemplateVariables(template.footerMessage, vars) : undefined,
+  });
+
+  const text = generatePlainText({
+    headline,
+    greeting: template.greeting ? replaceTemplateVariables(template.greeting, vars) : `Hi ${customerName || 'there'},`,
+    bodyContent: `${message}\n\nOrder #${orderNumber}`,
+    ctaButton: {
+      text: template.ctaButtonText,
+      url: orderUrl,
+    },
+  });
+
+  const success = await sendEmail(customerEmail, subject, html, text);
+  if (success) {
+    console.log(`Order issue flagged email sent to ${customerEmail} for order ${orderNumber}`);
+  }
+  return success;
+}
+
+export async function sendArtworkApprovedByAdminEmail(params: Omit<CustomerNotificationParams, 'trackingNumber' | 'trackingUrl'>): Promise<boolean> {
+  const { customerEmail, customerName, orderNumber, orderId } = params;
+  const orderUrl = `${SITE_URL}/orders/${orderId}`;
+  
+  const template = await getEmailTemplate('artwork_approved_by_admin');
+  const vars = { orderNumber, customerName: customerName || 'there' };
+
+  const subject = replaceTemplateVariables(template.subject, vars);
+  const headline = replaceTemplateVariables(template.headline, vars);
+  const message = replaceTemplateVariables(template.bodyMessage, vars);
+
+  const bodyContent = `
+    <p style="margin: 0 0 20px 0;">${message}</p>
+    
+    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;">
+      <p style="margin: 0; color: #22c55e; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Order #${orderNumber}</p>
+      <p style="margin: 12px 0 0 0; color: #d1d5db; font-size: 16px;">Production Starting Soon</p>
+    </div>
+  `;
+
+  const html = generateEmailHtml({
+    preheaderText: `Great news! Your artwork for order #${orderNumber} has been approved`,
+    headline,
+    subheadline: template.subheadline ? replaceTemplateVariables(template.subheadline, vars) : undefined,
+    greeting: template.greeting ? replaceTemplateVariables(template.greeting, vars) : `Hi ${customerName || 'there'},`,
+    bodyContent,
+    ctaButton: {
+      text: template.ctaButtonText,
+      url: orderUrl,
+      color: template.ctaButtonColor,
+    },
+    customFooterNote: template.footerMessage ? replaceTemplateVariables(template.footerMessage, vars) : undefined,
+  });
+
+  const text = generatePlainText({
+    headline,
+    greeting: template.greeting ? replaceTemplateVariables(template.greeting, vars) : `Hi ${customerName || 'there'},`,
+    bodyContent: `${message}\n\nOrder #${orderNumber}`,
+    ctaButton: {
+      text: template.ctaButtonText,
+      url: orderUrl,
+    },
+  });
+
+  const success = await sendEmail(customerEmail, subject, html, text);
+  if (success) {
+    console.log(`Artwork approved by admin email sent to ${customerEmail} for order ${orderNumber}`);
+  }
+  return success;
+}

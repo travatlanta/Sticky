@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles, Image } from "lucide-react";
+import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles, Image, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateEmailHtml } from "@/lib/email/template";
 import type { EmailType, EmailTemplate } from "@/lib/email/emailTemplateTypes";
@@ -49,6 +49,7 @@ export default function EmailTemplatesClient() {
   const [selectedType, setSelectedType] = useState<EmailType>('order_confirmation');
   const [formData, setFormData] = useState<EmailTemplate | null>(null);
   const [siteUrl, setSiteUrl] = useState("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -94,6 +95,51 @@ export default function EmailTemplatesClient() {
   const handleChange = (field: keyof EmailTemplate, value: string) => {
     if (!formData) return;
     setFormData(prev => prev ? { ...prev, [field]: value } : null);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Please upload an image file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "File size must be under 2MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', file);
+      formDataUpload.append('folder', 'email-logos');
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formDataUpload,
+      });
+
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const { url } = await res.json();
+      handleChange('logoUrl', url);
+      toast({ title: "Logo uploaded successfully" });
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      toast({ title: "Failed to upload logo", variant: "destructive" });
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    handleChange('logoUrl', '');
   };
 
   const handleSave = () => {
@@ -194,32 +240,68 @@ export default function EmailTemplatesClient() {
                 </h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Logo URL (optional)</label>
-                    <input
-                      type="text"
-                      value={formData.logoUrl || ''}
-                      onChange={(e) => handleChange('logoUrl', e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="https://example.com/logo.png"
-                      data-testid="input-logo-url"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Leave empty to use the default Sticky Banditos logo</p>
-                  </div>
-                  {formData.logoUrl && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium mb-2">Logo Preview:</p>
-                      <div className="bg-gray-900 p-4 rounded-lg inline-block">
-                        <img 
-                          src={formData.logoUrl} 
-                          alt="Logo preview" 
-                          className="max-h-16 max-w-[200px] object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
+                    <label className="block text-sm font-medium mb-1">Custom Logo (optional)</label>
+                    {formData.logoUrl ? (
+                      <div className="space-y-3">
+                        <div className="bg-gray-900 p-4 rounded-lg inline-block">
+                          <img 
+                            src={formData.logoUrl} 
+                            alt="Logo preview" 
+                            className="max-h-16 max-w-[200px] object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleRemoveLogo}
+                            data-testid="button-remove-logo"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Remove Logo
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm text-gray-600 mb-2">Upload a custom logo for your emails</p>
+                        <label className="cursor-pointer">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            disabled={isUploadingLogo}
+                            asChild
+                          >
+                            <span>
+                              {isUploadingLogo ? (
+                                <>
+                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Choose File
+                                </>
+                              )}
+                            </span>
+                          </Button>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                            data-testid="input-logo-upload"
+                          />
+                        </label>
+                        <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 2MB. Leave empty for default logo.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </Card>
 
@@ -376,14 +458,22 @@ export default function EmailTemplatesClient() {
                 <p className="text-sm text-gray-600 mb-4">
                   Live preview with sample data
                 </p>
-                <div className="overflow-x-auto rounded-lg border bg-white">
+                <div className="overflow-x-auto rounded-lg border bg-white relative">
                   {previewHtml ? (
-                    <iframe
-                      title="Email preview"
-                      className="h-[700px] w-full min-w-[500px] border-0 bg-white"
-                      sandbox="allow-same-origin"
-                      srcDoc={previewHtml}
-                    />
+                    <>
+                      <div 
+                        className="absolute inset-0 z-10" 
+                        style={{ pointerEvents: 'auto' }}
+                        title="Email preview - not interactive"
+                      />
+                      <iframe
+                        title="Email preview"
+                        className="h-[700px] w-full min-w-[500px] border-0 bg-white"
+                        sandbox=""
+                        srcDoc={previewHtml.replace(/<a\s+href="[^"]*"/g, '<a href="#" onclick="return false;"')}
+                        style={{ pointerEvents: 'none' }}
+                      />
+                    </>
                   ) : (
                     <div className="h-[400px] flex items-center justify-center text-gray-500">
                       Loading preview...

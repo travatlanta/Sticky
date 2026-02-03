@@ -505,7 +505,7 @@ export default function EmailTemplatesClient() {
                       <iframe
                         title="Email preview"
                         className="h-[700px] w-full min-w-[500px] border-0 bg-white"
-                        sandbox=""
+                        sandbox="allow-same-origin"
                         srcDoc={sanitizePreviewHtml(previewHtml)}
                         style={{ pointerEvents: 'none' }}
                       />

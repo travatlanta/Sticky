@@ -102,6 +102,8 @@ export async function PUT(request: Request) {
       [emailType]: parseResult.data,
     };
 
+    console.log(`Saving email template: ${emailType}, enabled: ${parseResult.data.enabled}`);
+
     if (existing) {
       await db
         .update(siteSettings)
@@ -114,6 +116,7 @@ export async function PUT(request: Request) {
       });
     }
 
+    console.log(`Email template saved successfully: ${emailType}`);
     return NextResponse.json({ success: true, template: parseResult.data });
   } catch (error) {
     console.error('Error updating email template:', error);

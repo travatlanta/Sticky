@@ -41,6 +41,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     ctaButtonColor: 'orange',
     footerMessage: 'Questions about your order? Contact us at',
     thankYouMessage: 'Thank you for your order!',
+    enabled: true,
   },
   artwork_approval: {
     subject: 'Action Required: Approve Your Design - Order {orderNumber} | Sticky Banditos',
@@ -51,6 +52,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     ctaButtonText: 'Review & Approve Design',
     ctaButtonColor: 'green',
     footerMessage: 'If you have any questions about your design, feel free to reply through your account messages.',
+    enabled: true,
   },
   ready_for_pickup: {
     subject: 'Order {orderNumber} - Ready for Pickup! | Sticky Banditos',
@@ -61,6 +63,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     ctaButtonText: 'View Order Details',
     ctaButtonColor: 'orange',
     footerMessage: 'Please bring a valid ID when picking up your order.',
+    enabled: true,
   },
   order_shipped: {
     subject: 'Your Order {orderNumber} Has Shipped! | Sticky Banditos',
@@ -71,6 +74,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     ctaButtonText: 'Track Your Order',
     ctaButtonColor: 'green',
     footerMessage: 'You can track your package using the tracking information in your order details.',
+    enabled: true,
   },
   order_issue_flagged: {
     subject: 'Action Needed: Issue with Order {orderNumber} | Sticky Banditos',
@@ -81,6 +85,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     ctaButtonText: 'Review Changes',
     ctaButtonColor: 'orange',
     footerMessage: 'If you have any questions, please don\'t hesitate to reach out to us.',
+    enabled: true,
   },
   artwork_approved_by_admin: {
     subject: 'Great News! Your Artwork is Approved - Order {orderNumber} | Sticky Banditos',
@@ -91,6 +96,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     ctaButtonText: 'View Order Details',
     ctaButtonColor: 'green',
     footerMessage: 'We\'ll notify you again once your order ships.',
+    enabled: true,
   },
   admin_new_order: {
     subject: 'New Order {orderNumber} Received',
@@ -98,6 +104,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     bodyMessage: 'A new order has been placed by {customerName}.',
     ctaButtonText: 'View Order Details',
     ctaButtonColor: 'green',
+    enabled: true,
   },
   admin_design_submitted: {
     subject: 'Design Submitted - Order {orderNumber}',
@@ -105,6 +112,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     bodyMessage: '{customerName} has submitted their design for approval on order {orderNumber}.',
     ctaButtonText: 'Review Design',
     ctaButtonColor: 'purple',
+    enabled: true,
   },
   admin_artwork_approved: {
     subject: 'Artwork Approved - Order {orderNumber}',
@@ -112,6 +120,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     bodyMessage: '{customerName} has approved the artwork for order {orderNumber}. It\'s ready for production!',
     ctaButtonText: 'Start Production',
     ctaButtonColor: 'green',
+    enabled: true,
   },
   admin_issue_flagged: {
     subject: 'Issue Flagged - Order {orderNumber}',
@@ -119,6 +128,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     bodyMessage: 'An issue has been flagged on order {orderNumber}. The customer has been notified to review and approve the changes.',
     ctaButtonText: 'View Order',
     ctaButtonColor: 'orange',
+    enabled: true,
   },
   admin_order_paid: {
     subject: 'Payment Received - Order {orderNumber}',
@@ -126,6 +136,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     bodyMessage: '{customerName} has successfully paid for order {orderNumber}. The order is now ready for production!',
     ctaButtonText: 'View Order',
     ctaButtonColor: 'green',
+    enabled: true,
   },
 };
 

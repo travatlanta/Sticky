@@ -127,22 +127,31 @@ export default function EmailTemplatesClient() {
       formDataUpload.append('file', file);
       formDataUpload.append('folder', 'email-logos');
 
+      console.log(`Uploading logo: ${file.name}, type: ${file.type}, size: ${file.size}`);
+
       const res = await fetch('/api/upload', {
         method: 'POST',
         credentials: 'include',
         body: formDataUpload,
       });
 
+      const json = await res.json();
+      
       if (!res.ok) {
-        throw new Error('Upload failed');
+        console.error('Upload failed:', json);
+        throw new Error(json.message || 'Upload failed');
       }
 
-      const { url } = await res.json();
-      handleChange('logoUrl', url);
+      console.log('Logo uploaded successfully:', json.url);
+      handleChange('logoUrl', json.url);
       toast({ title: "Logo uploaded successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Logo upload error:', error);
-      toast({ title: "Failed to upload logo", variant: "destructive" });
+      toast({ 
+        title: "Failed to upload logo", 
+        description: error?.message || "Please try again",
+        variant: "destructive" 
+      });
     } finally {
       setIsUploadingLogo(false);
     }

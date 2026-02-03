@@ -36,9 +36,25 @@ export default function AdminSettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: settings, isLoading } = useQuery<SiteSetting[]>({
+  const { data: rawSettings, isLoading } = useQuery<SiteSetting[]>({
     queryKey: ["/api/admin/settings"],
   });
+
+  // Filter out settings that have dedicated UI editors
+  const HIDDEN_SETTINGS = new Set([
+    'receipt_template',
+    'homepage_content',
+    'theme_colors',
+    'siteTitle',
+    'siteDescription',
+    'siteTagline',
+    'ogImage',
+    'businessName',
+    'businessAddress',
+    'googleAnalyticsId',
+  ]);
+  
+  const settings = rawSettings?.filter(s => !HIDDEN_SETTINGS.has(s.key));
 
   const { data: admins, isLoading: adminsLoading } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/admins"],

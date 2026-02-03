@@ -181,12 +181,18 @@ export default function ReceiptSettingsClient() {
   const handleReset = () => {
     setFormData(defaultSettings);
   };
-  const siteUrl =
-    typeof window !== "undefined" ? window.location.origin : "";
+  const [siteUrl, setSiteUrl] = useState("");
+  
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSiteUrl(window.location.origin);
+    }
+  }, []);
 
   const previewHtml = useMemo(() => {
+    const url = siteUrl || "https://stickybanditos.com";
     return renderOrderConfirmationEmailHtml({
-      siteUrl,
+      siteUrl: url,
       orderNumber: PREVIEW_ORDER_NUMBER,
       shippingAddress: PREVIEW_SHIPPING_ADDRESS,
       items: PREVIEW_ITEMS,
@@ -439,12 +445,18 @@ export default function ReceiptSettingsClient() {
               This is a live preview of the actual HTML email (using sample order data).
             </p>
             <div className="overflow-x-auto rounded-lg border bg-white">
-              <iframe
-                title="Order confirmation email preview"
-                className="h-[820px] w-full min-w-[620px] border-0 bg-white"
-                sandbox="allow-scripts"
-                srcDoc={previewHtml}
-              />
+              {previewHtml ? (
+                <iframe
+                  title="Order confirmation email preview"
+                  className="h-[820px] w-full min-w-[620px] border-0 bg-white"
+                  sandbox="allow-same-origin"
+                  srcDoc={previewHtml}
+                />
+              ) : (
+                <div className="h-[400px] flex items-center justify-center text-gray-500">
+                  Loading preview...
+                </div>
+              )}
             </div>
           </Card>
 

@@ -1,5 +1,5 @@
 import { generateEmailHtml, generatePlainText } from './template';
-import { getEmailTemplate, replaceTemplateVariables, EmailType } from './getEmailTemplate';
+import { getEmailTemplate, replaceTemplateVariables, isEmailEnabled, EmailType } from './getEmailTemplate';
 
 // Comma-separated list supported via env. Falls back to the official main admin email.
 const ADMIN_EMAILS = (process.env.ADMIN_ORDER_NOTIFICATION_EMAILS ||
@@ -58,6 +58,11 @@ interface ArtworkApprovalEmailParams {
 }
 
 export async function sendArtworkApprovalEmail(params: ArtworkApprovalEmailParams): Promise<boolean> {
+  if (!await isEmailEnabled('artwork_approval')) {
+    console.log('Artwork approval email is disabled - skipping');
+    return false;
+  }
+
   const { customerEmail, customerName, orderNumber, orderId, artworkPreviewUrl, isFlagged } = params;
   const orderUrl = `${SITE_URL}/orders/${orderId}`;
   
@@ -150,6 +155,11 @@ export async function sendAdminNotificationEmail(params: AdminNotificationParams
   const templateKey = typeToTemplateKey[type];
   if (!templateKey) return false;
 
+  if (!await isEmailEnabled(templateKey)) {
+    console.log(`Admin notification email (${type}) is disabled - skipping`);
+    return false;
+  }
+
   const template = await getEmailTemplate(templateKey);
   const vars = { 
     orderNumber, 
@@ -234,6 +244,11 @@ interface CustomerNotificationParams {
 }
 
 export async function sendOrderShippedEmail(params: CustomerNotificationParams): Promise<boolean> {
+  if (!await isEmailEnabled('order_shipped')) {
+    console.log('Order shipped email is disabled - skipping');
+    return false;
+  }
+
   const { customerEmail, customerName, orderNumber, orderId, trackingNumber, trackingUrl } = params;
   const orderUrl = `${SITE_URL}/orders/${orderId}`;
   
@@ -290,6 +305,11 @@ export async function sendOrderShippedEmail(params: CustomerNotificationParams):
 }
 
 export async function sendOrderIssueFlaggedEmail(params: Omit<CustomerNotificationParams, 'trackingNumber' | 'trackingUrl'>): Promise<boolean> {
+  if (!await isEmailEnabled('order_issue_flagged')) {
+    console.log('Order issue flagged email is disabled - skipping');
+    return false;
+  }
+
   const { customerEmail, customerName, orderNumber, orderId } = params;
   const orderUrl = `${SITE_URL}/orders/${orderId}`;
   
@@ -345,6 +365,11 @@ export async function sendOrderIssueFlaggedEmail(params: Omit<CustomerNotificati
 }
 
 export async function sendArtworkApprovedByAdminEmail(params: Omit<CustomerNotificationParams, 'trackingNumber' | 'trackingUrl'>): Promise<boolean> {
+  if (!await isEmailEnabled('artwork_approved_by_admin')) {
+    console.log('Artwork approved by admin email is disabled - skipping');
+    return false;
+  }
+
   const { customerEmail, customerName, orderNumber, orderId } = params;
   const orderUrl = `${SITE_URL}/orders/${orderId}`;
   

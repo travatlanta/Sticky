@@ -28,6 +28,7 @@ const emailTemplateSchema = z.object({
   footerMessage: z.string().optional(),
   thankYouMessage: z.string().optional(),
   logoUrl: z.string().optional(),
+  enabled: z.boolean().optional(),
 });
 
 export async function GET() {

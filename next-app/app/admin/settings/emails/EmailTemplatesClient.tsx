@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles, Image, Upload, X } from "lucide-react";
+import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles, Image, Upload, X, Power } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { generateEmailHtml } from "@/lib/email/template";
 import type { EmailType, EmailTemplate } from "@/lib/email/emailTemplateTypes";
@@ -242,6 +243,32 @@ export default function EmailTemplatesClient() {
         {formData && (
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="space-y-4">
+              <Card className={`p-6 ${formData.enabled === false ? 'opacity-60' : ''}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Power className={`h-5 w-5 ${formData.enabled === false ? 'text-gray-400' : 'text-green-500'}`} />
+                    Email Status
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm font-medium ${formData.enabled === false ? 'text-red-500' : 'text-green-600'}`}>
+                      {formData.enabled === false ? 'Disabled' : 'Enabled'}
+                    </span>
+                    <Switch
+                      checked={formData.enabled !== false}
+                      onCheckedChange={(checked: boolean) => {
+                        setFormData(prev => prev ? { ...prev, enabled: checked } : null);
+                      }}
+                      data-testid="switch-email-enabled"
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  {formData.enabled === false 
+                    ? 'This email will NOT be sent automatically. Toggle on to enable.'
+                    : 'This email will be sent automatically when triggered.'}
+                </p>
+              </Card>
+
               <Card className="p-6">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Image className="h-5 w-5 text-orange-500" />

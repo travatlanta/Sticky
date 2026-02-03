@@ -25,6 +25,7 @@ export interface EmailTemplate {
   footerMessage?: string;
   thankYouMessage?: string;
   logoUrl?: string;
+  enabled?: boolean;
 }
 
 export type EmailTemplates = Partial<Record<EmailType, EmailTemplate>>;

@@ -48,6 +48,11 @@ export async function getEmailTemplate(type: EmailType): Promise<EmailTemplate> 
   }
 }
 
+export async function isEmailEnabled(type: EmailType): Promise<boolean> {
+  const template = await getEmailTemplate(type);
+  return template.enabled !== false;
+}
+
 export function replaceTemplateVariables(
   text: string, 
   variables: Record<string, string>

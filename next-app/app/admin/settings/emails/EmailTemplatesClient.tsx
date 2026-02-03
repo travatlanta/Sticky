@@ -15,28 +15,7 @@ import {
 import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateEmailHtml } from "@/lib/email/template";
-
-type EmailType = 
-  | 'order_confirmation'
-  | 'artwork_approval'
-  | 'ready_for_pickup'
-  | 'admin_new_order'
-  | 'admin_design_submitted'
-  | 'admin_artwork_approved'
-  | 'admin_issue_flagged'
-  | 'admin_order_paid';
-
-interface EmailTemplate {
-  subject: string;
-  headline: string;
-  subheadline?: string;
-  greeting?: string;
-  bodyMessage: string;
-  ctaButtonText: string;
-  ctaButtonColor: 'orange' | 'green' | 'blue' | 'purple' | 'red';
-  footerMessage?: string;
-  thankYouMessage?: string;
-}
+import type { EmailType, EmailTemplate } from "@/lib/email/emailTemplateTypes";
 
 interface TemplatesData {
   templates: Record<EmailType, EmailTemplate>;

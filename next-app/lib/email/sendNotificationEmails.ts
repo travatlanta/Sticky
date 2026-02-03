@@ -1,4 +1,5 @@
 import { generateEmailHtml, generatePlainText } from './template';
+import { getEmailTemplate, replaceTemplateVariables, EmailType } from './getEmailTemplate';
 
 // Comma-separated list supported via env. Falls back to the official main admin email.
 const ADMIN_EMAILS = (process.env.ADMIN_ORDER_NOTIFICATION_EMAILS ||
@@ -59,18 +60,21 @@ interface ArtworkApprovalEmailParams {
 export async function sendArtworkApprovalEmail(params: ArtworkApprovalEmailParams): Promise<boolean> {
   const { customerEmail, customerName, orderNumber, orderId, artworkPreviewUrl, isFlagged } = params;
   const orderUrl = `${SITE_URL}/orders/${orderId}`;
+  
+  const template = await getEmailTemplate('artwork_approval');
+  const vars = { orderNumber, customerName: customerName || 'there' };
 
   const subject = isFlagged 
     ? `Action Required: Artwork Updated - Order #${orderNumber} | Sticky Banditos`
-    : `Action Required: Approve Your Design - Order #${orderNumber} | Sticky Banditos`;
+    : replaceTemplateVariables(template.subject, vars);
 
   const headline = isFlagged
     ? "We've Updated Your Artwork"
-    : "Your Design is Ready for Review";
+    : replaceTemplateVariables(template.headline, vars);
 
   const message = isFlagged
     ? "We noticed an issue with your artwork and made some adjustments to ensure the best print quality. Please review the updated design below."
-    : "Your custom design has been prepared and is ready for your approval. Take a look and let us know if it's good to print!";
+    : replaceTemplateVariables(template.bodyMessage, vars);
 
   const bodyContent = `
     <p style="margin: 0 0 20px 0;">${message}</p>
@@ -92,23 +96,23 @@ export async function sendArtworkApprovalEmail(params: ArtworkApprovalEmailParam
   const html = generateEmailHtml({
     preheaderText: `Your design for Order #${orderNumber} is ready for approval`,
     headline,
-    subheadline: isFlagged ? 'Please review the changes we made' : 'One quick approval and we start printing!',
-    greeting: `Hi ${customerName || 'there'},`,
+    subheadline: isFlagged ? 'Please review the changes we made' : (template.subheadline ? replaceTemplateVariables(template.subheadline, vars) : undefined),
+    greeting: template.greeting ? replaceTemplateVariables(template.greeting, vars) : `Hi ${customerName || 'there'},`,
     bodyContent,
     ctaButton: {
-      text: 'Review & Approve Design',
+      text: template.ctaButtonText,
       url: orderUrl,
-      color: 'green',
+      color: template.ctaButtonColor,
     },
-    customFooterNote: 'If you have any questions about your design, feel free to reply through your account messages.',
+    customFooterNote: template.footerMessage ? replaceTemplateVariables(template.footerMessage, vars) : undefined,
   });
 
   const text = generatePlainText({
     headline,
-    greeting: `Hi ${customerName || 'there'},`,
+    greeting: template.greeting ? replaceTemplateVariables(template.greeting, vars) : `Hi ${customerName || 'there'},`,
     bodyContent: `${message}\n\nOrder #${orderNumber}`,
     ctaButton: {
-      text: 'Review & Approve Design',
+      text: template.ctaButtonText,
       url: orderUrl,
     },
   });
@@ -133,58 +137,43 @@ interface AdminNotificationParams {
 export async function sendAdminNotificationEmail(params: AdminNotificationParams): Promise<boolean> {
   const { type, orderNumber, orderId, customerName, customerEmail, artworkPreviewUrl, paymentAmount } = params;
   const orderUrl = `${SITE_URL}/admin/orders?id=${orderId}`;
+  
+  const typeToTemplateKey: Record<string, EmailType> = {
+    'new_order': 'admin_new_order',
+    'design_submitted': 'admin_design_submitted',
+    'artwork_approved': 'admin_artwork_approved',
+    'issue_flagged': 'admin_issue_flagged',
+    'order_paid': 'admin_order_paid',
+  };
 
-  let subject: string;
-  let headline: string;
-  let message: string;
-  let actionLabel: string;
-  let color: 'orange' | 'green' | 'blue' | 'purple' | 'red';
-  let badgeEmoji: string;
+  const templateKey = typeToTemplateKey[type];
+  if (!templateKey) return false;
 
-  switch (type) {
-    case 'new_order':
-      subject = `💰 New Order #${orderNumber} Received`;
-      headline = 'New Order Received!';
-      message = `A new order has been placed by ${customerName || 'a customer'}${customerEmail ? ` (${customerEmail})` : ''}.`;
-      actionLabel = 'View Order Details';
-      color = 'green';
-      badgeEmoji = '💰';
-      break;
-    case 'design_submitted':
-      subject = `🎨 Design Submitted - Order #${orderNumber}`;
-      headline = 'Design Submitted for Review';
-      message = `${customerName || 'A customer'} has submitted their design for approval on order #${orderNumber}.`;
-      actionLabel = 'Review Design';
-      color = 'purple';
-      badgeEmoji = '🎨';
-      break;
-    case 'artwork_approved':
-      subject = `✅ Artwork Approved - Order #${orderNumber}`;
-      headline = 'Customer Approved Artwork!';
-      message = `${customerName || 'The customer'} has approved the artwork for order #${orderNumber}. It's ready for production!`;
-      actionLabel = 'Start Production';
-      color = 'green';
-      badgeEmoji = '✅';
-      break;
-    case 'issue_flagged':
-      subject = `⚠️ Issue Flagged - Order #${orderNumber}`;
-      headline = 'Printing Issue Flagged';
-      message = `An issue has been flagged on order #${orderNumber}. The customer has been notified to review and approve the changes.`;
-      actionLabel = 'View Order';
-      color = 'orange';
-      badgeEmoji = '⚠️';
-      break;
-    case 'order_paid':
-      subject = `💳 Payment Received - Order #${orderNumber}`;
-      headline = 'Payment Received!';
-      message = `${customerName || 'A customer'} has successfully paid${paymentAmount ? ` $${paymentAmount}` : ''} for order #${orderNumber}. The order is now ready for production!`;
-      actionLabel = 'View Order';
-      color = 'green';
-      badgeEmoji = '💳';
-      break;
-    default:
-      return false;
+  const template = await getEmailTemplate(templateKey);
+  const vars = { 
+    orderNumber, 
+    customerName: customerName || 'a customer',
+    customerEmail: customerEmail || '',
+    paymentAmount: paymentAmount || '',
+  };
+
+  const subject = replaceTemplateVariables(template.subject, vars);
+  const headline = replaceTemplateVariables(template.headline, vars);
+  let message = replaceTemplateVariables(template.bodyMessage, vars);
+  
+  if (type === 'order_paid' && paymentAmount) {
+    message = message.replace('has successfully paid', `has successfully paid $${paymentAmount}`);
   }
+  if (customerEmail) {
+    message += ` (${customerEmail})`;
+  }
+
+  const actionLabel = template.ctaButtonText;
+  const color = template.ctaButtonColor;
+  const badgeEmoji = type === 'new_order' ? '💰' : 
+                     type === 'design_submitted' ? '🎨' : 
+                     type === 'artwork_approved' ? '✅' : 
+                     type === 'issue_flagged' ? '⚠️' : '💳';
 
   const bodyContent = `
     <p style="margin: 0 0 20px 0;">${message}</p>

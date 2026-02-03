@@ -163,16 +163,16 @@ export default function AdminSettings() {
 
         {/* Quick Links */}
         <div className="grid md:grid-cols-2 gap-4 mb-6">
-          <Link href="/admin/settings/receipt">
+          <Link href="/admin/settings/emails">
             <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-orange-600" />
+                    <Mail className="h-5 w-5 text-orange-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Receipt Template</h3>
-                    <p className="text-sm text-gray-600">Customize order confirmation emails</p>
+                    <h3 className="font-semibold text-gray-900">Email Templates</h3>
+                    <p className="text-sm text-gray-600">Customize all system-generated emails</p>
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-gray-400" />

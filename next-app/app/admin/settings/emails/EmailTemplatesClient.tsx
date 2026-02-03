@@ -603,22 +603,13 @@ export default function EmailTemplatesClient() {
                 <p className="text-sm text-gray-600 mb-4">
                   Live preview with sample data
                 </p>
-                <div className="overflow-x-auto rounded-lg border bg-white relative">
+                <div className="rounded-lg border bg-white">
                   {previewHtml ? (
-                    <>
-                      <div 
-                        className="absolute inset-0 z-10" 
-                        style={{ pointerEvents: 'auto' }}
-                        title="Email preview - not interactive"
-                      />
-                      <iframe
-                        title="Email preview"
-                        className="h-[700px] w-full min-w-[500px] border-0 bg-white"
-                        sandbox="allow-same-origin"
-                        srcDoc={sanitizePreviewHtml(previewHtml)}
-                        style={{ pointerEvents: 'none' }}
-                      />
-                    </>
+                    <div 
+                      className="w-full"
+                      dangerouslySetInnerHTML={{ __html: sanitizePreviewHtml(previewHtml) }}
+                      style={{ pointerEvents: 'none' }}
+                    />
                   ) : (
                     <div className="h-[400px] flex items-center justify-center text-gray-500">
                       Loading preview...

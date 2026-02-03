@@ -45,6 +45,15 @@ function replaceVariables(text: string): string {
   return result;
 }
 
+function sanitizePreviewHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+    .replace(/\son\w+='[^']*'/gi, '')
+    .replace(/<a\s+href="[^"]*"/g, '<a href="#"')
+    .replace(/<a\s+href='[^']*'/g, "<a href='#'");
+}
+
 export default function EmailTemplatesClient() {
   const [selectedType, setSelectedType] = useState<EmailType>('order_confirmation');
   const [formData, setFormData] = useState<EmailTemplate | null>(null);
@@ -470,7 +479,7 @@ export default function EmailTemplatesClient() {
                         title="Email preview"
                         className="h-[700px] w-full min-w-[500px] border-0 bg-white"
                         sandbox=""
-                        srcDoc={previewHtml.replace(/<a\s+href="[^"]*"/g, '<a href="#" onclick="return false;"')}
+                        srcDoc={sanitizePreviewHtml(previewHtml)}
                         style={{ pointerEvents: 'none' }}
                       />
                     </>

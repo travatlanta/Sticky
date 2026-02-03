@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ export default function EmailTemplatesClient() {
   const [formData, setFormData] = useState<EmailTemplate | null>(null);
   const [siteUrl, setSiteUrl] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -314,35 +315,33 @@ export default function EmailTemplatesClient() {
                       <div className="border-2 border-dashed rounded-lg p-6 text-center">
                         <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
                         <p className="text-sm text-gray-600 mb-2">Upload a custom logo for your emails</p>
-                        <label className="cursor-pointer">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            disabled={isUploadingLogo}
-                            asChild
-                          >
-                            <span>
-                              {isUploadingLogo ? (
-                                <>
-                                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                  Uploading...
-                                </>
-                              ) : (
-                                <>
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Choose File
-                                </>
-                              )}
-                            </span>
-                          </Button>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleLogoUpload}
-                            className="hidden"
-                            data-testid="input-logo-upload"
-                          />
-                        </label>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={isUploadingLogo}
+                          onClick={() => fileInputRef.current?.click()}
+                          data-testid="button-upload-logo"
+                        >
+                          {isUploadingLogo ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              Choose File
+                            </>
+                          )}
+                        </Button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                          data-testid="input-logo-upload"
+                        />
                         <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 2MB. Leave empty for default logo.</p>
                       </div>
                     )}

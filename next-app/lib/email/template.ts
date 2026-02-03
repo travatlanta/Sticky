@@ -21,6 +21,7 @@ export interface EmailTemplateOptions {
   };
   showSocialLinks?: boolean;
   customFooterNote?: string;
+  logoUrl?: string;
 }
 
 const buttonColors = {
@@ -42,9 +43,11 @@ export function generateEmailHtml(options: EmailTemplateOptions): string {
     secondaryButton,
     showSocialLinks = true,
     customFooterNote,
+    logoUrl,
   } = options;
 
   const ctaColors = ctaButton?.color ? buttonColors[ctaButton.color] : buttonColors.orange;
+  const effectiveLogoUrl = logoUrl || `${SITE_URL}/logo.png`;
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -96,7 +99,7 @@ export function generateEmailHtml(options: EmailTemplateOptions): string {
           <tr>
             <td align="center" style="padding-bottom: 24px;">
               <a href="${SITE_URL}" style="display: inline-block;">
-                <img src="${SITE_URL}/logo.png" alt="Sticky Banditos" width="180" style="max-width: 180px; height: auto; display: block;" />
+                <img src="${effectiveLogoUrl}" alt="Sticky Banditos" width="180" style="max-width: 180px; height: auto; display: block;" />
               </a>
             </td>
           </tr>

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles } from "lucide-react";
+import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateEmailHtml } from "@/lib/email/template";
 import type { EmailType, EmailTemplate } from "@/lib/email/emailTemplateTypes";
@@ -133,6 +133,7 @@ export default function EmailTemplatesClient() {
         color: formData.ctaButtonColor,
       },
       customFooterNote: formData.footerMessage ? replaceVariables(formData.footerMessage) : undefined,
+      logoUrl: formData.logoUrl || undefined,
     });
   }, [formData, siteUrl]);
 
@@ -186,6 +187,42 @@ export default function EmailTemplatesClient() {
         {formData && (
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="space-y-4">
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Image className="h-5 w-5 text-orange-500" />
+                  Branding
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Logo URL (optional)</label>
+                    <input
+                      type="text"
+                      value={formData.logoUrl || ''}
+                      onChange={(e) => handleChange('logoUrl', e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      placeholder="https://example.com/logo.png"
+                      data-testid="input-logo-url"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Leave empty to use the default Sticky Banditos logo</p>
+                  </div>
+                  {formData.logoUrl && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium mb-2">Logo Preview:</p>
+                      <div className="bg-gray-900 p-4 rounded-lg inline-block">
+                        <img 
+                          src={formData.logoUrl} 
+                          alt="Logo preview" 
+                          className="max-h-16 max-w-[200px] object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
               <Card className="p-6">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Type className="h-5 w-5 text-blue-500" />

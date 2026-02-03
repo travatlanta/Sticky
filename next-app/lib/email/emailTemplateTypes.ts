@@ -24,6 +24,7 @@ export interface EmailTemplate {
   ctaButtonColor: 'orange' | 'green' | 'blue' | 'purple' | 'red';
   footerMessage?: string;
   thankYouMessage?: string;
+  logoUrl?: string;
 }
 
 export type EmailTemplates = Partial<Record<EmailType, EmailTemplate>>;

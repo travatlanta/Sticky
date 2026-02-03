@@ -27,6 +27,7 @@ const emailTemplateSchema = z.object({
   ctaButtonColor: z.enum(['orange', 'green', 'blue', 'purple', 'red']),
   footerMessage: z.string().optional(),
   thankYouMessage: z.string().optional(),
+  logoUrl: z.string().optional(),
 });
 
 export async function GET() {

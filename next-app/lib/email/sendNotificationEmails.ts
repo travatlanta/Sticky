@@ -105,6 +105,7 @@ export async function sendArtworkApprovalEmail(params: ArtworkApprovalEmailParam
       color: template.ctaButtonColor,
     },
     customFooterNote: template.footerMessage ? replaceTemplateVariables(template.footerMessage, vars) : undefined,
+    logoUrl: template.logoUrl,
   });
 
   const text = generatePlainText({
@@ -204,6 +205,7 @@ export async function sendAdminNotificationEmail(params: AdminNotificationParams
       color,
     },
     showSocialLinks: false,
+    logoUrl: template.logoUrl,
   });
 
   const text = generatePlainText({
@@ -267,6 +269,7 @@ export async function sendOrderShippedEmail(params: CustomerNotificationParams):
       color: template.ctaButtonColor,
     },
     customFooterNote: template.footerMessage ? replaceTemplateVariables(template.footerMessage, vars) : undefined,
+    logoUrl: template.logoUrl,
   });
 
   const text = generatePlainText({
@@ -321,6 +324,7 @@ export async function sendOrderIssueFlaggedEmail(params: Omit<CustomerNotificati
       color: template.ctaButtonColor,
     },
     customFooterNote: template.footerMessage ? replaceTemplateVariables(template.footerMessage, vars) : undefined,
+    logoUrl: template.logoUrl,
   });
 
   const text = generatePlainText({
@@ -372,6 +376,7 @@ export async function sendArtworkApprovedByAdminEmail(params: Omit<CustomerNotif
       color: template.ctaButtonColor,
     },
     customFooterNote: template.footerMessage ? replaceTemplateVariables(template.footerMessage, vars) : undefined,
+    logoUrl: template.logoUrl,
   });
 
   const text = generatePlainText({

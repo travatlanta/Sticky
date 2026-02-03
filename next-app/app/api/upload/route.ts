@@ -42,9 +42,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: `File type not allowed: ${file.type}. Allowed: JPEG, PNG, GIF, WebP, SVG` }, { status: 400 });
     }
 
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       console.log(`File too large: ${file.size} bytes`);
-      return NextResponse.json({ message: `File size ${(file.size / 1024 / 1024).toFixed(2)}MB exceeds 2MB limit` }, { status: 400 });
+      return NextResponse.json({ message: `File size ${(file.size / 1024 / 1024).toFixed(2)}MB exceeds 5MB limit` }, { status: 400 });
     }
 
     if (file.size === 0) {

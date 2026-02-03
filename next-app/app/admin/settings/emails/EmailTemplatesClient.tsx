@@ -338,7 +338,7 @@ export default function EmailTemplatesClient() {
                 <Button 
                   onClick={handleSave} 
                   disabled={saveMutation.isPending}
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-orange-500"
                   data-testid="button-save"
                 >
                   {saveMutation.isPending ? (

@@ -164,16 +164,9 @@ export async function sendAdminNotificationEmail(params: AdminNotificationParams
   if (type === 'order_paid' && paymentAmount) {
     message = message.replace('has successfully paid', `has successfully paid $${paymentAmount}`);
   }
-  if (customerEmail) {
-    message += ` (${customerEmail})`;
-  }
 
   const actionLabel = template.ctaButtonText;
   const color = template.ctaButtonColor;
-  const badgeEmoji = type === 'new_order' ? '💰' : 
-                     type === 'design_submitted' ? '🎨' : 
-                     type === 'artwork_approved' ? '✅' : 
-                     type === 'issue_flagged' ? '⚠️' : '💳';
 
   const bodyContent = `
     <p style="margin: 0 0 20px 0;">${message}</p>
@@ -201,7 +194,7 @@ export async function sendAdminNotificationEmail(params: AdminNotificationParams
   `;
 
   const html = generateEmailHtml({
-    preheaderText: `${badgeEmoji} ${headline} - Order #${orderNumber}`,
+    preheaderText: `${headline} - Order #${orderNumber}`,
     headline,
     subheadline: `Order #${orderNumber}`,
     bodyContent,

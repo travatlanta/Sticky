@@ -39,7 +39,7 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     thankYouMessage: 'Thank you for your order!',
   },
   artwork_approval: {
-    subject: 'Action Required: Approve Your Design - Order #{orderNumber} | Sticky Banditos',
+    subject: 'Action Required: Approve Your Design - Order {orderNumber} | Sticky Banditos',
     headline: 'Your Design is Ready for Review',
     subheadline: 'One quick approval and we start printing!',
     greeting: 'Hi {customerName},',
@@ -59,37 +59,37 @@ export const defaultTemplates: Record<EmailType, EmailTemplate> = {
     footerMessage: 'Please bring a valid ID when picking up your order.',
   },
   admin_new_order: {
-    subject: 'New Order #{orderNumber} Received',
+    subject: 'New Order {orderNumber} Received',
     headline: 'New Order Received!',
     bodyMessage: 'A new order has been placed by {customerName}.',
     ctaButtonText: 'View Order Details',
     ctaButtonColor: 'green',
   },
   admin_design_submitted: {
-    subject: 'Design Submitted - Order #{orderNumber}',
+    subject: 'Design Submitted - Order {orderNumber}',
     headline: 'Design Submitted for Review',
-    bodyMessage: '{customerName} has submitted their design for approval on order #{orderNumber}.',
+    bodyMessage: '{customerName} has submitted their design for approval on order {orderNumber}.',
     ctaButtonText: 'Review Design',
     ctaButtonColor: 'purple',
   },
   admin_artwork_approved: {
-    subject: 'Artwork Approved - Order #{orderNumber}',
+    subject: 'Artwork Approved - Order {orderNumber}',
     headline: 'Customer Approved Artwork!',
-    bodyMessage: '{customerName} has approved the artwork for order #{orderNumber}. It\'s ready for production!',
+    bodyMessage: '{customerName} has approved the artwork for order {orderNumber}. It\'s ready for production!',
     ctaButtonText: 'Start Production',
     ctaButtonColor: 'green',
   },
   admin_issue_flagged: {
-    subject: 'Issue Flagged - Order #{orderNumber}',
+    subject: 'Issue Flagged - Order {orderNumber}',
     headline: 'Printing Issue Flagged',
-    bodyMessage: 'An issue has been flagged on order #{orderNumber}. The customer has been notified to review and approve the changes.',
+    bodyMessage: 'An issue has been flagged on order {orderNumber}. The customer has been notified to review and approve the changes.',
     ctaButtonText: 'View Order',
     ctaButtonColor: 'orange',
   },
   admin_order_paid: {
-    subject: 'Payment Received - Order #{orderNumber}',
+    subject: 'Payment Received - Order {orderNumber}',
     headline: 'Payment Received!',
-    bodyMessage: '{customerName} has successfully paid for order #{orderNumber}. The order is now ready for production!',
+    bodyMessage: '{customerName} has successfully paid for order {orderNumber}. The order is now ready for production!',
     ctaButtonText: 'View Order',
     ctaButtonColor: 'green',
   },
@@ -139,6 +139,5 @@ export function replaceTemplateVariables(
   for (const [key, value] of Object.entries(variables)) {
     result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
   }
-  result = result.replace(new RegExp(`#\\{`, 'g'), '#');
   return result;
 }

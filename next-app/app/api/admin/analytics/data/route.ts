@@ -19,7 +19,7 @@ export async function GET() {
     let credentials;
     try {
       credentials = JSON.parse(credentialsJson);
-    } catch (e) {
+    } catch (_e) {
       return NextResponse.json({
         success: false,
         error: "Invalid credentials JSON format",
@@ -253,7 +253,6 @@ function formatDuration(seconds: number): string {
 function formatDate(dateStr: string): string {
   // Convert YYYYMMDD to readable format
   if (dateStr.length !== 8) return dateStr;
-  const year = dateStr.substring(0, 4);
   const month = dateStr.substring(4, 6);
   const day = dateStr.substring(6, 8);
   return `${month}/${day}`;

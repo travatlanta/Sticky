@@ -9,6 +9,7 @@ import path from 'path';
 // `next-app/config/shipping.json`. Using `path.resolve` ensures we
 // consistently locate the file regardless of where the API is executed.
 const configPath = path.resolve(process.cwd(), 'next-app', 'config', 'shipping.json');
+const DEFAULT_SHIPPING_COST = 18;
 
 /**
  * GET handler returns the current shipping configuration. If the file
@@ -21,13 +22,13 @@ export async function GET() {
     // Ensure the response contains expected keys
     // Validate the presence and types of expected keys. If missing, fill
     // in sensible defaults to avoid runtime errors on the client.
-    const shippingCost = typeof json.shippingCost === 'number' ? json.shippingCost : 15;
+    const shippingCost = typeof json.shippingCost === 'number' ? json.shippingCost : DEFAULT_SHIPPING_COST;
     const freeShipping = typeof json.freeShipping === 'boolean' ? json.freeShipping : false;
     const automaticShipping = typeof json.automaticShipping === 'boolean' ? json.automaticShipping : false;
     return NextResponse.json({ shippingCost, freeShipping, automaticShipping });
-  } catch (error) {
+  } catch (_error) {
     // On error (file not found or invalid JSON) return default shipping settings
-    return NextResponse.json({ shippingCost: 15, freeShipping: false, automaticShipping: false });
+    return NextResponse.json({ shippingCost: DEFAULT_SHIPPING_COST, freeShipping: false, automaticShipping: false });
   }
 }
 
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
     await fs.mkdir(path.dirname(configPath), { recursive: true });
     await fs.writeFile(configPath, JSON.stringify(newConfig, null, 2), 'utf-8');
     return NextResponse.json(newConfig);
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 }

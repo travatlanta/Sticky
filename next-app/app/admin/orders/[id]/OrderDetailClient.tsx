@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
+import Image from "next/image";
 import {
   ArrowLeft,
   Package,
@@ -361,15 +362,21 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
                     {/* Thumbnail */}
                     <div className="w-20 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0">
                       {item.design?.thumbnailUrl || item.design?.finalImageUrl ? (
-                        <img
-                          src={item.design.thumbnailUrl || item.design.finalImageUrl}
+                        <Image
+                          src={item.design.thumbnailUrl ?? item.design.finalImageUrl ?? ""}
                           alt={item.product?.name || "Product"}
+                          width={80}
+                          height={80}
+                          unoptimized
                           className="w-full h-full object-cover"
                         />
                       ) : item.product?.imageUrl ? (
-                        <img
+                        <Image
                           src={item.product.imageUrl}
                           alt={item.product.name}
+                          width={80}
+                          height={80}
+                          unoptimized
                           className="w-full h-full object-cover"
                         />
                       ) : (

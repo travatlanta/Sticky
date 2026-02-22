@@ -17,7 +17,7 @@ import Link from 'next/link';
 // object and a reset function to retry the rendering. We don’t need the
 // digest here, but preserving the generic types ensures type safety.
 export default function GlobalError({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error & { digest?: string };

@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -227,18 +228,24 @@ export default function CartClient() {
                     className={`bg-white rounded-2xl p-5 shadow-sm border ${isItemComplete ? 'border-orange-100' : 'border-orange-300'}`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 bg-orange-50 rounded-xl flex items-center justify-center overflow-hidden border border-orange-100">
+                      <div className="w-20 h-20 bg-orange-50 rounded-xl flex items-center justify-center overflow-hidden border border-orange-100 relative">
                         {item.design?.previewUrl ? (
-                          <img
+                          <Image
                             src={item.design.previewUrl}
                             alt={product.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                            unoptimized
                           />
                         ) : product.thumbnailUrl ? (
-                          <img
+                          <Image
                             src={product.thumbnailUrl}
                             alt={product.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                            unoptimized
                           />
                         ) : (
                           <Sticker className="h-8 w-8 text-orange-300" />

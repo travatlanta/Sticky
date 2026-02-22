@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -163,7 +164,7 @@ export default function PaymentClient({ token }: { token: string }) {
       if (!res.ok) throw new Error(json.message || "Registration failed");
       return json;
     },
-    onSuccess: async (data) => {
+    onSuccess: async (_data) => {
       toast({ title: "Account created!", description: "Please log in to continue." });
       setAccountCreated(true);
       setShowLoginForm(true);
@@ -296,7 +297,7 @@ export default function PaymentClient({ token }: { token: string }) {
         setAuthMode(null);
         router.refresh();
       }
-    } catch (error) {
+    } catch (_error) {
       setLoginError("An unexpected error occurred. Please try again or contact support.");
       toast({
         title: "Login failed",
@@ -688,10 +689,13 @@ export default function PaymentClient({ token }: { token: string }) {
                 >
                   <div className="flex items-center gap-4">
                     {item.product?.thumbnailUrl ? (
-                      <img
+                      <Image
                         src={item.product.thumbnailUrl}
                         alt={item.product?.name || "Product"}
+                        width={64}
+                        height={64}
                         className="w-16 h-16 object-cover rounded"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
@@ -773,10 +777,13 @@ export default function PaymentClient({ token }: { token: string }) {
                           rel="noopener noreferrer"
                           className="block"
                         >
-                          <img
+                          <Image
                             src={item.design.artworkUrl || item.design.previewUrl || ""}
                             alt="Your artwork"
+                            width={80}
+                            height={80}
                             className="w-20 h-20 object-contain border rounded bg-white"
+                            unoptimized
                           />
                         </a>
                         <div className="flex-1">

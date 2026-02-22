@@ -24,11 +24,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, Phone, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, RotateCcw, Check, Store } from "lucide-react";
+import { ShoppingCart, Eye, X, RefreshCw, Truck, Palette, User, Mail, MapPin, DollarSign, Download, FileImage, Package, Trash2, ZoomIn, FileText, Send, Plus, Upload, Check, Store } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { jsPDF } from "jspdf";
+import Image from "next/image";
 
 interface OrderUser {
   id: string;
@@ -71,18 +72,6 @@ interface Order {
   };
 }
 
-const statusOptions = [
-  "pending_payment",
-  "pending",
-  "paid",
-  "in_production",
-  "printed",
-  "ready_for_pickup",
-  "shipped",
-  "delivered",
-  "cancelled",
-];
-
 const statusColors: Record<string, string> = {
   pending_payment: "bg-orange-100 text-orange-800",
   pending: "bg-yellow-100 text-yellow-800",
@@ -95,14 +84,16 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800",
 };
 
-const artworkStatusColors: Record<string, string> = {
-  awaiting_artwork: "bg-yellow-100 text-yellow-800",
-  customer_designing: "bg-blue-100 text-blue-800",
-  artwork_uploaded: "bg-purple-100 text-purple-800",
-  admin_designing: "bg-indigo-100 text-indigo-800",
-  pending_approval: "bg-orange-100 text-orange-800",
-  revision_requested: "bg-red-100 text-red-800",
-  approved: "bg-green-100 text-green-800",
+const statusLabels: Record<string, string> = {
+  pending_payment: "Pending Payment",
+  pending: "Pending",
+  paid: "Paid",
+  in_production: "In Production",
+  printed: "Printed",
+  ready_for_pickup: "Ready for Pickup",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
 };
 
 // Helper function to determine artwork badge for an item
@@ -132,8 +123,8 @@ function getArtworkBadgeInfo(design: any, isAdminCreatedOrder: boolean): { text:
   }
   
   if (isCustomerUpload) {
-    // Customer uploaded, ready to print (no approval needed)
-    return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
+    // Customer uploaded, awaiting admin approval
+    return { text: "Pending Approval", colorClass: "bg-yellow-100 text-yellow-800" };
   }
   
   // If admin-created order and has artwork but no tag, it's pending customer upload
@@ -141,45 +132,53 @@ function getArtworkBadgeInfo(design: any, isAdminCreatedOrder: boolean): { text:
     return { text: "Pending Approval", colorClass: "bg-yellow-100 text-yellow-800" };
   }
   
-  // Default: has artwork, ready to print
-  return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
+  // Default: has artwork, awaiting approval
+  return { text: "Pending Approval", colorClass: "bg-yellow-100 text-yellow-800" };
 }
 
 // Helper function to determine the order display status badge
 // SIMPLE LOGIC:
 // 1. Tracking number? -> "Shipped"
-// 2. Admin-created order? -> "Pending" until artwork approved
-// 3. Customer order with revision_requested? -> "Pending"
-// 4. Everything else (customer orders) -> "Ready"
+// 2. Artwork approved? -> "Ready"
+// 3. Revision requested? -> "Revision Requested"
+// 4. Everything else -> "Pending Approval"
 function getOrderDisplayStatus(order: Order): { text: string; colorClass: string } {
+  const normalizedStatus = (order.status || "").toLowerCase();
+  const artworkStatus = order.artworkStatus || '';
+
+  if (
+    [
+      "cancelled",
+      "delivered",
+      "shipped",
+      "ready_for_pickup",
+      "printed",
+      "in_production",
+    ].includes(normalizedStatus)
+  ) {
+    return {
+      text: statusLabels[normalizedStatus] || "Status",
+      colorClass: statusColors[normalizedStatus] || "bg-gray-100 text-gray-800",
+    };
+  }
+
   // Priority 1: Tracking number = Shipped
   if (order.trackingNumber && order.trackingNumber.trim() !== '') {
     return { text: "Shipped", colorClass: "bg-cyan-100 text-cyan-800" };
   }
-  
-  const artworkStatus = order.artworkStatus || '';
-  const notes = order.notes || '';
-  
-  // Priority 2: Admin-created orders detection
-  // Use createdByAdminId if available, otherwise check notes for admin order markers
-  const hasAdminMarkerInNotes = notes.includes('Payment Link:') || notes.includes('Admin-created');
-  const isAdminCreated = !!order.createdByAdminId || hasAdminMarkerInNotes;
-  
-  if (isAdminCreated) {
-    // Admin orders: Pending until artwork is approved
-    if (artworkStatus === 'approved') {
-      return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
-    }
-    return { text: "Pending", colorClass: "bg-yellow-100 text-yellow-800" };
+
+  // Priority 2: Artwork approved -> Ready
+  if (artworkStatus === 'approved') {
+    return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
   }
-  
-  // Priority 3: Customer order with revision requested -> Pending
+
+  // Priority 3: Revision requested -> Revision Requested
   if (artworkStatus === 'revision_requested') {
-    return { text: "Pending", colorClass: "bg-yellow-100 text-yellow-800" };
+    return { text: "Revision Requested", colorClass: "bg-red-100 text-red-800" };
   }
-  
-  // Priority 4: Customer orders default to Ready
-  return { text: "Ready", colorClass: "bg-green-100 text-green-800" };
+
+  // Priority 4: Everything else -> Pending Approval
+  return { text: "Pending Approval", colorClass: "bg-yellow-100 text-yellow-800" };
 }
 
 interface ArtworkNote {
@@ -300,8 +299,6 @@ export default function AdminOrders() {
   const [downloadFormats, setDownloadFormats] = useState<Record<number, string>>({});
   const [downloading, setDownloading] = useState<Record<number, boolean>>({});
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
-  const [artworkUploading, setArtworkUploading] = useState(false);
-  const [artworkNotes, setArtworkNotes] = useState("");
   
   // Artwork review modal state
   const [artworkReviewModal, setArtworkReviewModal] = useState<{
@@ -555,81 +552,6 @@ export default function AdminOrders() {
     },
     onError: (error: Error) => toast({ title: error.message || "Failed to resend receipt", variant: "destructive" }),
   });
-
-  const updateArtworkStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status, notes, designId }: { orderId: number; status: string; notes?: string; designId?: number }) => {
-      const res = await fetch(`/api/admin/orders/${orderId}/artwork`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ artworkStatus: status, artworkNotes: notes, adminDesignId: designId }),
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update artwork status");
-      return data;
-    },
-    onSuccess: () => {
-      toast({ title: "Artwork status updated" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
-    },
-    onError: (error: Error) => toast({ title: error.message, variant: "destructive" }),
-  });
-
-  const handleArtworkUpload = async (orderId: number, file: File) => {
-    setArtworkUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("notes", artworkNotes);
-
-      const res = await fetch(`/api/admin/orders/${orderId}/artwork/upload`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Upload failed");
-      
-      toast({ 
-        title: "✓ Design Sent Successfully",
-        description: "Customer will receive an email to review and approve the design."
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
-      setArtworkNotes("");
-    } catch (error: any) {
-      toast({ title: error.message || "Failed to upload design", variant: "destructive" });
-    } finally {
-      setArtworkUploading(false);
-    }
-  };
-
-  const [restoringArtwork, setRestoringArtwork] = useState(false);
-  
-  const handleRestoreOriginalArtwork = async (orderId: number) => {
-    if (!confirm("Are you sure you want to restore the original customer artwork? The admin revision will be discarded.")) {
-      return;
-    }
-    
-    setRestoringArtwork(true);
-    try {
-      const res = await fetch(`/api/admin/orders/${orderId}/artwork/restore`, {
-        method: "POST",
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Restore failed");
-      
-      toast({ 
-        title: "✓ Original Artwork Restored",
-        description: "The admin design has been discarded and customer's original artwork is now active."
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
-    } catch (error: any) {
-      toast({ title: error.message || "Failed to restore original artwork", variant: "destructive" });
-    } finally {
-      setRestoringArtwork(false);
-    }
-  };
 
   // Handle artwork review actions (flag for revision or admin upload for approval)
   const handleArtworkReviewSubmit = async () => {
@@ -1220,9 +1142,12 @@ export default function AdminOrders() {
                                   name: item.design.name || 'Design Preview'
                                 })}
                               >
-                                <img 
+                                <Image
                                   src={thumbSrc}
-                                  alt="Design preview" 
+                                  alt="Design preview"
+                                  width={96}
+                                  height={96}
+                                  unoptimized
                                   className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
@@ -1741,9 +1666,12 @@ export default function AdminOrders() {
           </DialogHeader>
           <div className="p-4 flex items-center justify-center bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:20px_20px]">
             {previewImage && (
-              <img 
-                src={previewImage.url} 
-                alt={previewImage.name} 
+              <Image
+                src={previewImage.url}
+                alt={previewImage.name}
+                width={1200}
+                height={800}
+                unoptimized
                 className="max-w-full max-h-[70vh] object-contain"
               />
             )}

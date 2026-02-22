@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Package, Layers, Tag, ArrowUpDown, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -68,7 +69,7 @@ export default function ProductsClient() {
     if (!products) return { regularProducts: [], dealProducts: [] };
     
     // First filter by category
-    let filtered = selectedCategory === null 
+    const filtered = selectedCategory === null 
       ? [...products] 
       : products.filter((product) => product.categoryId === selectedCategory);
     
@@ -195,10 +196,13 @@ export default function ProductsClient() {
                     <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-border">
                       <div className="aspect-square relative bg-muted overflow-hidden">
                         {product.thumbnailUrl ? (
-                          <img
+                          <Image
                             src={product.thumbnailUrl}
                             alt={product.name}
+                            fill
+                            sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            unoptimized
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
@@ -265,10 +269,13 @@ export default function ProductsClient() {
                     <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50">
                       <div className="aspect-square relative bg-muted overflow-hidden">
                         {product.thumbnailUrl ? (
-                          <img
+                          <Image
                             src={product.thumbnailUrl}
                             alt={product.name}
+                            fill
+                            sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            unoptimized
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-yellow-100">

@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { activityLogs } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 
 type ActivityLogType = 

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orderItems, products, designs } from '@shared/schema';
+import { products } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
 // Parse customer info from notes field
@@ -23,7 +23,7 @@ function parseNotesForCustomerInfo(notes: string | null): { name?: string; email
 }
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

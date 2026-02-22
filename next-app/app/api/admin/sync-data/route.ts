@@ -235,7 +235,7 @@ export async function GET(request: Request) {
   if (action === 'fix-categories') {
     try {
       // First, find or create the "Stickers" category
-      let stickersCategory = await db.select().from(categories).where(eq(categories.name, 'Stickers'));
+      const stickersCategory = await db.select().from(categories).where(eq(categories.name, 'Stickers'));
       let stickersCategoryId: number;
       
       if (stickersCategory.length === 0) {
@@ -257,7 +257,7 @@ export async function GET(request: Request) {
       }
       
       // Find or create "Labels" category
-      let labelsCategory = await db.select().from(categories).where(eq(categories.name, 'Labels'));
+      const labelsCategory = await db.select().from(categories).where(eq(categories.name, 'Labels'));
       let labelsCategoryId: number;
       
       if (labelsCategory.length === 0) {

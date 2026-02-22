@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
-import { Package, ArrowRight, Clock, CheckCircle, Truck, Sparkles } from "lucide-react";
+import { Package, ArrowRight, Clock, CheckCircle, Truck } from "lucide-react";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,7 +23,7 @@ const statusConfig: Record<string, { icon: any; color: string; bgColor: string; 
 };
 
 export default function Orders() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const isAuthenticated = status === "authenticated";
   const authLoading = status === "loading";
   const router = useRouter();

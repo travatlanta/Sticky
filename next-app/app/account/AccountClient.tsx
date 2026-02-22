@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -123,9 +124,12 @@ export default function Account() {
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white text-xl md:text-2xl font-bold shadow-lg">
               {user?.profileImageUrl || sessionUser?.image ? (
-                <img 
-                  src={user?.profileImageUrl || sessionUser?.image} 
+                <Image
+                  src={user?.profileImageUrl || sessionUser?.image}
                   alt={firstName}
+                  width={80}
+                  height={80}
+                  unoptimized
                   className="w-full h-full rounded-full object-cover"
                 />
               ) : (

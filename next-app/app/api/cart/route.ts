@@ -4,13 +4,36 @@ export const revalidate = 0;
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { carts, cartItems, products, designs, productOptions, pricingTiers } from '@shared/schema';
-import { eq, and, asc, inArray, or, gt, isNull } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import fs from 'fs/promises';
+import path from 'path';
 
 const CART_EXPIRY_DAYS = 60;
+const DEFAULT_SHIPPING_COST = 18;
+
+function getSignedTierAdjustment(basePrice: number, tierPrice: number): number {
+  if (!Number.isFinite(basePrice) || basePrice <= 0) return 0;
+  return (tierPrice - basePrice) / basePrice;
+}
+
+async function loadShippingSettings(): Promise<{ shippingCost: number; freeShipping: boolean; automaticShipping: boolean }> {
+  const configPath = path.resolve(process.cwd(), 'next-app', 'config', 'shipping.json');
+  try {
+    const data = await fs.readFile(configPath, 'utf-8');
+    const json = JSON.parse(data);
+    return {
+      shippingCost: typeof json.shippingCost === 'number' ? json.shippingCost : DEFAULT_SHIPPING_COST,
+      freeShipping: typeof json.freeShipping === 'boolean' ? json.freeShipping : false,
+      automaticShipping: typeof json.automaticShipping === 'boolean' ? json.automaticShipping : false,
+    };
+  } catch {
+    return { shippingCost: DEFAULT_SHIPPING_COST, freeShipping: false, automaticShipping: false };
+  }
+}
 
 function noCache(res: NextResponse) {
   res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -183,16 +206,13 @@ export async function GET(request: Request) {
       optionsByProduct[Number(pid)].cut.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
     }
 
-    // Fetch pricing tiers for bulk discounts
     const allTiers = productIds.length > 0
       ? await db
           .select()
           .from(pricingTiers)
           .where(inArray(pricingTiers.productId, productIds as number[]))
-          .orderBy(asc(pricingTiers.minQuantity))
       : [];
 
-    // Group pricing tiers by product
     const tiersByProduct: Record<number, typeof allTiers> = {};
     for (const tier of allTiers) {
       if (!tiersByProduct[tier.productId]) {
@@ -201,73 +221,72 @@ export async function GET(request: Request) {
       tiersByProduct[tier.productId].push(tier);
     }
 
-    // Helper to get bulk pricing for a product/quantity
-    const getBulkPrice = (productId: number, quantity: number, basePrice: string): string => {
-      const tiers = tiersByProduct[productId] || [];
-      for (const tier of tiers) {
-        if (quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity)) {
-          return tier.pricePerUnit;
-        }
-      }
-      return basePrice;
-    };
+    for (const pid of Object.keys(tiersByProduct)) {
+      tiersByProduct[Number(pid)].sort((a, b) => a.minQuantity - b.minQuantity);
+    }
 
-    // Normalize items and apply bulk pricing based on quantity
+    // Normalize items and preserve stored unit prices (source-of-truth from calculate-price at add-to-cart time)
     const items = rawItems.map(item => {
       const productId = item.product?.id;
       const options = productId ? optionsByProduct[productId] : { material: [], coating: [], cut: [] };
       const quantity = item.quantity ?? 1;
-      
-      // Apply bulk pricing if available
-      const basePrice = item.product?.basePrice ?? '0';
-      const bulkPrice = productId ? getBulkPrice(productId, quantity, basePrice) : basePrice;
+
+      const resolvedUnitPrice =
+        item.unitPrice !== null && item.unitPrice !== undefined && item.unitPrice !== ''
+          ? String(item.unitPrice)
+          : String(item.product?.basePrice ?? '0');
+
+      let pricingAdjustment: {
+        type: 'none' | 'discount' | 'surcharge';
+        percent: number;
+        tierMinQuantity: number | null;
+        tierMaxQuantity: number | null;
+      } = {
+        type: 'none',
+        percent: 0,
+        tierMinQuantity: null,
+        tierMaxQuantity: null,
+      };
+
+      if (productId && tiersByProduct[productId]?.length) {
+        const matchedTier = tiersByProduct[productId]
+          .find((tier) => quantity >= tier.minQuantity && (!tier.maxQuantity || quantity <= tier.maxQuantity));
+
+        if (matchedTier) {
+          const basePrice = parseFloat(item.product?.basePrice ?? '0');
+          const tierPrice = parseFloat(matchedTier.pricePerUnit ?? '0');
+          const signedAdjustment = getSignedTierAdjustment(basePrice, tierPrice);
+
+          pricingAdjustment = {
+            type: signedAdjustment > 0 ? 'surcharge' : signedAdjustment < 0 ? 'discount' : 'none',
+            percent: Math.round(Math.abs(signedAdjustment) * 100),
+            tierMinQuantity: matchedTier.minQuantity,
+            tierMaxQuantity: matchedTier.maxQuantity,
+          };
+        }
+      }
       
       return {
         ...item,
-        unitPrice: bulkPrice,
+        unitPrice: resolvedUnitPrice,
         quantity,
         materialOptions: options?.material || [],
         coatingOptions: options?.coating || [],
         cutOptions: options?.cut || [],
+        pricingAdjustment,
       };
     });
 
-    // Calculate subtotal from items (including material/coating/cut price modifiers)
+    // Calculate subtotal using stored unit prices
     const subtotal = items.reduce((sum, item) => {
       const basePrice = parseFloat(item.unitPrice) || 0;
-      
-      // Find price modifiers for selected options
-      let materialModifier = 0;
-      let coatingModifier = 0;
-      let cutModifier = 0;
-      
-      if (item.mediaType && item.materialOptions) {
-        const selectedMaterial = item.materialOptions.find((opt: any) => opt.name === item.mediaType);
-        if (selectedMaterial?.priceModifier) {
-          materialModifier = parseFloat(selectedMaterial.priceModifier) || 0;
-        }
-      }
-      
-      if (item.finishType && item.coatingOptions) {
-        const selectedCoating = item.coatingOptions.find((opt: any) => opt.name === item.finishType);
-        if (selectedCoating?.priceModifier) {
-          coatingModifier = parseFloat(selectedCoating.priceModifier) || 0;
-        }
-      }
-      
-      if (item.cutType && item.cutOptions) {
-        const selectedCut = item.cutOptions.find((opt: any) => opt.name === item.cutType);
-        if (selectedCut?.priceModifier) {
-          cutModifier = parseFloat(selectedCut.priceModifier) || 0;
-        }
-      }
-      
-      const totalPricePerUnit = basePrice + materialModifier + coatingModifier + cutModifier;
-      return sum + (totalPricePerUnit * item.quantity);
+      return sum + (basePrice * item.quantity);
     }, 0);
 
-    // Shipping is free for now (can be configured later)
-    const shipping = 0;
+    const shippingConfig = await loadShippingSettings();
+    const shipping = items.length > 0 && !shippingConfig.freeShipping
+      ? Number(shippingConfig.shippingCost || 0)
+      : 0;
     
     // Total
     const total = subtotal + shipping;

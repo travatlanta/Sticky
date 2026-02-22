@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { defaultThemeSettings, type ThemeSettings } from '@/lib/homepage-settings';
 
 function hexToHSL(hex: string): { h: number; s: number; l: number } {
@@ -35,8 +35,6 @@ function hexToHSL(hex: string): { h: number; s: number; l: number } {
 }
 
 export default function ThemeApplier() {
-  const [themeFetched, setThemeFetched] = useState(false);
-
   useEffect(() => {
     async function loadTheme() {
       try {
@@ -49,7 +47,6 @@ export default function ThemeApplier() {
       } catch {
         applyTheme(defaultThemeSettings);
       }
-      setThemeFetched(true);
     }
 
     loadTheme();

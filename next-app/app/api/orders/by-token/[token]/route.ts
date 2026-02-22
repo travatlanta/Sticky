@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { orders, orderItems, products, users } from "@shared/schema";
+import { orderItems, products, users } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 
 // Parse customer info from notes field (fallback for production)
@@ -82,7 +82,7 @@ export async function GET(
 
     // Fetch design data for items that have designs
     const designIds = items.filter(i => i.designId).map(i => i.designId as number);
-    let designsMap: Record<number, any> = {};
+    const designsMap: Record<number, any> = {};
     
     if (designIds.length > 0) {
       // Fetch each design individually to avoid array parameter issues

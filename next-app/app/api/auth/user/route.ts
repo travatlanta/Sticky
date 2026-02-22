@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({
       user: session?.user ?? null,
     });
-  } catch (err) {
+  } catch (_err) {
     // Never block cart functionality
     return NextResponse.json({
       user: null,

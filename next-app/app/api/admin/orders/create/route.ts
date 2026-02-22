@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { orders, orderItems, users, notifications, products } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { orderItems, notifications } from "@shared/schema";
+import { sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendAdminNotificationEmail } from "@/lib/email/sendNotificationEmails";
@@ -164,7 +164,7 @@ export async function POST(request: Request) {
           )
           RETURNING id, order_number, status, total_amount, delivery_method
         `);
-      } catch (colErr) {
+      } catch (_colErr) {
         // Fallback without artwork_status/created_by_admin_id columns
         // Try with customer_email first, then minimal fallback
         console.log('Falling back to order creation without artwork_status/created_by_admin_id columns');
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
             )
             RETURNING id, order_number, status, total_amount, delivery_method
           `);
-        } catch (colErr2) {
+        } catch (_colErr2) {
           // Minimal fallback - only core columns guaranteed to exist
           console.log('Falling back to minimal order creation (core columns only)');
           result = await db.execute(sql`

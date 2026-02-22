@@ -1,7 +1,14 @@
 import { Resend } from 'resend';
 import { generateEmailHtml, generatePlainText } from './email/template';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resendClient: Resend | null = null;
+
+function getResendClient(apiKey: string): Resend {
+  if (!resendClient) {
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
 
 const FROM_EMAIL = 'Sticky Banditos <noreply@stickybanditos.com>';
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://stickybanditos.com';
@@ -15,10 +22,13 @@ export interface EmailOptions {
 
 export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
   try {
-    if (!process.env.RESEND_API_KEY) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
       console.error('RESEND_API_KEY not configured');
       return { success: false, error: 'Email service not configured' };
     }
+
+    const resend = getResendClient(apiKey);
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,

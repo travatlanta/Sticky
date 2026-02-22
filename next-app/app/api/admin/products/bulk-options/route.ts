@@ -1,11 +1,11 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { productOptions } from '@shared/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.isAdmin) {
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const result = await db
+    const _result = await db
       .update(productOptions)
       .set({ priceModifier: priceValue.toFixed(2) })
       .where(eq(productOptions.name, optionName));

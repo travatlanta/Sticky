@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -263,7 +264,7 @@ export default function CreateOrderClient() {
     setOrderItems(newItems);
   };
 
-  const updateItemOption = (index: number, optionType: string, value: string, modifier: number) => {
+  const updateItemOption = (index: number, optionType: string, value: string, _modifier: number) => {
     const newItems = [...orderItems];
     newItems[index].selectedOptions[optionType] = value;
 
@@ -647,9 +648,12 @@ export default function CreateOrderClient() {
                                 <Package className="h-8 w-8 text-orange-500" />
                               </div>
                             ) : item.product?.thumbnailUrl && (
-                              <img
+                              <Image
                                 src={item.product.thumbnailUrl}
                                 alt={item.product.name}
+                                width={64}
+                                height={64}
+                                unoptimized
                                 className="w-16 h-16 object-cover rounded"
                               />
                             )}
@@ -1006,9 +1010,12 @@ export default function CreateOrderClient() {
                   data-testid={`button-select-product-${product.id}`}
                 >
                   {product.thumbnailUrl ? (
-                    <img
+                    <Image
                       src={product.thumbnailUrl}
                       alt={product.name}
+                      width={48}
+                      height={48}
+                      unoptimized
                       className="w-12 h-12 object-cover rounded"
                     />
                   ) : (

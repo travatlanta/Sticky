@@ -69,7 +69,7 @@ export async function PUT(
 
     if (validTiers.length > 0) {
       await db.insert(pricingTiers).values(
-        validTiers.map((tier, index) => ({
+        validTiers.map((tier, _index) => ({
           productId,
           minQuantity: parseInt(tier.minQuantity),
           maxQuantity: tier.maxQuantity ? parseInt(tier.maxQuantity) : null,

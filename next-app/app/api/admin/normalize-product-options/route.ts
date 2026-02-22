@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { products, productOptions } from "@shared/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 
 const DEFAULT_MATERIAL_OPTIONS = [
   { optionType: 'material' as const, name: 'Vinyl', value: 'vinyl', priceModifier: '0.00', isDefault: true, displayOrder: 1 },

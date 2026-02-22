@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { orders, users, orderItems, products, designs, productOptions, emailDeliveries } from '@shared/schema';
+import { users, orderItems, products, designs, productOptions, emailDeliveries } from '@shared/schema';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -49,7 +49,7 @@ export async function GET() {
           FROM orders 
           ORDER BY created_at DESC
         `);
-      } catch (colErr) {
+      } catch (_colErr) {
         // Fallback without created_by_admin_id column (production may not have it)
         console.log('Falling back to query without created_by_admin_id column');
         hasCreatedByAdminId = false;
@@ -156,7 +156,7 @@ export async function GET() {
             items.map(async (item) => {
               let product = null;
               let design = null;
-              let resolvedOptions: Record<string, string> = {};
+              const resolvedOptions: Record<string, string> = {};
 
               try {
                 if (item.productId) {

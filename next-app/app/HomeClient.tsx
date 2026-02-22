@@ -1,12 +1,13 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Sparkles, Truck, Shield, Palette, Sticker, CreditCard, FileImage, Star, Flame, Layers, Tag, Wine, Package, Circle } from 'lucide-react';
+import { ArrowRight, Sparkles, Truck, Shield, Palette, Sticker, Star, Flame, Layers, Tag, Wine, Package, Circle } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import type { HomepageSettings } from '@/lib/homepage-settings';
 import { defaultHomepageSettings } from '@/lib/homepage-settings';
@@ -52,7 +53,7 @@ export default function HomeClient() {
     gcTime: 0,
   });
 
-  const { data: featuredProducts } = useQuery<Product[]>({
+  const { data: _featuredProducts } = useQuery<Product[]>({
     queryKey: ['/api/products', { featured: true }],
     staleTime: 0,
     gcTime: 0,
@@ -212,10 +213,13 @@ export default function HomeClient() {
                   <Card key={deal.id} className="overflow-hidden shadow-xl hover:shadow-2xl transition-shadow" data-testid={`deal-card-${deal.id}`}>
                     <div className="relative">
                       {deal.imageUrl ? (
-                        <img 
-                          src={deal.imageUrl} 
+                        <Image
+                          src={deal.imageUrl}
                           alt={deal.title}
+                          fill
+                          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
                           className="w-full aspect-square object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
@@ -298,7 +302,14 @@ export default function HomeClient() {
                     >
                       <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-orange-200 to-yellow-100 rounded-xl flex items-center justify-center mb-2 overflow-hidden">
                         {sticker.thumbnailUrl ? (
-                          <img src={sticker.thumbnailUrl} alt={sticker.name} className="w-full h-full object-cover rounded-xl" />
+                          <Image
+                            src={sticker.thumbnailUrl}
+                            alt={sticker.name}
+                            fill
+                            sizes="96px"
+                            className="w-full h-full object-cover rounded-xl"
+                            unoptimized
+                          />
                         ) : (
                           <Layers className="h-8 w-8 text-orange-500" />
                         )}

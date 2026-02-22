@@ -53,7 +53,7 @@ export async function POST(
     }
 
     const customerName = session.user.name || "Customer";
-    const customerEmail = session.user.email || "";
+    const _customerEmail = session.user.email || "";
 
     const adminsResult = await db.execute(sql`
       SELECT id FROM users WHERE is_admin = true LIMIT 5

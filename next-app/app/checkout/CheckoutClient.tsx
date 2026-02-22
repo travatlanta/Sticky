@@ -36,6 +36,12 @@ interface CartItem {
   id: number;
   quantity: number;
   unitPrice: string;
+  pricingAdjustment?: {
+    type: 'none' | 'discount' | 'surcharge';
+    percent: number;
+    tierMinQuantity: number | null;
+    tierMaxQuantity: number | null;
+  };
   product: {
     id: number;
     name: string;
@@ -184,7 +190,7 @@ export default function CheckoutClient() {
         title: 'Certificate Uploaded',
         description: 'Your tax exemption certificate has been uploaded successfully.',
       });
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Upload Failed',
         description: 'Could not upload certificate. Please try again.',
@@ -325,9 +331,14 @@ export default function CheckoutClient() {
   const baseShipping = (typeof cart.shipping === 'number' && !isNaN(cart.shipping)) ? cart.shipping : 0;
   const shipping = baseShipping + (expeditedShipping ? EXPEDITED_SHIPPING_COST : 0);
 
-  // Calculate tax - 8.6% applied to orders (business is located in Arizona)
-  // Wholesalers are tax-exempt
-  const tax = isWholesaler ? 0 : subtotal * ARIZONA_TAX_RATE;
+  // Calculate tax - AZ-only, wholesalers are tax-exempt
+  const shippingState = (shippingAddress.state || '').trim().toUpperCase();
+  const isArizonaDestination = shippingState === 'AZ' || shippingState === 'ARIZONA';
+  const tax = !isWholesaler && isArizonaDestination ? subtotal * ARIZONA_TAX_RATE : 0;
+
+  const surchargeItems = cart.items.filter(
+    (item) => item.pricingAdjustment?.type === 'surcharge' && (item.pricingAdjustment?.percent || 0) > 0
+  );
 
   // Total from /api/cart when provided, otherwise subtotal + shipping.
   // Add expedited shipping and tax if applicable
@@ -575,8 +586,7 @@ export default function CheckoutClient() {
                             </div>
                             <Button
                               type="button"
-                              variant="outline"
-                              size="sm"
+                              className="h-8 px-3 text-xs bg-transparent border border-green-300 text-green-700 hover:bg-green-100"
                               onClick={() => {
                                 setWholesaleCertificate(null);
                                 setCertificateUrl(null);
@@ -652,8 +662,7 @@ export default function CheckoutClient() {
                     </div>
                   )}
                   <Button
-                    variant="outline"
-                    size="sm"
+                    className="h-8 px-3 text-xs bg-transparent border border-gray-300 text-gray-700 hover:bg-gray-100"
                     onClick={() => setStep('shipping')}
                     data-testid="button-edit-shipping"
                   >
@@ -756,6 +765,14 @@ export default function CheckoutClient() {
               ))}
               <Separator />
               <div className="space-y-2 text-sm">
+                {surchargeItems.length > 0 && (
+                  <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900">
+                    <p className="text-sm font-medium">Small-order pricing adjustment applies</p>
+                    <p className="text-xs mt-1">
+                      One or more items in your cart are in low-quantity ranges with a per-unit surcharge.
+                    </p>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
                   <span>${subtotal.toFixed(2)}</span>

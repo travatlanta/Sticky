@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { HomepageSettings } from "@/lib/homepage-settings";
 import { 
   Palette, Sparkles, Truck, Shield, 
@@ -140,7 +141,7 @@ export default function SectionPreview({ section, settings, heroView = "loggedOu
                 >
                   <div className="w-14 h-14 bg-gradient-to-br from-orange-100 to-yellow-50 rounded-lg flex items-center justify-center mx-auto mb-1">
                     {product.thumbnailUrl ? (
-                      <img src={product.thumbnailUrl} alt="" className="w-full h-full object-cover rounded-lg" />
+                      <Image src={product.thumbnailUrl} alt="" width={56} height={56} className="w-full h-full object-cover rounded-lg" unoptimized />
                     ) : (
                       <Layers className="h-6 w-6 text-orange-400" />
                     )}

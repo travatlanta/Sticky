@@ -1,10 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { pricingTiers } from '@shared/schema';
-import { asc } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/neon-http';
-import * as schema from '@shared/schema';
 
 export async function GET(request: Request) {
   try {

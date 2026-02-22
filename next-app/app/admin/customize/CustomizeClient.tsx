@@ -14,8 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Save, RotateCcw, Sparkles, Home, Layers, Tag, 
-  Package, Megaphone, Palette, Eye, EyeOff, User, UserX,
-  Star, Sticker, Circle, X, Plus
+  Package, Megaphone, Palette, User, UserX,
+  Star, X
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { HomepageSettings, ThemeSettings } from "@/lib/homepage-settings";

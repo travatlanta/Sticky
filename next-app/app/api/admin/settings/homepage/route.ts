@@ -7,7 +7,7 @@ import { db } from '@/lib/db';
 import { siteSettings, users } from '@/shared/schema';
 import { eq } from 'drizzle-orm';
 import { revalidateTag } from 'next/cache';
-import { defaultHomepageSettings, homepageSettingsSchema, HomepageSettings } from '@/lib/homepage-settings';
+import { defaultHomepageSettings, homepageSettingsSchema } from '@/lib/homepage-settings';
 
 const HOMEPAGE_SETTINGS_KEY = 'homepage_content';
 
@@ -69,7 +69,7 @@ export async function PUT(request: NextRequest) {
 
     try {
       revalidateTag('homepage-settings');
-    } catch (e) {
+    } catch (_e) {
       console.log('Revalidation skipped (development mode)');
     }
 
@@ -91,7 +91,7 @@ export async function DELETE() {
     
     try {
       revalidateTag('homepage-settings');
-    } catch (e) {
+    } catch (_e) {
       console.log('Revalidation skipped (development mode)');
     }
 

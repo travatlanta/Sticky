@@ -30,7 +30,7 @@ interface Order {
 }
 
 function MessagesPageContent() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: _session, status: sessionStatus } = useSession();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -116,9 +116,7 @@ function MessagesPageContent() {
     }
   };
 
-  const ordersWithMessages = orders?.filter(order => {
-    return true;
-  }) || [];
+  const ordersWithMessages = orders || [];
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { MapPin, Mail, Clock, MessageCircle } from 'lucide-react';
+import { MapPin, Clock, MessageCircle } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Contact Us - Sticky Banditos',

@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -168,13 +169,6 @@ export default function ArtworkClient() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-      'application/pdf', 'application/postscript',
-      'image/vnd.adobe.photoshop', 'application/x-photoshop',
-      'application/illustrator', 'application/eps',
-      'application/x-coreldraw'
-    ];
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.eps', '.ai', '.psd', '.cdr'];
     
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -300,10 +294,13 @@ export default function ArtworkClient() {
               {order.items.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
                   {item.product?.imageUrl ? (
-                    <img 
-                      src={item.product.imageUrl} 
-                      alt={item.product.name} 
+                    <Image
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
+                      width={48}
+                      height={48}
                       className="w-12 h-12 object-cover rounded"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
@@ -355,11 +352,14 @@ export default function ArtworkClient() {
             <CardContent className="space-y-4">
               {order.adminDesign.thumbnailUrl && (
                 <div className="bg-white rounded-lg p-2 border">
-                  <img 
-                    src={order.adminDesign.thumbnailUrl} 
+                  <Image
+                    src={order.adminDesign.thumbnailUrl}
                     alt="Design preview"
+                    width={800}
+                    height={256}
                     className="w-full max-h-64 object-contain rounded"
                     data-testid="img-design-preview"
+                    unoptimized
                   />
                 </div>
               )}

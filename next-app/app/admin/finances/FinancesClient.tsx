@@ -33,14 +33,6 @@ export default function AdminFinances() {
     queryKey: ["/api/admin/finances"],
   });
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "delivered":

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import NextImage from "next/image";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -24,12 +25,11 @@ import {
 import { 
   Upload, ShoppingCart, Check, Loader2, ChevronDown, ChevronUp,
   Minus, Plus, ArrowLeft, Type, Shapes, Brush, Palette, Image as ImageIcon,
-  Square, Circle, Triangle, Star, Heart, Smile, Undo2, Redo2, Trash2,
-  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
-  PaintBucket, Eraser, Pipette, Move, X, Save, Download, HelpCircle,
-  FolderOpen, Layers, Sparkles, Sun, Moon, Droplets, Zap, CircleDot
+  Square, Circle, Triangle, Star, Heart, Undo2, Redo2, Trash2,
+  Move, X, Save, HelpCircle,
+  FolderOpen, Sparkles, Sun, Moon, CircleDot
 } from "lucide-react";
-import { getContourFromImage, scaleContourPath, traceContour } from "@/lib/contour-tracer";
+import { traceContour } from "@/lib/contour-tracer";
 import { getCartSessionId, setCartSessionId } from "@/lib/cartSession";
 
 let fabricModule: any = null;
@@ -160,8 +160,8 @@ export default function Editor() {
 
   const [toolDockOpen, setToolDockOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("");
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [uploadedFileName, setUploadedFileName] = useState<string>("");
+  const [_uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [_uploadedFileName, setUploadedFileName] = useState<string>("");
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
   const [quantity, setQuantity] = useState(initialQuantityFromUrl > 0 ? initialQuantityFromUrl : 50);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
@@ -177,54 +177,31 @@ export default function Editor() {
   const [fontFamily, setFontFamily] = useState("Arial");
   const [fillColor, setFillColor] = useState("#3b82f6");
   const [drawingMode, setDrawingMode] = useState(false);
-  const [activeTool, setActiveTool] = useState<string>("select");
+  const [_activeTool, setActiveTool] = useState<string>("select");
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<string[]>([]);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [colorPickerTarget, setColorPickerTarget] = useState<"brush" | "text" | "fill">("brush");
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [fabricLoaded, setFabricLoaded] = useState(false);
-  const [isInteracting, setIsInteracting] = useState(false);
+  const [isInteracting, _setIsInteracting] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [canvasDimensions, setCanvasDimensions] = useState({ width: 400, height: 400 });
   const [productDimensionsInches, setProductDimensionsInches] = useState({ width: 4, height: 4 });
-  const [shadowEnabled, setShadowEnabled] = useState(false);
+  const [_shadowEnabled, setShadowEnabled] = useState(false);
   const [shadowColor, setShadowColor] = useState("#000000");
   const [shadowBlur, setShadowBlur] = useState(15);
   const [shadowOffsetX, setShadowOffsetX] = useState(5);
   const [shadowOffsetY, setShadowOffsetY] = useState(5);
-  const [glowEnabled, setGlowEnabled] = useState(false);
+  const [_glowEnabled, setGlowEnabled] = useState(false);
   const [glowColor, setGlowColor] = useState("#ffff00");
   const [glowBlur, setGlowBlur] = useState(20);
-  const [outlineEnabled, setOutlineEnabled] = useState(false);
+  const [_outlineEnabled, setOutlineEnabled] = useState(false);
   const [outlineColor, setOutlineColor] = useState("#ffffff");
   const [outlineWidth, setOutlineWidth] = useState(3);
   const animationFrameRef = useRef<number>();
 
   const PIXELS_PER_INCH = 100;
-
-  // Create checkerboard pattern for transparent background indication
-  const createCheckerboardPattern = useCallback(() => {
-    if (!fabricModule) return null;
-    
-    const patternCanvas = document.createElement('canvas');
-    const size = 20;
-    patternCanvas.width = size * 2;
-    patternCanvas.height = size * 2;
-    const ctx = patternCanvas.getContext('2d');
-    if (!ctx) return null;
-    
-    ctx.fillStyle = '#f0f0f0';
-    ctx.fillRect(0, 0, size * 2, size * 2);
-    ctx.fillStyle = '#e0e0e0';
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillRect(size, size, size, size);
-    
-    return new fabricModule.Pattern({
-      source: patternCanvas,
-      repeat: 'repeat',
-    });
-  }, [fabricModule]);
 
   const { data: design, isLoading: designLoading, error: designError } = useQuery<Design>({
     queryKey: [`/api/designs/${designId}`],
@@ -317,6 +294,7 @@ export default function Editor() {
         fabricCanvasRef.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -539,6 +517,7 @@ export default function Editor() {
         canvas.on("object:removed", saveCanvasState);
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [design, fabricLoaded, fabricModule]);
 
   // Set default options only once when product loads and options are empty
@@ -849,7 +828,7 @@ export default function Editor() {
     toast({ title: "Shape added" });
   }, [fillColor, toast, canvasDimensions]);
 
-  const addEmoji = useCallback((emojiName: string) => {
+  const _addEmoji = useCallback((emojiName: string) => {
     const canvas = fabricCanvasRef.current;
     if (!canvas || !fabricModule) return;
     
@@ -2115,10 +2094,13 @@ const uploadPreviewToBlob = useCallback(
                           onClick={() => addAssetToCanvas(asset)}
                           data-testid={`asset-${asset.id}`}
                         >
-                          <img
+                          <NextImage
                             src={asset.thumbnail}
                             alt={asset.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="96px"
+                            className="object-cover"
+                            unoptimized
                           />
                           <button
                             onClick={(e) => {

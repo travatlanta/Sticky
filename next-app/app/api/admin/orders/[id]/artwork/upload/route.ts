@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { orders, notifications, designs, orderItems } from "@shared/schema";
+import { orders, designs, orderItems } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -35,8 +35,6 @@ export async function POST(
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const notes = formData.get("notes") as string;
-
     if (!file) {
       return NextResponse.json({ message: "No file provided" }, { status: 400 });
     }
@@ -78,7 +76,7 @@ export async function POST(
       }
       
       // Update using raw SQL to ensure it works in production
-      const updateResult = await db.execute(sql`
+      await db.execute(sql`
         UPDATE order_items SET design_id = ${design.id} WHERE order_id = ${orderId}
       `);
       console.log(`[Admin Artwork Upload] Updated order_items.design_id to ${design.id} for order ${orderId}`);

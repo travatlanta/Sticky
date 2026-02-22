@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     const homepage = searchParams.get('homepage');
     const now = new Date();
 
-    let conditions = [eq(deals.isActive, true)];
+    const conditions = [eq(deals.isActive, true)];
 
     if (homepage === 'true') {
       conditions.push(eq(deals.showOnHomepage, true));

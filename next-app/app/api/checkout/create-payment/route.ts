@@ -3,13 +3,31 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '../../../../lib/db';
-import { carts, cartItems, orders, orderItems, products } from '../../../../shared/schema';
+import { carts, cartItems, orderItems, products } from '../../../../shared/schema';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { sendOrderConfirmationEmail } from '@/lib/email/sendOrderConfirmationEmail';
 import { sendAdminNotificationEmail } from '@/lib/email/sendNotificationEmails';
+import fs from 'fs/promises';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
+const DEFAULT_SHIPPING_COST = 18;
+
+async function loadShippingSettings(): Promise<{ shippingCost: number; freeShipping: boolean; automaticShipping: boolean }> {
+  const configPath = path.resolve(process.cwd(), 'next-app', 'config', 'shipping.json');
+  try {
+    const data = await fs.readFile(configPath, 'utf-8');
+    const json = JSON.parse(data);
+    return {
+      shippingCost: typeof json.shippingCost === 'number' ? json.shippingCost : DEFAULT_SHIPPING_COST,
+      freeShipping: typeof json.freeShipping === 'boolean' ? json.freeShipping : false,
+      automaticShipping: typeof json.automaticShipping === 'boolean' ? json.automaticShipping : false,
+    };
+  } catch {
+    return { shippingCost: DEFAULT_SHIPPING_COST, freeShipping: false, automaticShipping: false };
+  }
+}
 
 function generateOrderNumber(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -61,7 +79,7 @@ function buildOrderNotes({
 
 export async function POST(req: Request) {
   try {
-    const { sourceId, shippingAddress, notes, expeditedShipping, taxAmount = 0, isWholesaler = false, wholesaleCertificateUrl } = await req.json();
+    const { sourceId, shippingAddress, notes, expeditedShipping, taxAmount: _taxAmount = 0, isWholesaler = false, wholesaleCertificateUrl } = await req.json();
     const EXPEDITED_SHIPPING_COST = 25; // Match the frontend constant
     const ARIZONA_TAX_RATE = 0.086; // Arizona state + Phoenix local tax rate
 
@@ -169,9 +187,13 @@ export async function POST(req: Request) {
       }
     }
     
-    // Calculate full total including expedited shipping and tax
+    const shippingSettings = await loadShippingSettings();
+    const baseShippingCost = shippingSettings.freeShipping ? 0 : Number(shippingSettings.shippingCost || 0);
+
+    // Calculate full total including base shipping, expedited shipping, and tax
     const expeditedCost = expeditedShipping ? EXPEDITED_SHIPPING_COST : 0;
-    const fullTotal = subtotal + expeditedCost + calculatedTax;
+    const shippingTotal = baseShippingCost + expeditedCost;
+    const fullTotal = subtotal + shippingTotal + calculatedTax;
 
     // Allow $0 orders (free products without expedited shipping) - skip payment processing
     if (fullTotal === 0) {
@@ -297,9 +319,9 @@ export async function POST(req: Request) {
             })),
             totals: {
               subtotal: 0,
-              shipping: 0,
+              shipping: shippingTotal,
               tax: 0,
-              total: 0,
+              total: fullTotal,
             },
             shippingAddress: {
               name: formattedShippingAddress?.name || '',
@@ -437,7 +459,7 @@ export async function POST(req: Request) {
           ${resolvedCustomerEmail},
           'paid',
           ${subtotal.toString()},
-          ${expeditedCost.toString()},
+          ${shippingTotal.toString()},
           ${calculatedTax.toFixed(2)},
           '0',
           ${fullTotal.toString()},
@@ -472,7 +494,7 @@ export async function POST(req: Request) {
           ${resolvedCustomerEmail},
           'paid',
           ${subtotal.toString()},
-          ${expeditedCost.toString()},
+          ${shippingTotal.toString()},
           ${calculatedTax.toFixed(2)},
           '0',
           ${fullTotal.toString()},
@@ -517,7 +539,7 @@ export async function POST(req: Request) {
           })),
           totals: {
             subtotal: subtotal,
-            shipping: expeditedCost,
+            shipping: shippingTotal,
             tax: calculatedTax,
             total: fullTotal,
           },

@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     let body;
     try {
       body = await request.json();
-    } catch (err) {
+    } catch (_err) {
       const text = await request.text();
       body = text ? JSON.parse(text) : {};
     }

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 import {
   Search,
   Globe,
@@ -596,7 +597,14 @@ export default function SEOClient() {
                   >
                     <div className="flex items-center gap-3">
                       {product.thumbnailUrl && (
-                        <img src={product.thumbnailUrl} alt="" className="w-10 h-10 rounded object-cover" />
+                        <Image
+                          src={product.thumbnailUrl}
+                          alt={`${product.name} thumbnail`}
+                          width={40}
+                          height={40}
+                          unoptimized
+                          className="w-10 h-10 rounded object-cover"
+                        />
                       )}
                       <div>
                         <p className="font-medium text-gray-900">{product.name}</p>

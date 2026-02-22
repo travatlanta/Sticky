@@ -103,7 +103,7 @@ export async function GET(
       items.map(async (item) => {
         let product = null;
         let design = null;
-        let resolvedOptions: Record<string, string> = {};
+        const resolvedOptions: Record<string, string> = {};
 
         if (item.productId) {
           const [p] = await db.select().from(products).where(eq(products.id, item.productId));
@@ -118,7 +118,7 @@ export async function GET(
         // Resolve option IDs to names
         if (item.selectedOptions && typeof item.selectedOptions === 'object') {
           const optionIds: number[] = [];
-          for (const [key, value] of Object.entries(item.selectedOptions as Record<string, any>)) {
+          for (const [, value] of Object.entries(item.selectedOptions as Record<string, any>)) {
             if (typeof value === 'number') {
               optionIds.push(value);
             }
@@ -157,7 +157,7 @@ export async function GET(
         .from(emailDeliveries)
         .where(eq(emailDeliveries.orderId, order.id))
         .orderBy(desc(emailDeliveries.createdAt));
-    } catch (e) {
+    } catch (_e) {
       // Best-effort: if the email_deliveries table/enum isn't present yet, don't break the admin order view
       deliveries = [];
     }
@@ -302,28 +302,28 @@ export async function DELETE(
     // Delete artwork notes referencing this order
     try {
       await db.execute(sql`DELETE FROM artwork_notes WHERE order_id = ${orderId}`);
-    } catch (e) {
+    } catch (_e) {
       // Table might not exist, continue
     }
 
     // Delete messages referencing this order
     try {
       await db.execute(sql`DELETE FROM messages WHERE order_id = ${orderId}`);
-    } catch (e) {
+    } catch (_e) {
       // Table might not exist, continue
     }
 
     // Delete notifications referencing this order
     try {
       await db.execute(sql`DELETE FROM notifications WHERE order_id = ${orderId}`);
-    } catch (e) {
+    } catch (_e) {
       // Table might not exist, continue
     }
 
     // Delete any related email delivery logs
     try {
       await db.execute(sql`DELETE FROM email_deliveries WHERE order_id = ${orderId}`);
-    } catch (e) {
+    } catch (_e) {
       // Table might not exist, continue
     }
 

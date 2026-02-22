@@ -4,13 +4,14 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, ShoppingBag, ArrowRight, Sticker, Upload, AlertTriangle, Loader2, Info } from "lucide-react";
+import { Trash2, ShoppingBag, ArrowRight, Sticker, Upload, AlertTriangle, Loader2 } from "lucide-react";
 import { getCartSessionId } from "@/lib/cartSession";
 import {
   Tooltip,
@@ -372,20 +373,24 @@ export default function CartClient() {
                     } flex flex-col gap-4`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 bg-orange-50 rounded-xl flex items-center justify-center overflow-hidden border border-orange-100 flex-shrink-0">
+                      <div className="w-20 h-20 bg-orange-50 rounded-xl flex items-center justify-center overflow-hidden border border-orange-100 flex-shrink-0 relative">
                         {item.design?.previewUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={item.design.previewUrl}
                             alt="Your design"
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                            unoptimized
                           />
                         ) : product.thumbnailUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={product.thumbnailUrl}
                             alt={product.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                            unoptimized
                           />
                         ) : (
                           <Sticker className="h-8 w-8 text-orange-300" />

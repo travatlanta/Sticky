@@ -7,7 +7,7 @@ import { sql } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { put } from "@vercel/blob";
-import { sendArtworkApprovalEmail, sendAdminNotificationEmail } from "@/lib/email/sendNotificationEmails";
+import { sendAdminNotificationEmail } from "@/lib/email/sendNotificationEmails";
 
 export async function GET(
   request: Request,

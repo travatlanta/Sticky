@@ -18,7 +18,7 @@ interface Message {
 }
 
 export default function ChatWidget() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");

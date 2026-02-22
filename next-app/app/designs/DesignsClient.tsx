@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -260,10 +261,13 @@ export default function Designs() {
                 >
                   <div className="relative aspect-square bg-gray-100">
                     {design.thumbnailUrl ? (
-                      <img 
-                        src={design.thumbnailUrl} 
+                      <Image
+                        src={design.thumbnailUrl}
                         alt={design.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="(min-width: 768px) 33vw, 50vw"
+                        className="object-cover"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-teal-50">

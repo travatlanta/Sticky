@@ -2,11 +2,12 @@
 
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Flame, Eye, EyeOff, Home, Upload, Star, Calendar, Image } from "lucide-react";
+import { Plus, Pencil, Trash2, Flame, Eye, EyeOff, Home, Upload, Star, Calendar, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Product {
@@ -68,7 +69,7 @@ function DealPreviewCard({ data }: { data: typeof defaultFormData }) {
     <Card className="overflow-hidden max-w-sm">
       <div className="relative aspect-square bg-gray-100">
         {data.imageUrl ? (
-          <img src={data.imageUrl} alt={data.title} className="w-full h-full object-cover" />
+          <NextImage src={data.imageUrl} alt={data.title} fill sizes="384px" className="w-full h-full object-cover" unoptimized />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
             <Flame className="h-16 w-16" />
@@ -371,13 +372,16 @@ export default function DealsTab() {
                   <div className="flex items-start gap-4">
                     <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden flex-shrink-0">
                       {formData.imageUrl ? (
-                        <img 
+                        <NextImage
                           src={formData.imageUrl} 
                           alt="Deal preview"
+                          width={96}
+                          height={96}
                           className="w-full h-full object-cover"
+                          unoptimized
                         />
                       ) : (
-                        <Image className="h-8 w-8 text-gray-400" />
+                        <ImageIcon className="h-8 w-8 text-gray-400" />
                       )}
                     </div>
                     <div className="flex-1 space-y-2">
@@ -631,7 +635,7 @@ export default function DealsTab() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {deal.imageUrl ? (
-                          <img src={deal.imageUrl} alt={deal.title} className="w-12 h-12 rounded-lg object-cover" />
+                          <NextImage src={deal.imageUrl} alt={deal.title} width={48} height={48} className="w-12 h-12 rounded-lg object-cover" unoptimized />
                         ) : (
                           <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                             <Flame className="h-6 w-6 text-gray-400" />

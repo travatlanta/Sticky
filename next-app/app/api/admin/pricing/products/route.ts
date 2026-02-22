@@ -6,7 +6,7 @@ import { eq, asc } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.isAdmin) {
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         categoryName: category?.name || 'Uncategorized',
         basePrice: product.basePrice,
         isActive: product.isActive,
-        useGlobalTiers: product.useGlobalTiers ?? true,
+        useGlobalTiers: false,
         tiers: productTiers.map((t) => ({
           id: t.id,
           minQuantity: t.minQuantity,
@@ -119,7 +119,7 @@ export async function PATCH(request: NextRequest) {
     } else if (field === 'useGlobalTiers') {
       await db
         .update(products)
-        .set({ useGlobalTiers: value === true || value === 'true' })
+        .set({ useGlobalTiers: false })
         .where(eq(products.id, productId));
     } else if (field === 'tierPrice' && tierId) {
       await db

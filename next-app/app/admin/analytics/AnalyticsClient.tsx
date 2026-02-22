@@ -113,7 +113,7 @@ export default function AnalyticsClient() {
       } else {
         setError(data.error || "Failed to fetch analytics");
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Failed to connect to analytics service");
     } finally {
       setLoading(false);

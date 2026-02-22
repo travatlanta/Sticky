@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Mail, Save, RefreshCw, Palette, Building, Phone, MapPin, MessageSquare, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
-import { renderOrderConfirmationEmailHtml } from "@/lib/email/orderConfirmationEmailHtml";
+import Image from "next/image";
 
 interface ReceiptSettings {
   headerColor: string;
@@ -60,6 +60,8 @@ const PREVIEW_SHIPPING_ADDRESS = {
 
 export default function ReceiptSettingsClient() {
   const [formData, setFormData] = useState<ReceiptSettings>(defaultSettings);
+  const [previewHtml, setPreviewHtml] = useState<string>("");
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -181,25 +183,46 @@ export default function ReceiptSettingsClient() {
   const handleReset = () => {
     setFormData(defaultSettings);
   };
-  const [siteUrl, setSiteUrl] = useState("");
-  
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setSiteUrl(window.location.origin);
-    }
-  }, []);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setIsPreviewLoading(true);
+      try {
+        const res = await fetch('/api/admin/settings/receipt/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            ...formData,
+            orderNumber: PREVIEW_ORDER_NUMBER,
+            shippingAddress: PREVIEW_SHIPPING_ADDRESS,
+            items: PREVIEW_ITEMS,
+            totals: PREVIEW_TOTALS,
+          }),
+          signal: controller.signal,
+        });
 
-  const previewHtml = useMemo(() => {
-    const url = siteUrl || "https://stickybanditos.com";
-    return renderOrderConfirmationEmailHtml({
-      siteUrl: url,
-      orderNumber: PREVIEW_ORDER_NUMBER,
-      shippingAddress: PREVIEW_SHIPPING_ADDRESS,
-      items: PREVIEW_ITEMS,
-      totals: PREVIEW_TOTALS,
-      receiptSettings: formData,
-    });
-  }, [formData, siteUrl]);
+        if (!res.ok) {
+          throw new Error('Failed to load preview');
+        }
+
+        const html = await res.text();
+        setPreviewHtml(html);
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Failed to load receipt preview:', error);
+          setPreviewHtml('');
+        }
+      } finally {
+        setIsPreviewLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [formData]);
 
   if (isLoading) {
     return (
@@ -260,9 +283,12 @@ export default function ReceiptSettingsClient() {
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 border rounded bg-white flex items-center justify-center overflow-hidden">
                     {formData.logoUrl ? (
-                      <img
+                      <Image
                         src={formData.logoUrl}
                         alt="Logo preview"
+                        width={48}
+                        height={48}
+                        unoptimized
                         className="h-full w-full object-contain"
                       />
                     ) : (
@@ -445,7 +471,7 @@ export default function ReceiptSettingsClient() {
               This is a live preview of the actual HTML email (using sample order data).
             </p>
             <div className="overflow-x-auto rounded-lg border bg-white">
-              {previewHtml ? (
+              {previewHtml && !isPreviewLoading ? (
                 <iframe
                   title="Order confirmation email preview"
                   className="h-[820px] w-full min-w-[620px] border-0 bg-white"
@@ -454,7 +480,7 @@ export default function ReceiptSettingsClient() {
                 />
               ) : (
                 <div className="h-[400px] flex items-center justify-center text-gray-500">
-                  Loading preview...
+                  Loading server preview...
                 </div>
               )}
             </div>

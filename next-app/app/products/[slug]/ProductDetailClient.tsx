@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
+import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   Minus,
   Plus,
-  ArrowRight,
   Sticker,
   CreditCard,
   FileImage,
-  Image,
+  Image as ImageIcon,
   Package,
   Upload,
   ShoppingCart,
@@ -40,6 +40,14 @@ interface PricingTier {
   pricePerUnit: string;
 }
 
+interface DisplayTier {
+  minQuantity: number;
+  maxQuantity?: number | null;
+  pricePerUnit: number;
+  isSurcharge?: boolean;
+  adjustmentPercent?: number;
+}
+
 interface Product {
   id: number;
   name: string;
@@ -58,10 +66,9 @@ interface Product {
 
 export default function ProductDetail() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const slug = params?.slug as string;
   const router = useRouter();
-  const { data: session, status: sessionStatus } = useSession();
+  const { status: sessionStatus } = useSession();
   const isAuthenticated = sessionStatus === "authenticated";
   const { toast } = useToast();
 
@@ -83,6 +90,23 @@ export default function ProductDetail() {
       return res.json();
     },
     enabled: !!slug,
+  });
+
+  const effectiveDisplayTiers: DisplayTier[] =
+    calculatedPrice?.displayTiers && Array.isArray(calculatedPrice.displayTiers)
+      ? calculatedPrice.displayTiers
+      : (product?.pricingTiers || []).map((tier) => ({
+          minQuantity: tier.minQuantity,
+          maxQuantity: tier.maxQuantity,
+          pricePerUnit: parseFloat(tier.pricePerUnit),
+          isSurcharge: false,
+          adjustmentPercent: 0,
+        }));
+
+  const visibleDisplayTiers = effectiveDisplayTiers.filter((tier) => {
+    if (!tier.isSurcharge) return true;
+    const max = tier.maxQuantity ?? null;
+    return quantity >= tier.minQuantity && (max === null || quantity <= max);
   });
 
   // Detect deal products from database (isDealProduct flag) 
@@ -134,7 +158,7 @@ export default function ProductDetail() {
     if (product?.id) {
       calculatePriceMutation.mutate();
     }
-  }, [product?.id, quantity, selectedOptions]);
+  }, [product?.id, quantity, selectedOptions, calculatePriceMutation]);
 
   const handleStartDesign = async () => {
     console.log('handleStartDesign called, product:', product?.id);
@@ -418,12 +442,15 @@ export default function ProductDetail() {
     <div className="container mx-auto px-4 py-8 pb-16 md:pb-20">
       <div className="grid md:grid-cols-2 gap-12">
         <div>
-          <div className="bg-white rounded-2xl aspect-square flex items-center justify-center shadow-sm">
+          <div className="bg-white rounded-2xl aspect-square flex items-center justify-center shadow-sm relative overflow-hidden">
             {product.thumbnailUrl ? (
-              <img
+              <NextImage
                 src={product.thumbnailUrl}
                 alt={product.name}
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
                 className="w-full h-full object-cover rounded-2xl"
+                unoptimized
               />
             ) : product.name.includes("Sticker") ? (
               <Sticker className="h-32 w-32 text-orange-500" />
@@ -432,7 +459,7 @@ export default function ProductDetail() {
             ) : product.name.includes("Flyer") ? (
               <FileImage className="h-32 w-32 text-green-500" />
             ) : product.name.includes("Poster") ? (
-              <Image className="h-32 w-32 text-purple-500" />
+              <ImageIcon className="h-32 w-32 text-purple-500" />
             ) : (
               <Package className="h-32 w-32 text-gray-400" />
             )}
@@ -475,16 +502,16 @@ export default function ProductDetail() {
             ))}
 
             {/* Bulk Pricing Tiers - Clickable to set quantity (hidden for deals) */}
-            {!isDeal && product.pricingTiers && product.pricingTiers.length > 0 && (
+            {!isDeal && visibleDisplayTiers.length > 0 && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
                 <h3 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
                   <Package className="h-4 w-4" />
                   Bulk Pricing Discounts
                 </h3>
                 <div className="grid gap-2">
-                  {product.pricingTiers.map((tier, idx) => (
+                  {visibleDisplayTiers.map((tier, idx) => (
                     <button 
-                      key={tier.id}
+                      key={`${tier.minQuantity}-${tier.maxQuantity ?? 'plus'}`}
                       type="button"
                       onClick={() => setQuantity(tier.minQuantity)}
                       className={`flex justify-between items-center text-sm p-3 rounded-lg cursor-pointer transition-all ${
@@ -497,6 +524,11 @@ export default function ProductDetail() {
                       <span className="text-gray-700 font-medium">
                         {tier.minQuantity.toLocaleString()}
                         {tier.maxQuantity ? ` - ${tier.maxQuantity.toLocaleString()}` : '+'} units
+                        {tier.isSurcharge && (
+                          <span className="ml-2 text-amber-700 font-semibold">
+                            (+{tier.adjustmentPercent || 0}%)
+                          </span>
+                        )}
                       </span>
                       <span className="font-semibold text-green-700">
                         {formatPrice(tier.pricePerUnit)} each
@@ -626,6 +658,18 @@ export default function ProductDetail() {
                   )}
                 </div>
               )}
+
+              {!isDeal && calculatedPrice?.isSurchargeApplied && calculatedPrice?.matchedTier && (
+                <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 mt-3">
+                  <p className="text-amber-900 text-sm font-medium">
+                    Low-quantity pricing adjustment applied (+{calculatedPrice.surchargePercentage || 0}%)
+                  </p>
+                  <p className="text-amber-800 text-xs mt-1">
+                    Quantity range {calculatedPrice.matchedTier.minQuantity}
+                    {calculatedPrice.matchedTier.maxQuantity ? `-${calculatedPrice.matchedTier.maxQuantity}` : '+'} includes a small-order surcharge.
+                  </p>
+                </div>
+              )}
               
               <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
                 <span className="text-xl font-bold">Total</span>
@@ -701,10 +745,13 @@ export default function ProductDetail() {
                       <div className="space-y-3">
                         <div className="flex items-center gap-3">
                           {uploadedPreview ? (
-                            <img
+                            <NextImage
                               src={uploadedPreview}
                               alt="Preview"
+                              width={64}
+                              height={64}
                               className="w-16 h-16 object-cover rounded-lg"
+                              unoptimized
                             />
                           ) : (
                             <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">

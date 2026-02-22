@@ -214,11 +214,14 @@ export default function Navbar() {
               <div className="flex items-center space-x-2">
                 <Link href="/account">
                   {(user as any)?.image ? (
-                    <img
+                    <Image
                       src={(user as any).image}
                       alt="Profile"
+                      width={32}
+                      height={32}
                       className="w-8 h-8 rounded-full object-cover ring-2 ring-orange-200 cursor-pointer hover:ring-orange-400 transition-all"
                       data-testid="link-account-avatar"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-8 h-8 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-full flex items-center justify-center ring-2 ring-orange-200 cursor-pointer hover:ring-orange-400 transition-all" data-testid="link-account-avatar">

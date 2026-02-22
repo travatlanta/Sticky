@@ -251,7 +251,7 @@ export async function POST(
           UPDATE orders SET artwork_status = 'approved'
           WHERE id = ${orderId}
         `);
-      } catch (err) {
+      } catch (_err) {
         console.log('Could not update artwork_status column (may not exist)');
       }
 

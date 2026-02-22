@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { PaymentForm, CreditCard as SquareCreditCard } from "react-square-web-payments-sdk";
@@ -45,17 +46,13 @@ import {
   CheckCircle,
   MapPin,
   Calendar,
-  Sticker,
   CreditCard,
   FileImage,
   Download,
-  Image,
   Phone,
   Mail,
   Upload,
-  Trash2,
   Loader2,
-  Send,
   Edit,
   Lock,
   Palette,
@@ -118,7 +115,7 @@ interface ArtworkNote {
   senderName: string;
 }
 
-function getArtworkBadgeInfo(design: Design | null | undefined, isAdminCreatedOrder: boolean): { text: string; colorClass: string } {
+function getArtworkBadgeInfo(design: Design | null | undefined): { text: string; colorClass: string } {
   if (!design || (!design.previewUrl && !design.highResExportUrl && !design.artworkUrl)) {
     return { text: "No Artwork", colorClass: "bg-red-100 text-red-700" };
   }
@@ -137,8 +134,8 @@ function getArtworkBadgeInfo(design: Design | null | undefined, isAdminCreatedOr
     return { text: "Revision Requested", colorClass: "bg-red-100 text-red-700" };
   }
   
-  // Everything else is Ready - admin uploads, customer uploads, etc.
-  return { text: "Ready", colorClass: "bg-green-100 text-green-700" };
+  // Everything else needs approval before production.
+  return { text: "Pending Approval", colorClass: "bg-yellow-100 text-yellow-700" };
 }
 
 const statusConfig: Record<string, { icon: any; color: string; label: string; bgColor: string }> = {
@@ -151,14 +148,6 @@ const statusConfig: Record<string, { icon: any; color: string; label: string; bg
   cancelled: { icon: Clock, color: "text-red-600", label: "Cancelled", bgColor: "bg-red-100" },
 };
 
-function getProductIcon(productName: string) {
-  const name = productName?.toLowerCase() || "";
-  if (name.includes("sticker")) return <Sticker className="h-6 w-6 text-orange-500" />;
-  if (name.includes("business") || name.includes("card")) return <CreditCard className="h-6 w-6 text-blue-500" />;
-  if (name.includes("flyer") || name.includes("poster")) return <FileImage className="h-6 w-6 text-green-500" />;
-  return <Package className="h-6 w-6 text-gray-500" />;
-}
-
 export default function OrderDetail() {
   const params = useParams();
   const id = params?.id as string;
@@ -169,11 +158,10 @@ export default function OrderDetail() {
   const queryClient = useQueryClient();
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
-  const [newNote, setNewNote] = useState("");
-  const [showNotes, setShowNotes] = useState(false);
-  const [requestChangesItemId, setRequestChangesItemId] = useState<number | null>(null);
+  const [_newNote, setNewNote] = useState("");
+  const [_requestChangesItemId, setRequestChangesItemId] = useState<number | null>(null);
   const [approvalConfirmItemId, setApprovalConfirmItemId] = useState<number | null>(null);
-  const [changeNotes, setChangeNotes] = useState("");
+  const [_changeNotes, setChangeNotes] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentJustCompleted, setPaymentJustCompleted] = useState(false);
   
@@ -270,7 +258,7 @@ export default function OrderDetail() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Download failed",
         description: "Could not download the file",
@@ -354,7 +342,7 @@ export default function OrderDetail() {
     },
   });
 
-  const removeArtworkMutation = useMutation({
+  const _removeArtworkMutation = useMutation({
     mutationFn: async (orderItemId: number) => {
       const res = await fetch(`/api/orders/${id}/artwork?orderItemId=${orderItemId}`, {
         method: "DELETE",
@@ -413,7 +401,7 @@ export default function OrderDetail() {
     },
   });
 
-  const submitArtworkMutation = useMutation({
+  const _submitArtworkMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/orders/${id}/submit-artwork`, {
         method: "POST",
@@ -442,7 +430,7 @@ export default function OrderDetail() {
     },
   });
 
-  const flagIssueMutation = useMutation({
+  const _flagIssueMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/orders/${id}/flag-issue`, {
         method: "POST",
@@ -1083,8 +1071,7 @@ export default function OrderDetail() {
               <CardContent>
                 <div className="space-y-4">
                   {order.items?.map((item: any) => {
-                    const isAdminCreatedOrder = !!order.createdByAdminId;
-                    const badgeInfo = getArtworkBadgeInfo(item.design, isAdminCreatedOrder);
+                    const badgeInfo = getArtworkBadgeInfo(item.design);
                     const hasDesign = item.design && (item.design.highResExportUrl || item.design.previewUrl || item.design.artworkUrl);
                     const previewUrl = item.design?.previewUrl || item.design?.highResExportUrl || item.design?.artworkUrl;
                     const downloadUrl = item.design?.highResExportUrl || item.design?.previewUrl || item.design?.artworkUrl || '';
@@ -1210,16 +1197,15 @@ export default function OrderDetail() {
                             // MUST include format=preview for unauthenticated access
                             const cacheBuster = `&t=${item.design?.id || 0}-${imageRefreshKey}`;
                             return (
-                              <img 
+                              <Image
                                 src={previewUrl.startsWith('data:')
                                   ? previewUrl
                                   : `/api/design-download?url=${encodeURIComponent(previewUrl)}&format=preview${cacheBuster}`}
-                                alt="Design preview" 
+                                alt="Design preview"
+                                width={96}
+                                height={96}
                                 className="w-24 h-24 object-contain bg-[repeating-conic-gradient(#e5e5e5_0%_25%,#ffffff_0%_50%)] bg-[length:16px_16px] rounded-lg border-2 border-gray-200"
-                                onError={(e) => {
-                                  console.error('[OrderDetail] Image failed to load:', previewUrl?.substring(0, 50));
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
+                                unoptimized
                               />
                             );
                           })()}
@@ -1750,6 +1736,9 @@ export default function OrderDetail() {
                           </p>
                           <p className="text-sm text-green-600 mt-2">
                             A confirmation email has been sent to your email address.
+                          </p>
+                          <p className="text-sm text-green-600">
+                            Watch your email for approval or revision requests before production starts.
                           </p>
                         </div>
                         

@@ -23,7 +23,7 @@ const standardCuts = [
   { name: "Die Cut", value: "Stickers are cut completely through both vinyl and backing to your exact shape.", priceModifier: "0.00", isDefault: false, displayOrder: 2 },
 ];
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const allProducts = await db.select().from(products);
     

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles, Image, Upload, X, Power, AlertTriangle } from "lucide-react";
+import { Mail, Save, RefreshCw, Palette, Type, MessageSquare, Sparkles, Image as ImageIcon, Upload, X, Power, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { generateEmailHtml } from "@/lib/email/template";
 import type { EmailType, EmailTemplate } from "@/lib/email/emailTemplateTypes";
+import Image from "next/image";
 
 interface TemplatesData {
   templates: Record<EmailType, EmailTemplate>;
@@ -382,7 +383,7 @@ export default function EmailTemplatesClient() {
 
               <Card className="p-6">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Image className="h-5 w-5 text-orange-500" />
+                  <ImageIcon className="h-5 w-5 text-orange-500" />
                   Branding
                 </h2>
                 <div className="space-y-4">
@@ -391,12 +392,15 @@ export default function EmailTemplatesClient() {
                     {formData.logoUrl ? (
                       <div className="space-y-3">
                         <div className="bg-gray-900 p-4 rounded-lg inline-block">
-                          <img 
-                            src={formData.logoUrl} 
-                            alt="Logo preview" 
+                          <Image
+                            src={formData.logoUrl}
+                            alt="Logo preview"
+                            width={200}
+                            height={64}
+                            unoptimized
                             className="max-h-16 max-w-[200px] object-contain"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.currentTarget as HTMLImageElement).style.display = 'none';
                             }}
                           />
                         </div>

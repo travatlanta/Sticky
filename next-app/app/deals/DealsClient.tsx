@@ -2,6 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -110,10 +111,13 @@ export default function Deals() {
                     <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer border border-orange-100 hover:border-orange-200">
                       <div className="relative aspect-square">
                         {deal.imageUrl ? (
-                          <img 
-                            src={deal.imageUrl} 
-                            alt={deal.title} 
-                            className="w-full h-full object-cover"
+                          <Image
+                            src={deal.imageUrl}
+                            alt={deal.title}
+                            fill
+                            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                            className="object-cover"
+                            unoptimized
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">

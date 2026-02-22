@@ -1,13 +1,13 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users, orders } from '@shared/schema';
+import { users } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -33,7 +33,7 @@ export async function GET(
     }
 
     let userOrders: any[] = [];
-    let orderStats = {
+    const orderStats = {
       totalOrders: 0,
       totalSpent: 0,
       pendingOrders: 0,
@@ -54,7 +54,7 @@ export async function GET(
              OR LOWER(customer_email) = ${user.email?.toLowerCase() || ''}
           ORDER BY created_at DESC
         `);
-      } catch (colErr) {
+      } catch (_colErr) {
         console.log('Falling back to minimal order columns');
         result = await db.execute(sql`
           SELECT 

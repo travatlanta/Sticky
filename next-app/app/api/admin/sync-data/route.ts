@@ -48,10 +48,12 @@ const SEED_DATA = {
 function generatePricingTiers(productId: number, basePrice: string) {
   const base = parseFloat(basePrice);
   return [
-    { productId, minQuantity: 1, maxQuantity: 249, pricePerUnit: base.toFixed(2) },
+    { productId, minQuantity: 1, maxQuantity: 99, pricePerUnit: base.toFixed(2) },
+    { productId, minQuantity: 100, maxQuantity: 249, pricePerUnit: base.toFixed(2) },
     { productId, minQuantity: 250, maxQuantity: 999, pricePerUnit: (base * 0.90).toFixed(2) },
     { productId, minQuantity: 1000, maxQuantity: 1999, pricePerUnit: (base * 0.85).toFixed(2) },
-    { productId, minQuantity: 2000, maxQuantity: null, pricePerUnit: (base * 0.80).toFixed(2) }
+    { productId, minQuantity: 2000, maxQuantity: 4999, pricePerUnit: (base * 0.80).toFixed(2) },
+    { productId, minQuantity: 5000, maxQuantity: null, pricePerUnit: (base * 0.80).toFixed(2) }
   ];
 }
 

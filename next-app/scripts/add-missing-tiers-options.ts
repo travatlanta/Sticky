@@ -16,8 +16,8 @@ const DEFAULT_CUT_OPTIONS = [
 
 interface ProductPricing {
   slug: string;
-  standardPrices: [number, number, number, number];
-  glossPrices: [number, number, number, number];
+  standardPrices: number[];
+  glossPrices: number[];
 }
 
 const productPricing: ProductPricing[] = [
@@ -59,10 +59,12 @@ async function main() {
   console.log('Adding missing pricing tiers and options...\n');
 
   const tierRanges = [
-    { min: 1, max: 249 },
+    { min: 1, max: 99 },
+    { min: 100, max: 249 },
     { min: 250, max: 999 },
     { min: 1000, max: 1999 },
-    { min: 2000, max: 5000 },
+    { min: 2000, max: 4999 },
+    { min: 5000, max: null },
   ];
 
   for (const pricing of productPricing) {
@@ -96,12 +98,13 @@ async function main() {
     }
 
     if (existingTiers.length === 0) {
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < tierRanges.length; i++) {
+        const basePrice = pricing.standardPrices[i] ?? pricing.standardPrices[pricing.standardPrices.length - 1] ?? 0;
         await db.insert(pricingTiers).values({
           productId: product.id,
           minQuantity: tierRanges[i].min,
           maxQuantity: tierRanges[i].max,
-          pricePerUnit: pricing.standardPrices[i].toFixed(4),
+          pricePerUnit: basePrice.toFixed(4),
         });
       }
       console.log(`✅ Added pricing tiers for ${product.name}`);

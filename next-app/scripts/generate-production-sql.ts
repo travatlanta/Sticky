@@ -1,5 +1,5 @@
 import { db } from '../lib/db';
-import { products, productOptions, pricingTiers, categories } from '../shared/schema';
+import { products, pricingTiers, categories } from '../shared/schema';
 import { sql } from 'drizzle-orm';
 import * as fs from 'fs';
 
@@ -8,7 +8,60 @@ async function main() {
 
   const allCategories = await db.select().from(categories);
   const allProducts = await db.select().from(products);
-  const allOptions = await db.select().from(productOptions);
+  const schemaCheck = await db.execute(sql`
+    SELECT
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'product_options' AND column_name = 'tier5_price_modifier'
+      ) AS has_tier5,
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'product_options' AND column_name = 'tier6_price_modifier'
+      ) AS has_tier6
+  `);
+  const schemaCheckRow = ((schemaCheck as any).rows?.[0] ?? (schemaCheck as any)[0] ?? {}) as {
+    has_tier5?: boolean;
+    has_tier6?: boolean;
+  };
+  const hasTier5 = Boolean(schemaCheckRow.has_tier5);
+  const hasTier6 = Boolean(schemaCheckRow.has_tier6);
+
+  const optionsResult = await db.execute(sql.raw(`
+    SELECT
+      id,
+      product_id,
+      option_type,
+      name,
+      value,
+      price_modifier,
+      tier2_price_modifier,
+      tier3_price_modifier,
+      tier4_price_modifier,
+      ${hasTier5 ? 'tier5_price_modifier' : 'NULL::numeric AS tier5_price_modifier'},
+      ${hasTier6 ? 'tier6_price_modifier' : 'NULL::numeric AS tier6_price_modifier'},
+      is_default,
+      is_active,
+      display_order
+    FROM product_options
+  `));
+  const allOptions = ((optionsResult as any).rows ?? optionsResult ?? []) as Array<{
+    id: number;
+    product_id: number;
+    option_type: string;
+    name: string;
+    value: string | null;
+    price_modifier: string | number | null;
+    tier2_price_modifier: string | number | null;
+    tier3_price_modifier: string | number | null;
+    tier4_price_modifier: string | number | null;
+    tier5_price_modifier: string | number | null;
+    tier6_price_modifier: string | number | null;
+    is_default: boolean | null;
+    is_active: boolean | null;
+    display_order: number | null;
+  }>;
   const allTiers = await db.select().from(pricingTiers);
 
   let sqlOutput = `-- Production SQL for Sticky Banditos
@@ -19,7 +72,9 @@ async function main() {
 ALTER TABLE product_options 
 ADD COLUMN IF NOT EXISTS tier2_price_modifier DECIMAL(10, 4),
 ADD COLUMN IF NOT EXISTS tier3_price_modifier DECIMAL(10, 4),
-ADD COLUMN IF NOT EXISTS tier4_price_modifier DECIMAL(10, 4);
+ADD COLUMN IF NOT EXISTS tier4_price_modifier DECIMAL(10, 4),
+ADD COLUMN IF NOT EXISTS tier5_price_modifier DECIMAL(10, 4),
+ADD COLUMN IF NOT EXISTS tier6_price_modifier DECIMAL(10, 4);
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS use_global_tiers BOOLEAN DEFAULT true;
 
@@ -79,11 +134,13 @@ SELECT setval('products_id_seq', COALESCE((SELECT MAX(id) FROM products), 1));
   for (const opt of allOptions) {
     const name = opt.name.replace(/'/g, "''");
     const value = (opt.value || '').replace(/'/g, "''");
-    const tier2 = opt.tier2PriceModifier ? `'${opt.tier2PriceModifier}'` : 'NULL';
-    const tier3 = opt.tier3PriceModifier ? `'${opt.tier3PriceModifier}'` : 'NULL';
-    const tier4 = opt.tier4PriceModifier ? `'${opt.tier4PriceModifier}'` : 'NULL';
-    sqlOutput += `INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (${opt.id}, ${opt.productId}, '${opt.optionType}', '${name}', '${value}', '${opt.priceModifier || '0.00'}', ${tier2}, ${tier3}, ${tier4}, ${opt.isDefault ?? false}, ${opt.isActive ?? true}, ${opt.displayOrder || 0}) 
+    const tier2 = opt.tier2_price_modifier ? `'${opt.tier2_price_modifier}'` : 'NULL';
+    const tier3 = opt.tier3_price_modifier ? `'${opt.tier3_price_modifier}'` : 'NULL';
+    const tier4 = opt.tier4_price_modifier ? `'${opt.tier4_price_modifier}'` : 'NULL';
+    const tier5 = opt.tier5_price_modifier ? `'${opt.tier5_price_modifier}'` : 'NULL';
+    const tier6 = opt.tier6_price_modifier ? `'${opt.tier6_price_modifier}'` : 'NULL';
+    sqlOutput += `INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (${opt.id}, ${opt.product_id}, '${opt.option_type}', '${name}', '${value}', '${opt.price_modifier || '0.00'}', ${tier2}, ${tier3}, ${tier4}, ${tier5}, ${tier6}, ${opt.is_default ?? false}, ${opt.is_active ?? true}, ${opt.display_order || 0}) 
 ON CONFLICT (id) DO NOTHING;
 `;
   }

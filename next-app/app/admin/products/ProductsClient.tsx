@@ -48,9 +48,18 @@ interface ProductPricingRow {
   isActive: boolean;
   useGlobalTiers: boolean;
   tiers: Array<{ id: number; minQuantity: number; maxQuantity: number | null; pricePerUnit: string }>;
-  materials: Array<{ id: number; name: string; priceModifier: string; tier2PriceModifier?: string | null; tier3PriceModifier?: string | null; tier4PriceModifier?: string | null }>;
-  finishes: Array<{ id: number; name: string; priceModifier: string; tier2PriceModifier?: string | null; tier3PriceModifier?: string | null; tier4PriceModifier?: string | null }>;
+  materials: Array<{ id: number; name: string; priceModifier: string; tier2PriceModifier?: string | null; tier3PriceModifier?: string | null; tier4PriceModifier?: string | null; tier5PriceModifier?: string | null; tier6PriceModifier?: string | null }>;
+  finishes: Array<{ id: number; name: string; priceModifier: string; tier2PriceModifier?: string | null; tier3PriceModifier?: string | null; tier4PriceModifier?: string | null; tier5PriceModifier?: string | null; tier6PriceModifier?: string | null }>;
 }
+
+type TierPriceEdits = {
+  tier1: string;
+  tier2: string;
+  tier3: string;
+  tier4: string;
+  tier5: string;
+  tier6: string;
+};
 
 function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => void }) {
   const { toast } = useToast();
@@ -82,7 +91,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     { minQuantity: 1, maxQuantity: 99 },
     { minQuantity: 100, maxQuantity: 249 },
     { minQuantity: 250, maxQuantity: 999 },
-    { minQuantity: 1000, maxQuantity: null },
+    { minQuantity: 1000, maxQuantity: 1999 },
+    { minQuantity: 2000, maxQuantity: 4999 },
+    { minQuantity: 5000, maxQuantity: null },
   ];
   const [tierRangeEdits, setTierRangeEdits] = useState<Array<{ minQuantity: string; maxQuantity: string }>>(
     defaultBaseTierRanges.map((tier) => ({
@@ -106,7 +117,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     tier2: string;
     tier3: string;
     tier4: string;
-  }>({ tier1: '', tier2: '', tier3: '', tier4: '' });
+    tier5: string;
+    tier6: string;
+  }>({ tier1: '', tier2: '', tier3: '', tier4: '', tier5: '', tier6: '' });
   const [savingBulkTierPricing, setSavingBulkTierPricing] = useState(false);
   
   // Tier pricing popup state (inline popover)
@@ -121,22 +134,21 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     tier2Id?: number;
     tier3Id?: number;
     tier4Id?: number;
+    tier5Id?: number;
+    tier6Id?: number;
     tier1Price: string;
     tier2Price: string;
     tier3Price: string;
     tier4Price: string;
+    tier5Price: string;
+    tier6Price: string;
     popupX: number;
     popupY: number;
     arrowPosition: string;
     arrowX: number;
   } | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const [tierPricingEdits, setTierPricingEdits] = useState<{
-    tier1: string;
-    tier2: string;
-    tier3: string;
-    tier4: string;
-  }>({ tier1: '', tier2: '', tier3: '', tier4: '' });
+  const [tierPricingEdits, setTierPricingEdits] = useState<TierPriceEdits>({ tier1: '', tier2: '', tier3: '', tier4: '', tier5: '', tier6: '' });
   const [savingTierPricing, setSavingTierPricing] = useState(false);
 
   const products = productsData?.products || [];
@@ -191,12 +203,12 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
   const resolveTierRanges = (
     tiers: Array<{ minQuantity: number; maxQuantity: number | null }>
   ): Array<{ minQuantity: number; maxQuantity: number | null }> => {
-    if (tiers.length >= 4) {
-      return tiers.slice(0, 4);
+    if (tiers.length >= 6) {
+      return tiers.slice(0, 6);
     }
 
     const filled = [...tiers];
-    while (filled.length < 4) {
+    while (filled.length < 6) {
       const fallback = defaultBaseTierRanges[filled.length];
       filled.push({ minQuantity: fallback.minQuantity, maxQuantity: fallback.maxQuantity });
     }
@@ -216,9 +228,13 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
     tier2Price: string | null | undefined,
     tier3Price: string | null | undefined,
     tier4Price: string | null | undefined,
+    tier5Price: string | null | undefined,
+    tier6Price: string | null | undefined,
     tier2Id?: number,
     tier3Id?: number,
-    tier4Id?: number
+    tier4Id?: number,
+    tier5Id?: number,
+    tier6Id?: number
   ) => {
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     
@@ -249,10 +265,14 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       tier2Id,
       tier3Id,
       tier4Id,
+      tier5Id,
+      tier6Id,
       tier1Price,
       tier2Price: tier2Price || '',
       tier3Price: tier3Price || '',
       tier4Price: tier4Price || '',
+      tier5Price: tier5Price || '',
+      tier6Price: tier6Price || '',
       popupX,
       popupY,
       arrowPosition,
@@ -264,6 +284,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       tier2: tier2Price || '',
       tier3: tier3Price || '',
       tier4: tier4Price || '',
+      tier5: tier5Price || '',
+      tier6: tier6Price || '',
     });
 
     setTierRangeEdits(
@@ -314,6 +336,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
           tier2: tierPricingEdits.tier2 || tierPricingPopup.tier2Price || tierPricingEdits.tier1 || '0',
           tier3: tierPricingEdits.tier3 || tierPricingPopup.tier3Price || tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0',
           tier4: tierPricingEdits.tier4 || tierPricingPopup.tier4Price || tierPricingEdits.tier3 || tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0',
+          tier5: tierPricingEdits.tier5 || tierPricingPopup.tier5Price || tierPricingEdits.tier4 || tierPricingEdits.tier3 || tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0',
+          tier6: tierPricingEdits.tier6 || tierPricingPopup.tier6Price || tierPricingEdits.tier5 || tierPricingEdits.tier4 || tierPricingEdits.tier3 || tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0',
         };
 
         const parsedRanges = tierRangeEdits.map((tier, index) => {
@@ -348,6 +372,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
           { ...parsedRanges[1], pricePerUnit: resolvedPrices.tier2 },
           { ...parsedRanges[2], pricePerUnit: resolvedPrices.tier3 },
           { ...parsedRanges[3], pricePerUnit: resolvedPrices.tier4 },
+          { ...parsedRanges[4], pricePerUnit: resolvedPrices.tier5 },
+          { ...parsedRanges[5], pricePerUnit: resolvedPrices.tier6 },
         ];
 
         const res = await fetch(`/api/admin/products/${tierPricingPopup.productId}/pricing-tiers`, {
@@ -444,6 +470,44 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
         });
       }
 
+      // Update tier 5
+      if (tierPricingEdits.tier5 !== tierPricingPopup.tier5Price) {
+        updates.push({
+          tier: 5,
+          promise: fetch('/api/admin/pricing/products', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              productId: tierPricingPopup.productId,
+              field: 'optionTierPrice',
+              value: tierPricingEdits.tier5,
+              optionId: tierPricingPopup.optionId,
+              tierNumber: 5,
+            }),
+          })
+        });
+      }
+
+      // Update tier 6
+      if (tierPricingEdits.tier6 !== tierPricingPopup.tier6Price) {
+        updates.push({
+          tier: 6,
+          promise: fetch('/api/admin/pricing/products', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              productId: tierPricingPopup.productId,
+              field: 'optionTierPrice',
+              value: tierPricingEdits.tier6,
+              optionId: tierPricingPopup.optionId,
+              tierNumber: 6,
+            }),
+          })
+        });
+      }
+
       const responses = await Promise.all(updates.map((u) => u.promise));
       const failedTiers: number[] = [];
       responses.forEach((res, i) => {
@@ -472,7 +536,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       optionType,
       optionName,
     });
-    setBulkTierPricingEdits({ tier1: '', tier2: '', tier3: '', tier4: '' });
+    setBulkTierPricingEdits({ tier1: '', tier2: '', tier3: '', tier4: '', tier5: '', tier6: '' });
   };
 
   // Save bulk tier pricing for an add-on option across ALL products
@@ -497,7 +561,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       const tier1Val = validatePrice(bulkTierPricingEdits.tier1, 'Tier 1 (1-99)');
       const tier2Val = validatePrice(bulkTierPricingEdits.tier2, 'Tier 2 (100-249)');
       const tier3Val = validatePrice(bulkTierPricingEdits.tier3, 'Tier 3 (250-999)');
-      const tier4Val = validatePrice(bulkTierPricingEdits.tier4, 'Tier 4 (1000+)');
+      const tier4Val = validatePrice(bulkTierPricingEdits.tier4, 'Tier 4 (1000-1999)');
+      const tier5Val = validatePrice(bulkTierPricingEdits.tier5, 'Tier 5 (2000-4999)');
+      const tier6Val = validatePrice(bulkTierPricingEdits.tier6, 'Tier 6 (5000+)');
       
       // Build the update payload
       const updateData: Record<string, string | null> = {};
@@ -512,6 +578,12 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
       }
       if (tier4Val !== null) {
         updateData.tier4PriceModifier = tier4Val.toFixed(4);
+      }
+      if (tier5Val !== null) {
+        updateData.tier5PriceModifier = tier5Val.toFixed(4);
+      }
+      if (tier6Val !== null) {
+        updateData.tier6PriceModifier = tier6Val.toFixed(4);
       }
       
       if (Object.keys(updateData).length === 0) {
@@ -617,7 +689,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
             <div className="space-y-2">
               <h4 className="font-semibold text-blue-800">Understanding the Spreadsheet</h4>
               <ul className="text-blue-700 space-y-1">
-                <li><strong>T1-T4</strong>: Quantity tier pricing (1-99, 100-249, 250-999, 1000+)</li>
+                <li><strong>T1-T6</strong>: Quantity tier pricing (1-99, 100-249, 250-999, 1000-1999, 2000-4999, 5000+)</li>
                 <li><strong>Vinyl/Foil/Holo</strong>: Material add-on costs per sticker</li>
                 <li><strong>Varnish/Emboss</strong>: Finish add-on costs per sticker</li>
                 <li><strong>*</strong> = Has tier-specific material pricing (hover to view)</li>
@@ -866,7 +938,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs z-[100]">
                       <p className="font-semibold mb-1">Tier Pricing</p>
-                      <p className="text-xs text-gray-600">Click to edit all 4 quantity tiers (1-99, 100-249, 250-999, 1000+). Shows Tier 1 price.</p>
+                      <p className="text-xs text-gray-600">Click to edit all 6 quantity tiers (1-99, 100-249, 250-999, 1000-1999, 2000-4999, 5000+). Shows Tier 1 price.</p>
                     </TooltipContent>
                   </Tooltip>
                 </th>
@@ -962,6 +1034,8 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 const tier2 = product.tiers[1];
                 const tier3 = product.tiers[2];
                 const tier4 = product.tiers[3];
+                const tier5 = product.tiers[4];
+                const tier6 = product.tiers[5];
                 const vinyl = product.materials.find(m => m.name === 'Vinyl');
                 const foil = product.materials.find(m => m.name === 'Foil');
                 const holo = product.materials.find(m => m.name === 'Holographic');
@@ -970,7 +1044,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 const emboss = product.finishes.find(f => f.name === 'Emboss');
                 
                 const tierRanges = resolveTierRanges(
-                  [tier1, tier2, tier3, tier4]
+                  [tier1, tier2, tier3, tier4, tier5, tier6]
                     .filter(Boolean)
                     .map((tier) => ({
                       minQuantity: tier!.minQuantity,
@@ -1044,9 +1118,13 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                                 tier2?.pricePerUnit,
                                 tier3?.pricePerUnit,
                                 tier4?.pricePerUnit,
+                                tier5?.pricePerUnit,
+                                tier6?.pricePerUnit,
                                 tier2?.id,
                                 tier3?.id,
-                                tier4?.id
+                                tier4?.id,
+                                tier5?.id,
+                                tier6?.id
                               )}
                               className="font-mono text-[11px] sm:text-xs px-1.5 sm:px-2 py-1 rounded bg-blue-100 border border-blue-300 hover:border-blue-500 hover:bg-blue-200 shadow-sm cursor-pointer transition-all font-medium text-blue-800"
                               data-testid={`cell-price-${product.id}`}
@@ -1054,7 +1132,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                               ${parseFloat(tier1.pricePerUnit).toFixed(2)}
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent>Click to edit all 4 tier prices</TooltipContent>
+                          <TooltipContent>Click to edit all 6 tier prices</TooltipContent>
                         </Tooltip>
                       ) : (
                         <span className="text-gray-300">-</span>
@@ -1065,7 +1143,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Vinyl', vinyl.id, tierRanges, vinyl.priceModifier, vinyl.tier2PriceModifier, vinyl.tier3PriceModifier, vinyl.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Vinyl', vinyl.id, tierRanges, vinyl.priceModifier, vinyl.tier2PriceModifier, vinyl.tier3PriceModifier, vinyl.tier4PriceModifier, vinyl.tier5PriceModifier, vinyl.tier6PriceModifier)}
                               
                               className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-vinyl-${product.id}`}
@@ -1086,7 +1164,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Foil', foil.id, tierRanges, foil.priceModifier, foil.tier2PriceModifier, foil.tier3PriceModifier, foil.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Foil', foil.id, tierRanges, foil.priceModifier, foil.tier2PriceModifier, foil.tier3PriceModifier, foil.tier4PriceModifier, foil.tier5PriceModifier, foil.tier6PriceModifier)}
                               className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-foil-${product.id}`}
                             >
@@ -1106,7 +1184,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Holographic', holo.id, tierRanges, holo.priceModifier, holo.tier2PriceModifier, holo.tier3PriceModifier, holo.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'material', 'Holographic', holo.id, tierRanges, holo.priceModifier, holo.tier2PriceModifier, holo.tier3PriceModifier, holo.tier4PriceModifier, holo.tier5PriceModifier, holo.tier6PriceModifier)}
                               className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-purple-100 border border-purple-300 hover:border-purple-500 hover:bg-purple-200 shadow-sm cursor-pointer transition-all font-medium text-purple-800"
                               data-testid={`cell-holo-${product.id}`}
                             >
@@ -1126,7 +1204,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Gloss', gloss.id, tierRanges, gloss.priceModifier, gloss.tier2PriceModifier, gloss.tier3PriceModifier, gloss.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Gloss', gloss.id, tierRanges, gloss.priceModifier, gloss.tier2PriceModifier, gloss.tier3PriceModifier, gloss.tier4PriceModifier, gloss.tier5PriceModifier, gloss.tier6PriceModifier)}
                               className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-gloss-${product.id}`}
                             >
@@ -1146,7 +1224,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Varnish', varnish.id, tierRanges, varnish.priceModifier, varnish.tier2PriceModifier, varnish.tier3PriceModifier, varnish.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Varnish', varnish.id, tierRanges, varnish.priceModifier, varnish.tier2PriceModifier, varnish.tier3PriceModifier, varnish.tier4PriceModifier, varnish.tier5PriceModifier, varnish.tier6PriceModifier)}
                               className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-varnish-${product.id}`}
                             >
@@ -1166,7 +1244,7 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
-                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Emboss', emboss.id, tierRanges, emboss.priceModifier, emboss.tier2PriceModifier, emboss.tier3PriceModifier, emboss.tier4PriceModifier)}
+                              onClick={(e) => openTierPricingPopup(e, product.id, product.name, 'finish', 'Emboss', emboss.id, tierRanges, emboss.priceModifier, emboss.tier2PriceModifier, emboss.tier3PriceModifier, emboss.tier4PriceModifier, emboss.tier5PriceModifier, emboss.tier6PriceModifier)}
                               className="font-mono text-[11px] sm:text-xs px-1 sm:px-1.5 py-1 rounded bg-green-100 border border-green-300 hover:border-green-500 hover:bg-green-200 shadow-sm cursor-pointer transition-all font-medium text-green-800"
                               data-testid={`cell-emboss-${product.id}`}
                             >
@@ -1482,6 +1560,124 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                   />
                 </div>
               </div>
+
+              {/* Tier 5 */}
+              <div className="flex items-center gap-2">
+                {tierPricingPopup.optionType === 'base' ? (
+                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                    <input
+                      type="number"
+                      min="1"
+                      value={tierRangeEdits[4]?.minQuantity ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setTierRangeEdits((prev) => {
+                          const next = [...prev];
+                          next[4] = { ...next[4], minQuantity: value };
+                          return next;
+                        });
+                      }}
+                      className="w-12 px-1 py-1 border rounded text-center"
+                      data-testid="input-tier5-min"
+                    />
+                    <span className="text-gray-400">-</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={tierRangeEdits[4]?.maxQuantity ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setTierRangeEdits((prev) => {
+                          const next = [...prev];
+                          next[4] = { ...next[4], maxQuantity: value };
+                          return next;
+                        });
+                      }}
+                      className="w-12 px-1 py-1 border rounded text-center"
+                      placeholder="+"
+                      data-testid="input-tier5-max"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 text-xs font-medium text-gray-600">
+                    {tierRangesForPopup[4].maxQuantity
+                      ? `${tierRangesForPopup[4].minQuantity}-${tierRangesForPopup[4].maxQuantity}`
+                      : `${tierRangesForPopup[4].minQuantity}+`}
+                  </div>
+                )}
+                <div className="flex-1 relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{tierPricingPopup.optionType === 'base' ? '$' : '+$'}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={tierPricingEdits.tier5}
+                    onChange={(e) => setTierPricingEdits(prev => ({ ...prev, tier5: e.target.value }))}
+                    className={`w-full pl-6 pr-2 py-1.5 border rounded text-xs font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500' : tierPricingPopup.optionType === 'finish' ? 'border-green-300 focus:border-green-500' : 'border-blue-300 focus:border-blue-500'} focus:ring-1 focus:outline-none`}
+                    placeholder={tierPricingEdits.tier4 || tierPricingEdits.tier3 || tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0.00'}
+                    data-testid="input-tier5-price"
+                  />
+                </div>
+              </div>
+
+              {/* Tier 6 */}
+              <div className="flex items-center gap-2">
+                {tierPricingPopup.optionType === 'base' ? (
+                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                    <input
+                      type="number"
+                      min="1"
+                      value={tierRangeEdits[5]?.minQuantity ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setTierRangeEdits((prev) => {
+                          const next = [...prev];
+                          next[5] = { ...next[5], minQuantity: value };
+                          return next;
+                        });
+                      }}
+                      className="w-12 px-1 py-1 border rounded text-center"
+                      data-testid="input-tier6-min"
+                    />
+                    <span className="text-gray-400">-</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={tierRangeEdits[5]?.maxQuantity ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setTierRangeEdits((prev) => {
+                          const next = [...prev];
+                          next[5] = { ...next[5], maxQuantity: value };
+                          return next;
+                        });
+                      }}
+                      className="w-12 px-1 py-1 border rounded text-center"
+                      placeholder="+"
+                      data-testid="input-tier6-max"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 text-xs font-medium text-gray-600">
+                    {tierRangesForPopup[5].maxQuantity
+                      ? `${tierRangesForPopup[5].minQuantity}-${tierRangesForPopup[5].maxQuantity}`
+                      : `${tierRangesForPopup[5].minQuantity}+`}
+                  </div>
+                )}
+                <div className="flex-1 relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">{tierPricingPopup.optionType === 'base' ? '$' : '+$'}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={tierPricingEdits.tier6}
+                    onChange={(e) => setTierPricingEdits(prev => ({ ...prev, tier6: e.target.value }))}
+                    className={`w-full pl-6 pr-2 py-1.5 border rounded text-xs font-mono ${tierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500' : tierPricingPopup.optionType === 'finish' ? 'border-green-300 focus:border-green-500' : 'border-blue-300 focus:border-blue-500'} focus:ring-1 focus:outline-none`}
+                    placeholder={tierPricingEdits.tier5 || tierPricingEdits.tier4 || tierPricingEdits.tier3 || tierPricingEdits.tier2 || tierPricingEdits.tier1 || '0.00'}
+                    data-testid="input-tier6-price"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-2 mt-3">
@@ -1593,9 +1789,9 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 </div>
               </div>
 
-              {/* Tier 4: 1000+ */}
+              {/* Tier 4: 1000-1999 */}
               <div className="flex items-center gap-3">
-                <div className="w-24 text-sm font-medium text-gray-600">1000+</div>
+                <div className="w-24 text-sm font-medium text-gray-600">1000-1999</div>
                 <div className="flex-1 relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+$</span>
                   <input
@@ -1607,6 +1803,42 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                     className={`w-full pl-8 pr-3 py-2 border rounded-lg text-sm font-mono ${bulkTierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-200' : 'border-green-300 focus:border-green-500 focus:ring-green-200'} focus:ring-2 focus:outline-none`}
                     placeholder="0.00"
                     data-testid="input-bulk-tier4-price"
+                  />
+                </div>
+              </div>
+
+              {/* Tier 5: 2000-4999 */}
+              <div className="flex items-center gap-3">
+                <div className="w-24 text-sm font-medium text-gray-600">2000-4999</div>
+                <div className="flex-1 relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={bulkTierPricingEdits.tier5}
+                    onChange={(e) => setBulkTierPricingEdits(prev => ({ ...prev, tier5: e.target.value }))}
+                    className={`w-full pl-8 pr-3 py-2 border rounded-lg text-sm font-mono ${bulkTierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-200' : 'border-green-300 focus:border-green-500 focus:ring-green-200'} focus:ring-2 focus:outline-none`}
+                    placeholder="0.00"
+                    data-testid="input-bulk-tier5-price"
+                  />
+                </div>
+              </div>
+
+              {/* Tier 6: 5000+ */}
+              <div className="flex items-center gap-3">
+                <div className="w-24 text-sm font-medium text-gray-600">5000+</div>
+                <div className="flex-1 relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={bulkTierPricingEdits.tier6}
+                    onChange={(e) => setBulkTierPricingEdits(prev => ({ ...prev, tier6: e.target.value }))}
+                    className={`w-full pl-8 pr-3 py-2 border rounded-lg text-sm font-mono ${bulkTierPricingPopup.optionType === 'material' ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-200' : 'border-green-300 focus:border-green-500 focus:ring-green-200'} focus:ring-2 focus:outline-none`}
+                    placeholder="0.00"
+                    data-testid="input-bulk-tier6-price"
                   />
                 </div>
               </div>
@@ -1810,7 +2042,9 @@ export default function AdminProducts() {
       { minQuantity: "1", maxQuantity: "99", pricePerUnit: "" },
       { minQuantity: "100", maxQuantity: "249", pricePerUnit: "" },
       { minQuantity: "250", maxQuantity: "999", pricePerUnit: "" },
-      { minQuantity: "1000", maxQuantity: "", pricePerUnit: "" },
+      { minQuantity: "1000", maxQuantity: "1999", pricePerUnit: "" },
+      { minQuantity: "2000", maxQuantity: "4999", pricePerUnit: "" },
+      { minQuantity: "5000", maxQuantity: "", pricePerUnit: "" },
     ] as Array<{ minQuantity: string; maxQuantity: string; pricePerUnit: string }>,
   });
   const createFileInputRef = useRef<HTMLInputElement>(null);
@@ -1834,7 +2068,9 @@ export default function AdminProducts() {
     { minQuantity: "1", maxQuantity: "99", pricePerUnit: "" },
     { minQuantity: "100", maxQuantity: "249", pricePerUnit: "" },
     { minQuantity: "250", maxQuantity: "999", pricePerUnit: "" },
-    { minQuantity: "1000", maxQuantity: "", pricePerUnit: "" },
+    { minQuantity: "1000", maxQuantity: "1999", pricePerUnit: "" },
+    { minQuantity: "2000", maxQuantity: "4999", pricePerUnit: "" },
+    { minQuantity: "5000", maxQuantity: "", pricePerUnit: "" },
   ]);
 
   const queryClient = useQueryClient();
@@ -2003,10 +2239,10 @@ export default function AdminProducts() {
   useEffect(() => {
     if (productPricingTiers) {
       const tiers = [...productPricingTiers];
-      while (tiers.length < 4) {
+      while (tiers.length < 6) {
         tiers.push({ minQuantity: "", maxQuantity: "", pricePerUnit: "" });
       }
-      setPricingTiers(tiers.slice(0, 4).map((t: any) => ({
+      setPricingTiers(tiers.slice(0, 6).map((t: any) => ({
         minQuantity: t.minQuantity?.toString() || "",
         maxQuantity: t.maxQuantity?.toString() || "",
         pricePerUnit: t.pricePerUnit?.toString() || "",
@@ -2048,7 +2284,9 @@ export default function AdminProducts() {
           { minQuantity: "1", maxQuantity: "99", pricePerUnit: "" },
           { minQuantity: "100", maxQuantity: "249", pricePerUnit: "" },
           { minQuantity: "250", maxQuantity: "999", pricePerUnit: "" },
-          { minQuantity: "1000", maxQuantity: "", pricePerUnit: "" },
+          { minQuantity: "1000", maxQuantity: "1999", pricePerUnit: "" },
+          { minQuantity: "2000", maxQuantity: "4999", pricePerUnit: "" },
+          { minQuantity: "5000", maxQuantity: "", pricePerUnit: "" },
         ],
       });
       toast({ title: "Product created successfully" });
@@ -2216,7 +2454,9 @@ export default function AdminProducts() {
       { minQuantity: "1", maxQuantity: "99", pricePerUnit: "" },
       { minQuantity: "100", maxQuantity: "249", pricePerUnit: "" },
       { minQuantity: "250", maxQuantity: "999", pricePerUnit: "" },
-      { minQuantity: "1000", maxQuantity: "", pricePerUnit: "" },
+      { minQuantity: "1000", maxQuantity: "1999", pricePerUnit: "" },
+      { minQuantity: "2000", maxQuantity: "4999", pricePerUnit: "" },
+      { minQuantity: "5000", maxQuantity: "", pricePerUnit: "" },
     ]);
   };
 

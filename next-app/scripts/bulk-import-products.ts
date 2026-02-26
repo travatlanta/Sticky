@@ -21,8 +21,8 @@ interface ProductData {
   widthInches?: number;
   heightInches?: number;
   categorySlug: string;
-  standardPrices: [number, number, number, number];
-  glossPrices: [number, number, number, number];
+  standardPrices: number[];
+  glossPrices: number[];
 }
 
 // CIRCLES - From spreadsheet
@@ -180,20 +180,23 @@ async function main() {
         ...DEFAULT_CUT_OPTIONS.map(opt => ({ ...opt, productId: product.id, isActive: true })),
       ]);
 
-      // Create 4 pricing tiers
+      // Create 6 pricing tiers
       const tierRanges = [
-        { min: 1, max: 249 },
+        { min: 1, max: 99 },
+        { min: 100, max: 249 },
         { min: 250, max: 999 },
         { min: 1000, max: 1999 },
-        { min: 2000, max: 5000 },
+        { min: 2000, max: 4999 },
+        { min: 5000, max: null },
       ];
 
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < tierRanges.length; i++) {
+        const basePrice = prod.standardPrices[i] ?? prod.standardPrices[prod.standardPrices.length - 1] ?? 0;
         await db.insert(pricingTiers).values({
           productId: product.id,
           minQuantity: tierRanges[i].min,
           maxQuantity: tierRanges[i].max,
-          pricePerUnit: prod.standardPrices[i].toFixed(4),
+          pricePerUnit: basePrice.toFixed(4),
         });
       }
 

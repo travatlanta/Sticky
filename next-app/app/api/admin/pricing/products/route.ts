@@ -78,6 +78,8 @@ export async function GET(_request: NextRequest) {
           tier2PriceModifier: m.tier2PriceModifier,
           tier3PriceModifier: m.tier3PriceModifier,
           tier4PriceModifier: m.tier4PriceModifier,
+          tier5PriceModifier: m.tier5PriceModifier,
+          tier6PriceModifier: m.tier6PriceModifier,
         })),
         finishes: productFinishes.map((f) => ({
           id: f.id,
@@ -86,6 +88,8 @@ export async function GET(_request: NextRequest) {
           tier2PriceModifier: f.tier2PriceModifier,
           tier3PriceModifier: f.tier3PriceModifier,
           tier4PriceModifier: f.tier4PriceModifier,
+          tier5PriceModifier: f.tier5PriceModifier,
+          tier6PriceModifier: f.tier6PriceModifier,
         })),
       };
     });
@@ -136,8 +140,8 @@ export async function PATCH(request: NextRequest) {
       const { tierNumber } = body;
       
       // Validate tier number
-      if (![2, 3, 4].includes(tierNumber)) {
-        return NextResponse.json({ message: 'Invalid tier number. Must be 2, 3, or 4.' }, { status: 400 });
+      if (![2, 3, 4, 5, 6].includes(tierNumber)) {
+        return NextResponse.json({ message: 'Invalid tier number. Must be 2, 3, 4, 5, or 6.' }, { status: 400 });
       }
       
       const updateData: Record<string, string | null> = {};
@@ -149,6 +153,10 @@ export async function PATCH(request: NextRequest) {
         updateData.tier3PriceModifier = priceValue;
       } else if (tierNumber === 4) {
         updateData.tier4PriceModifier = priceValue;
+      } else if (tierNumber === 5) {
+        updateData.tier5PriceModifier = priceValue;
+      } else if (tierNumber === 6) {
+        updateData.tier6PriceModifier = priceValue;
       }
       
       await db

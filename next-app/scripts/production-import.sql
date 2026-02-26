@@ -1,12 +1,14 @@
 -- Production SQL for Sticky Banditos
--- Generated on 2026-01-27T05:37:09.936Z
+-- Generated on 2026-02-26T17:18:23.998Z
 -- Run this in your Neon SQL console
 
 -- First, add missing schema columns if needed
 ALTER TABLE product_options 
 ADD COLUMN IF NOT EXISTS tier2_price_modifier DECIMAL(10, 4),
 ADD COLUMN IF NOT EXISTS tier3_price_modifier DECIMAL(10, 4),
-ADD COLUMN IF NOT EXISTS tier4_price_modifier DECIMAL(10, 4);
+ADD COLUMN IF NOT EXISTS tier4_price_modifier DECIMAL(10, 4),
+ADD COLUMN IF NOT EXISTS tier5_price_modifier DECIMAL(10, 4),
+ADD COLUMN IF NOT EXISTS tier6_price_modifier DECIMAL(10, 4);
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS use_global_tiers BOOLEAN DEFAULT true;
 
@@ -25,6 +27,12 @@ CREATE TABLE IF NOT EXISTS global_pricing_tiers (
 
 -- Categories
 INSERT INTO categories (id, name, slug, description, display_order, is_active) 
+VALUES (1, 'Stickers', 'stickers', 'Custom stickers in all shapes and sizes', 0, true) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO categories (id, name, slug, description, display_order, is_active) 
+VALUES (2, 'Labels', 'labels', 'Professional product and packaging labels', 0, true) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO categories (id, name, slug, description, display_order, is_active) 
 VALUES (28, 'Circles', 'circles', 'Round circle stickers in various sizes from 1" to 6"', 1, true) 
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO categories (id, name, slug, description, display_order, is_active) 
@@ -36,52 +44,10 @@ SELECT setval('categories_id_seq', COALESCE((SELECT MAX(id) FROM categories), 1)
 
 -- Products
 INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (273, '3.5" Circle Stickers', '3-5-inch-circle-stickers', 'High-quality 3.5" circle stickers printed on premium vinyl.', 28, '0.18', 1, true, false, false, 1050, 1050, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (274, '4" Circle Stickers', '4-inch-circle-stickers', 'High-quality 4" circle stickers printed on premium vinyl.', 28, '0.19', 1, true, false, false, 1200, 1200, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (268, '1" Circle Stickers', '1-inch-circle-stickers', 'High-quality 1" circle stickers printed on premium vinyl.', 28, '0.13', 1, true, false, false, 300, 300, false, 'calculated') 
+VALUES (271, '2.5" Circle Stickers', '2-5-inch-circle-stickers', 'High-quality 2.5" circle stickers printed on premium vinyl.', 28, '0.16', 1, true, false, false, 1200, 1200, false, 'flat') 
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
 VALUES (269, '1.5" Circle Stickers', '1-5-inch-circle-stickers', 'High-quality 1.5" circle stickers printed on premium vinyl.', 28, '0.14', 1, true, false, false, 450, 450, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (270, '2" Circle Stickers', '2-inch-circle-stickers', 'High-quality 2" circle stickers printed on premium vinyl.', 28, '0.15', 1, true, false, false, 600, 600, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (271, '2.5" Circle Stickers', '2-5-inch-circle-stickers', 'High-quality 2.5" circle stickers printed on premium vinyl.', 28, '0.16', 1, true, false, false, 750, 750, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (272, '3" Circle Stickers', '3-inch-circle-stickers', 'High-quality 3" circle stickers printed on premium vinyl.', 28, '0.17', 1, true, false, false, 900, 900, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (275, '4.5" Circle Stickers', '4-5-inch-circle-stickers', 'High-quality 4.5" circle stickers printed on premium vinyl.', 28, '0.20', 1, true, false, false, 1350, 1350, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (276, '5" Circle Stickers', '5-inch-circle-stickers', 'High-quality 5" circle stickers printed on premium vinyl.', 28, '0.21', 1, true, false, false, 1500, 1500, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (277, '5.5" Circle Stickers', '5-5-inch-circle-stickers', 'High-quality 5.5" circle stickers printed on premium vinyl.', 28, '0.22', 1, true, false, false, 1650, 1650, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (278, '6" Circle Stickers', '6-inch-circle-stickers', 'High-quality 6" circle stickers printed on premium vinyl.', 28, '0.23', 1, true, false, false, 1800, 1800, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (279, '1x1 Square Stickers', '1x1-square-stickers', 'High-quality 1x1 square stickers printed on premium vinyl.', 29, '0.12', 1, true, false, false, 300, 300, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (280, '1x2 Square Stickers', '1x2-square-stickers', 'High-quality 1x2 square stickers printed on premium vinyl.', 29, '0.14', 1, true, false, false, 300, 600, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (281, '1x3 Square Stickers', '1x3-square-stickers', 'High-quality 1x3 square stickers printed on premium vinyl.', 29, '0.15', 1, true, false, false, 300, 900, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (282, '1x4 Square Stickers', '1x4-square-stickers', 'High-quality 1x4 square stickers printed on premium vinyl.', 29, '0.16', 1, true, false, false, 300, 1200, false, 'calculated') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
-VALUES (283, '1x5 Square Stickers', '1x5-square-stickers', 'High-quality 1x5 square stickers printed on premium vinyl.', 29, '0.17', 1, true, false, false, 300, 1500, false, 'calculated') 
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
 VALUES (284, '1x6 Square Stickers', '1x6-square-stickers', 'High-quality 1x6 square stickers printed on premium vinyl.', 29, '0.19', 1, true, false, false, 300, 1800, false, 'calculated') 
@@ -131,874 +97,1012 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
 VALUES (299, '6x6 Square Stickers', '6x6-square-stickers', 'High-quality 6x6 square stickers printed on premium vinyl.', 29, '0.58', 1, true, false, false, 1800, 1800, false, 'calculated') 
 ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (268, '1" Circle Stickers', '1-inch-circle-stickers', 'High-quality 1" circle stickers printed on premium vinyl.', 28, '0.13', 1, true, false, false, 300, 300, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (280, '1x2 Square Stickers', '1x2-square-stickers', 'High-quality 1x2 square stickers printed on premium vinyl.', 29, '0.14', 1, true, false, false, 300, 600, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (281, '1x3 Square Stickers', '1x3-square-stickers', 'High-quality 1x3 square stickers printed on premium vinyl.', 29, '0.15', 1, true, false, false, 300, 900, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (282, '1x4 Square Stickers', '1x4-square-stickers', 'High-quality 1x4 square stickers printed on premium vinyl.', 29, '0.16', 1, true, false, false, 300, 1200, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (283, '1x5 Square Stickers', '1x5-square-stickers', 'High-quality 1x5 square stickers printed on premium vinyl.', 29, '0.17', 1, true, false, false, 300, 1500, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (279, '1x1 Square Stickers', '1x1-square-stickers', 'High-quality 1x1 square stickers printed on premium vinyl.', 29, '0.12', 1, true, false, false, 300, 300, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (270, '2" Circle Stickers', '2-inch-circle-stickers', 'High-quality 2" circle stickers printed on premium vinyl.', 28, '0.15', 1, true, false, false, 1200, 1200, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (272, '3" Circle Stickers', '3-inch-circle-stickers', 'High-quality 3" circle stickers printed on premium vinyl.', 28, '0.17', 1, true, false, false, 1200, 1200, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (277, '5.5" Circle Stickers', '5-5-inch-circle-stickers', 'High-quality 5.5" circle stickers printed on premium vinyl.', 28, '0.22', 1, true, false, false, 1200, 1200, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (274, '4" Circle Stickers', '4-inch-circle-stickers', 'High-quality 4" circle stickers printed on premium vinyl.', 28, '0.19', 1, true, false, false, 1200, 1200, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (278, '6" Circle Stickers', '6-inch-circle-stickers', 'High-quality 6" circle stickers printed on premium vinyl.', 28, '0.23', 1, true, false, false, 1200, 1200, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (273, '3.5" Circle Stickers', '3-5-inch-circle-stickers', 'High-quality 3.5" circle stickers printed on premium vinyl.', 28, '0.18', 1, true, false, false, 1200, 1200, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (276, '5" Circle Stickers', '5-inch-circle-stickers', 'High-quality 5" circle stickers printed on premium vinyl.', 28, '0.21', 1, true, false, false, 1200, 1200, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO products (id, name, slug, description, category_id, base_price, min_quantity, is_active, is_featured, use_global_tiers, template_width, template_height, supports_custom_shape, shipping_type) 
+VALUES (275, '4.5" Circle Stickers', '4-5-inch-circle-stickers', 'High-quality 4.5" circle stickers printed on premium vinyl.', 28, '0.20', 1, true, false, false, 1200, 1200, false, 'calculated') 
+ON CONFLICT (id) DO NOTHING;
 
 -- Reset sequences
 SELECT setval('products_id_seq', COALESCE((SELECT MAX(id) FROM products), 1));
 
 -- Product Options (Materials, Coatings, Cuts)
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2440, 268, 'material', 'Vinyl', 'vinyl', '0.03', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2440, 268, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2441, 268, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2449, 269, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2442, 268, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2458, 270, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2443, 268, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2467, 271, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2444, 268, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2476, 272, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2445, 268, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2485, 273, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2446, 268, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2494, 274, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2447, 268, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2442, 268, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2448, 268, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2443, 268, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2449, 269, 'material', 'Vinyl', 'vinyl', '0.04', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2444, 268, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2450, 269, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2446, 268, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2451, 269, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2447, 268, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2452, 269, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2448, 268, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2453, 269, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2451, 269, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2454, 269, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2452, 269, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2455, 269, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2453, 269, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2456, 269, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2455, 269, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2457, 269, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2456, 269, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2458, 270, 'material', 'Vinyl', 'vinyl', '0.06', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2457, 269, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2459, 270, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2460, 270, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2460, 270, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2461, 270, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2461, 270, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2462, 270, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2462, 270, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2464, 270, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2463, 270, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2465, 270, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2464, 270, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2466, 270, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2465, 270, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2469, 271, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2466, 270, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2470, 271, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2467, 271, 'material', 'Vinyl', 'vinyl', '0.07', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2471, 271, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2468, 271, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2473, 271, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2469, 271, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2474, 271, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2470, 271, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2475, 271, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2471, 271, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2478, 272, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2472, 271, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2479, 272, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2473, 271, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2480, 272, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2474, 271, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2482, 272, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2475, 271, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2483, 272, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2476, 272, 'material', 'Vinyl', 'vinyl', '0.09', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2484, 272, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2477, 272, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2487, 273, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2478, 272, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2488, 273, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2479, 272, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2489, 273, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2480, 272, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2491, 273, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2481, 272, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2492, 273, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2482, 272, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2493, 273, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2483, 272, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2496, 274, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2484, 272, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2503, 275, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2485, 273, 'material', 'Vinyl', 'vinyl', '0.10', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2512, 276, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2486, 273, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2495, 274, 'material', 'Foil', 'foil', '0.16', '0.1300', '0.1200', '0.1000', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2487, 273, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2459, 270, 'material', 'Foil', 'foil', '0.09', '0.0800', '0.0700', '0.0600', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2488, 273, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2454, 269, 'coating', 'Emboss', 'emboss', '0.04', '0.0400', '0.0300', '0.0200', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2489, 273, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2441, 268, 'material', 'Foil', 'foil', '0.05', '0.0500', '0.0400', '0.0300', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2490, 273, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2497, 274, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2491, 273, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2498, 274, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2492, 273, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2500, 274, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2493, 273, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2501, 274, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2494, 274, 'material', 'Vinyl', 'vinyl', '0.12', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2502, 274, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2495, 274, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2505, 275, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2496, 274, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2506, 275, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2497, 274, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2507, 275, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2498, 274, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2509, 275, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2499, 274, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2510, 275, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2500, 274, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2511, 275, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2501, 274, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2514, 276, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2502, 274, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2515, 276, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2503, 275, 'material', 'Vinyl', 'vinyl', '0.13', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2516, 276, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2504, 275, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2490, 273, 'coating', 'Emboss', 'emboss', '0.10', '0.0900', '0.0700', '0.0700', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2505, 275, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2468, 271, 'material', 'Foil', 'foil', '0.11', '0.0900', '0.0800', '0.0700', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2506, 275, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2450, 269, 'material', 'Foil', 'foil', '0.07', '0.0600', '0.0500', '0.0400', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2507, 275, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2504, 275, 'material', 'Foil', 'foil', '0.17', '0.1500', '0.1300', '0.1000', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2508, 275, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2463, 270, 'coating', 'Emboss', 'emboss', '0.06', '0.0500', '0.0500', '0.0400', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2509, 275, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2477, 272, 'material', 'Foil', 'foil', '0.12', '0.1100', '0.0900', '0.0700', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2510, 275, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2513, 276, 'material', 'Foil', 'foil', '0.19', '0.1600', '0.1400', '0.1200', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2511, 275, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2499, 274, 'coating', 'Emboss', 'emboss', '0.12', '0.1000', '0.0900', '0.0700', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2512, 276, 'material', 'Vinyl', 'vinyl', '0.15', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2486, 273, 'material', 'Foil', 'foil', '0.14', '0.1200', '0.1000', '0.0900', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2513, 276, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2472, 271, 'coating', 'Emboss', 'emboss', '0.07', '0.0600', '0.0500', '0.0500', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2514, 276, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2445, 268, 'coating', 'Emboss', 'emboss', '0.03', '0.0200', '0.0200', '0.0200', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2515, 276, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2508, 275, 'coating', 'Emboss', 'emboss', '0.13', '0.1100', '0.1000', '0.0800', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2516, 276, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2481, 272, 'coating', 'Emboss', 'emboss', '0.09', '0.0800', '0.0600', '0.0500', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2517, 276, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2517, 276, 'coating', 'Emboss', 'emboss', '0.15', '0.1200', '0.1100', '0.0900', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2518, 276, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2518, 276, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2519, 276, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2519, 276, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2520, 276, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2520, 276, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2521, 277, 'material', 'Vinyl', 'vinyl', '0.16', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2523, 277, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2522, 277, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2524, 277, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2523, 277, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2525, 277, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2524, 277, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2527, 277, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2525, 277, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2528, 277, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2526, 277, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2529, 277, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2527, 277, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2532, 278, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2528, 277, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2533, 278, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2529, 277, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2534, 278, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2530, 278, 'material', 'Vinyl', 'vinyl', '0.18', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2536, 278, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2531, 278, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2537, 278, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2532, 278, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2538, 278, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2533, 278, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2541, 279, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2534, 278, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2542, 279, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2535, 278, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2543, 279, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2536, 278, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2545, 279, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2537, 278, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2546, 279, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2538, 278, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2547, 279, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2539, 279, 'material', 'Vinyl', 'vinyl', '0.02', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2550, 280, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2540, 279, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2551, 280, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2541, 279, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2552, 280, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2542, 279, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2554, 280, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2543, 279, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2555, 280, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2544, 279, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2556, 280, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2545, 279, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2559, 281, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2546, 279, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2560, 281, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2547, 279, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2561, 281, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2548, 280, 'material', 'Vinyl', 'vinyl', '0.03', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2563, 281, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2549, 280, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2564, 281, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2550, 280, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2565, 281, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2551, 280, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2568, 282, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2552, 280, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2569, 282, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2553, 280, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2570, 282, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2554, 280, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2572, 282, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2555, 280, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2573, 282, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2556, 280, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2574, 282, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2557, 281, 'material', 'Vinyl', 'vinyl', '0.05', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2577, 283, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2558, 281, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2578, 283, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2559, 281, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2579, 283, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2560, 281, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2581, 283, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2561, 281, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2582, 283, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2562, 281, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2583, 283, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2563, 281, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2586, 284, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2564, 281, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2587, 284, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2565, 281, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2588, 284, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2566, 282, 'material', 'Vinyl', 'vinyl', '0.08', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2590, 284, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2567, 282, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2591, 284, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2568, 282, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2592, 284, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2569, 282, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2595, 285, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2570, 282, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2596, 285, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2571, 282, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2597, 285, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2572, 282, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2599, 285, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2573, 282, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2600, 285, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2574, 282, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2601, 285, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2575, 283, 'material', 'Vinyl', 'vinyl', '0.10', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2604, 286, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2576, 283, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2605, 286, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2577, 283, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2606, 286, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2578, 283, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2608, 286, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2579, 283, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2609, 286, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2580, 283, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2610, 286, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2581, 283, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2613, 287, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2582, 283, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2614, 287, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2583, 283, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2615, 287, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2584, 284, 'material', 'Vinyl', 'vinyl', '0.11', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2617, 287, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2585, 284, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2618, 287, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2586, 284, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2619, 287, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2587, 284, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2622, 288, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2588, 284, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2623, 288, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2589, 284, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2624, 288, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2590, 284, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2626, 288, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2591, 284, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2627, 288, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2592, 284, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2548, 280, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2593, 285, 'material', 'Vinyl', 'vinyl', '0.03', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2557, 281, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2594, 285, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2575, 283, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2595, 285, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2584, 284, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2596, 285, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2593, 285, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2597, 285, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2602, 286, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2598, 285, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2611, 287, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2599, 285, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2620, 288, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2600, 285, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2521, 277, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2601, 285, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2530, 278, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2602, 286, 'material', 'Vinyl', 'vinyl', '0.06', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2598, 285, 'coating', 'Emboss', 'emboss', '0.08', '0.0700', '0.0600', '0.0500', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2603, 286, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2522, 277, 'material', 'Foil', 'foil', '0.21', '0.1900', '0.1500', '0.1300', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2604, 286, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2526, 277, 'coating', 'Emboss', 'emboss', '0.16', '0.1400', '0.1200', '0.1000', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2605, 286, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2535, 278, 'coating', 'Emboss', 'emboss', '0.18', '0.1600', '0.1300', '0.1000', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2606, 286, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2540, 279, 'material', 'Foil', 'foil', '0.04', '0.0300', '0.0300', '0.0200', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2607, 286, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2549, 280, 'material', 'Foil', 'foil', '0.06', '0.0500', '0.0500', '0.0400', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2608, 286, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2576, 283, 'material', 'Foil', 'foil', '0.13', '0.1100', '0.1000', '0.0800', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2609, 286, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2585, 284, 'material', 'Foil', 'foil', '0.15', '0.1400', '0.1100', '0.0900', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2610, 286, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2594, 285, 'material', 'Foil', 'foil', '0.11', '0.0900', '0.0800', '0.0700', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2611, 287, 'material', 'Vinyl', 'vinyl', '0.12', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2612, 287, 'material', 'Foil', 'foil', '0.20', '0.1700', '0.1500', '0.1200', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2612, 287, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2621, 288, 'material', 'Foil', 'foil', '0.24', '0.2100', '0.1800', '0.1500', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2613, 287, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2544, 279, 'coating', 'Emboss', 'emboss', '0.02', '0.0200', '0.0200', '0.0100', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2614, 287, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2553, 280, 'coating', 'Emboss', 'emboss', '0.03', '0.0300', '0.0300', '0.0300', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2615, 287, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2580, 283, 'coating', 'Emboss', 'emboss', '0.10', '0.0800', '0.0700', '0.0600', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2616, 287, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2571, 282, 'coating', 'Emboss', 'emboss', '0.08', '0.0700', '0.0600', '0.0500', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2617, 287, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2589, 284, 'coating', 'Emboss', 'emboss', '0.11', '0.1000', '0.0800', '0.0700', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2618, 287, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2607, 286, 'coating', 'Emboss', 'emboss', '0.11', '0.1000', '0.0800', '0.0700', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2619, 287, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2616, 287, 'coating', 'Emboss', 'emboss', '0.15', '0.1300', '0.1100', '0.1000', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2620, 288, 'material', 'Vinyl', 'vinyl', '0.22', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2625, 288, 'coating', 'Emboss', 'emboss', '0.18', '0.1600', '0.1400', '0.1100', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2621, 288, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2628, 288, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2622, 288, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2631, 289, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2623, 288, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2632, 289, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2624, 288, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2633, 289, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2625, 288, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2635, 289, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2626, 288, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2636, 289, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2627, 288, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2637, 289, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2628, 288, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2640, 290, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2629, 289, 'material', 'Vinyl', 'vinyl', '0.12', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2641, 290, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2630, 289, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2642, 290, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2631, 289, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2644, 290, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2632, 289, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2645, 290, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2633, 289, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2646, 290, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2634, 289, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2649, 291, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2635, 289, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2650, 291, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2636, 289, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2651, 291, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2637, 289, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2653, 291, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2638, 290, 'material', 'Vinyl', 'vinyl', '0.11', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2654, 291, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2639, 290, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2655, 291, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2640, 290, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2658, 292, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2641, 290, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2659, 292, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2642, 290, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2660, 292, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2643, 290, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2662, 292, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2644, 290, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2663, 292, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2645, 290, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2664, 292, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2646, 290, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2667, 293, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2647, 291, 'material', 'Vinyl', 'vinyl', '0.16', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2668, 293, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2648, 291, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2669, 293, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2649, 291, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2671, 293, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2650, 291, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2672, 293, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2651, 291, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2673, 293, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2652, 291, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2676, 294, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2653, 291, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2677, 294, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2654, 291, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2678, 294, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2655, 291, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2680, 294, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2656, 292, 'material', 'Vinyl', 'vinyl', '0.28', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2681, 294, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2657, 292, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2682, 294, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2658, 292, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2685, 295, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2659, 292, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2686, 295, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2660, 292, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2687, 295, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2661, 292, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2689, 295, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2662, 292, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2690, 295, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2663, 292, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2691, 295, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2664, 292, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2694, 296, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2665, 293, 'material', 'Vinyl', 'vinyl', '0.34', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2695, 296, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2666, 293, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2696, 296, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2667, 293, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2698, 296, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2668, 293, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2699, 296, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2669, 293, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2700, 296, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2670, 293, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2703, 297, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2671, 293, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2704, 297, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2672, 293, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2705, 297, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2673, 293, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2707, 297, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2674, 294, 'material', 'Vinyl', 'vinyl', '0.22', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2708, 297, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2675, 294, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2709, 297, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2676, 294, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2712, 298, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2677, 294, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2713, 298, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2678, 294, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2714, 298, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2679, 294, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2716, 298, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2680, 294, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2717, 298, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2681, 294, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2718, 298, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2682, 294, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2721, 299, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2683, 295, 'material', 'Vinyl', 'vinyl', '0.28', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2722, 299, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2684, 295, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2723, 299, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2685, 295, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2725, 299, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 4) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2686, 295, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2726, 299, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2687, 295, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2727, 299, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2688, 295, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2638, 290, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2689, 295, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2647, 291, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2690, 295, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2656, 292, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2691, 295, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2665, 293, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2692, 296, 'material', 'Vinyl', 'vinyl', '0.46', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2674, 294, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2693, 296, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2683, 295, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2694, 296, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2692, 296, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2695, 296, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2701, 297, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2696, 296, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2710, 298, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2697, 296, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2719, 299, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2698, 296, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2693, 296, 'material', 'Foil', 'foil', '0.54', '0.4700', '0.4000', '0.3400', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2699, 296, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2729, 270, 'coating', 'Gloss', '', '0.06', '0.0500', '0.0500', '0.0400', NULL, NULL, false, true, 0) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2700, 296, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2730, 271, 'coating', 'Gloss', '', '0.07', '0.0600', '0.0500', '0.0500', NULL, NULL, false, true, 0) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2701, 297, 'material', 'Vinyl', 'vinyl', '0.34', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2731, 272, 'coating', 'Gloss', '', '0.09', '0.0800', '0.0600', '0.0500', NULL, NULL, false, true, 0) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2702, 297, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2728, 274, 'coating', 'Gloss', '', '0.12', '0.1000', '0.0900', '0.0700', NULL, NULL, false, true, 0) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2703, 297, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2732, 275, 'coating', 'Gloss', '', '0.13', '0.1100', '0.1000', '0.0800', NULL, NULL, false, true, 0) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2704, 297, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2733, 276, 'coating', 'Gloss', '', '0.15', '0.1200', '0.1100', '0.0900', NULL, NULL, false, true, 0) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2705, 297, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2734, 277, 'coating', 'Gloss', '', '0.16', '0.1400', '0.1200', '0.1000', NULL, NULL, false, true, 0) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2706, 297, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2630, 289, 'material', 'Foil', 'foil', '0.28', '0.2500', '0.2100', '0.1700', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2707, 297, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2639, 290, 'material', 'Foil', 'foil', '0.21', '0.1900', '0.1600', '0.1400', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2708, 297, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2648, 291, 'material', 'Foil', 'foil', '0.28', '0.2500', '0.2100', '0.1700', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2709, 297, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2675, 294, 'material', 'Foil', 'foil', '0.36', '0.3200', '0.2700', '0.2300', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2710, 298, 'material', 'Vinyl', 'vinyl', '0.55', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2634, 289, 'coating', 'Emboss', 'emboss', '0.22', '0.2000', '0.1600', '0.1300', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2711, 298, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2702, 297, 'material', 'Foil', 'foil', '0.56', '0.4900', '0.4200', '0.3500', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2712, 298, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2711, 298, 'material', 'Foil', 'foil', '0.67', '0.5800', '0.5000', '0.4200', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2713, 298, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2720, 299, 'material', 'Foil', 'foil', '0.80', '0.7000', '0.6000', '0.5000', NULL, NULL, false, true, 2) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2714, 298, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2643, 290, 'coating', 'Emboss', 'emboss', '0.16', '0.1400', '0.1200', '0.1100', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2715, 298, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2661, 292, 'coating', 'Emboss', 'emboss', '0.28', '0.2400', '0.2100', '0.1700', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2716, 298, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2679, 294, 'coating', 'Emboss', 'emboss', '0.29', '0.2600', '0.2200', '0.1800', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2717, 298, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2670, 293, 'coating', 'Emboss', 'emboss', '0.34', '0.2900', '0.2500', '0.2100', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2718, 298, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2688, 295, 'coating', 'Emboss', 'emboss', '0.37', '0.3300', '0.2700', '0.2300', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2719, 299, 'material', 'Vinyl', 'vinyl', '0.66', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2697, 296, 'coating', 'Emboss', 'emboss', '0.44', '0.3900', '0.3300', '0.2800', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2720, 299, 'material', 'Foil', 'foil', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2706, 297, 'coating', 'Emboss', 'emboss', '0.46', '0.4000', '0.3400', '0.2900', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2721, 299, 'material', 'Holographic', 'holographic', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2715, 298, 'coating', 'Emboss', 'emboss', '0.55', '0.4800', '0.4100', '0.3500', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2722, 299, 'coating', 'None', 'none', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2539, 279, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2723, 299, 'coating', 'Varnish', 'varnish', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2566, 282, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2724, 299, 'coating', 'Emboss', 'emboss', '0.00', NULL, NULL, NULL, false, true, 3) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2629, 289, 'material', 'Vinyl', 'vinyl', '0.00', NULL, NULL, NULL, NULL, NULL, true, true, 1) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2725, 299, 'coating', 'Both', 'both', '0.00', NULL, NULL, NULL, false, true, 4) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2742, 288, 'coating', 'Gloss', '', '0.18', '0.1600', '0.1400', '0.1100', NULL, NULL, false, true, 0) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2726, 299, 'cut', 'Standard', 'Kiss cut', '0.00', NULL, NULL, NULL, true, true, 1) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2754, 268, 'coating', 'Gloss', '', '0.03', '0.0200', '0.0200', '0.0200', NULL, NULL, false, true, 0) 
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, is_default, is_active, display_order) 
-VALUES (2727, 299, 'cut', 'Die Cut', 'Die cut', '0.00', NULL, NULL, NULL, false, true, 2) 
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2737, 269, 'coating', 'Gloss', '', '0.04', '0.0400', '0.0300', '0.0200', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2736, 273, 'coating', 'Gloss', '', '0.10', '0.0900', '0.0700', '0.0700', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2531, 278, 'material', 'Foil', 'foil', '0.23', '0.2000', '0.1700', '0.1400', NULL, NULL, false, true, 2) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2743, 289, 'coating', 'Gloss', '', '0.22', '0.2000', '0.1600', '0.1300', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2735, 278, 'coating', 'Gloss', '', '0.18', '0.1600', '0.1300', '0.1000', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2558, 281, 'material', 'Foil', 'foil', '0.08', '0.0700', '0.0700', '0.0600', NULL, NULL, false, true, 2) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2567, 282, 'material', 'Foil', 'foil', '0.11', '0.0900', '0.0800', '0.0700', NULL, NULL, false, true, 2) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2603, 286, 'material', 'Foil', 'foil', '0.15', '0.1100', '0.1400', '0.0900', NULL, NULL, false, true, 2) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2657, 292, 'material', 'Foil', 'foil', '0.35', '0.3000', '0.2600', '0.2200', NULL, NULL, false, true, 2) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2744, 290, 'coating', 'Gloss', '', '0.16', '0.1400', '0.1200', '0.1100', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2666, 293, 'material', 'Foil', 'foil', '0.41', '0.3600', '0.3100', '0.2600', NULL, NULL, false, true, 2) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2684, 295, 'material', 'Foil', 'foil', '0.45', '0.4000', '0.3400', '0.2800', NULL, NULL, false, true, 2) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2759, 279, 'coating', 'Gloss', '', '0.02', '0.0200', '0.0200', '0.0100', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2745, 291, 'coating', 'Gloss', '', '0.22', '0.2000', '0.1600', '0.1300', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2755, 280, 'coating', 'Gloss', '', '0.03', '0.0300', '0.0300', '0.0300', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2652, 291, 'coating', 'Emboss', 'emboss', '0.22', '0.2000', '0.1600', '0.1300', NULL, NULL, false, true, 3) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2756, 281, 'coating', 'Gloss', '', '0.05', '0.0500', '0.0400', '0.0400', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2562, 281, 'coating', 'Emboss', 'emboss', '0.05', '0.0500', '0.0400', '0.0400', NULL, NULL, false, true, 3) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2746, 292, 'coating', 'Gloss', '', '0.28', '0.2400', '0.2100', '0.1700', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2757, 282, 'coating', 'Gloss', '', '0.08', '0.0700', '0.0600', '0.0500', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2747, 293, 'coating', 'Gloss', '', '0.34', '0.2900', '0.2500', '0.2100', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2758, 283, 'coating', 'Gloss', '', '0.10', '0.0800', '0.0700', '0.0600', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2738, 284, 'coating', 'Gloss', '', '0.11', '0.1000', '0.0800', '0.0700', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2748, 294, 'coating', 'Gloss', '', '0.29', '0.2600', '0.2200', '0.1800', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2739, 285, 'coating', 'Gloss', '', '0.08', '0.0700', '0.0600', '0.0500', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2749, 295, 'coating', 'Gloss', '', '0.37', '0.3300', '0.2700', '0.2300', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2740, 286, 'coating', 'Gloss', '', '0.11', '0.1000', '0.0800', '0.0700', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2750, 296, 'coating', 'Gloss', '', '0.44', '0.3900', '0.3300', '0.2800', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2741, 287, 'coating', 'Gloss', '', '0.15', '0.1300', '0.1100', '0.1000', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2751, 297, 'coating', 'Gloss', '', '0.46', '0.4000', '34.0000', '0.2900', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2752, 298, 'coating', 'Gloss', '', '0.55', '0.4800', '0.4100', '0.3500', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2753, 299, 'coating', 'Gloss', '', '0.66', '0.5800', '0.5000', '0.4200', NULL, NULL, false, true, 0) 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO product_options (id, product_id, option_type, name, value, price_modifier, tier2_price_modifier, tier3_price_modifier, tier4_price_modifier, tier5_price_modifier, tier6_price_modifier, is_default, is_active, display_order) 
+  VALUES (2724, 299, 'coating', 'Emboss', 'emboss', '0.66', '0.5800', '0.5000', '0.4200', NULL, NULL, false, true, 3) 
 ON CONFLICT (id) DO NOTHING;
 
 -- Reset sequences
@@ -1006,16 +1110,7 @@ SELECT setval('product_options_id_seq', COALESCE((SELECT MAX(id) FROM product_op
 
 -- Pricing Tiers
 INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
-VALUES (455, 268, 1, 249, '0.1300') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
-VALUES (456, 268, 250, 999, '0.1100') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
 VALUES (457, 268, 1000, 1999, '0.1000') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
-VALUES (458, 268, 2000, 5000, '0.0800') 
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
 VALUES (459, 269, 1, 249, '0.1400') 
@@ -1126,9 +1221,6 @@ INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per
 VALUES (494, 277, 2000, 5000, '0.1400') 
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
-VALUES (495, 278, 1, 249, '0.2300') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
 VALUES (496, 278, 250, 999, '0.2000') 
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
@@ -1136,12 +1228,6 @@ VALUES (497, 278, 1000, 1999, '0.1700')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
 VALUES (498, 278, 2000, 5000, '0.1500') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
-VALUES (499, 279, 1, 249, '0.1200') 
-ON CONFLICT (id) DO NOTHING;
-INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
-VALUES (500, 279, 250, 999, '0.1100') 
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
 VALUES (501, 279, 1000, 1999, '0.0900') 
@@ -1388,6 +1474,24 @@ VALUES (581, 299, 1000, 1999, '0.4300')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
 VALUES (582, 299, 2000, 5000, '0.3600') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
+VALUES (458, 268, 2000, 5000, '0.0800') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
+VALUES (456, 268, 250, 999, '0.1100') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
+VALUES (455, 268, 1, 249, '0.1300') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
+VALUES (499, 279, 1, 249, '0.1200') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
+VALUES (500, 279, 250, 999, '0.1100') 
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO pricing_tiers (id, product_id, min_quantity, max_quantity, price_per_unit) 
+VALUES (495, 278, 1, 249, '0.2300') 
 ON CONFLICT (id) DO NOTHING;
 
 -- Reset sequences

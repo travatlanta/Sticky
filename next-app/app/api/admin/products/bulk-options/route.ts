@@ -128,7 +128,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { optionName, priceModifier, tier2PriceModifier, tier3PriceModifier, tier4PriceModifier } = body;
+    const { optionName, priceModifier, tier2PriceModifier, tier3PriceModifier, tier4PriceModifier, tier5PriceModifier, tier6PriceModifier } = body;
     
     if (!optionName) {
       return NextResponse.json({ message: 'Missing option name' }, { status: 400 });
@@ -173,6 +173,22 @@ export async function PATCH(request: NextRequest) {
       }
       updateData.tier4PriceModifier = price.toFixed(4);
     }
+
+    if (tier5PriceModifier !== undefined && tier5PriceModifier !== null && tier5PriceModifier !== '') {
+      const price = parseFloat(tier5PriceModifier);
+      if (isNaN(price) || price < 0) {
+        return NextResponse.json({ message: 'Invalid tier 5 price' }, { status: 400 });
+      }
+      updateData.tier5PriceModifier = price.toFixed(4);
+    }
+
+    if (tier6PriceModifier !== undefined && tier6PriceModifier !== null && tier6PriceModifier !== '') {
+      const price = parseFloat(tier6PriceModifier);
+      if (isNaN(price) || price < 0) {
+        return NextResponse.json({ message: 'Invalid tier 6 price' }, { status: 400 });
+      }
+      updateData.tier6PriceModifier = price.toFixed(4);
+    }
     
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ message: 'No price values provided' }, { status: 400 });
@@ -195,6 +211,8 @@ export async function PATCH(request: NextRequest) {
       if (k === 'tier2PriceModifier') return 'Tier 2';
       if (k === 'tier3PriceModifier') return 'Tier 3';
       if (k === 'tier4PriceModifier') return 'Tier 4';
+      if (k === 'tier5PriceModifier') return 'Tier 5';
+      if (k === 'tier6PriceModifier') return 'Tier 6';
       return k;
     });
 

@@ -204,6 +204,8 @@ export const productOptions = pgTable("product_options", {
   tier2PriceModifier: decimal("tier2_price_modifier", { precision: 10, scale: 4 }),
   tier3PriceModifier: decimal("tier3_price_modifier", { precision: 10, scale: 4 }),
   tier4PriceModifier: decimal("tier4_price_modifier", { precision: 10, scale: 4 }),
+  tier5PriceModifier: decimal("tier5_price_modifier", { precision: 10, scale: 4 }),
+  tier6PriceModifier: decimal("tier6_price_modifier", { precision: 10, scale: 4 }),
   isDefault: boolean("is_default").default(false),
   isActive: boolean("is_active").default(true),
   displayOrder: integer("display_order").default(0),

@@ -45,6 +45,8 @@ const transformOption = (o: any) => ({
   tier2PriceModifier: o.tier2_price_modifier,
   tier3PriceModifier: o.tier3_price_modifier,
   tier4PriceModifier: o.tier4_price_modifier,
+  tier5PriceModifier: o.tier5_price_modifier,
+  tier6PriceModifier: o.tier6_price_modifier,
 });
 
 const transformTier = (t: any) => ({

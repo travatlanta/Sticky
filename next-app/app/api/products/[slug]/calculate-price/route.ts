@@ -132,6 +132,10 @@ export async function POST(
             effectiveModifier = parseFloat(option.tier3PriceModifier);
           } else if (appliedTierNumber === 4 && option.tier4PriceModifier !== null) {
             effectiveModifier = parseFloat(option.tier4PriceModifier);
+          } else if (appliedTierNumber === 5 && option.tier5PriceModifier !== null) {
+            effectiveModifier = parseFloat(option.tier5PriceModifier);
+          } else if (appliedTierNumber === 6 && option.tier6PriceModifier !== null) {
+            effectiveModifier = parseFloat(option.tier6PriceModifier);
           }
           // Otherwise falls back to base priceModifier
           

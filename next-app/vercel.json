@@ -15,7 +15,7 @@
   "crons": [
     {
       "path": "/api/cron/retry-email-deliveries",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }

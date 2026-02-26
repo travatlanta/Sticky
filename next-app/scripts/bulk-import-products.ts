@@ -25,6 +25,16 @@ interface ProductData {
   glossPrices: number[];
 }
 
+function buildTierPricesFromBase(basePrice: number): number[] {
+  const tier2 = Number((basePrice * 2.5).toFixed(2));
+  const tier1 = Number((tier2 * 2.5).toFixed(2));
+  const tier4 = Number((basePrice * 0.75).toFixed(2));
+  const tier5 = Number((tier4 * 0.75).toFixed(2));
+  const tier6 = Number((tier5 * 0.75).toFixed(2));
+
+  return [tier1, tier2, basePrice, tier4, tier5, tier6];
+}
+
 // CIRCLES - From spreadsheet
 const circleProducts: ProductData[] = [
   { name: '1" Circle Stickers', slug: '1-inch-circle-stickers', sizeInches: 1, categorySlug: 'circles',
@@ -142,6 +152,8 @@ async function main() {
 
       // Calculate gloss modifier (difference between gloss tier1 and standard tier1)
       const glossModifier = Math.max(0, prod.glossPrices[0] - prod.standardPrices[0]);
+      const basePrice = prod.standardPrices[0] ?? 0;
+      const tierPrices = buildTierPricesFromBase(basePrice);
 
       // Template dimensions based on size (300 DPI)
       const width = prod.widthInches || prod.sizeInches;
@@ -155,7 +167,7 @@ async function main() {
         slug: prod.slug,
         description: `High-quality ${prod.name.toLowerCase()} printed on premium vinyl.`,
         categoryId: categoryMap[prod.categorySlug],
-        basePrice: prod.standardPrices[0].toFixed(2),
+        basePrice: basePrice.toFixed(2),
         minQuantity: 1,
         isActive: true,
         isFeatured: false,
@@ -191,12 +203,11 @@ async function main() {
       ];
 
       for (let i = 0; i < tierRanges.length; i++) {
-        const basePrice = prod.standardPrices[i] ?? prod.standardPrices[prod.standardPrices.length - 1] ?? 0;
         await db.insert(pricingTiers).values({
           productId: product.id,
           minQuantity: tierRanges[i].min,
           maxQuantity: tierRanges[i].max,
-          pricePerUnit: basePrice.toFixed(4),
+          pricePerUnit: tierPrices[i].toFixed(4),
         });
       }
 

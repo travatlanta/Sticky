@@ -20,6 +20,16 @@ interface ProductPricing {
   glossPrices: number[];
 }
 
+function buildTierPricesFromBase(basePrice: number): number[] {
+  const tier2 = Number((basePrice * 2.5).toFixed(2));
+  const tier1 = Number((tier2 * 2.5).toFixed(2));
+  const tier4 = Number((basePrice * 0.75).toFixed(2));
+  const tier5 = Number((tier4 * 0.75).toFixed(2));
+  const tier6 = Number((tier5 * 0.75).toFixed(2));
+
+  return [tier1, tier2, basePrice, tier4, tier5, tier6];
+}
+
 const productPricing: ProductPricing[] = [
   { slug: '1-inch-circle-stickers', standardPrices: [0.13, 0.11, 0.10, 0.08], glossPrices: [0.16, 0.14, 0.14, 0.10] },
   { slug: '1-5-inch-circle-stickers', standardPrices: [0.14, 0.12, 0.11, 0.09], glossPrices: [0.18, 0.16, 0.14, 0.11] },
@@ -98,13 +108,15 @@ async function main() {
     }
 
     if (existingTiers.length === 0) {
+      const basePrice = pricing.standardPrices[0] ?? 0;
+      const tierPrices = buildTierPricesFromBase(basePrice);
+
       for (let i = 0; i < tierRanges.length; i++) {
-        const basePrice = pricing.standardPrices[i] ?? pricing.standardPrices[pricing.standardPrices.length - 1] ?? 0;
         await db.insert(pricingTiers).values({
           productId: product.id,
           minQuantity: tierRanges[i].min,
           maxQuantity: tierRanges[i].max,
-          pricePerUnit: basePrice.toFixed(4),
+          pricePerUnit: tierPrices[i].toFixed(4),
         });
       }
       console.log(`✅ Added pricing tiers for ${product.name}`);

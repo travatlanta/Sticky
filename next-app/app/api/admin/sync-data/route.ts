@@ -47,13 +47,19 @@ const SEED_DATA = {
 
 function generatePricingTiers(productId: number, basePrice: string) {
   const base = parseFloat(basePrice);
+  const tier2 = Number((base * 2.5).toFixed(2));
+  const tier1 = Number((tier2 * 2.5).toFixed(2));
+  const tier4 = Number((base * 0.75).toFixed(2));
+  const tier5 = Number((tier4 * 0.75).toFixed(2));
+  const tier6 = Number((tier5 * 0.75).toFixed(2));
+
   return [
-    { productId, minQuantity: 1, maxQuantity: 99, pricePerUnit: base.toFixed(2) },
-    { productId, minQuantity: 100, maxQuantity: 249, pricePerUnit: base.toFixed(2) },
-    { productId, minQuantity: 250, maxQuantity: 999, pricePerUnit: (base * 0.90).toFixed(2) },
-    { productId, minQuantity: 1000, maxQuantity: 1999, pricePerUnit: (base * 0.85).toFixed(2) },
-    { productId, minQuantity: 2000, maxQuantity: 4999, pricePerUnit: (base * 0.80).toFixed(2) },
-    { productId, minQuantity: 5000, maxQuantity: null, pricePerUnit: (base * 0.80).toFixed(2) }
+    { productId, minQuantity: 1, maxQuantity: 99, pricePerUnit: tier1.toFixed(2) },
+    { productId, minQuantity: 100, maxQuantity: 249, pricePerUnit: tier2.toFixed(2) },
+    { productId, minQuantity: 250, maxQuantity: 999, pricePerUnit: base.toFixed(2) },
+    { productId, minQuantity: 1000, maxQuantity: 1999, pricePerUnit: tier4.toFixed(2) },
+    { productId, minQuantity: 2000, maxQuantity: 4999, pricePerUnit: tier5.toFixed(2) },
+    { productId, minQuantity: 5000, maxQuantity: null, pricePerUnit: tier6.toFixed(2) }
   ];
 }
 

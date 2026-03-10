@@ -211,18 +211,18 @@ export default function HomeClient() {
                 
                 return (
                   <Card key={deal.id} className="overflow-hidden shadow-xl hover:shadow-2xl transition-shadow" data-testid={`deal-card-${deal.id}`}>
-                    <div className="relative">
+                    <div className="relative aspect-square">
                       {deal.imageUrl ? (
                         <Image
                           src={deal.imageUrl}
                           alt={deal.title}
                           fill
                           sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
-                          className="w-full aspect-square object-cover"
+                          className="object-cover"
                           unoptimized
                         />
                       ) : (
-                        <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
+                        <div className="w-full h-full bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center">
                           <Flame className="h-16 w-16 text-orange-300" />
                         </div>
                       )}

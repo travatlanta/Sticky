@@ -158,7 +158,8 @@ export default function ProductDetail() {
     if (product?.id) {
       calculatePriceMutation.mutate();
     }
-  }, [product?.id, quantity, selectedOptions, calculatePriceMutation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, quantity, selectedOptions]);
 
   const handleStartDesign = async () => {
     console.log('handleStartDesign called, product:', product?.id);

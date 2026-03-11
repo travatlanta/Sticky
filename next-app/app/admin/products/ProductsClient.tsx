@@ -1316,12 +1316,32 @@ function PricingToolsTab({ onAdjustmentApplied }: { onAdjustmentApplied: () => v
                 </h3>
                 <p className="text-xs text-gray-500">{tierPricingPopup.productName}</p>
               </div>
-              <button 
-                onClick={closeTierPricingPopup}
-                className="text-gray-400 hover:text-gray-600 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {tierPricingPopup.optionType === 'base' && (
+                  <button
+                    type="button"
+                    title="Set tier 1 & 2 from tier 3 × 2.5×"
+                    disabled={!tierPricingEdits.tier3}
+                    onClick={() => {
+                      const base = parseFloat(tierPricingEdits.tier3);
+                      if (!isNaN(base) && base > 0) {
+                        const tier2 = Math.round(base * 2.5 * 100) / 100;
+                        const tier1 = Math.round(tier2 * 2.5 * 100) / 100;
+                        setTierPricingEdits(prev => ({ ...prev, tier1: tier1.toFixed(2), tier2: tier2.toFixed(2) }));
+                      }
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 disabled:text-gray-300 border border-blue-200 hover:border-blue-400 disabled:border-gray-200 rounded px-2 py-0.5 transition-colors"
+                  >
+                    Auto-calc 1&amp;2
+                  </button>
+                )}
+                <button 
+                  onClick={closeTierPricingPopup}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">

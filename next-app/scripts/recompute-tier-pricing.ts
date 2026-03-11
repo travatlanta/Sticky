@@ -11,41 +11,6 @@ const TIER_RANGES = [
   { minQuantity: 5000, maxQuantity: null },
 ] as const;
 
-const LEGACY_BASE_BY_SLUG: Record<string, number> = {
-  '1-inch-circle-stickers': 0.13,
-  '1-5-inch-circle-stickers': 0.14,
-  '2-inch-circle-stickers': 0.15,
-  '2-5-inch-circle-stickers': 0.16,
-  '3-inch-circle-stickers': 0.17,
-  '3-5-inch-circle-stickers': 0.18,
-  '4-inch-circle-stickers': 0.19,
-  '4-5-inch-circle-stickers': 0.2,
-  '5-inch-circle-stickers': 0.21,
-  '5-5-inch-circle-stickers': 0.22,
-  '6-inch-circle-stickers': 0.23,
-  '1x1-square-stickers': 0.12,
-  '1x2-square-stickers': 0.14,
-  '1x3-square-stickers': 0.15,
-  '1x4-square-stickers': 0.16,
-  '1x5-square-stickers': 0.17,
-  '1x6-square-stickers': 0.19,
-  '2x2-square-stickers': 0.16,
-  '2x3-square-stickers': 0.21,
-  '2x4-square-stickers': 0.24,
-  '2x5-square-stickers': 0.27,
-  '2x6-square-stickers': 0.3,
-  '3x3-square-stickers': 0.23,
-  '3x4-square-stickers': 0.27,
-  '3x5-square-stickers': 0.3,
-  '3x6-square-stickers': 0.34,
-  '4x4-square-stickers': 0.32,
-  '4x5-square-stickers': 0.37,
-  '4x6-square-stickers': 0.43,
-  '5x5-square-stickers': 0.44,
-  '5x6-square-stickers': 0.5,
-  '6x6-square-stickers': 0.58,
-};
-
 function buildTierPricesFromBase(basePrice: number): string[] {
   const tier2 = Number((basePrice * 2.5).toFixed(2));
   const tier1 = Number((tier2 * 2.5).toFixed(2));
@@ -75,9 +40,7 @@ async function main() {
     }
 
     const canonicalTier3 = productTiers.find((tier) => tier.minQuantity === 250);
-    const sourceBase =
-      LEGACY_BASE_BY_SLUG[product.slug] ??
-      Number(canonicalTier3?.pricePerUnit ?? product.basePrice ?? '0');
+    const sourceBase = Number(canonicalTier3?.pricePerUnit ?? product.basePrice ?? '0');
 
     if (!Number.isFinite(sourceBase) || sourceBase <= 0) {
       console.log(`⚠️ Invalid source base for ${product.slug}, skipping`);

@@ -31,12 +31,18 @@ export async function GET() {
         const userMessages = escalatedMessages.filter((m) => m.userId === userId);
         const latestMessage = userMessages[0];
 
+        const userName = user
+          ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'
+          : 'Unknown';
+
         return {
           userId,
-          user: user ? { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } : null,
-          latestMessage,
+          userEmail: user?.email || 'Unknown',
+          userName,
+          lastMessage: latestMessage?.content || '',
+          lastMessageAt: latestMessage?.createdAt?.toISOString?.() || latestMessage?.createdAt || '',
+          escalatedAt: latestMessage?.escalatedAt?.toISOString?.() || latestMessage?.escalatedAt || '',
           messageCount: userMessages.length,
-          needsReply: true,
         };
       })
     );

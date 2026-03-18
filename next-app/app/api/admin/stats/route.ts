@@ -64,7 +64,7 @@ export async function GET() {
       orderCount: allOrders.length,
       productCount: allProducts.length,
       categoryCount: allCategories.length,
-      totalRevenue,
+      revenue: totalRevenue,
       pendingOrders,
       completedOrders,
     });
@@ -76,7 +76,7 @@ export async function GET() {
       orderCount: 0,
       productCount: 0,
       categoryCount: 0,
-      totalRevenue: 0,
+      revenue: 0,
       pendingOrders: 0,
       completedOrders: 0,
     });

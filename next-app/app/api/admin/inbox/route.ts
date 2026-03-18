@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { messages, users } from '@shared/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, asc } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -17,19 +17,20 @@ export async function GET() {
       return NextResponse.json({ message: 'Admin access required' }, { status: 403 });
     }
 
-    const escalatedMessages = await db
+    // Fetch ALL messages (not just escalated ones) so admin can see every conversation
+    const allMessages = await db
       .select()
       .from(messages)
-      .where(eq(messages.needsHumanSupport, true))
-      .orderBy(desc(messages.escalatedAt));
+      .orderBy(desc(messages.createdAt));
 
-    const uniqueUserIds = Array.from(new Set(escalatedMessages.map((m) => m.userId))).filter((id): id is string => id !== null);
+    const uniqueUserIds = Array.from(new Set(allMessages.map((m) => m.userId))).filter((id): id is string => id !== null);
 
     const conversations = await Promise.all(
       uniqueUserIds.map(async (userId) => {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        const userMessages = escalatedMessages.filter((m) => m.userId === userId);
+        const userMessages = allMessages.filter((m) => m.userId === userId);
         const latestMessage = userMessages[0];
+        const hasEscalation = userMessages.some((m) => m.needsHumanSupport);
 
         const userName = user
           ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'
@@ -43,6 +44,7 @@ export async function GET() {
           lastMessageAt: latestMessage?.createdAt?.toISOString?.() || latestMessage?.createdAt || '',
           escalatedAt: latestMessage?.escalatedAt?.toISOString?.() || latestMessage?.escalatedAt || '',
           messageCount: userMessages.length,
+          needsHumanSupport: hasEscalation,
         };
       })
     );

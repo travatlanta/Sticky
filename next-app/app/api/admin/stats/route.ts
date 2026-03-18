@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users, orders, products, categories } from '@shared/schema';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { sql } from 'drizzle-orm';
 
 export async function GET() {
   try {
@@ -23,48 +23,60 @@ export async function GET() {
 
     console.log('Admin stats: Fetching data from database');
     
-    let allUsers: any[] = [];
-    let allOrders: any[] = [];
-    let allProducts: any[] = [];
-    let allCategories: any[] = [];
-    
+    // Use raw SQL with only core columns to avoid schema mismatch issues
+    let userCount = 0;
+    let orderCount = 0;
+    let revenue = 0;
+    let productCount = 0;
+    let categoryCount = 0;
+    let pendingOrders = 0;
+    let completedOrders = 0;
+
     try {
-      allUsers = await db.select().from(users);
+      const usersResult = await db.execute(sql`SELECT COUNT(*) as count FROM users`);
+      userCount = parseInt((usersResult.rows[0] as any)?.count || '0');
     } catch (err) {
-      console.warn('Failed to fetch users:', err);
-    }
-    
-    try {
-      allOrders = await db.select().from(orders);
-    } catch (err) {
-      console.warn('Failed to fetch orders:', err);
-    }
-    
-    try {
-      allProducts = await db.select().from(products);
-    } catch (err) {
-      console.warn('Failed to fetch products:', err);
-    }
-    
-    try {
-      allCategories = await db.select().from(categories);
-    } catch (err) {
-      console.warn('Failed to fetch categories:', err);
+      console.warn('Failed to count users:', err);
     }
 
-    const totalRevenue = allOrders.reduce((sum, order) => {
-      return sum + parseFloat(order.totalAmount || '0');
-    }, 0);
+    try {
+      const ordersResult = await db.execute(sql`
+        SELECT 
+          COUNT(*) as count,
+          COALESCE(SUM(CAST(total_amount AS numeric)), 0) as total_revenue,
+          COUNT(*) FILTER (WHERE status = 'pending') as pending,
+          COUNT(*) FILTER (WHERE status = 'delivered') as completed
+        FROM orders
+      `);
+      const row = ordersResult.rows[0] as any;
+      orderCount = parseInt(row?.count || '0');
+      revenue = parseFloat(row?.total_revenue || '0');
+      pendingOrders = parseInt(row?.pending || '0');
+      completedOrders = parseInt(row?.completed || '0');
+    } catch (err) {
+      console.warn('Failed to count orders:', err);
+    }
 
-    const pendingOrders = allOrders.filter((o) => o.status === 'pending').length;
-    const completedOrders = allOrders.filter((o) => o.status === 'delivered').length;
+    try {
+      const productsResult = await db.execute(sql`SELECT COUNT(*) as count FROM products`);
+      productCount = parseInt((productsResult.rows[0] as any)?.count || '0');
+    } catch (err) {
+      console.warn('Failed to count products:', err);
+    }
+
+    try {
+      const categoriesResult = await db.execute(sql`SELECT COUNT(*) as count FROM categories`);
+      categoryCount = parseInt((categoriesResult.rows[0] as any)?.count || '0');
+    } catch (err) {
+      console.warn('Failed to count categories:', err);
+    }
 
     return NextResponse.json({
-      userCount: allUsers.length,
-      orderCount: allOrders.length,
-      productCount: allProducts.length,
-      categoryCount: allCategories.length,
-      revenue: totalRevenue,
+      userCount,
+      orderCount,
+      productCount,
+      categoryCount,
+      revenue,
       pendingOrders,
       completedOrders,
     });

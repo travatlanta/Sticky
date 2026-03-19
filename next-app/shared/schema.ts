@@ -81,7 +81,7 @@ export const senderTypeEnum = pgEnum("sender_type", ["user", "admin"]);
 // 'calculated' when creating new products.
 export const shippingTypeEnum = pgEnum("shipping_type", ["free", "flat", "calculated"]);
 
-// Session storage table (required for Replit Auth)
+// Session storage table
 export const sessions = pgTable(
   "sessions",
   {

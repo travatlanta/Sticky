@@ -1,7 +1,7 @@
 import type { Express, Request, Response, RequestHandler } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, isAdmin } from "./replitAuth";
+import { setupAuth, isAuthenticated, isAdmin } from "./auth";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { users, adminInvitations } from "@shared/schema";
@@ -16,8 +16,7 @@ import OpenAI from "openai";
 import { v4 as uuidv4 } from "uuid";
 
 const openai = new OpenAI({
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 const AI_SYSTEM_PROMPT = `You are a friendly and helpful customer support assistant for Sticky Banditos, a custom printing company. 
